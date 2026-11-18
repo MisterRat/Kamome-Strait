@@ -29,7 +29,8 @@ with sync_playwright() as p:
     pg.add_style_tag(content='body > *:not(canvas#c){visibility:hidden!important}')
     for s in shots:
         if s.get('js'): pg.evaluate("()=>{" + s['js'] + "}")
-        r = pg.evaluate("""(s)=>{const base=(typeof SHIPM!=='undefined'&&SHIPM.mesh)?SHIPM.mesh.position.clone():pos.clone();
+        r = pg.evaluate("""(s)=>{const ships=AFLD.a.filter(o=>o.kind==='ship');
+          const base=s.ship!=null?ships[s.ship].m.position.clone():(typeof SHIPM!=='undefined'&&SHIPM.mesh)?SHIPM.mesh.position.clone():pos.clone();
           const v=(a,rel)=>a?(rel?base.clone().add(new THREE.Vector3(...a)):new THREE.Vector3(...a)):null;
           const loc=(a)=>a&&typeof SHIPM!=='undefined'&&SHIPM.mesh?SHIPM.mesh.localToWorld(new THREE.Vector3(...a)):null;
           const e=v(s.eye,0)||v(s.eyeRel,1)||loc(s.eyeLocal),l=v(s.look,0)||v(s.lookRel,1)||loc(s.lookLocal);const c=window.__KC;c.fov=s.fov||50;c.aspect=innerWidth/innerHeight;

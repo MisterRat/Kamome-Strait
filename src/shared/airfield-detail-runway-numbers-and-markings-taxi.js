@@ -561,22 +561,32 @@
     for (const s of [-1, 1]) P.push(part(cyl(0.3, 0.3, 0.9, 10), 0x4a4d50, 8.8, dk(8.8) + 0.45, s * 3.4), part(cyl(0.24, 0.42, 0.45, 10), 0x303236, 8.8, dk(8.8) + 1.0, s * 3.4, 0, 0, 0.4 * s));
     return P;
   };
-  /* the allied ships are the detailed PCE-842 and PT-105 models (built from the plans, as in the PCE-842 game); more hulls just wear another number on the bow */
-  const allied = (kind, num, L, r0, r1, sp, seed) => {
-    if (!AFLD.addShip([], L, r0, r1, sp, seed, -8.15, kind === 'pt' ? 0.4 : 0.6)) return; /* waterline at the sea plane */
+  /* THE ALLIED FLEET: one list for the whole world. The detailed PCE and PT-105 models (built from the plans), each hull wearing its
+     own number on the bow. [kind, hull number, length m, ring radii r0 and r1 m, speed m/s, placement seed]. The US freighter and
+     tanker models (freighter('us'), tanker('us')) are kept for later. A game's piece may take a ship for a player (HOOKS.claimShip). */
+  const FLEET = [
+    ['pt', '105', 24.4, 1500, 3800, 14, 1],
+    ['pce', '843', 56.2, 2500, 6500, 6.5, 2],
+    ['pce', '842', 56.2, 2000, 5000, 7.5, 3] /* the US Navy PCE off the home airfield */,
+    ['pt', '106', 24.4, 3000, 5500, 13, 4],
+  ];
+  for (const [kind, num, L, r0, r1, sp, seed] of FLEET) {
+    if (!AFLD.addShip([], L, r0, r1, sp, seed, -8.15, kind === 'pt' ? 0.4 : 0.6)) continue; /* waterline at the sea plane */
     const o = AFLD.a[AFLD.a.length - 1];
     if (kind === 'pce') {
       o.m.geometry.dispose();
       o.m.geometry = PCEM.build(num);
       o.m.material = PCEM.material;
       PCEM.flags(o.m);
-      try { PCEM.mounts(o.m); } catch (e) { console.warn('PCE guns', e); }
     } else o.m.add(PTB.build(num));
-  };
-  allied('pt', '105', 24.4, 1500, 3800, 14, 1);
-  allied('pce', '843', 56.2, 2500, 6500, 6.5, 2);
-  allied('pce', '842', 56.2, 2000, 5000, 7.5, 3); /* the US Navy PCE off the home airfield */
-  allied('pt', '106', 24.4, 3000, 5500, 13, 4);
+    if (HOOKS.claimShip.some((h) => h(kind, num, o))) continue; /* a player's ship: no AI gun crews */
+    if (kind === 'pce')
+      try {
+        PCEM.mounts(o.m);
+      } catch (e) {
+        console.warn('PCE guns', e);
+      }
+  }
   AFLD.hullSteps = hullSteps;
   AFLD.models = { freighter, tanker, patrol, pce, fighter, ki84, fuelTruck, cargoTruck, jeep, tug, crew, drums }; /* the port and the airbase reuse these models */
   /* soft contact shadows under everything parked */
