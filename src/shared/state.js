@@ -1,0 +1,19 @@
+/* ---------- state ---------- */
+const pos = new V(),
+  vel = new V(),
+  q = new Q();
+let invT = 0,
+  blk = 0,
+  engOut = false,
+  buffet = 0,
+  flapLvl = 0,
+  fl = 0,
+  thr = 0,
+  s = { p: 0, r: 0, y: 0 },
+  crashed = false,
+  paused = false,
+  started = false,
+  onGround = true,
+  camMode = 0;
+const cp = new V(),
+  cu = new V(0, 1, 0);

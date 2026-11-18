@@ -1,0 +1,237 @@
+</head>
+<body>
+<canvas id="c"></canvas>
+<canvas id="gunRing" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+<canvas id="gunOv" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;display:none"></canvas>
+<div id="cross"></div>
+<div class="p" id="hud"></div>
+<div class="p" id="mm"><canvas id="mmc" width="176" height="176"></canvas></div>
+<div class="p" id="hz"><canvas id="ah" width="120" height="120"></canvas></div>
+<div class="p" id="adf" title="ADF radio compass: click to change station"><canvas id="adfc" width="170" height="214"></canvas></div>
+<div class="p" id="help"><div class="hk" id="hkBody"></div>
+<div class="ht"><b style="color:var(--acc)">CONTROLS &ndash; PHONE</b> (swipe to hide)<br>
+<b>Tilt</b> (hold sideways): turn like a steering wheel = roll &middot; top edge toward you = climb &middot; twist = rudder<br>
+<b>Throttle</b> slider on the left &middot; &#9664; &#9654; rudder<br>
+<b>FIRE</b> hold &middot; RKT rocket &middot; BOMB &middot; GEAR &middot; BRAKE hold &middot; FLAP &#9650;&#9660;<br>
+<b>No tilt:</b> drag the right half as a stick<br>
+<b>Pinch</b> zooms the camera &middot; double-tap resets it<br>
+Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middot; &#127919; calibrate</div>
+<div class="hp" id="hpBody"></div>
+</div>
+<div class="p" id="tq"><b>ENG</b><div id="tqt"><div id="tqf"></div><div id="tqh"></div></div><b id="tqv">0%</b><div style="margin-top:6px;display:none">FLAPS</div><div id="flp" style="display:none"><i></i><i></i><i></i><i></i><i></i><i id="flp6" style="display:none"></i></div></div>
+<div id="flash"></div><div id="dazzle"></div><div id="blk"></div><div id="rpl"><div id="rplT">REPLAY &mdash; <span style="color:#ffa020">your path</span> vs <span style="color:#55ff88">best path</span> <span style="color:#ddd">&middot; drone</span> <span style="color:#ff6655">&middot; red = biggest gap</span></div><div id="rplL"></div><input id="rplS" type="range" min="0" max="100" value="0"><div id="rplB"><button id="rplPlay">Pause</button><button id="rplSpd">1x</button><button id="rplView">View: SIDE</button><button id="rplRst">Restart</button><button id="rplExit">Exit replay</button></div><div style="font-size:11px;opacity:.75;margin-top:4px">Space pause &middot; Left/Right 1 s &middot; 1 2 3 camera &middot; Enter = try again</div></div><div id="rplX"></div><div id="rplW"><div id="rplWt"></div><div style="font-size:12px;opacity:.7;margin-top:6px">Esc = skip</div></div><div id="aim"></div><div id="aimt"></div><div id="bd"></div><div id="bdt"></div><div id="lead"></div>
+<div class="p" id="cmp"><canvas id="cmpc" width="640" height="90"></canvas></div>
+<div id="fd"></div><div id="fpm"></div><div id="ccip"></div><div id="rkip"></div>
+<div class="p" id="coach"><div id="coachT"></div><div id="coachH"></div><div id="coachS"></div></div>
+<div class="p" id="kill" style="left:50%;top:30%;transform:translateX(-50%);display:none;color:#ffb43a;font-size:16px;letter-spacing:.08em"></div>
+<div class="p" id="warn">STALL</div>
+<div class="p" id="dmgHud"></div>
+<div id="phFlash"></div>
+<div class="p" id="ph"><div class="r"><b style="color:var(--acc)">PHOTO MODE</b><button id="phShot" class="pri">&#128247; Take photo (Enter)</button><button id="phHud">HUD: off</button><button id="phAc">Ship: on</button><button id="phFz">Action: frozen</button><button id="phExit">Exit (Esc)</button></div>
+<div class="r more"><label>FOV <input type="range" id="phFov" min="10" max="110" value="65" style="width:100px"> <span id="phFovV">65</span>&deg;</label>
+<label>Time <select id="phTime"><option value="local">Local clock</option><option value="dawn">Dawn</option><option value="morning">Morning</option><option value="midday">Midday</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="night">Night</option></select></label>
+<label>Hour <input type="range" id="phHour" min="0" max="24" step="0.1" style="width:100px"> <span id="phHourV"></span></label>
+<label>Weather <select id="phWx"><option value="clear">Clear</option><option value="partly">Partly cloudy</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="storm">Thunderstorm</option><option value="fog">Fog</option></select></label></div>
+<div class="r more"><label>Size <select id="phRes"><option value="0">Screen size</option><option value="1">2560 px wide</option><option value="2">3840 px wide (4K)</option></select></label>
+<label>JPG quality <select id="phQ"><option value="0.8">Good</option><option value="0.92">High</option><option value="1">Maximum</option></select></label>
+<label>Move <select id="phSpd"><option value="8">Slow</option><option value="30" selected>Normal</option><option value="120">Fast</option></select></label>
+<label><input type="checkbox" id="phStamp"> Stamp info on the photo</label><label><input type="checkbox" id="phGrid"> Thirds grid</label></div>
+<div class="r more">Camera spot: <button data-s="chase">Behind</button><button data-s="side">Beside</button><button data-s="front">In front</button><button data-s="top">Above</button><button data-s="cockpit">Cockpit</button><span id="phMsg" style="color:var(--acc)"></span></div>
+<div class="r more dim">W A S D move &middot; Q E down / up &middot; Z C roll &middot; left-drag looks &middot; right-drag moves along the ground &middot; middle-drag moves up / down &middot; wheel moves in / out (hold ` = 6x bigger steps for the mouse) &middot; Shift = fast keys &middot; H HUD on / off &middot; F hides this panel</div></div>
+<div id="phGridV" style="position:fixed;inset:0;pointer-events:none;display:none;z-index:28;background:linear-gradient(to right,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%),linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%)"></div>
+<div class="p" id="msg"></div>
+
+
+<div class="p" id="start"><h1>PCE-842</h1>
+<div>USS PCE-842 &middot; Patrol Craft Escort<br>Coastal patrol &middot; March 1945<br><small class="verTag" style="opacity:.6"></small></div>
+<div id="dl" style="margin-top:16px;display:none">ENEMY SKILL (vs P-51)<br><button data-d="0">LOW 40%</button><button data-d="1">MEDIUM 65%</button><button data-d="2">HARD 100%</button></div>
+<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways like a steering wheel. <b>Tilt</b> left / right to roll, <b>top edge toward you</b> to climb, <b>twist</b> it left / right for rudder. Throttle is the slider on the left, FIRE is on the right. Without tilt, drag on the right half of the screen as a stick.</div>
+<div id="goRow"><button id="goTilt" style="display:none">Fly with TILT controls</button><button id="go">Coastal patrol</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
+
+<div id="tc">
+ <div class="tb" id="tThr"><div id="tThrF"></div><div id="tThrH"></div><div id="tThrL">THR 0%</div></div>
+ <div id="tL"><div class="tb" id="tGear"><i>&#9650;</i>GEAR UP</div><div class="tb" id="tBrk"><i>&#9632;</i>BRAKE</div><div class="tb" id="tFlU"><i>&#9650;</i>FLAP UP</div><div class="tb" id="tFlD"><i>&#9660;</i>FLAP</div></div>
+ <div class="tb" id="tRL"><i>&#9664;</i></div><div class="tb" id="tRR"><i>&#9654;</i></div>
+ <div class="tb" id="tFire">FIRE</div><div class="tb" id="tRkt"><i>&#128640;</i>RKT</div><div class="tb" id="tBmb"><i>&#128163;</i>BOMB</div>
+ <div id="tBar"><div class="tb" id="tMenu"><i>&#9776;</i></div><div class="tb" id="tPause"><i>&#9208;</i></div><div class="tb" id="tCam"><i>&#128247;</i></div><div class="tb" id="tCal"><i>&#127919;</i></div><div class="tb" id="tSet"><i>&#9881;</i></div><div class="tb" id="tFs"><i>&#9974;</i></div><div class="tb" id="tTilt"><b id="tTd"></b></div></div>
+</div>
+<div id="tBase"></div><div id="tKnob"></div>
+<div id="tset"><div class="box"><h2>PHONE CONTROLS</h2><div id="tsStatus"></div>
+<label><input type="checkbox" id="tsOn"> Tilt controls (use the gyro)</label>
+<label>Tilt sensitivity<input type="range" id="tsGain" min="50" max="200" value="100"></label>
+<label>Twist (rudder) sensitivity &ndash; 0 turns it off<input type="range" id="tsYaw" min="0" max="200" value="100"></label>
+<label><input type="checkbox" id="tsInv"> Invert pitch (top edge toward you = nose down)</label>
+<label><input type="checkbox" id="tsInvR"> Invert roll</label>
+<div style="font-size:12px;opacity:.8">For the cleanest controls hold the screen upright, facing you. Hold the phone the way you want to fly, then tap Calibrate. The small box in the top bar shows your stick: the dot should sit in the middle when you hold still.</div>
+<button id="tsCal">Calibrate</button><button id="tsClose">Close</button></div></div>
+<div id="edBar"><span><b>MOVE BOXES</b> &ndash; drag any box to where you want it</span><button id="edReset">Reset</button><button id="edDone" class="pri">Done</button></div>
+<div id="pm"><div class="box" id="pmBox"><div id="pmTabs"><button id="pmTabS" class="on">Settings</button><button id="pmTabM">Missions</button><button id="pmTabA">About</button><button id="pmTabC">Controls</button><button id="pmTabO">Operations</button><button id="pmTabH">Hardcore</button></div>
+<div id="pmPaneS"><h2>PAUSED <small class="verTag" style="font-weight:400;opacity:.6;font-size:12px"></small></h2>
+<div class="row"><button class="pri" id="pmResume">Resume</button><button id="pmRestart">Restart</button><button id="pmBail" style="display:none">Bail out</button><button id="pmPhoto" class="deskOnly">Photo mode</button><button id="pmMove">Move boxes</button><button id="pmDocs" style="display:none">Manual</button><button id="pmTilt" class="mobBtn">Tilt settings</button><button id="pmExit" class="mobBtn">Exit game</button></div>
+<h3>WHAT TO SHOW</h3><div id="pmList"></div>
+<div class="row"><button id="pmAll">Show everything</button><button id="pmClean">Clean view (hide the instruments)</button><button id="pmRePos">Reset positions</button></div>
+<div style="display:none"><h3>NOSE ART</h3><div class="row"><select id="naStyle"><option value="none">None</option><option value="shark">Shark mouth</option><option value="flames">Hot-rod flames</option><option value="name">Name in script</option><option value="checks">Checkerboard + name</option><option value="wings">Winged star + name</option></select><input type="text" id="naName" maxlength="18" placeholder="Aircraft name" autocomplete="off"></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="naTally" style="accent-color:#ffb43a"> Victory tally under the cockpit (air kills and ground kills)</label>
+</div>
+<label class="mobBtn" style="margin:6px 0"><input type="checkbox" id="pmAutoFs" style="accent-color:#ffb43a"> Fullscreen when the flight starts (hides the Android bars)</label>
+<h3>TIME OF DAY &amp; WEATHER</h3>
+<div class="row"><label>Time <select id="wxTime"><option value="local">Local clock</option><option value="dawn">Dawn</option><option value="morning">Morning</option><option value="midday">Midday</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="night">Night</option></select></label>
+<label>Weather <select id="wxWx"><option value="clear">Clear</option><option value="partly">Partly cloudy</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="storm">Thunderstorm</option><option value="fog">Fog</option></select></label></div>
+<div class="row"><label>Wind from <select id="wxWd"><option value="auto">Random</option><option value="0">North (360)</option><option value="90">East (090)</option><option value="180">South (180)</option><option value="270">West (270)</option></select></label>
+<label>Wind strength <select id="wxWs"><option value="normal">Normal for the weather</option><option value="calm">Calm</option><option value="light">Light</option><option value="strong">Strong</option><option value="extreme">Extreme</option></select></label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="wxFlow" style="accent-color:#ffb43a"> Time passes (one hour per real minute) <span id="wxClock" style="opacity:.7"></span></label>
+<h3>ENEMY</h3><div class="row"><label>Enable enemy <select id="enMode"><option value="none">None</option><option value="planes">Planes</option><option value="ships">Ships</option><option value="shore">Shore</option><option value="subs">Subs</option><option value="all">All</option></select></label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: enemy hits hurt the ship and her crew</label>
+<div class="note" id="enNote"></div>
+<div style="display:none"><h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label>
+</div>
+<h3>SHIP</h3><div class="row"><label>Wave motion <select id="wvMode"><option value="on">On</option><option value="guns">Off at the guns</option><option value="off">Off</option></select></label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="scOn" style="accent-color:#ffb43a"> Shell cam: when you stop firing, watch your shells land (fire again to cut back to the gun)</label>
+<h3>SOUND</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="sndOn" style="accent-color:#ffb43a"> Sound (U switches it on and off)</label>
+<label style="display:block;margin:4px 0">Volume <input type="range" id="sndVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="sndVolV"></span></label>
+<label style="display:block;margin:4px 0">Engines &amp; wind <input type="range" id="engVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="engVolV"></span></label>
+<h3>GRAPHICS</h3><div class="row" id="pmGfx"><button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+<div style="font-size:11.5px;opacity:.75;margin-top:8px">P or Esc opens this menu, I the controls.</div>
+</div>
+<div id="pmPaneM" style="display:none"><h2>CHOOSE A MISSION</h2><div id="menuList"></div><div class="sub">Up / Down + Enter, or click &middot; controller: D-pad + A &middot; Tab or LB / RB switch tabs &middot; Esc / B closes &middot; <b>M</b> opens this tab any time</div><div class="row"><button id="pmCloseM">Close</button></div></div>
+<div id="pmPaneA" class="doc" style="display:none">
+<h1>USS PCE-842</h1>
+<div class="sub">The patrol craft escort this game is built around &middot; <span class="verTag"></span> &middot; Alpha</div>
+<div class="note"><b>Alpha:</b> this game is an early work in progress. Expect missing features, rough edges and changes between versions.</div>
+<h2>The ship</h2>
+<p><b>PCE-842</b> was built by the Pullman-Standard Car Manufacturing Company in Chicago: laid down on 12 June 1943, launched on 14 November 1943 and commissioned on 29 January 1944 at New Orleans. She was the first of the <b>PCE-842 class</b>, the only ships the US Navy ever designated &ldquo;patrol craft escort&rdquo;: 68 were built for the US Navy and 17 more went to the Allies under Lend-Lease. The design was an escort version of the 180 ft hull of the Admirable-class minesweepers, a cheaper stand-in for destroyers and destroyer escorts on coastal and convoy escort work.</p>
+<p>She was 184 ft 6 in (56.24 m) long with a 33 ft 1 in (10.08 m) beam, with two General Motors diesels driving two shafts for about 15.7 knots, and a crew of about 99. She carried a 3&Prime;/50 gun forward, twin 40 mm Bofors and 20 mm Oerlikons, a Hedgehog, four K-gun depth-charge projectors and two stern depth-charge racks.</p>
+<h2>Her war and after</h2>
+<p>In 1944 she escorted convoys between Trinidad and Recife. In January 1945 she sailed by way of Panama to Hollandia, then by the Palaus to the Philippine Sea Frontier, where she patrolled against submarines and escorted shipping round the Philippines until the war ended. <b>The game is set there, in 1945.</b></p>
+<p>She was decommissioned at New Orleans on 7 November 1947 and served the Naval Reserve, was named <b>USS Marfa</b> in 1956, and in 1961 went to the Republic of Korea Navy as <b>ROKS Dangpo</b>. She was sunk by North Korean coastal artillery on 19 January 1967.</p>
+<h2>How this game compares with the real ship</h2>
+<div class="note"><b>Overall:</b> the ship is built from the PCE-874 Booklet of General Plans (a sister ship) and photographs of PCE-842 herself; the guns follow NavWeaps and the Navy's range tables. Her handling is a first pass and will be tuned to trials data when it is found. Where the sources disagree, or a figure is an estimate, the table says so.</div>
+<table class="spec">
+<tr><th>Item</th><th>Real PCE-842</th><th>This game</th><th>Match</th></tr>
+<tr><td>Hull</td><td>184 ft 6 in (56.24 m) overall, 33 ft 1 in (10.08 m) beam</td><td>56 m &times; 10.1 m, lofted from the general plans; the decks, deckhouses, rooms and fittings at their frames</td><td class="m-ok">Match</td></tr>
+<tr><td>Paint</td><td>Measure 32 dazzle (photographs); 20-B Deck Blue decks</td><td>Measure 32 dazzle from her photographs; steel deck plating in Deck Blue, weathered</td><td class="m-ok">Match</td></tr>
+<tr><td>Engines</td><td>Two General Motors diesels, single reduction gear, two shafts (sources disagree on the model and power: 12-278A of 1,000 hp each, or 12-567A)</td><td>The engine-order telegraph and an engine room that answers the bells; two diesels to about 744 rpm (an estimate); their sound, beating against each other</td><td class="m-mid">Close</td></tr>
+<tr><td>Speed</td><td>15.7 knots (other sources 15.5 or 16)</td><td>15.7 knots full ahead; about 6 knots full astern (an estimate)</td><td class="m-ok">Match</td></tr>
+<tr><td>Handling</td><td>Turning circle, acceleration and stopping from trials (not yet found)</td><td>First-pass figures: about 180 m turning radius at full rudder, most of a new speed in about 25 seconds</td><td class="m-mid">Estimate</td></tr>
+<tr><td>Seakeeping</td><td>Heave, pitch and roll in a seaway</td><td>She rides the waves (heave, pitch and roll); in game mode the motion can be switched off at the guns</td><td class="m-mid">Close</td></tr>
+<tr><td>3&Prime;/50 gun</td><td>Mk 22: 2,700 ft/s, 15&ndash;20 rounds a minute hand loaded, 14,590 yd at 43&deg;; VT proximity fuzes against aircraft in 1945</td><td>The same figures; the pointer's telescope; VT bursts; <b>Hardcore:</b> you set the sight range yourself; <b>game mode:</b> the sight-setter ranges for you</td><td class="m-ok">Match</td></tr>
+<tr><td>40 mm Bofors</td><td>Twin mounts: 2,890 ft/s, 120 rounds a minute a barrel, four-round clips</td><td>The twin mount aft: the same figures, loaders feeding clips at the rate a good crew kept up, ring sight</td><td class="m-ok">Match</td></tr>
+<tr><td>20 mm Oerlikon</td><td>2,725 ft/s, 450 rounds a minute, 60-round drums, shoulder rests and a cartwheel sight</td><td>The same figures, drum changes, cartwheel ring sight</td><td class="m-ok">Match</td></tr>
+<tr><td>Against aircraft</td><td>US Navy wartime rounds fired per aircraft destroyed: 3&Prime;/50 338, 40 mm 3,361, 20 mm 7,152</td><td><b>Hardcore:</b> calibrated to those figures; <b>game mode:</b> 24 times easier. Surface targets use their real size</td><td class="m-ok">Match</td></tr>
+<tr><td>Reloading</td><td>Crews' average rates</td><td><b>Hardcore:</b> the averages; <b>game mode:</b> half the time</td><td class="m-ok">Match</td></tr>
+<tr><td>Hedgehog</td><td>24 contact-fuzed bombs thrown in a pattern ahead of the ship</td><td>24 bombs on their spigots, fired in a ripple to land in a ring ahead; they burst only on a hit</td><td class="m-ok">Close</td></tr>
+<tr><td>Depth charges</td><td>Four K-guns and two stern racks; Mk 6 charges (300 lb of TNT)</td><td>Four K-guns, each throwing its charge from the arbor and reloaded by its crew; two stern racks of 8 charges each (fewer than she carried); a pistol depth and safety fork at each position</td><td class="m-mid">Close</td></tr>
+<tr><td>Sonar, radar, radio</td><td>Searchlight-type echo-ranging sonar, surface-search radar, radio</td><td>Simplified working sets: sonar pings and echoes, a radar scope, the radio</td><td class="m-mid">Simplified</td></tr>
+<tr><td>Practice</td><td>Towed sleeves for the AA guns, target rafts, towed target sleds</td><td>Rafts, two sleeve-towing aircraft, PT-105 (a late-war Elco 80) towing a target sled at 30 knots, and a dived exercise submarine</td><td class="m-ok">Close</td></tr>
+</table>
+<h2>Still to come</h2>
+<p>The officer of the deck's station (giving orders that an AI crew carries out), real enemy ships, submarines and aircraft, and missions are planned. The ship's handling will be tuned to her trials data when it is found.</p>
+<h2>Sources</h2>
+<p>PCE-874 Booklet of General Plans (BuShips); NavSource Naval History; the Dictionary of American Naval Fighting Ships; HyperWar, <i>Ships of the U.S. Navy, 1940&ndash;1945</i>; Wikipedia (PCE-842-class patrol craft; ROKS Dangpo); NavWeaps; the US Navy's wartime antiaircraft rounds-per-kill figures; NavSource and Wikipedia for PT-105.</p>
+<p>By <a href="https://github.mrrat.org/" target="_blank" rel="noopener noreferrer">MrRat Gaming</a>. Set in the world of P-51D Mustang Flight Sim.</p>
+</div>
+<div id="pmPaneC" class="doc" style="display:none">
+<h1>CONTROLS</h1>
+<div class="sub">Keyboard and mouse, and game controller. The Controls box on screen (H) shows only what you need where you are.</div>
+<h2>Keyboard &amp; mouse</h2>
+<div class="cols"><table class="t2" id="kbT1"></table><table class="t2" id="kbT2"></table></div>
+<h2>Game controller</h2>
+<div class="cols"><table class="t2" id="pdT1"></table><table class="t2" id="pdT2"></table></div>
+<div style="display:none"><h2>Phone &amp; tablet</h2>
+<table class="t2">
+<tr><td>Fullscreen</td><td>The flight starts fullscreen, which hides the Android status and navigation bars. Swipe in from the screen edge to show them for a moment. The &#9974; button toggles it, and the pause menu can turn the automatic fullscreen off.</td></tr>
+<tr><td>Exit</td><td>Tap the pause button, then <b>Exit game</b>. It leaves fullscreen and closes the app. This works even when the phone&rsquo;s swipe and Back gestures are hidden by fullscreen.</td></tr>
+<tr><td>Hold it</td><td>Sideways (landscape) like a steering wheel works best; portrait works too. Keep the screen upright and facing you: leaning it back a long way makes a twist also nudge the roll. The game calibrates to the way you hold the phone when you start; the target button in the top bar calibrates again.</td></tr>
+<tr><td>Roll</td><td>Turn the phone like a steering wheel: clockwise rolls right.</td></tr>
+<tr><td>Pitch</td><td>Top edge toward you pulls up; top edge away pushes the nose down (settings can invert it).</td></tr>
+<tr><td>Rudder</td><td>Twist the phone left or right, as if turning on the spot. The twist fades after a few seconds, so use the two arrow buttons at the bottom for sustained rudder, for example on the takeoff roll.</td></tr>
+<tr><td>Throttle</td><td>Drag the slider on the left; drag it to the very top or bottom to snap to full or idle.</td></tr>
+<tr><td>Buttons</td><td>FIRE (hold), rocket, bomb, gear, brake (hold), flaps up and down. The top bar has the mission menu, pause menu, camera, calibrate, tilt settings and fullscreen.</td></tr>
+<tr><td>Without tilt</td><td>Drag on the right half of the screen as a virtual stick (drag down to pull up). Pinch zooms the camera in or out: it always stays directly behind the plane and never rotates. Double-tap resets the zoom. The camera button switches to the cockpit view.</td></tr>
+<tr><td>Graphics</td><td>Pause menu &gt; Graphics: Auto, Low, Medium or High (N cycles them). Auto picks Low or High and adjusts the resolution to keep the frame rate smooth. Low draws fewer, simpler trees and fewer clouds and no shadow; Medium is in between; High draws everything at full resolution, with detailed branching trees (several kinds of oak and conifer, with textured leaves and needles) around you; to see them, fly to the wooded hill about 4.6 km north-west of the start (heading 323). Close to your own aircraft (Medium and High) it also shows engraved panel lines, rivets, gun barrels, a pitot tube, fuel caps and wheel detail. Near the ground (Medium and High) blade tufts and wild flowers grow around you, fading out about 130 m away. Auto shrinks the zone of detailed trees and grass first, then the resolution, if the frame rate drops. The choice is saved.</td></tr>
+<tr><td>Install / offline</td><td>When the game is served from a web address (for example GitHub Pages) the browser can install it as an app (Add to Home Screen or Install) and it then runs full screen and offline.</td></tr>
+<tr><td>Hardcore mode</td><td>Pause menu &gt; Hardcore: a master switch and a switch for each real-aircraft detail (torque, spins, altitude, engine temperature, fuel, war emergency power, real-aircraft performance, load limits, trim, real flap and gear speeds, engine power limits, wind, turbulence, wet runway, icing). Off by default.</td></tr>
+<tr><td>Layout</td><td>Swipe any instrument box off the screen to hide it. The pause menu has a checkbox for everything you can show or hide, and Move boxes lets you drag the boxes and buttons where you want them. Your choices are remembered, separately for landscape and portrait.</td></tr>
+<tr><td>Tips</td><td>iPhone and iPad ask permission for motion sensors the first time. If the page is shown inside another page the browser may block the sensors: open it in its own tab. Use Add to Home Screen for a full-screen app.</td></tr>
+</table></div>
+</div>
+<div id="pmPaneH" class="doc" style="display:none">
+<h1>HARDCORE SIMULATION</h1>
+<div class="sub">The real ship, for sailors who want it. Off by default: the game is fun first.</div>
+<p>Hardcore mode adds what the real PCE-842 and her crew had to deal with and the game mode leaves out. Switch it on here, then keep only the parts you enjoy: each part has its own switch, so you can, for example, set your own 3&Prime;/50 range but keep the aiming rings. With the master switch off, none of them apply.</p>
+<label class="hcMaster"><input type="checkbox" id="hcOn" style="accent-color:#ffb43a"> <b>Hardcore Simulation Mode</b> (master switch)</label>
+<div id="hcList">
+<label><input type="checkbox" data-hc="eng"> <b>Engines from the engine room.</b> The engine-order telegraph works only from the engine room (2) and the pilothouse (4), as aboard: from the bridge, the guns or the radio room you can steer, but you cannot ring up the engines. Game mode: W / S works from any station.</label>
+<label><input type="checkbox" data-hc="sea"> <b>The sea always moves her.</b> She always heaves, pitches and rolls with the waves, at the guns too, so you lay the guns on a moving deck. Game mode: Settings &gt; Wave motion can hold her steady at the guns.</label>
+<label><input type="checkbox" data-hc="range"> <b>Set your own 3&Prime;/50 range.</b> The pointer's telescope is laid on the target, and the gun's elevation above the line of sight is whatever range is set on the sight: the mouse wheel or Page Up / Page Down sets it, 100 yards a notch. Guess the range wrong and the shells fall short or over. Game mode: the sight-setter ranges the target nearest your sight for you.</label>
+<label><input type="checkbox" data-hc="rings"> <b>No aiming rings.</b> No ring shows where to point, and the practice targets are not marked: you lead the target yourself with the gun's own sight (the 20 mm's cartwheel, the 40 mm's ring sight, the 3&Prime;/50's telescope).</label>
+<label><input type="checkbox" data-hc="aa"> <b>Real kill rates against aircraft.</b> Hits on the towed sleeves and on raiding aircraft are calibrated to the US Navy's wartime rounds fired per aircraft destroyed: about 338 for the 3&Prime;/50, 3,361 for the 40 mm and 7,152 for the 20 mm. Game mode: 24 times easier. Surface targets (rafts, the sled) always use their real size.</label>
+<label><input type="checkbox" data-hc="reload"> <b>Real reload times.</b> Hand-loading the 3&Prime;/50, changing the 20 mm drum, feeding the 40 mm clips, reloading the K-guns and the Hedgehog take the crews' average times. Game mode: half the time.</label>
+<label><input type="checkbox" data-hc="smoke"> <b>Smoke.</b> Muzzle smoke, shell bursts, splashes and the puff of a K-gun or Hedgehog hang in the air and can hide the target for a moment. Game mode: kept out of your way.</label>
+<label><input type="checkbox" data-hc="walk"> <b>Walk the deck.</b> As torpedoman you walk between the Hedgehog, the K-guns and the stern racks with W A S D (Shift runs), round the gun tubs and down the ladder. Game mode: 6 or J jumps straight there.</label>
+<label><input type="checkbox" data-hc="orders"> <b>Tight orders.</b> On an attack run the OOD's orders must be carried out within 4 seconds (game mode: 6), and you pull the safety forks to arm each position yourself (X at the weapon). Game mode: the charges are armed for you on &ldquo;stand by charges&rdquo;.</label>
+<label><input type="checkbox" data-hc="comms"> <b>Communications by the book.</b> No help on the scopes: the radar does not box the contact nearest your cursor, the sonar does not print the echo's Doppler (judge it by ear), messages for the bridge are not marked, a message must be answered in 12 seconds (game mode: 20), and radar reports must be within 2&deg; (game mode: 3&deg;).</label>
+<label><input type="checkbox" data-hc="dmg"> <b>Shallow charges hurt her.</b> A depth charge set too shallow (under about 75 ft) and dropped at slow speed goes off under her own stern and costs her speed until the run is over.</label>
+</div>
+<h2>What it changes</h2>
+<table class="t2">
+<tr><td>Ship handling</td><td>The bells must be rung from the engine room or the pilothouse; the sea moves her at every station.</td></tr>
+<tr><td>Gunnery</td><td>Your own range, your own lead, the real hit rates, the real loading times, smoke in the way.</td></tr>
+<tr><td>Antisubmarine</td><td>You walk to each weapon, arm it yourself, and have 4 seconds to carry out each order. A shallow charge can damage her.</td></tr>
+</table>
+</div>
+<div id="pmPaneO" class="doc" style="display:none">
+<h1>OPERATIONS</h1>
+<div class="sub">The stations, practice, gunnery, the torpedoman's work and the ship</div>
+<h2>Missions (the Missions tab, or press M)</h2>
+<table class="t2">
+<tr><td>Free patrol</td><td>The ship is yours: conn her from the bridge, answer the bells, keep watch. No targets out.</td></tr>
+<tr><td>Gunnery practice</td><td>One for each gun (the 3&Prime;/50, the 20 mm and the twin 40 mm): puts out the practice targets and takes you to that gun.</td></tr>
+<tr><td>Antisubmarine attack run</td><td>Takes you to the torpedoman's station with the exercise submarine out. The OOD runs in on him and phones the orders; you fire the Hedgehog, the K-guns and the racks. One run, then the debrief and the pattern plot stay up until you press T again or leave the station.</td></tr>
+<tr><td>Sonar watch</td><td>The communications station with the exercise submarine out: find him on the sonar and the radar.</td></tr>
+</table>
+<h2>The stations (keys 1 to 6; press again for the next view there)</h2>
+<table class="t2">
+<tr><td><b>1</b> OOD</td><td>The open bridge: conn the ship (W / S rings the engines, A / D the rudder), X for the binoculars.</td></tr>
+<tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines.</td></tr>
+<tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
+<tr><td><b>4</b> Quartermaster</td><td>The pilothouse: the wheel, the telegraphs and the compass.</td></tr>
+<tr><td><b>5</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 5 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
+<tr><td><b>6</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
+<tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
+</table>
+<div class="cols">
+<div><h2>Gunnery</h2>
+<table class="t2">
+<tr><td>Fire</td><td>Left mouse button, Space or the controller trigger.</td></tr>
+<tr><td>Aiming rings</td><td>Game mode: a ring on each target shows where to lay the sight so the shells meet it; grey with OUT OF RANGE beyond the gun's effective range.</td></tr>
+<tr><td>3&Prime;/50 range</td><td>Game mode: the sight-setter ranges the target nearest your sight. Hardcore: you set it (mouse wheel, Page Up / Page Down).</td></tr>
+<tr><td>Reloading</td><td>Guns reload by themselves when empty; R reloads on demand. Changing to a gun finds it loaded.</td></tr>
+<tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-105 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-105 brings &ldquo;check fire&rdquo;.</td></tr>
+<tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Every few minutes two Ki-84 Hayates come out from the enemy airfield; the lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
+<tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 12 cm/45 naval guns in sandbagged pits, five men to a gun, about 5 rounds a minute out to 15,000 m: they open fire inside about 14 km by day (3 km at night), lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
+<tr><td>Shell cam</td><td>Settings: follow your last shells to the target (off at first). Any key returns to the gun.</td></tr>
+</table></div>
+<div><h2>The torpedoman</h2>
+<table class="t2">
+<tr><td>Orders</td><td>The OOD's orders come on the phone box: go to the weapon it names (6 or J in game mode, walk in Hardcore), set the depth, and fire on the order.</td></tr>
+<tr><td>Hedgehog</td><td>24 contact-fuzed bombs thrown in a ring ahead: they burst only if one hits the submarine. R reloads.</td></tr>
+<tr><td>K-guns</td><td>Two each side, thrown about 60 yards abeam; each crew reloads its gun in about a minute (half in game mode).</td></tr>
+<tr><td>Racks</td><td>Two stern racks of 8 charges, dropped port and starboard in turn.</td></tr>
+<tr><td>Depth and arming</td><td>Each position has its own pistol depth setting and safety fork (X arms it). On safe, a charge does not go off.</td></tr>
+<tr><td>Debrief</td><td>After the run: kill, damaged or missed, with a plot of where every charge went off.</td></tr>
+</table></div>
+</div>
+<h2>The ship</h2>
+<table class="t2">
+<tr><td>Engines</td><td>W / S move the engine order (the telegraph) through Back Full, Back 2/3, Back 1/3, Stop, Ahead 1/3, 2/3, Standard, Full and Flank; it stays where you leave it. The engine room answers in a second or two and she gathers way slowly: about 15.7 knots full ahead, 6 astern.</td></tr>
+<tr><td>Rudder</td><td>A / D put the rudder over; let go and it stays. Away from the bridge the helmsman holds her on her heading.</td></tr>
+<tr><td>Sea</td><td>She rides the waves. Game mode: Settings &gt; Wave motion can hold her steady at the guns.</td></tr>
+<tr><td>Running aground</td><td>She stops if her leading end would be in water shallower than her draft.</td></tr>
+<tr><td>Sound</td><td>Her two diesels follow the engine room's answer, beating against each other; with the blowers, exhaust, screws, wash and wind, mixed for where you are.</td></tr>
+<tr><td>Photo mode</td><td>Pause menu &gt; Photo mode, or F9: the game freezes and you get a free camera.</td></tr>
+<tr><td>Time &amp; weather</td><td>Settings &gt; Time of day &amp; weather.</td></tr>
+</table>
+</div>
+</div></div>
+<div class="p" id="rot">Turn your phone sideways (landscape) for the best view<br><small>tap to dismiss</small></div>

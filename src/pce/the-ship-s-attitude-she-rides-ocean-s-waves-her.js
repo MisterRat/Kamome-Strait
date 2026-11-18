@@ -1,0 +1,67 @@
+/* the ship's attitude: she rides OCEAN's waves. Her heave is the mean of the sea under the bow, the stern and both sides (a 56 m hull
+   averages out the short waves), pitch and roll follow the slope of the sea along and across her, with the lag of a heavy hull, plus a little
+   heel outward in a turn. Places the model; her wake is OCEAN's foam trail (the P-51's painted wake is not used for her). */
+function shipPose(dt) {
+  const t = OCEAN.U.uTime.value,
+    fx = -Math.sin(SHIP.hdg),
+    fz = -Math.cos(SHIP.hdg),
+    hB = OCEAN.h(pos.x + fx * 24, pos.z + fz * 24, t),
+    hS = OCEAN.h(pos.x - fx * 24, pos.z - fz * 24, t),
+    hP = OCEAN.h(pos.x + fz * 4.5, pos.z - fx * 4.5, t) /* port side */,
+    hR = OCEAN.h(pos.x - fz * 4.5, pos.z + fx * 4.5, t),
+    hv = (hB + hS + hP + hR) / 4 - OCEAN.Y,
+    k = Math.min(1, dt * 2.2);
+  SHIPW.hv += (hv - SHIPW.hv) * k;
+  SHIPW.pi += (Math.atan2(hB - hS, 48) * 0.85 - SHIPW.pi) * Math.min(1, dt * 1.6);
+  /* roll: driven by the slope across her beam, with her own roll period of about 8 s and light damping */
+  const rT = Math.atan2(hP - hR, 9) * 0.9 - SHIP.r * SHIP.u * 0.8,
+    w0 = (2 * Math.PI) / 8;
+  SHIPW.vr += (w0 * w0 * (rT - SHIPW.ro) - 2 * 0.18 * w0 * SHIPW.vr) * dt;
+  SHIPW.ro += SHIPW.vr * dt;
+  /* the Wave motion setting: the ship is eased level (and to the still waterline) when it is off, or off at the guns and the player is on one */
+  const wm = FM.use('sea') ? 'on' : WAVE.mode /* Hardcore: the sea always moves her */,
+    wk = wm === 'off' || (wm === 'guns' && GUN.cur && camMode == 1) ? 0 : 1;
+  SHIPW.k += (wk - SHIPW.k) * Math.min(1, dt * 1.5);
+  pos.y = SHIPM.Y + SHIPW.hv * SHIPW.k;
+  SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k, 'YXZ');
+  q.setFromEuler(SHIP.E);
+  axes();
+  OCEAN.wake(pos.x, pos.z, SHIP.hdg, SHIP.u, t);
+  HULLM.uHM.value.set(pos.x, pos.z, SHIP.hdg, 1);
+  const m = SHIPM.mesh;
+  if (!m) return;
+  m.matrixAutoUpdate = true; /* the scenery's matrices were frozen when it was built */
+  m.position.copy(pos);
+  m.quaternion.copy(q).multiply(SHIP.QB);
+  if (SHIPM.wake) SHIPM.wake.visible = false;
+}
+let shipHudT = 0;
+function shipOrder() {
+  const t = SHIP.tel;
+  if (t === 0) return 'ALL STOP';
+  if (t < 0) return t > -0.17 ? 'BACK 1/3' : t > -0.34 ? 'BACK 2/3' : 'BACK FULL';
+  return t < 0.3 ? 'AHEAD 1/3' : t < 0.55 ? 'AHEAD 2/3' : t < 0.85 ? 'AHEAD STANDARD' : t < 0.98 ? 'AHEAD FULL' : 'AHEAD FLANK';
+}
+function shipHUD() {
+  const now = performance.now();
+  if (now - shipHudT < 100) return;
+  shipHudT = now;
+  const kn = SHIP.u / 0.5144,
+    hd = ((((-SHIP.hdg * 180) / Math.PI) % 360) + 360) % 360,
+    rd = Math.round(SHIP.rud * 35),
+    rs = rd === 0 ? 'AMIDSHIPS' : (rd > 0 ? 'RIGHT ' : 'LEFT ') + Math.abs(rd) + '&deg;';
+  hud.innerHTML = MOB
+    ? `<b>${kn.toFixed(1)}</b> kn &nbsp;HDG <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>${shipOrder()} &middot; ${rs}`
+    : `SPEED <b>${kn.toFixed(1)}</b> kn<br>HEADING <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>ENGINES <b>${shipOrder()}</b><br>RUDDER <b>${rs}</b>`;
+  if (GUN.cur && camMode == 1) hud.innerHTML += gunHUD();
+  else if (camMode == 1 && !MOB) hud.innerHTML += stnHUD();
+  helpBox();
+  warn.style.display = SHIP.aground ? 'block' : 'none';
+  warn.textContent = 'AGROUND - BACK HER OFF';
+  $$('dmgHud').style.display = 'none';
+  drawCompass(hd);
+  tqf.style.height = tqh.style.bottom = Math.abs(SHIP.tel) * 100 + '%';
+  tqv.textContent = SHIP.tel < 0 ? 'ASTERN' : Math.round(SHIP.tel * 100) + '%';
+  if (MOB) updTouchUI();
+}
+
