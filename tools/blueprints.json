@@ -1,0 +1,609 @@
+[
+ {
+  "id": "p51",
+  "file": "P-51D",
+  "title": "North American P-51D Mustang (the player's aircraft)",
+  "game": "p51",
+  "kind": "aircraft",
+  "fwd": "-z",
+  "make": "const m = model.clone(true); m.position.set(0,0,0); m.rotation.set(0,0,0); m.visible = true; return m;",
+  "type": "North American P-51D Mustang",
+  "ref": [
+   [
+    "Length",
+    9.83,
+    "32 ft 3 in: USAF fact sheets and museum data (warbirdsresourcegroup.org; tnairmuseum.com)"
+   ],
+   [
+    "Span",
+    11.28,
+    "37 ft 0 in (same sources; the Canadian RCAF page gives 37 ft 1 in)"
+   ],
+   [
+    "Height",
+    null,
+    "4.08 m (13 ft 4.5 in) tail wheel on the ground, propeller blade vertical; the flying model is drawn in flight attitude, so not compared"
+   ]
+  ],
+  "notes": [
+   "Drawn as the player's aircraft in flight: gear down, level thrust line, so its height is not the published tail-down height."
+  ]
+ },
+ {
+  "id": "p51-parked",
+  "file": "P-51D_parked",
+  "title": "P-51D Mustang, parked (home airfield)",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.fighter(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }));",
+  "type": "North American P-51D Mustang (simplified airfield model)",
+  "ref": [
+   [
+    "Length",
+    9.83,
+    "32 ft 3 in: USAF fact sheets and museum data (warbirdsresourcegroup.org; tnairmuseum.com)"
+   ],
+   [
+    "Span",
+    11.28,
+    "37 ft 0 in (same sources; the Canadian RCAF page gives 37 ft 1 in)"
+   ],
+   [
+    "Height",
+    4.08,
+    "13 ft 4.5 in, tail wheel on the ground, propeller blade vertical (tnairmuseum.com)"
+   ]
+  ],
+  "notes": [
+   "The simpler model used for parked aircraft at the airfields; the player's aircraft is the detailed one (P-51D_blueprint.png)."
+  ]
+ },
+ {
+  "id": "ki84",
+  "file": "Ki-84",
+  "title": "Nakajima Ki-84-Ia Hayate (bandit and raider)",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return KI84.mesh({ gear: 'down' });",
+  "type": "Nakajima Ki-84-Ia Hayate (\"Frank\")",
+  "ref": [
+   [
+    "Length",
+    9.92,
+    "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
+   ],
+   [
+    "Span",
+    11.238,
+    "11.238 m (migflug.com)"
+   ],
+   [
+    "Height",
+    null,
+    "3.385 m tail down (migflug.com); the flying model is level, so not compared"
+   ]
+  ]
+ },
+ {
+  "id": "ki84-parked",
+  "file": "Ki-84_parked",
+  "title": "Nakajima Ki-84-Ia Hayate, parked",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return __bake(KI84.parked({ body: 0x55603a }));",
+  "type": "Nakajima Ki-84-Ia Hayate (\"Frank\"), parked",
+  "ref": [
+   [
+    "Length",
+    9.92,
+    "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
+   ],
+   [
+    "Span",
+    11.238,
+    "11.238 m (migflug.com)"
+   ],
+   [
+    "Height",
+    3.385,
+    "3.385 m tail down (migflug.com)"
+   ]
+  ]
+ },
+ {
+  "id": "tow-plane",
+  "file": "Target-tug_aircraft",
+  "title": "Target-towing aircraft (gunnery practice)",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return ptMesh('tug');",
+  "type": "Generic target-towing aircraft (no specific type yet)",
+  "ref": [],
+  "notes": [
+   "A simple stand-in: fuselage, wing and tail of plain shapes. No real type has been chosen for it yet (the US Navy used types such as the JRB / SNB, the SBD and the TBM for towing)."
+  ]
+ },
+ {
+  "id": "pt105",
+  "file": "PT-105",
+  "title": "PT-105, 80 ft Elco motor torpedo boat",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return PTB.build('105');",
+  "type": "Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108",
+  "ref": [
+   [
+    "Length",
+    24.38,
+    "80 ft (NavSource PT-104 / PT-108 pages)"
+   ],
+   [
+    "Beam",
+    6.3,
+    "20 ft 8 in (NavSource)"
+   ],
+   [
+    "Draught",
+    null,
+    "5 ft (1.52 m) NavSource; 3 ft 6 in aft per Pacific Wrecks"
+   ]
+  ],
+  "wl": "SEA.Y - SEA.WL"
+ },
+ {
+  "id": "sled",
+  "file": "Target_sled",
+  "title": "Target sled (towed by PT-108)",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return PTB.sled();",
+  "type": "Gunnery target sled (generic)",
+  "wl": "-1.6",
+  "ref": [],
+  "notes": [
+   "Not a specific type; the post-war G-60 sled was much bigger (60 ft by 25 ft), so this small sled is a stand-in for the towed sleds and rafts of the time."
+  ]
+ },
+ {
+  "id": "raft",
+  "file": "Target_raft",
+  "title": "Battle-practice target raft",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return ptMesh('raft');",
+  "type": "Battle-practice target raft with screen (generic)",
+  "wl": "0",
+  "ref": [],
+  "notes": [
+   "Built as described in the PCE game: about a 12 m raft carrying a 10 x 7 m screen with a bull's-eye."
+  ]
+ },
+ {
+  "id": "sleeve",
+  "file": "Target_sleeve",
+  "title": "Towed target sleeve",
+  "fwd": "+x",
+  "make": "return ptMesh('sleeve');",
+  "type": "Towed aerial target sleeve (generic)",
+  "ref": [],
+  "notes": [
+   "About 9 m of cloth as modelled; no reference figure checked yet."
+  ]
+ },
+ {
+  "id": "ukuru",
+  "file": "Ukuru-class",
+  "title": "Ukuru-class kaibokan (Japanese coastal escort)",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __local(SITE.patrol.e.m);",
+  "type": "Ukuru-class kaibokan (escort ship)",
+  "ref": [
+   [
+    "Length",
+    78.8,
+    "78.8 m overall (navypedia: 72.5 pp, 77.5 wl, 78.8 oa; Wikipedia gives 77.7 m)"
+   ],
+   [
+    "Beam",
+    9.1,
+    "9.10 m (navypedia; Wikipedia 9.1 m)"
+   ],
+   [
+    "Draught",
+    3.06,
+    "3.06 m (navypedia; Wikipedia 3.05 m)"
+   ]
+  ],
+  "notes": [
+   "Placed in the game with her keel at the painted sea level, so she floats about her full draught too high (see 'where she floats')."
+  ]
+ },
+ {
+  "id": "jp-freighter",
+  "file": "Japanese_freighter",
+  "title": "Japanese freighter",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.freighter('jp'));",
+  "type": "Japanese cargo ship (generic, 95 m)",
+  "wl": "box.min.y",
+  "ref": [],
+  "notes": [
+   "A generic freighter built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
+   "At the enemy ports she is placed with her keel on the painted sea level, so the whole hull stands above the water."
+  ]
+ },
+ {
+  "id": "jp-tanker",
+  "file": "Japanese_tanker",
+  "title": "Japanese tanker",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.tanker('jp'));",
+  "type": "Japanese tanker (generic, 112 m)",
+  "wl": "box.min.y",
+  "ref": [],
+  "notes": [
+   "A generic tanker built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
+   "Placed like the freighter: keel on the sea level."
+  ]
+ },
+ {
+  "id": "jp-patrol",
+  "file": "Japanese_patrol_boat",
+  "title": "Japanese patrol boat",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.patrol('jp'));",
+  "type": "Japanese patrol boat (generic, 32 m)",
+  "wl": "box.min.y",
+  "ref": [],
+  "notes": [
+   "A generic patrol boat built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842."
+  ]
+ },
+ {
+  "id": "us-freighter",
+  "file": "US_freighter",
+  "title": "US freighter (kept for later)",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.freighter('us'));",
+  "type": "US cargo ship (generic, 95 m), kept for later",
+  "wl": "SEA.Y + 6.4",
+  "ref": [],
+  "notes": [
+   "A generic freighter built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
+   "Not in the world at present (the allied fleet is the PCEs and PT boats); kept to be improved and used later."
+  ]
+ },
+ {
+  "id": "us-tanker",
+  "file": "US_tanker",
+  "title": "US tanker (kept for later)",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.tanker('us'));",
+  "type": "US tanker (generic, 112 m), kept for later",
+  "wl": "SEA.Y + 6.4",
+  "ref": [],
+  "notes": [
+   "A generic tanker built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
+   "Kept to be improved and used later."
+  ]
+ },
+ {
+  "id": "coast12",
+  "file": "12cm-45_coast_gun",
+  "title": "12 cm/45 3rd Year Type gun in its coast emplacement",
+  "fwd": "+x",
+  "make": "COAST.add(0, 0, 0); const g = COAST.G.pop(); T.pop(); scene.remove(g.grp); window.__M['Gun length overall'] = __size(g.bar).x; return __local(g.grp);",
+  "type": "12 cm/45 3rd Year Type naval gun on a coast-defence pedestal",
+  "ref": [
+   [
+    "Gun length overall",
+    5.55,
+    "218.5 in (5.550 m), most models (NavWeaps 12 cm/45 3rd Year Type)"
+   ]
+  ]
+ },
+ {
+  "id": "aa25",
+  "file": "Type96_25mm_twin",
+  "title": "Type 96 25 mm twin AA gun in its emplacement",
+  "fwd": "+x",
+  "make": "const t = __target('aa25'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) window.__M['Barrel group length'] = __size(g.bar).x; return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
+  "type": "Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit",
+  "ref": [
+   [
+    "Barrel group length",
+    null,
+    "barrel 1.5 m (L/60); the whole gun with its receiver is longer (War Thunder wiki; Wikipedia)"
+   ]
+  ],
+  "notes": [
+   "Twin mount weight 1,100 kg (NavWeaps)."
+  ]
+ },
+ {
+  "id": "sl150",
+  "file": "150cm_searchlight",
+  "title": "150 cm searchlight in its emplacement",
+  "fwd": "+x",
+  "make": "const t = __target('sl150'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) { const s = __size(g.bar); window.__M['Lamp drum diameter'] = Math.max(s.y, s.z); } return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
+  "type": "150 cm searchlight (Type 96 class)",
+  "ref": [
+   [
+    "Lamp drum diameter",
+    1.5,
+    "150 cm mirror (by its designation); the drum round the mirror is a little larger"
+   ]
+  ]
+ },
+ {
+  "id": "truck",
+  "file": "Japanese_cargo_truck",
+  "title": "Japanese army cargo truck (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('truck').m);",
+  "type": "Isuzu Type 94 six-wheeled truck (cargo truck), assumed",
+  "ref": [
+   [
+    "Length",
+    5.4,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Width",
+    1.9,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Height",
+    2.7,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ]
+  ],
+  "notes": [
+   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
+  ]
+ },
+ {
+  "id": "supply",
+  "file": "Japanese_supply_truck",
+  "title": "Japanese army supply truck, covered (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('supply').m);",
+  "type": "Isuzu Type 94 six-wheeled truck (covered supply truck), assumed",
+  "ref": [
+   [
+    "Length",
+    5.4,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Width",
+    1.9,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Height",
+    2.7,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ]
+  ],
+  "notes": [
+   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
+  ]
+ },
+ {
+  "id": "tanker-truck",
+  "file": "Japanese_tanker_truck",
+  "title": "Japanese army tanker truck (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('tanker').m);",
+  "type": "Isuzu Type 94 six-wheeled truck (tanker truck), assumed",
+  "ref": [
+   [
+    "Length",
+    5.4,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Width",
+    1.9,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ],
+   [
+    "Height",
+    2.7,
+    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+   ]
+  ],
+  "notes": [
+   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
+  ]
+ },
+ {
+  "id": "jeep-jp",
+  "file": "Japanese_scout_car",
+  "title": "Japanese army light car (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('jeep').m);",
+  "type": "Kurogane Type 95 scout car, assumed",
+  "ref": [
+   [
+    "Length",
+    3.6,
+    "3,600 mm (Wikipedia, Kurogane Type 95)"
+   ],
+   [
+    "Width",
+    1.52,
+    "1,520 mm (Wikipedia)"
+   ],
+   [
+    "Height",
+    1.68,
+    "1,680 mm (Wikipedia)"
+   ]
+  ],
+  "notes": [
+   "Fitted to its target's box."
+  ]
+ },
+ {
+  "id": "apc",
+  "file": "Japanese_halftrack",
+  "title": "Japanese army armoured carrier (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('apc').m);",
+  "type": "Type 1 Ho-Ha half-track, assumed",
+  "ref": [
+   [
+    "Length",
+    6.1,
+    "6.1 m (Wikipedia, Type 1 Ho-Ha)"
+   ],
+   [
+    "Width",
+    2.1,
+    "2.1 m"
+   ],
+   [
+    "Height",
+    2.51,
+    "2.51 m"
+   ]
+  ],
+  "notes": [
+   "Fitted to its target's box."
+  ]
+ },
+ {
+  "id": "tank",
+  "file": "Japanese_tank",
+  "title": "Japanese army tank (enemy target)",
+  "fwd": "+z",
+  "make": "return __local(__target('tank').m);",
+  "type": "Type 95 Ha-Go light tank, assumed",
+  "ref": [
+   [
+    "Length",
+    4.38,
+    "4.38 m (Wikipedia, Type 95 Ha-Go)"
+   ],
+   [
+    "Width",
+    2.06,
+    "2.06 m"
+   ],
+   [
+    "Height",
+    2.13,
+    "2.13 m"
+   ]
+  ],
+  "notes": [
+   "Fitted to its target's box."
+  ]
+ },
+ {
+  "id": "us-fuel-truck",
+  "file": "US_fuel_truck",
+  "title": "US fuel bowser (home airfield)",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
+  "type": "US 2\u00bd-ton 6x6 fuel truck (GMC CCKW class), assumed",
+  "ref": [
+   [
+    "Length",
+    6.51,
+    "6.51 m (GMC CCKW 353 cargo, dday-overlord.com; the tanker body is about the same length)"
+   ],
+   [
+    "Width",
+    2.24,
+    "2.24 m"
+   ]
+  ]
+ },
+ {
+  "id": "us-cargo-truck",
+  "file": "US_cargo_truck",
+  "title": "US cargo truck (home airfield)",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.cargoTruck());",
+  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck, assumed",
+  "ref": [
+   [
+    "Length",
+    6.51,
+    "6.51 m (dday-overlord.com)"
+   ],
+   [
+    "Width",
+    2.24,
+    "2.24 m"
+   ],
+   [
+    "Height",
+    2.8,
+    "2.80 m with the canvas top"
+   ]
+  ]
+ },
+ {
+  "id": "us-jeep",
+  "file": "US_jeep",
+  "title": "US jeep (home airfield)",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.jeep());",
+  "type": "Willys MB / Ford GPW jeep",
+  "ref": [
+   [
+    "Length",
+    3.36,
+    "132.25 in (Wikipedia, Jeep MB)"
+   ],
+   [
+    "Width",
+    1.57,
+    "62 in"
+   ],
+   [
+    "Height",
+    1.32,
+    "52 in top down (1.77 m top up)"
+   ]
+  ]
+ },
+ {
+  "id": "us-tug",
+  "file": "US_aircraft_tug",
+  "title": "US aircraft tug (home airfield)",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.tug());",
+  "type": "US aircraft tug (tractor), generic",
+  "ref": [],
+  "notes": [
+   "No specific type chosen yet (the Clark CA-1 was the common USAAF aircraft tug)."
+  ]
+ },
+ {
+  "id": "crew",
+  "file": "Ground_crewman",
+  "title": "US ground crewman (figure)",
+  "fwd": "+x",
+  "make": "return __bake(AFLD.models.crew(0x6f7a8a));",
+  "type": "US ground crewman",
+  "ref": [
+   [
+    "Height",
+    null,
+    "about 1.7 to 1.75 m for a WWII serviceman"
+   ]
+  ]
+ }
+]
