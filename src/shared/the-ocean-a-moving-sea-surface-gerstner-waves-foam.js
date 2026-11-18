@@ -10,8 +10,13 @@
        coarser one for the far world): waves die away in shallow water and the surface turns clear over the shallows, so the
        painted coastline shows through exactly as before (no per-vertex shore edges);
      - the terrain stops painting deep water (SHORE_PAINT discards it) so the wave troughs are never cut by the flat paint;
-     - foam: on steep crests, along the beaches, round the ship's hull (bow wave) and down her wake (a trail of her past positions).
-   OCEAN.h(x, z, t) gives the same wave height on the CPU, so the ship rides the very waves you see.
+     - foam: on steep crests, along the beaches, round a ship's hull (bow wave) and down her wake (a trail of her past positions).
+   OCEAN.h(x, z, t) gives the same wave height on the CPU, so the ships ride the very waves you see (RIDE).
+   HULLS: any number of ships join with OCEAN.hull({ kind, cut, foam, trail }) and are moved each frame with OCEAN.place(h, ...);
+   OCEAN.unhull(h) takes one out. kind is the hull's waterline shape: 'pce' (the PCE-874 plans' table), 'pt' (an 80 ft Elco), 'box'
+   (the target sled); cut 'all' keeps the water out of the whole hull (a manned ship: her engine room stays dry), 'deck' only above
+   her waterline (the sea washing over the deck); foam adds the bow wave (pce), trail the wake down her track. The NH hulls nearest
+   the eye are drawn each frame, and the NTC nearest trails: enough for every ship in view.
    ===================================================================================================================== */
 const OCEAN = (() => {
   const Y = SEA.Y /* still-water level: 3 cm above the terrain's painted water at -8 m, so the two never fight for the same depth */,
@@ -42,18 +47,19 @@ const OCEAN = (() => {
   wTex.wrapS = wTex.wrapT = THREE.ClampToEdgeWrapping;
   wTex.generateMipmaps = false;
   wTex.needsUpdate = true;
-  const NTR = 24;
+  const NTR = 24 /* points in one wake trail */,
+    NTC = 2 /* wake trails drawn at once */,
+    NH = 6 /* hulls drawn at once */;
   const U = {
     uTime: { value: 0 },
     shoreTex: SHORET,
     wTex: { value: wTex },
     uQ: { value: 2 } /* graphics tier: 0 low, 1 medium, 2 high */,
-    uShip: { value: new THREE.Vector4(1e7, 1e7, 0, 0) } /* the player's ship: x, z, heading, speed m/s (far away when no one commands a ship, e.g. the P-51) */,
-    uB0: { value: new THREE.Vector4(0, 0, 0, 0) } /* another hull the water keeps out of: x, z, heading (model +x), kind (1 PT-105, 2 the sled, 0 none) */,
-    uB1: { value: new THREE.Vector4(0, 0, 0, 0) },
-    uBY: { value: new THREE.Vector2(0, 0) } /* their waterline heights: water is cut away inside them only above these (washing over the deck), never round the hull */,
-    uTr: { value: Array.from({ length: NTR }, () => new THREE.Vector3(0, 0, -1)) } /* her wake: x, z, time laid (-1 = none) */,
-    uWL: { value: PCEM.WL.slice() } /* her half-breadth at the waterline, 32 stations from stem to stern */,
+    uHA: { value: Array.from({ length: NH }, () => new THREE.Vector4()) } /* the hulls drawn: x, z, bow direction (fx, fz) */,
+    uHB: { value: Array.from({ length: NH }, () => new THREE.Vector4()) } /* kind (0 none, 1 pt, 2 box, 3 pce), cut-above height (-1e4 = the whole hull), signed speed m/s, bow-wave foam 0/1 */,
+    uTr: { value: Array.from({ length: NTR * NTC }, () => new THREE.Vector3(0, 0, -1)) } /* the wakes: x, z, time laid (-1 = none), NTR points per trail */,
+    uTrK: { value: Array.from({ length: NTC }, () => new THREE.Vector4()) } /* each trail's ship: x, z, foam strength by speed (0 = none) */,
+    uWL: { value: PCEM.WL.slice() } /* a PCE's half-breadth at the waterline, 32 stations from stem to stern */,
   };
   const f = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
   /* the GLSL for the waves, unrolled from W so the CPU and the GPU always share one table */
@@ -91,7 +97,7 @@ const OCEAN = (() => {
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform vec4 uB0;uniform vec4 uB1;uniform vec2 uBY;uniform float uTime;uniform float uQ;uniform vec4 uShip;uniform vec3 uTr[' + NTR + '];uniform float uWL[32];uniform sampler2D shoreTex;uniform sampler2D wTex;varying vec3 vOW;varying float vDep;\n' +
+        '#include <common>\nuniform vec4 uHA[' + NH + '];uniform vec4 uHB[' + NH + '];uniform vec4 uTrK[' + NTC + '];uniform float uTime;uniform float uQ;uniform vec3 uTr[' + NTR * NTC + '];uniform float uWL[32];uniform sampler2D shoreTex;uniform sampler2D wTex;varying vec3 vOW;varying float vDep;\n' +
           glDepth +
           'float ohs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}' +
           'float ovn(vec2 p){vec2 i=floor(p),u=fract(p);u=u*u*(3.0-2.0*u);return mix(mix(ohs(i),ohs(i+vec2(1,0)),u.x),mix(ohs(i+vec2(0,1)),ohs(i+1.0),u.x),u.y);}' +
@@ -100,9 +106,9 @@ const OCEAN = (() => {
       .replace(
         '#include <color_fragment>',
         '#include <color_fragment>\n' +
-          /* no water inside the other hulls either (PT-105, her sled): their outlines in their own frames */
-          'for(int bi=0;bi<2;bi++){vec4 bb=bi==0?uB0:uB1;if(bb.w>0.5&&vOW.y>(bi==0?uBY.x:uBY.y)+0.35){vec2 d=vOW.xz-bb.xy;float bc=cos(bb.z),bs=sin(bb.z);float lx=d.x*bc-d.y*bs,lz=d.x*bs+d.y*bc;' +
-          'if(bb.w<1.5){if(lx>-12.0&&lx<9.0){float hw=lx<-2.2?2.25:2.25*sqrt(max(0.0,1.0-pow(max(0.0,lx+2.2)/11.2,2.0)));if(abs(lz)<hw)discard;}}' + /* her waterline, well inside the flare of her topsides */
+          /* no water inside the small hulls (a PT boat, the sled) above their waterlines: their outlines in their own frames */
+          'for(int hi=0;hi<' + NH + ';hi++){vec4 ha=uHA[hi],hq=uHB[hi];if(hq.x<0.5||hq.x>2.5)continue;if(vOW.y>hq.y+0.35){vec2 d=vOW.xz-ha.xy;if(dot(d,d)>900.0)continue;float lx=dot(d,ha.zw),lz=dot(d,vec2(-ha.w,ha.z));' +
+          'if(hq.x<1.5){if(lx>-12.0&&lx<9.0){float hw=lx<-2.2?2.25:2.25*sqrt(max(0.0,1.0-pow(max(0.0,lx+2.2)/11.2,2.0)));if(abs(lz)<hw)discard;}}' + /* her waterline, well inside the flare of her topsides */
           'else if(abs(lx)<4.2&&abs(lz)<1.45)discard;}}\n' +
           'vec2 P=vOW.xz;float fp=length(fwidth(P));float dep=ocDepth(P);float am=smoothstep(0.4,4.0,dep);float nx=0.0,nz=0.0,ny=1.0,cr=0.0;\n' +
           glF +
@@ -113,15 +119,18 @@ const OCEAN = (() => {
           /* foam: steep crests, the beaches, the ship's bow wave and her wake */
           'float wc=uQ<0.5?0.0:smoothstep(' + f(0.6 * ATOT) + ',' + f(0.98 * ATOT) + ',cr)*smoothstep(0.62,0.8,ofb(P*0.11+vec2(uTime*0.04,0.0)));float fo=uQ>0.5?wc*0.6*(1.0-smoothstep(1.0,4.0,fp)):0.0;\n' +
           'if(dep<3.0){float sw=0.55+0.45*sin(uTime*0.9+ofb(P*0.02)*9.0);float band=smoothstep(0.15,0.45,dep)*(1.0-smoothstep(0.5+0.9*sw,1.4+1.2*sw,dep));fo=max(fo,band*0.7*smoothstep(0.3,0.7,ofb(P*0.3+vec2(uTime*0.08,-uTime*0.05))));}\n' +
-          'float sp=abs(uShip.w);float sg=uShip.w<0.0?-1.0:1.0;vec2 rl=P-uShip.xy;float sd=length(rl);\n' +
-          'if(sd<900.0){vec2 fw=vec2(-sin(uShip.z),-cos(uShip.z));vec2 rt=vec2(-fw.y,fw.x);float al=dot(rl,fw),ac=abs(dot(rl,rt));' +
+          /* the PCE hulls: no water inside (the whole hull for a manned ship: the engine room and the bilges stay dry), and the bow wave */
+          'for(int hi=0;hi<' + NH + ';hi++){vec4 ha=uHA[hi],hq=uHB[hi];if(hq.x<2.5)continue;float sp=abs(hq.z);float sg=hq.z<0.0?-1.0:1.0;vec2 rl=P-ha.xy;float sd=length(rl);\n' +
+          'if(sd<900.0){vec2 fw=ha.zw;vec2 rt=vec2(-fw.y,fw.x);float al=dot(rl,fw),ac=abs(dot(rl,rt));' +
           'float fq=clamp(((27.75-al)/0.6096-(' + f(PCEM.F_STEM) + '))/' + f(PCEM.F_END - PCEM.F_STEM) + '*31.0,0.0,30.999);int iq=int(fq);float hb=mix(uWL[iq],uWL[iq+1],fract(fq));' +
-          /* no water inside the hull: the engine room and the bilges stay dry */
-          "if(al>-28.0&&al<27.7&&ac<hb-0.12)discard;" +
-          'float sk=clamp(sp/8.0,0.0,1.0);' +
+          "if(al>-28.0&&al<27.7&&ac<hb-0.12&&(hq.y<-1000.0||vOW.y>hq.y+0.35))discard;" +
+          'float sk=clamp(sp/8.0,0.0,1.0)*hq.w;' +
           /* the bow wave builds at the end that leads: the bow going ahead, the stern going astern */
           'if(al>-29.0&&al<31.0){float bowK=sg>0.0?smoothstep(-5.0,24.0,al):smoothstep(5.0,-24.0,al);float wbw=0.4+3.2*sk*(0.25+0.75*bowK);float b=smoothstep(hb-0.3,hb+0.15,ac)*(1.0-smoothstep(hb+0.1,hb+wbw,ac));fo=max(fo,b*sk*(0.35+0.65*bowK)*smoothstep(0.25,0.6,ofb(P*0.6+vec2(0.0,uTime*1.2))));}' +
-          'float tw=0.0;float nT=uQ<0.5?9.0:uQ<1.5?15.0:' + f(NTR - 1) + ';for(int i=0;i<' + (NTR - 1) + ';i++){if(float(i)>=nT)break;vec3 a=uTr[i],c=uTr[i+1];if(a.z<0.0||c.z<0.0)continue;vec2 ab=c.xy-a.xy;float l2=max(dot(ab,ab),1e-3);float h=clamp(dot(P-a.xy,ab)/l2,0.0,1.0);float d=length(P-a.xy-ab*h);float age=max(0.0,uTime-mix(a.z,c.z,h));float w=4.0+age*0.28;tw=max(tw,(1.0-smoothstep(w*0.25,w,d))*exp(-age/34.0));}' +
+          '}}\n' +
+          /* the wakes: each trail of the ship's past positions, foam that spreads and fades with age */
+          'for(int k=0;k<' + NTC + ';k++){vec4 tk=uTrK[k];float sk=tk.z;if(sk<=0.0||length(P-tk.xy)>=900.0)continue;' +
+          'float tw=0.0;float nT=uQ<0.5?9.0:uQ<1.5?15.0:' + f(NTR - 1) + ';for(int i=0;i<' + (NTR - 1) + ';i++){if(float(i)>=nT)break;vec3 a=uTr[k*' + NTR + '+i],c=uTr[k*' + NTR + '+i+1];if(a.z<0.0||c.z<0.0)continue;vec2 ab=c.xy-a.xy;float l2=max(dot(ab,ab),1e-3);float h=clamp(dot(P-a.xy,ab)/l2,0.0,1.0);float d=length(P-a.xy-ab*h);float age=max(0.0,uTime-mix(a.z,c.z,h));float w=4.0+age*0.28;tw=max(tw,(1.0-smoothstep(w*0.25,w,d))*exp(-age/34.0));}' +
           '{float n=ofb(P*0.16+vec2(uTime*0.05,uTime*0.03));fo=max(fo,sk*smoothstep(0.15,0.95,tw*1.15+(n-0.5)*0.9)*min(1.0,tw*1.6));}}\n' +
           'fo=clamp(fo,0.0,1.0);\n' +
           /* the water's own colour: deep blue, a little greener and clearer where it shoals */
@@ -183,6 +192,27 @@ const OCEAN = (() => {
   /* it follows the eye, whichever camera is drawing (chase, bridge, roam, photo) */
   mesh.onBeforeRender = (rn, sc, c) => {
     mesh.matrixWorld.makeTranslation(c.position.x, Y, c.position.z);
+    /* the hulls and wakes nearest the eye go to the shader */
+    const cx = c.position.x,
+      cz = c.position.z,
+      near = (a, b) => Math.hypot(a.x - cx, a.z - cz) - Math.hypot(b.x - cx, b.z - cz);
+    const hs = HULLS.length > NH ? HULLS.slice().sort(near) : HULLS;
+    for (let i = 0; i < NH; i++) {
+      const hh = hs[i];
+      if (!hh) {
+        U.uHB.value[i].x = 0;
+        continue;
+      }
+      U.uHA.value[i].set(hh.x, hh.z, hh.fx, hh.fz);
+      U.uHB.value[i].set(hh.k, hh.cut ? -1e4 : hh.y, hh.u, hh.foam ? 1 : 0);
+    }
+    const ts = HULLS.filter((hh) => hh.tr);
+    if (ts.length > NTC) ts.sort(near);
+    for (let k = 0; k < NTC; k++) {
+      const hh = ts[k];
+      U.uTrK.value[k].set(hh ? hh.x : 0, hh ? hh.z : 0, hh ? Math.min(1, Math.abs(hh.u) / 8) : 0, 0);
+      if (hh) for (let i = 0; i < NTR; i++) U.uTr.value[k * NTR + i].copy(hh.tr[i]);
+    }
   };
   scene.add(mesh);
   /* the CPU twin of the shader's wave height (the horizontal Gerstner shift is left out: the crests are only gently sharpened) */
@@ -195,22 +225,42 @@ const OCEAN = (() => {
     if (dep < 12) y = y + (Math.max(y, 0) - y) * (1 - (dep <= 9 ? 0 : ((u) => u * u * (3 - 2 * u))((dep - 9) / 3))) /* as the shader: only crests over the shallows */;
     return Y + y;
   }
-  const trail = { last: -1e9 };
-  /* lay the wake: a point every 2.5 s while she has way on */
-  function wake(x, z, hdg, u, t) {
-    U.uShip.value.set(x, z, hdg, u) /* signed: going astern, the wash builds at her stern and the wake trails from her bow */;
-    const T = U.uTr.value;
-    if (Math.abs(u) > 0.3 && t - trail.last > 2.5) {
-      trail.last = t;
+  /* HULLS: the ships the sea knows about (see the header) */
+  const HULLS = [],
+    KIND = { pt: 1, box: 2, pce: 3 };
+  function hull(o) {
+    const hh = { k: KIND[o.kind] || 0, cut: o.cut === 'all', foam: !!o.foam, fore: o.fore || 27, aft: o.aft || 26, x: 1e7, z: 1e7, fx: 1, fz: 0, u: 0, y: SEA.WL };
+    if (o.trail) (hh.tr = Array.from({ length: NTR }, () => new THREE.Vector3(0, 0, -1))), (hh.last = -1e9);
+    HULLS.push(hh);
+    return hh;
+  }
+  function unhull(hh) {
+    const i = HULLS.indexOf(hh);
+    if (i >= 0) HULLS.splice(i, 1);
+  }
+  /* move a hull: position, bow direction (unit), signed speed m/s (going astern the wash builds at her stern and the wake trails
+     from her bow), her waterline height (for cut 'deck'), the ocean's time. Lays her wake: a point every 2.5 s while she has way on */
+  function place(hh, x, z, fx, fz, u, y, t) {
+    hh.x = x;
+    hh.z = z;
+    hh.fx = fx;
+    hh.fz = fz;
+    hh.u = u;
+    hh.y = y;
+    const T = hh.tr;
+    if (!T) return;
+    if (Math.abs(u) > 0.3 && t - hh.last > 2.5) {
+      hh.last = t;
       for (let i = T.length - 1; i > 0; i--) T[i].copy(T[i - 1]);
     }
-    const e = u >= 0 ? 26 : -27; /* the newest point is always under her trailing end: the stern going ahead, the bow going astern */
-    if (Math.abs(u) > 0.3) T[0].set(x + Math.sin(hdg) * e, z + Math.cos(hdg) * e, t);
+    const e = u >= 0 ? hh.aft : -hh.fore; /* the newest point is always under her trailing end: the stern going ahead, the bow going astern */
+    if (Math.abs(u) > 0.3) T[0].set(x - fx * e, z - fz * e, t);
   }
-  function clearWake() {
-    U.uTr.value.forEach((v) => v.set(0, 0, -1));
-    trail.last = -1e9;
+  function clearTrail(hh) {
+    if (!hh.tr) return;
+    hh.tr.forEach((v) => v.set(0, 0, -1));
+    hh.last = -1e9;
   }
-  return { Y, W, U, mesh, h, wake, clearWake, depthAt };
+  return { Y, W, U, mesh, h, depthAt, HULLS, hull, unhull, place, clearTrail };
 })();
 

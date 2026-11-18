@@ -1,7 +1,8 @@
 /* The hull outline at the waterline of the ship a player commands (shared by every game). Every csApply'd world surface near sea
    level (the terrain's painted water, the open-sea plane) is cut away inside it, so nothing flat at sea level can ever show inside
    the ship's rooms. The ship's role sets it each frame (PCE-842: shipPose); with no manned ship uHM.w stays 0 and nothing is cut.
-   One hull for now: multiplayer will need one outline per manned ship. */
+   One outline is enough, in multiplayer too: only the hull the camera is aboard needs the painted water cut out of her rooms; every
+   other ship keeps the sea out through OCEAN.hull. */
 const HULLM = { uHM: { value: new THREE.Vector4(0, 0, 0, 0) }, uHW: { value: PCEM.WL.slice() } };
 const HULLM_GL =
   '{vec2 hr=vCS-uHM.xy;if(uHM.w>0.5&&vCSy<-6.0&&vCSy>-12.5&&dot(hr,hr)<900.0){vec2 fw=vec2(-sin(uHM.z),-cos(uHM.z));float al=dot(hr,fw),ac=abs(dot(hr,vec2(-fw.y,fw.x)));' +

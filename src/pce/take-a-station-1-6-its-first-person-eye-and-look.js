@@ -40,7 +40,7 @@ function shipReset() {
     SHIP.look[0] = st.yaw;
     SHIP.look[1] = st.pitch;
   }
-  if (typeof OCEAN !== 'undefined') OCEAN.clearWake();
+  if (SHIPM.hull) OCEAN.clearTrail(SHIPM.hull);
   SHIPW.hv = SHIPW.pi = SHIPW.ro = SHIPW.vr = 0;
   q.setFromAxisAngle(SHIP.YAX, SHIP.hdg);
 }

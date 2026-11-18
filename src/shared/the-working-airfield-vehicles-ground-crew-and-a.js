@@ -211,6 +211,9 @@ const AFLD = {
         RIDE.step(o.ride, o.x, o.z, Math.cos(o.yaw), -Math.sin(o.yaw), dt, 0);
         o.m.position.set(o.x, (o.y0 === undefined ? -6.4 : o.y0) + o.ride.hv, o.z);
         o.m.rotation.set(o.ride.ro, o.yaw, o.ride.pi, 'YXZ');
+        /* her hull in the sea (OCEAN.hull) for the classes it has outlines for: the water stays out of her above the waterline */
+        if (o.hull === undefined) o.hull = typeof OCEAN !== 'undefined' && (o.L === 56.2 || o.L === 24.4) ? OCEAN.hull({ kind: o.L > 40 ? 'pce' : 'pt', cut: 'deck' }) : null;
+        if (o.hull) OCEAN.place(o.hull, o.x, o.z, Math.cos(o.yaw), -Math.sin(o.yaw), o.v, o.m.position.y, 0);
         continue;
       }
       o.m.position.set(o.x, o.y0 + (o.kind === 'walk' ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);

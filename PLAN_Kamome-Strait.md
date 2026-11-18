@@ -110,10 +110,15 @@ Built files in `build/` only; the released games in `C:\Code\Arcade` are untouch
 | P-51 5.37, PCE-842 0.54 | One allied fleet (PT-105, PCE-843, PCE-842, PT-106) for the world; `HOOKS` registry (shared piece after the version piece); the PCE game claims the PCE-842 with `HOOKS.claimShip`; freighter and tanker models kept | Fleet positions as before; the player's PCE-842 on the same patrol line; screenshots |
 | P-51 5.38, PCE-842 0.55 | The PCE ocean, toned-down shallows and open-sea plane (-11.8 m) shared; the P-51 drives the ocean clock and graphics tier | Screenshots at 30, 300, 1,500 and 5,000 m; ditching unchanged; draw calls about the same; software-rendered frame time about +30% with the sea filling the screen low down, about the same at 1,500 m |
 | P-51 5.39, PCE-842 0.56 | Shared `RIDE` module: every hull rides the ocean's waves (heave, pitch, roll); the PCE-842's `shipPose` and every AI fleet ship use it. The PCE game's tow boat is now PT-108 (a PTRon 5 squadron mate of PT-105, in service to November 1945) | `RIDE.step` matches the old `shipPose` maths exactly (max difference 0 over 600 steps); AI ships ride; PT-108 screenshot |
+| PCE-842 0.57 | The PT-108 tow boat and her sled ride the waves through `RIDE` | Screenshot; page errors `[]` |
+| P-51 5.40, PCE-842 0.58 | `SEA`: the world's sea levels (painted water, still water, waterline, open-sea plane) in one shared piece; the Japanese escorts and merchant ships ride the waves (`RIDE`) | Ditching, coast batteries, fleet and escort riding checked |
+| P-51 5.41, PCE-842 0.59 | `GAME` (id, name, settings prefix) per game; the shared `store` saves under `GAME.key` + name (same saved names as before, so players keep their settings); `tools/dedupe.py` moved 9 now-identical pieces into shared | Saved settings read back in both games |
+| P-51 5.42, PCE-842 0.60 | Ocean hull list: `OCEAN.hull / place / unhull / clearTrail` for any number of ships (the 6 nearest drawn, the 2 nearest wakes); the player's PCE, the AI fleet, PT-108 and the sled all use it; `HULLM` stays one outline (only the camera's own ship needs it) | The player's wake and bow-wave uniforms identical to 0.59 over 600 steps; no shader errors; hulls join and leave |
 
 Notes from step 2:
 - `HOOKS` (`src/shared/hooks-...js`) is the pattern for every new module: shared code calls `HOOKS.<name>` handlers, a game's own piece registers them. Add hooks there, never game names in shared code.
-- The ocean's ship uniform (`uShip`) and the hull cut-out handle one manned ship; multiplayer needs one per manned ship.
+- Hull outlines exist for the PCE, the 80 ft Elco and the sled. A new ship class needs its outline added to `OCEAN` (kind) to keep the sea out of her above the waterline; until then she simply is not registered.
+- Modules for new work: `HOOKS` (game pieces plug in), `SEA` (levels), `RIDE` (hulls on the waves), `OCEAN.hull` (hulls in the sea), `GAME` + `store` (identity and settings). Run `python3 tools/dedupe.py` after a change that makes per-game pieces identical.
 
 ## 6. Freeze log and notes for the P-51 and PCE-842 sessions (they report to Kamome)
 

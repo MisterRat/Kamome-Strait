@@ -12,7 +12,9 @@ function shipPose(dt) {
   SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k, 'YXZ');
   q.setFromEuler(SHIP.E);
   axes();
-  OCEAN.wake(pos.x, pos.z, SHIP.hdg, SHIP.u, t);
+  /* her hull in the sea (OCEAN.hull): a manned ship, so no water anywhere inside her, with her bow wave and wake */
+  const hh = SHIPM.hull || (SHIPM.hull = OCEAN.hull({ kind: 'pce', cut: 'all', foam: true, trail: true, fore: 27, aft: 26 }));
+  OCEAN.place(hh, pos.x, pos.z, -Math.sin(SHIP.hdg), -Math.cos(SHIP.hdg), SHIP.u, SHIPM.Y, t);
   HULLM.uHM.value.set(pos.x, pos.z, SHIP.hdg, 1);
   const m = SHIPM.mesh;
   if (!m) return;

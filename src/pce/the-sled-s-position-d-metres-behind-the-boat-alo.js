@@ -14,7 +14,7 @@ function ptTrail(o, d, v) {
 function ptTowStep(dt) {
   const tb = PT.L.find((t) => t.kind === 'ptboat'),
     ts = PT.L.find((t) => t.kind === 'sled');
-  if (!tb) return OCEAN.U.uB0.value.setW(0), OCEAN.U.uB1.value.setW(0);
+  if (!tb) return;
   const o = tb.o;
   o.c.set(pos.x, 0, pos.z);
   /* along the oval at 30 knots (relative to the ship, whose motion the oval shares) */
@@ -40,8 +40,7 @@ function ptTowStep(dt) {
   tb.p.y = OCEAN.Y + rd.hv + 0.5;
   tb.m.position.copy(tb.p);
   tb.m.rotation.set(rd.ro - turn * 1.5, hd, 0.05 + rd.pi, 'YXZ');
-  OCEAN.U.uB0.value.set(tb.p.x, tb.p.z, hd, 1);
-  OCEAN.U.uBY.value.x = tb.p.y;
+  OCEAN.place(tb.hull || (tb.hull = OCEAN.hull({ kind: 'pt', cut: 'deck' })), tb.p.x, tb.p.z, Math.cos(hd), -Math.sin(hd), o.v, tb.p.y, 0);
   tb.p.y += 1.5; /* the hit point: amidships, above the deck */
   /* the sled: on her track, 300 m astern, pointing up the track toward her */
   if (ts) {
@@ -56,8 +55,7 @@ function ptTowStep(dt) {
     ts.p.copy(a);
     ts.m.position.copy(a);
     ts.m.rotation.set(sr.ro, sy, 0.03 + sr.pi, 'YXZ');
-    OCEAN.U.uB1.value.set(a.x, a.z, ts.m.rotation.y, 2);
-    OCEAN.U.uBY.value.y = a.y - 1.5;
+    OCEAN.place(ts.hull || (ts.hull = OCEAN.hull({ kind: 'box', cut: 'deck' })), a.x, a.z, Math.cos(sy), -Math.sin(sy), o.v, a.y - 1.5, 0);
     if (s0.lengthSq() && dt > 0) ts.v.lerp(new THREE.Vector3().subVectors(ts.p, s0).divideScalar(dt).setY(0), Math.min(1, dt * 4));
   }
 }
@@ -110,9 +108,10 @@ function ptMesh(kind) {
 }
 function ptToggle() {
   PT.on = !PT.on;
-  OCEAN.U.uB0.value.setW(0);
-  OCEAN.U.uB1.value.setW(0);
-  PT.L.forEach((t) => t.m && scene.remove(t.m));
+  PT.L.forEach((t) => {
+    if (t.m) scene.remove(t.m);
+    if (t.hull) OCEAN.unhull(t.hull);
+  });
   if (PT.g) PT.g.visible = false;
   PT.L = [];
   PT.hits.raft = PT.hits.sleeve = PT.hits.sled = 0;
