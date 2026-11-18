@@ -120,7 +120,7 @@ const COAST = {
   };
   /* the battery of a port: two guns on land either side of the harbour, a little back from the water, clear of the buildings */
   COAST.port = (F, rnd, taken, use) => {
-    const SEA = coastSea();
+    const sea0 = coastSea();
     const [x0, z0] = F.w(0, 0),
       [x1, z1] = F.w(0, 100),
       seaYaw = Math.atan2(-(z1 - z0), x1 - x0);
@@ -132,7 +132,7 @@ const COAST = {
           if (taken(u, d, 7)) continue;
           const [x, z] = F.w(u, d);
           const h = H(x, z);
-          if (h < SEA + 3) continue;
+          if (h < sea0 + 3) continue;
           /* fairly level ground, and the sea in front of it within 250 m */
           let lo = 1e9,
             hi = -1e9;

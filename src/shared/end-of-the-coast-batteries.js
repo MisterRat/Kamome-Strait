@@ -1018,7 +1018,7 @@ const SITES = [],
     return 160 + len / 2 * 0.2;
   };
   /* a sea-lane finder: a coarse grid of open deep water (a cell counts only if it and its four neighbours are all at least 14 m deep), a breadth-first search, then the corners pulled tight by line of sight */
-  const SEA = (() => {
+  const LANES = (() => {
     const C = 800,
       N = 125,
       O0 = -50000,
@@ -1114,8 +1114,8 @@ const SITES = [],
     for (const off of [900, 600, 400]) {
       const a = FA.w(u, dA + off),
         b = FB.w(u, dB + off);
-      if (!SEA.los(p0, a) || !SEA.los(b, p3)) continue;
-      const r = SEA.route(a, b);
+      if (!LANES.los(p0, a) || !LANES.los(b, p3)) continue;
+      const r = LANES.route(a, b);
       if (r) {
         p1 = a;
         p2 = b;
@@ -1228,7 +1228,7 @@ const SITES = [],
     }
   }
   SITE.far = FARS;
-  SITE.SEA = SEA;
+  SITE.SEA = LANES; /* the sea-lane finder */
   SITE.civ = CIV;
   /* the home port gets the same colonial dress */
   farBuild(SITE, () => void harbour(SITE, false, 777));
