@@ -2,28 +2,3 @@
 const TPW = { p: new THREE.Vector2() /* model x, z */, at: 3, bob: 0, ob: [] },
   HH = { n: 24, L: [], q: [], ld: 0, hits: 0 },
   ASW = { who: 'tp' /* who the attack is for: the torpedoman's run (6) or the sonar test (3) */, ph: 'idle', t: 0, O: [], f: {}, run: 0, tel: 0, hold: 0, depth: 100, best: 1e9, hh: 0, un: 0, bad: false, msg: '', deb: '', debT: 0 };
-const logWarn = (what, e) => console.warn('[PCE-842] ' + what + ':', (e && e.message) || e);
-const store = {
-  get(key, fallback) {
-    let raw = null;
-    try {
-      raw = localStorage.getItem(key);
-    } catch (e) {
-      return fallback; /* storage blocked */
-    }
-    if (raw === null) return fallback;
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      logWarn('ignoring corrupt saved setting ' + key, e);
-      return fallback;
-    }
-  },
-  set(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      /* storage blocked or full: settings simply will not persist */
-    }
-  },
-};

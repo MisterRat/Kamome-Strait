@@ -38,7 +38,7 @@ $$('wxFlow').onchange = (e) => {
 $$('dmgOn').checked = DM.on;
 $$('dmgOn').onchange = (e) => {
   DM.on = e.target.checked;
-  store.set('pce842dmg', DM.on);
+  store.set('dmg', DM.on);
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };

@@ -2,7 +2,7 @@
    Shore: the P-51 world's ground fire (AA.on: the 25 mm guns and searchlights, laid on the ship) and THE COAST BATTERIES.
    Ships and subs come into the game as each enemy is built. */
 const ENEMY = {
-  mode: store.get('pce842enemy', 'none'),
+  mode: store.get('enemy', 'none'),
   has(k) {
     return this.mode === 'all' || this.mode === k;
   },
@@ -10,7 +10,7 @@ const ENEMY = {
 function enemySync() {
   $$('enMode').value = ENEMY.mode;
   AA.on = ENEMY.has('shore');
-  store.set('pce842aa', AA.on);
+  store.set('aa', AA.on);
   AA.apply();
   $$('aaOn').checked = AA.on;
   $$('enNote').textContent =
@@ -22,7 +22,7 @@ function enemySync() {
 }
 $$('enMode').onchange = (e) => {
   ENEMY.mode = e.target.value;
-  store.set('pce842enemy', ENEMY.mode);
+  store.set('enemy', ENEMY.mode);
   enemySync();
   note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
 };
@@ -30,7 +30,7 @@ enemySync();
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {
   AA.on = e.target.checked;
-  store.set('pce842aa', AA.on);
+  store.set('aa', AA.on);
   AA.apply();
   note('GROUND FIRE ' + (AA.on ? 'ON' : 'OFF'));
 };
@@ -56,8 +56,8 @@ $$('engVol').oninput = (e) => {
   SND.setEng(e.target.value / 100);
   $$('engVolV').textContent = e.target.value + '%';
 };
-$$('pmAutoFs').checked = store.get('pce842fs', true);
-$$('pmAutoFs').onchange = (e) => store.set('pce842fs', e.target.checked);
+$$('pmAutoFs').checked = store.get('fs', true);
+$$('pmAutoFs').onchange = (e) => store.set('fs', e.target.checked);
 $$('pmAll').onclick = () => {
   UI.items.forEach((i) => {
     if (UI.applies(i)) UI.set(i.id, true);

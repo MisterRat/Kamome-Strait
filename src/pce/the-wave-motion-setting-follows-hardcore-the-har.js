@@ -11,7 +11,7 @@ modeSync();
   w.value = WAVE.mode;
   w.onchange = () => {
     WAVE.mode = w.value;
-    store.set('pce842wave', WAVE.mode);
+    store.set('wave', WAVE.mode);
     note(WAVE.mode === 'on' ? 'WAVE MOTION ON' : WAVE.mode === 'off' ? 'WAVE MOTION OFF' : 'WAVE MOTION OFF AT THE GUNS');
   };
 }

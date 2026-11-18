@@ -13,7 +13,7 @@ const AA = {
   fT: 0,
   t: 0,
   load() {
-    this.on = store.get('pce842aa', false) === true;
+    this.on = store.get('aa', false) === true;
   },
 };
 AA.load();

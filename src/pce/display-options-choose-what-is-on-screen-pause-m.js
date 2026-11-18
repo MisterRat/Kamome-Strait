@@ -30,11 +30,11 @@ const UI = {
   hid: {},
   hint: false,
   load() {
-    this.hid = store.get('pce842ui', {}) || {};
+    this.hid = store.get('ui', {}) || {};
     if (this.hid.adf === undefined) this.hid.adf = 1; if (this.hid.rkring === undefined) this.hid.rkring = 1; if (this.hid.bmring === undefined) this.hid.bmring = 1; /* rocket and bomb sight rings start off */ /* the ADF radio compass starts switched off in free flight (L turns it on) */
   },
   save() {
-    store.set('pce842ui', this.hid);
+    store.set('ui', this.hid);
   },
   vis(id) {
     return !this.hid[id];

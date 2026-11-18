@@ -24,7 +24,7 @@ function atmos(h, o) {
   return o;
 }
 {
-  const saved = store.get('p51hc', null);
+  const saved = store.get('hc', null);
   if (saved && typeof saved === 'object') {
     FM.on = saved.on === true;
     HC_KEYS.forEach((k) => {

@@ -1,11 +1,11 @@
 /* ---- nose art options ---- */
 const NAO = (() => {
   const o = { style: 'shark', name: 'Miss Mustang', tally: true };
-  Object.assign(o, store.get('p51art', {}));
+  Object.assign(o, store.get('art', {}));
   return o;
 })();
 function naSave() {
-  store.set('p51art', NAO);
+  store.set('art', NAO);
 }
 function naSync() {
   $$('naStyle').value = NAO.style;

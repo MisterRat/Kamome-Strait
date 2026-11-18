@@ -36,14 +36,14 @@ $$('wxFlow').onchange = (e) => {
 $$('dmgOn').checked = DM.on;
 $$('dmgOn').onchange = (e) => {
   DM.on = e.target.checked;
-  store.set('p51dmg', DM.on);
+  store.set('dmg', DM.on);
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {
   AA.on = e.target.checked;
-  store.set('p51aa', AA.on);
+  store.set('aa', AA.on);
   AA.apply();
   note('GROUND FIRE ' + (AA.on ? 'ON' : 'OFF'));
 };
@@ -69,8 +69,8 @@ $$('engVol').oninput = (e) => {
   SND.setEng(e.target.value / 100);
   $$('engVolV').textContent = e.target.value + '%';
 };
-$$('pmAutoFs').checked = store.get('p51fs', true);
-$$('pmAutoFs').onchange = (e) => store.set('p51fs', e.target.checked);
+$$('pmAutoFs').checked = store.get('fs', true);
+$$('pmAutoFs').onchange = (e) => store.set('fs', e.target.checked);
 $$('pmAll').onclick = () => {
   UI.items.forEach((i) => {
     if (UI.applies(i)) UI.set(i.id, true);

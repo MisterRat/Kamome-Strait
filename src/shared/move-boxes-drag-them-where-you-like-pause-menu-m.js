@@ -21,11 +21,11 @@ UI.all = {};
 UI.pos = {};
 UI.key = () => (MOB ? (innerHeight > innerWidth ? 'p' : 'l') : 'd');
 UI.loadPos = () => {
-  UI.all = store.get('p51pos', {}) || {};
+  UI.all = store.get('pos', {}) || {};
   UI.pos = UI.all[UI.key()] || (UI.all[UI.key()] = {});
 };
 UI.savePos = () => {
-  store.set('p51pos', UI.all);
+  store.set('pos', UI.all);
 };
 UI.off = (id) => UI.pos[id] || [0, 0];
 UI.applyPos = (id) => {

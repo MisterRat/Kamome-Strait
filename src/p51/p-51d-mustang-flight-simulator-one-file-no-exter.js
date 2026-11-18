@@ -26,7 +26,7 @@
      camera:   camMode (0 chase / 1 cockpit), viewYaw, viewPitch, orbitOn
      mission:  trn (mode/steps/score), CV (convoy), T (ground targets), EN (enemies)
      display:  UI (which boxes are shown), QL (graphics quality)
-   Persistent settings use localStorage keys p51ui, p51pos, p51art, p51tc (always through the store helper).
+   Persistent settings use store names ui, pos, art, tc, saved under GAME.key (always through the store helper).
 
    CONVENTIONS
      - Models are lists of GX.part(...) baked with GX.Acc; never create one mesh per small piece.

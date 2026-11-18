@@ -8,7 +8,7 @@ const QT = {
 };
 const QMODES = ['auto', 'low', 'medium', 'high'];
 const QL = {
-  mode: QMODES.includes(store.get('p51gfx', 'auto')) ? store.get('p51gfx', 'auto') : 'auto',
+  mode: QMODES.includes(store.get('gfx', 'auto')) ? store.get('gfx', 'auto') : 'auto',
   t() {
     return QT[this.mode === 'auto' ? (this.lite ? 'low' : 'high') : this.mode];
   },
@@ -46,7 +46,7 @@ function applyQuality() {
   CSH.k.value = t.shadow ? 0.28 * WX.shK : 0;
   if (QL.mode !== 'auto') setPR(Math.min(QL.max, t.res));
   else if (QL.lite) setPR(1);
-  store.set('p51gfx', QL.mode);
+  store.set('gfx', QL.mode);
 }
 function adaptRes(ms) {
   if (QL.mode !== 'auto' || ms > 120) return;

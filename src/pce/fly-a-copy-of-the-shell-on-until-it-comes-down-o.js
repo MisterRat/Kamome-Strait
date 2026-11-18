@@ -98,7 +98,7 @@ function scamCam(dt) {
   c.checked = SCAM.want;
   c.onchange = () => {
     SCAM.want = c.checked;
-    store.set('pce842scam2', SCAM.want);
+    store.set('scam2', SCAM.want);
     if (!SCAM.want) SCAM.on = false;
   };
 }

@@ -83,7 +83,7 @@ const FM = {
     return this.on && this.opt[k];
   },
   save() {
-    store.set('pce842hc', { on: this.on, opt: this.opt });
+    store.set('hc', { on: this.on, opt: this.opt });
   },
   eT: 0 /* engine heat 0..1.2; 1 = overheated */,
   wepT: 0 /* seconds spent at war emergency power (5 minutes allowed) */,

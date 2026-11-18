@@ -29,10 +29,10 @@ const curve = (v, d = 0.08) => {
   return Math.sign(v) * Math.min(1, 0.35 * n + 0.65 * n * n);
 };
 function loadCfg() {
-  Object.assign(TC.cfg, store.get('pce842tc', {}));
+  Object.assign(TC.cfg, store.get('tc', {}));
 }
 function saveCfg() {
-  store.set('pce842tc', TC.cfg);
+  store.set('tc', TC.cfg);
 }
 loadCfg();
 function setMob(on) {

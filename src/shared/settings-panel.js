@@ -75,7 +75,7 @@ $$('goTilt').onclick = () => {
 $$('go').addEventListener('click', () => {
   reqWake();
   /* phone: go fullscreen when the flight starts (this tap is the user gesture the browser requires); the pause menu can switch it off */
-  if (MOB && store.get('p51fs', true) && !(document.fullscreenElement || document.webkitFullscreenElement)) toggleFS();
+  if (MOB && store.get('fs', true) && !(document.fullscreenElement || document.webkitFullscreenElement)) toggleFS();
   if (MOB && TC.state === 'ok') setTimeout(calibrate, 60);
   if (MOB && innerHeight > innerWidth) {
     const r = $$('rot');

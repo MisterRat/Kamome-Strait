@@ -33,7 +33,7 @@ const WX = {
   cdx: 5.5,
   cdz: 1.8,
   load() {
-    const c = store.get('pce842wx', null);
+    const c = store.get('wx', null);
     if (c && typeof c === 'object') {
       if (c.time === 'local' || WX_HOUR[c.time] !== undefined) this.time = c.time;
       if (WX_SET[c.wx]) this.wx = c.wx;
@@ -43,7 +43,7 @@ const WX = {
     }
   },
   save() {
-    store.set('pce842wx', { time: this.time, wx: this.wx, flow: this.flow, wd: this.wd, ws: this.ws });
+    store.set('wx', { time: this.time, wx: this.wx, flow: this.flow, wd: this.wd, ws: this.ws });
   },
 };
 WX.load();

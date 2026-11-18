@@ -15,7 +15,7 @@ const DM = {
   bailArm: 0 /* time until which a second press of the bail-out key counts */,
   bailHold: 0,
   load() {
-    this.on = store.get('p51dmg', true) !== false;
+    this.on = store.get('dmg', true) !== false;
   },
   reset() {
     this.eng = this.wl = this.wr = this.tail = 0;

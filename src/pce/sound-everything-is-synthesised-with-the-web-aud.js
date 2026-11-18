@@ -8,7 +8,7 @@ const SND = {
   ctx: null,
   gunUntil: 0,
   load() {
-    const c = store.get('pce842snd', null);
+    const c = store.get('snd', null);
     if (c && typeof c === 'object') {
       this.on = c.on !== false;
       if (c.ver === 2 && typeof c.vol === 'number') this.vol = Math.max(0, Math.min(1, c.vol));
@@ -16,7 +16,7 @@ const SND = {
     }
   },
   save() {
-    store.set('pce842snd', { on: this.on, vol: this.vol, eng: this.eng, ver: 2 });
+    store.set('snd', { on: this.on, vol: this.vol, eng: this.eng, ver: 2 });
   },
   /* the permanent voices */
   build(a) {

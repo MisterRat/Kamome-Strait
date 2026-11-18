@@ -26,7 +26,7 @@ const PHOTO = {
   wx0: null,
 };
 {
-  const c = store.get('pce842ph', null);
+  const c = store.get('ph', null);
   if (c && typeof c === 'object') {
     PHOTO.hud = c.hud === true;
     PHOTO.stamp = c.stamp === true;
@@ -41,7 +41,7 @@ const PHE = new THREE.Euler(0, 0, 0, 'YXZ'),
   PHR = new THREE.Vector3(),
   PHT = new THREE.Vector3();
 function photoSave() {
-  store.set('pce842ph', {
+  store.set('ph', {
     hud: PHOTO.hud,
     stamp: PHOTO.stamp,
     grid: PHOTO.grid,
