@@ -2,7 +2,7 @@
 {
   /* open sea out to 60 km under everything: the terrain mesh ends at 13 km and the world beyond is water */
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(120000, 120000).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: new THREE.Color(0.11, 0.22, 0.375) /* the colour the shore shader paints at -40 m, so the sea is seamless */ }));
-  sea.position.y = -8.4;
+  sea.position.y = -11.8; /* under the ocean's troughs and below a ship's keel (it must never show inside her engine room) */
   sea.frustumCulled = false;
   sea.renderOrder = -3;
   sea.material.polygonOffset = true; /* pushed back in depth, so it never z-fights with the chunks' water at a long distance (horizontal stripes) */

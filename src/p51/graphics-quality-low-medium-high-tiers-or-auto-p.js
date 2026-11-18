@@ -32,6 +32,7 @@ function applyQuality() {
     o.m.count = Math.floor(o.full * t.trees);
   });
   DETU.value = t.detail;
+  OCEAN.U.uQ.value = t.fx; /* the sea's ripples and detail follow the graphics tier */
   NT.R = t.near[0]; /* the radius of the detailed trees, and how many of them at most */
   NT.cap = t.near[1];
   if (QL.mode !== 'auto') NT.k = 1;

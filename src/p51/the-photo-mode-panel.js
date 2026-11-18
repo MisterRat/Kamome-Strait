@@ -214,6 +214,7 @@ function frame(now) {
 
   sky.position.copy(cam.position);
   terrU.uTime.value = now / 1000;
+  OCEAN.U.uTime.value = now / 1000;
   {
     const nn = PHOTO.on || ROAM.on ? Math.max(0.3, Math.max(0, PHOTO.pos.y) * 0.004) : !orbitOn && (camMode == 1 || lb > 0.3) ? 0.12 : 1;
     if (cam.near !== nn) {

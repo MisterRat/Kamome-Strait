@@ -1,5 +1,6 @@
 /* =====================================================================================================================
-   THE OCEAN (PCE-842): a moving sea surface for an eye 9 m above the water.
+   THE OCEAN (shared by every game since P-51 5.38 / PCE-842 0.55; built in PCE-842): a moving sea surface, first made for an eye 9 m
+   above the water and also drawn under the P-51.
    The P-51 paints its water onto the flat terrain at -8 m (per pixel, from height maps) with an open-sea plane beyond. That stays,
    and this surface is laid over it:
      - one camera-centred polar grid out to the horizon (dense near the eye, coarse far away), drawn in the transparent pass;
@@ -47,7 +48,7 @@ const OCEAN = (() => {
     shoreTex: SHORET,
     wTex: { value: wTex },
     uQ: { value: 2 } /* graphics tier: 0 low, 1 medium, 2 high */,
-    uShip: { value: new THREE.Vector4(0, 0, 0, 0) } /* the player's ship: x, z, heading, speed m/s */,
+    uShip: { value: new THREE.Vector4(1e7, 1e7, 0, 0) } /* the player's ship: x, z, heading, speed m/s (far away when no one commands a ship, e.g. the P-51) */,
     uB0: { value: new THREE.Vector4(0, 0, 0, 0) } /* another hull the water keeps out of: x, z, heading (model +x), kind (1 PT-105, 2 the sled, 0 none) */,
     uB1: { value: new THREE.Vector4(0, 0, 0, 0) },
     uBY: { value: new THREE.Vector2(0, 0) } /* their waterline heights: water is cut away inside them only above these (washing over the deck), never round the hull */,

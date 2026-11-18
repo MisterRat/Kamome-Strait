@@ -32,7 +32,7 @@ shared/the-world-beyond-the-home-map-its-height-wh-x-z.js
 shared/the-far-sites-two-colonial-harbours-two-enemy-ai.js
 shared/the-height-of-the-terrain-mesh-at-x-z-the-mesh-i.js
 shared/patchy-tone-grain-detail-texture-tiles-every-1-k.js
-p51/the-colours-of-the-shore-grass-tan-sand-light-bl.js
+shared/the-colours-of-the-shore-grass-tan-sand-light-bl.js
 shared/mission-area-gently-rolling-plain-with-a-road-be.js
 shared/the-convoy-road-out-of-the-gate-of-airbase-yamam.js
 shared/fenced-area-of-each-compound-x0-x1-z0-z1-in-metr.js
@@ -130,8 +130,9 @@ shared/switch-ground-fire-on-or-off-the-beams-shells-an.js
 shared/during-a-replay-or-while-paused-nothing-moves-ju.js
 shared/is-the-line-from-a-to-b-clear-of-the-hills-the-a.js
 shared/the-target-the-ground-fire-lays-on-and-the-test.js
+shared/the-ocean-a-moving-sea-surface-gerstner-waves-foam.js
 shared/the-port-and-the-airbase-free-flight-ground-buil.js
-p51/the-open-sea-and-kamome-field-the-distant-island.js
+shared/the-open-sea-and-kamome-field-the-distant-island.js
 shared/the-far-world-terrain-chunks-that-are-built-just.js
 shared/the-coast-batteries-settings-enable-enemy-shore.js
 shared/the-guns-ballistics-the-same-drag-law-as-the-pce.js

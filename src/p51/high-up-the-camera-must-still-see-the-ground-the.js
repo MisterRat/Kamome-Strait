@@ -10,7 +10,7 @@ function highView() {
   }
   if (SEAP) {
     const sc = Math.max(1, (alt * 4 + 60000) / 60000);
-    SEAP.position.set(Math.round(PHOTO.pos.x / 2000) * 2000, -8.4, Math.round(PHOTO.pos.z / 2000) * 2000);
+    SEAP.position.set(Math.round(PHOTO.pos.x / 2000) * 2000, -11.8, Math.round(PHOTO.pos.z / 2000) * 2000);
     SEAP.scale.set(sc, 1, sc);
     SEAP.updateMatrix();
   }

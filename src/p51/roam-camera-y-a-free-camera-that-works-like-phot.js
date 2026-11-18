@@ -24,7 +24,7 @@ function roamExit(quiet) {
   cam.near = 1;
   cam.updateProjectionMatrix();
   if (SEAP) {
-    SEAP.position.set(0, -8.4, 0);
+    SEAP.position.set(0, -11.8, 0);
     SEAP.scale.set(1, 1, 1);
     SEAP.updateMatrix();
   }
