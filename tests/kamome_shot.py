@@ -26,6 +26,7 @@ with sync_playwright() as p:
     out['version'] = pg.evaluate("()=>VERSION")
     pg.evaluate("""()=>{const o=R.render.bind(R);window.__KC=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.5,90000);window.__KU=false;
       R.render=(s,c)=>o(s,window.__KU?window.__KC:c);}""")
+    pg.add_style_tag(content='body > *:not(canvas#c){visibility:hidden!important}')
     for s in shots:
         if s.get('js'): pg.evaluate("()=>{" + s['js'] + "}")
         r = pg.evaluate("""(s)=>{const base=(typeof SHIPM!=='undefined'&&SHIPM.mesh)?SHIPM.mesh.position.clone():pos.clone();
