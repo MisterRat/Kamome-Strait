@@ -41,21 +41,16 @@
    [
     "Length",
     9.83,
-    "32 ft 3 in: USAF fact sheets and museum data (warbirdsresourcegroup.org; tnairmuseum.com)"
+    "P-51D, as the player's model"
    ],
    [
     "Span",
     11.28,
-    "37 ft 0 in (same sources; the Canadian RCAF page gives 37 ft 1 in)"
-   ],
-   [
-    "Height",
-    4.08,
-    "13 ft 4.5 in, tail wheel on the ground, propeller blade vertical (tnairmuseum.com)"
+    "P-51D, as the player's model"
    ]
   ],
   "notes": [
-   "The simpler model used for parked aircraft at the airfields; the player's aircraft is the detailed one (P-51D_blueprint.png)."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
   ]
  },
  {
@@ -113,14 +108,25 @@
  {
   "id": "tow-plane",
   "file": "Target-tug_aircraft",
-  "title": "Target-towing aircraft (gunnery practice)",
+  "title": "Target-towing aircraft: P-51D (gunnery practice)",
   "kind": "aircraft",
   "fwd": "+x",
   "make": "return ptMesh('tug');",
-  "type": "Generic target-towing aircraft (no specific type yet)",
-  "ref": [],
+  "type": "North American P-51D Mustang (simplified airfield model, gear up)",
+  "ref": [
+   [
+    "Length",
+    9.83,
+    "P-51D, as the player's model"
+   ],
+   [
+    "Span",
+    11.28,
+    "P-51D, as the player's model"
+   ]
+  ],
   "notes": [
-   "A simple stand-in: fuselage, wing and tail of plain shapes. No real type has been chosen for it yet (the US Navy used types such as the JRB / SNB, the SBD and the TBM for towing)."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
   ]
  },
  {
@@ -216,7 +222,8 @@
    ]
   ],
   "notes": [
-   "Placed in the game with her keel at the painted sea level, so she floats about her full draught too high (see 'where she floats')."
+   "Placed in the game with her keel at the painted sea level, so she floats about her full draught too high (see 'where she floats').",
+   "Hull below the waterline deepened to her real draught, 3.06 m (GX.fit). One type serves every Japanese patrol vessel (the port has a second, alongside)."
   ]
  },
  {
@@ -226,12 +233,28 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.freighter('jp'));",
-  "type": "Japanese cargo ship (generic, 95 m)",
-  "wl": "box.min.y",
-  "ref": [],
+  "type": "Type 2A wartime standard cargo ship (generic shape, real size)",
+  "wl": "0",
+  "ref": [
+   [
+    "Length",
+    137,
+    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Beam",
+    18.2,
+    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Draught",
+    7.8,
+    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+   ]
+  ],
   "notes": [
-   "A generic freighter built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
-   "At the enemy ports she is placed with her keel on the painted sea level, so the whole hull stands above the water."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
   ]
  },
  {
@@ -241,26 +264,28 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.tanker('jp'));",
-  "type": "Japanese tanker (generic, 112 m)",
-  "wl": "box.min.y",
-  "ref": [],
+  "type": "Type 2TL wartime standard tanker (generic shape, real size)",
+  "wl": "0",
+  "ref": [
+   [
+    "Length",
+    153.5,
+    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Beam",
+    20,
+    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Draught",
+    9.1,
+    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+   ]
+  ],
   "notes": [
-   "A generic tanker built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
-   "Placed like the freighter: keel on the sea level."
-  ]
- },
- {
-  "id": "jp-patrol",
-  "file": "Japanese_patrol_boat",
-  "title": "Japanese patrol boat",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.patrol('jp'));",
-  "type": "Japanese patrol boat (generic, 32 m)",
-  "wl": "box.min.y",
-  "ref": [],
-  "notes": [
-   "A generic patrol boat built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
   ]
  },
  {
@@ -270,12 +295,28 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.freighter('us'));",
-  "type": "US cargo ship (generic, 95 m), kept for later",
-  "wl": "SEA.Y + 6.4",
-  "ref": [],
+  "type": "Liberty ship EC2-S-C1, kept for later (generic shape, real size)",
+  "wl": "0",
+  "ref": [
+   [
+    "Length",
+    134.6,
+    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Beam",
+    17.3,
+    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Draught",
+    8.5,
+    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+   ]
+  ],
   "notes": [
-   "A generic freighter built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
-   "Not in the world at present (the allied fleet is the PCEs and PT boats); kept to be improved and used later."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
   ]
  },
  {
@@ -285,12 +326,28 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.tanker('us'));",
-  "type": "US tanker (generic, 112 m), kept for later",
-  "wl": "SEA.Y + 6.4",
-  "ref": [],
+  "type": "T2-SE-A1 tanker, kept for later (generic shape, real size)",
+  "wl": "0",
+  "ref": [
+   [
+    "Length",
+    159.6,
+    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Beam",
+    20.7,
+    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+   ],
+   [
+    "Draught",
+    9.2,
+    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+   ]
+  ],
   "notes": [
-   "A generic tanker built from plain blocks; it represents no specific class yet. Choose a real class and it can be rebuilt and checked like the PCE-842.",
-   "Kept to be improved and used later."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
   ]
  },
  {
@@ -347,31 +404,30 @@
   "title": "Japanese army cargo truck (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('truck').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (cargo truck), assumed",
+  "type": "Isuzu Type 94 six-wheeled truck (cargo truck)",
   "ref": [
    [
     "Length",
     5.4,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     1.9,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
    ],
    [
     "Height",
-    2.7,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    2.25,
+    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one.",
-   "The reference height (2.7 m) is with the canvas tilt; a model without a tilt keeps its own proportions, so it is lower."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
   ],
   "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('truck')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+   "Height": "(()=>{const b=GX.body(VM.fitParts('truck'));return b.max.y-Math.max(0,b.min.y);})()"
   }
  },
  {
@@ -380,31 +436,24 @@
   "title": "Japanese army supply truck, covered (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('supply').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (covered supply truck), assumed",
+  "type": "Isuzu Type 94 six-wheeled truck (covered supply truck)",
   "ref": [
    [
     "Length",
     5.4,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     1.9,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
-   ],
-   [
-    "Height",
-    2.7,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
-  ],
-  "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('supply')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
-  }
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+   "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
+  ]
  },
  {
   "id": "tanker-truck",
@@ -412,32 +461,24 @@
   "title": "Japanese army tanker truck (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('tanker').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (tanker truck), assumed",
+  "type": "Isuzu Type 94 six-wheeled truck (tanker truck)",
   "ref": [
    [
     "Length",
     5.4,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     1.9,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
-   ],
-   [
-    "Height",
-    2.7,
-    "5.4 x 1.9 x 2.7 m (truck-encyclopedia.com, Isuzu Type 94)"
+    "5.40 x 1.90 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one.",
-   "The reference height (2.7 m) is with the canvas tilt; a model without a tilt keeps its own proportions, so it is lower."
-  ],
-  "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('tanker')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
-  }
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+   "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
+  ]
  },
  {
   "id": "jeep-jp",
@@ -445,62 +486,62 @@
   "title": "Japanese army light car (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('jeep').m);",
-  "type": "Kurogane Type 95 scout car, assumed",
+  "type": "Kurogane Type 95 scout car",
   "ref": [
    [
     "Length",
-    3.6,
-    "3,600 mm (Wikipedia, Kurogane Type 95)"
+    3.38,
+    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     1.52,
-    "1,520 mm (Wikipedia)"
+    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
    ],
    [
     "Height",
     1.68,
-    "1,680 mm (Wikipedia)"
+    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
   ],
   "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('jeep')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+   "Height": "(()=>{const b=GX.body(VM.fitParts('jeep'));return b.max.y-Math.max(0,b.min.y);})()"
   }
  },
  {
   "id": "apc",
   "file": "Japanese_halftrack",
-  "title": "Japanese army armoured carrier (enemy target)",
+  "title": "Japanese army half-track (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('apc').m);",
-  "type": "Type 1 Ho-Ha half-track, assumed",
+  "type": "Isuzu Type 98 Ko-Hi half-track prime mover",
   "ref": [
    [
     "Length",
-    6.1,
-    "6.1 m (Wikipedia, Type 1 Ho-Ha)"
+    4.65,
+    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
-    2.1,
-    "2.1 m"
+    1.9,
+    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
    ],
    [
     "Height",
-    2.51,
-    "2.51 m"
+    2.15,
+    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
   ],
   "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('apc')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+   "Height": "(()=>{const b=GX.body(VM.fitParts('apc'));return b.max.y-Math.max(0,b.min.y);})()"
   }
  },
  {
@@ -509,30 +550,31 @@
   "title": "Japanese army tank (enemy target)",
   "fwd": "+z",
   "make": "return __local(__target('tank').m);",
-  "type": "Type 95 Ha-Go light tank, assumed",
+  "type": "Type 95 Ha-Go light tank",
   "ref": [
    [
     "Length",
-    4.38,
-    "4.38 m (Wikipedia, Type 95 Ha-Go)"
+    4.3,
+    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
-    2.06,
-    "2.06 m"
+    2.07,
+    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
    ],
    [
     "Height",
-    2.13,
-    "2.13 m"
+    2.28,
+    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
    ]
   ],
   "notes": [
-   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
-   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+   "Photo: References/Type 95 Ha-Go.jpg"
   ],
   "measure": {
-   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('tank')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+   "Height": "(()=>{const b=GX.body(VM.fitParts('tank'));return b.max.y-Math.max(0,b.min.y);})()"
   }
  },
  {
@@ -541,18 +583,22 @@
   "title": "US fuel bowser (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
-  "type": "US 2\u00bd-ton 6x6 fuel truck (GMC CCKW class), assumed",
+  "type": "GMC CCKW 2\u00bd-ton 6x6 chassis, fuel truck",
   "ref": [
    [
     "Length",
     6.51,
-    "6.51 m (GMC CCKW 353 cargo, dday-overlord.com; the tanker body is about the same length)"
+    "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     2.24,
-    "2.24 m"
+    "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
    ]
+  ],
+  "notes": [
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Shares the cargo truck's scale (one CCKW chassis)."
   ]
  },
  {
@@ -561,23 +607,27 @@
   "title": "US cargo truck (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.cargoTruck());",
-  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck, assumed",
+  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck",
   "ref": [
    [
     "Length",
     6.51,
-    "6.51 m (dday-overlord.com)"
+    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     2.24,
-    "2.24 m"
+    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
    ],
    [
     "Height",
     2.8,
-    "2.80 m with the canvas top"
+    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
    ]
+  ],
+  "notes": [
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Photo: References/GMC CCKW 353.jpg"
   ]
  },
  {
@@ -591,18 +641,22 @@
    [
     "Length",
     3.36,
-    "132.25 in (Wikipedia, Jeep MB)"
+    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
    ],
    [
     "Width",
     1.57,
-    "62 in"
+    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
    ],
    [
     "Height",
-    1.32,
-    "52 in top down (1.77 m top up)"
+    1.77,
+    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
    ]
+  ],
+  "notes": [
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Photo: References/Willys MB Jeep.jpg"
   ]
  },
  {
@@ -611,10 +665,27 @@
   "title": "US aircraft tug (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.tug());",
-  "type": "US aircraft tug (tractor), generic",
-  "ref": [],
+  "type": "Clark Clarktor 6 aircraft tug",
+  "ref": [
+   [
+    "Length",
+    2.54,
+    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+   ],
+   [
+    "Width",
+    1.32,
+    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+   ],
+   [
+    "Height",
+    1.42,
+    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+   ]
+  ],
   "notes": [
-   "No specific type chosen yet (the Clark CA-1 was the common USAAF aircraft tug)."
+   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+   "Photo: References/Clarktor 6.jpg"
   ]
  },
  {

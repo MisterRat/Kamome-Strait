@@ -169,25 +169,25 @@ const SITES = [],
   /* ===== the port ===== */
   drape(-130, 130, -95, 48, cc(CORAL, 26, 14), 1, 1, 0.35); /* the quay: pale coral earth */
   {
-    /* a finger pier on piles, running 210 m out to deep water; the deck stays 4.5 m above the sea */
-    const P = [part(bx(210, 0.8, 16), 0x6f5a40, 0, 0, 0)];
-    for (let k = 0; k <= 8; k++)
+    /* a finger pier on piles, running 270 m out (40 to 310 m from the shore), long enough for a 150 m ship to lie alongside clear of
+       the beach; the deck stays 4.5 m above the sea */
+    const P = [part(bx(270, 0.8, 16), 0x6f5a40, 0, 0, 0)];
+    for (let k = 0; k <= 10; k++)
       for (const s of [-1, 1]) {
-        P.push(part(cyl(0.45, 0.45, 9, 8), 0x4a3a2a, -96 + k * 24, -4.6, s * 7.4));
-        P.push(part(cyl(0.3, 0.3, 1, 8), 0x2a2a28, -96 + k * 24, 0.9, s * 7.6));
+        P.push(part(cyl(0.45, 0.45, 9, 8), 0x4a3a2a, -120 + k * 24, -4.6, s * 7.4));
+        P.push(part(cyl(0.3, 0.3, 1, 8), 0x2a2a28, -120 + k * 24, 0.9, s * 7.6));
       }
-    P.push(part(bx(210, 0.25, 0.4), 0x5a4630, 0, 0.5, 7.9), part(bx(210, 0.25, 0.4), 0x5a4630, 0, 0.5, -7.9));
+    P.push(part(bx(270, 0.25, 0.4), 0x5a4630, 0, 0.5, 7.9), part(bx(270, 0.25, 0.4), 0x5a4630, 0, 0.5, -7.9));
     const [m] = asMesh(P),
-      [x, z] = SITE.w(0, 145);
+      [x, z] = SITE.w(0, 175);
     m.position.set(x, -3.0, z);
     m.rotation.y = SITE.ryS;
     scene.add(m);
   }
   const ship = (parts, len, u, d, hp) => target(parts, 'ship', hp, len * 0.3, u, d, SITE.ryS);
   const hullUp = (P) => P; /* ship models are built with their waterline at y = 0 and the keel below it; target() floats them there */
-  ship(hullUp(M.freighter('jp')), 95, -17, 188, 150);
-  ship(hullUp(M.tanker('jp')), 112, 18, 190, 180);
-  ship(hullUp(M.patrol('jn')), 32, -60, 175, 60);
+  ship(hullUp(M.freighter('jp')), 137, -17.5, 225, 150); /* alongside the pier, her stern clear of the beach */
+  ship(hullUp(M.tanker('jp')), 153.5, 18.5, 232, 180);
   /* a Ukuru-class kaibokan (77.7 m x 9.1 m): the coastal escort that patrols up and down the shore off the port.
      The hull is lofted from stations (flared bow, raked stem, tumblehome-free flush deck with bulwarks); the guns are the same Type 96 25 mm mounts as the bases. */
   const UK = { L: 78, X0: -39, mounts: [[20.5, 3.0], [20.5, -3.0], [-3, 3.55], [-3, -3.55]] };
@@ -379,6 +379,10 @@ const SITES = [],
     }
     return P;
   };
+  /* her real draught (3.06 m) below the waterline; the model is otherwise built to her plans */
+  const ukuruR = () => GX.fit(ukuru(), { D: 3.06 }, new THREE.Matrix4());
+  /* the port's patrol vessel: a second Ukuru, alongside (the Japanese side's one patrol type) */
+  ship(ukuruR(), 78, -62, 245, 140);
   {
     /* the patrol: a racetrack along the coast 420 m out, 1.9 km long, with a U-turn at each end */
     const u0 = -350,
@@ -387,7 +391,7 @@ const SITES = [],
       R = 60,
       Ls = u1 - u0,
       per = 2 * Ls + 2 * Math.PI * R,
-      e = ship(ukuru(), 78, u0, d0, 140),
+      e = ship(ukuruR(), 78, u0, d0, 140),
       y0 = e.m.position.y,
       oy = -e.k0 - e.s1 / 2; /* mesh-local y = model y + oy */
     const MAT = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }),
@@ -851,7 +855,7 @@ const SITES = [],
       Ls = u1 - u0,
       per = 2 * Ls + 2 * Math.PI * R;
     FR = F;
-    const e = target(ukuru(), 'ship', 140, 78 * 0.3, u0, d0, F.ryS);
+    const e = target(ukuruR(), 'ship', 140, 78 * 0.3, u0, d0, F.ryS);
     FR = SITE;
     const y0 = e.m.position.y,
       oy = -e.k0 - e.s1 / 2,
@@ -1225,8 +1229,8 @@ const SITES = [],
     const ports = FS.list.filter((f) => f.kind === 'port');
     if (ports.length > 1) {
       const [A, B] = ports;
-      mkCiv(M.freighter('jp'), 95, A, B, 13, 0);
-      mkCiv(M.tanker('jp'), 112, B, A, -13, 900);
+      mkCiv(M.freighter('jp'), 137, A, B, 13, 0);
+      mkCiv(M.tanker('jp'), 153.5, B, A, -13, 900);
     }
   }
   SITE.far = FARS;

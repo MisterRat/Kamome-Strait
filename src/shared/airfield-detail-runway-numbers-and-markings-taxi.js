@@ -127,15 +127,18 @@
     P.push(part(sph(), 0x27384a, -0.6, Y + 0.62, 0, 0, 0, 0, 1.15, 0.5, 0.45));
     P.push(part(PW.build(-5.4, 5.4), body, 0, 0, 0));
     P.push(part(PT.build(-1.97, 1.97), body, 0, 0, 0));
-    for (const s of [-1, 1]) {
-      P.push(part(bx(0.12, 0.95, 0.12), 0x6d7176, 0.3, 0.58, s * 1.35));
-      P.push(wheel(0.3, s * 1.35, 0.4, 0.22));
-      P.push(part(bx(0.14, 0.5, 0.7), under, 0.3, Y - 0.75, s * 1.35));
-    }
+    if (!o.air)
+      for (const s of [-1, 1]) {
+        P.push(part(bx(0.12, 0.95, 0.12), 0x6d7176, 0.3, 0.58, s * 1.35));
+        P.push(wheel(0.3, s * 1.35, 0.4, 0.22));
+        P.push(part(bx(0.14, 0.5, 0.7), under, 0.3, Y - 0.75, s * 1.35));
+      }
     P.push(part(mkFin(-3.9, 0.35, 1.6, 0.75, 1.55, 0, 0.62), body, 0, Y + 0.1, 0, -Z)); /* fin, rooted in the fuselage */
     P.push(part(mkFin(-3.9, 0.35, 1.6, 0.75, 1.55, 0.62, 1, 0.07), trim, 0, Y + 0.1, 0, -Z)); /* rudder */
-    P.push(part(bx(0.08, 1.0, 0.08), 0x6d7176, -4.0, 0.7, 0));
-    P.push(part(sph(), 0x151515, -4.0, 0.17, 0, 0, 0, 0, 0.17, 0.17, 0.17));
+    if (!o.air) {
+      P.push(part(bx(0.08, 1.0, 0.08), 0x6d7176, -4.0, 0.7, 0));
+      P.push(part(sph(), 0x151515, -4.0, 0.17, 0, 0, 0, 0, 0.17, 0.17, 0.17));
+    }
     const a = o.ang || 0;
     P.push(part(bx(0.06, 3.0, 0.22), 0x181818, 4.62, Y, 0, a));
     P.push(part(bx(0.06, 3.0, 0.22), 0x181818, 4.62, Y, 0, a + Z));
@@ -210,6 +213,18 @@
     for (let i = 0; i < 2; i++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[i], 0.36 + i * 0.72, 1.44, 0.7));
     return P;
   };
+  /* REAL SIZES (GX.fit), figures from References/vehicle research spec sheet.pdf and the P-51D's own (the player's model):
+     fighter: North American P-51D, 9.83 m long, 11.28 m span; cargo and fuel trucks: GMC CCKW 353 2½-ton 6x6, 6.51 x 2.24 x 2.80 m
+     over the canvas bows (the fuel truck on the same chassis, so the same scale); jeep: Willys MB, 3.36 x 1.57 x 1.77 m;
+     tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
+  const FIT = {},
+    fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
+    fighterR = (body, trim, o) => GX.fit(fighter(body, trim, o), null, fitOnce('p51', fighter(0, 0, {}), { L: 9.83, W: 11.28, H: null })),
+    cckw = () => fitOnce('cckw', cargoTruck(), { L: 6.51, W: 2.24, H: 2.8 }),
+    fuelTruckR = (c) => GX.fit(fuelTruck(c), null, cckw()),
+    cargoTruckR = () => GX.fit(cargoTruck(), null, cckw()),
+    jeepR = () => GX.fit(jeep(), { L: 3.36, W: 1.57, H: 1.77 }),
+    tugR = () => GX.fit(tug(), { L: 2.54, W: 1.32, H: 1.42 });
   /* the line-up: six fighters in front of the apron's east side, two at the hangar doors */
   [
     [-108, 336, 0.1, 0xb7bcc2, 0xb22a24, {}],
@@ -220,15 +235,15 @@
     [-108, 456, 0, 0xb7bcc2, 0x1e4fa3, { tanks: 1, ang: 0.9 }],
     [-163, 220, 0.05, 0x5d6341, 0xd9b92a, { ang: 0.5 }],
     [-163, 290, -0.1, 0xb7bcc2, 0xb22a24, { ang: 0.1 }],
-  ].forEach((a) => place(fighter(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
-  place(fuelTruck(0x56603f), -136, 345, -Z, 8, 3);
-  place(cargoTruck(), -140, 392, Z, 8, 3);
-  place(jeep(), -128, 422, 0.3, 4, 2.2);
-  place(jeep(), -86, 314, 0.9, 4, 2.2);
-  place(jeep(), -148, 262, -0.4, 4, 2.2);
-  place(tug(), -124, 474, Z * 2, 3, 1.8);
-  place(fuelTruck(0x9aa0a6), -152, 462, -0.2, 8, 3);
-  place(cargoTruck(), -72, 466, Math.PI, 8, 3);
+  ].forEach((a) => place(fighterR(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
+  place(fuelTruckR(0x56603f), -136, 345, -Z, 8, 3);
+  place(cargoTruckR(), -140, 392, Z, 8, 3);
+  place(jeepR(), -128, 422, 0.3, 4, 2.2);
+  place(jeepR(), -86, 314, 0.9, 4, 2.2);
+  place(jeepR(), -148, 262, -0.4, 4, 2.2);
+  place(tugR(), -124, 474, Z * 2, 3, 1.8);
+  place(fuelTruckR(0x9aa0a6), -152, 462, -0.2, 8, 3);
+  place(cargoTruckR(), -72, 466, Math.PI, 8, 3);
   place(drums(), -172, 330, 0, 3.2, 3.2);
   place(drums(), -178, 468, 0.3, 3.2, 3.2);
   {
@@ -249,16 +264,16 @@
   };
   /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
      goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
-  AFLD.addRepair(fighter(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a), {
+  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a), {
     path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
     door: [-176.5, 145.5],
     spot: [-172.4, 150],
     face: 0,
   });
   /* the jeep is a perimeter patrol: it drives right round the paved area, outside its edge, and keeps going */
-  AFLD.add(jeep(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true });
+  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true });
   /* the fuel bowser works down the line of fighters, just behind their tails, and stands at each one to fuel it */
-  AFLD.add(fuelTruck(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
+  AFLD.add(fuelTruckR(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
   AFLD.add(crew(0x8b7d5a), [[-97, 338], [-97, 372]], 1.4, 5, 'walk');
   AFLD.add(crew(0x6f7a8a), [[-97, 398], [-97, 436]], 1.3, 8, 'walk');
   AFLD.add(crew(0xa89b84), [[-172, 160], [-172, 205]], 1.4, 6, 'walk');
@@ -276,7 +291,7 @@
     const L = 95,
       P = hullSteps(L, 14, 6.5, 0x2f3438, -1.5);
     P.push(part(cyl(0.05, 0.05, 3.4, 6), 0x555555, -L / 2 + 1.2, 6.7, 0), ...FLG.at(fl || 'jp', 2.1, -L / 2 + 1.15, 8.3, 0, Math.PI));
-    P.push(part(bx(L * 0.78, 1.5, 14.2), 0x7a2a22, -L * 0.11, -1.2, 0));
+    P.push(part(bx(L * 0.78, 1.0, 14.2), 0x7a2a22, -L * 0.11, -0.1, 0)); /* boot-topping, across the waterline */
     P.push(part(bx(14, 9, 11), 0xdadad4, -L / 2 + 11, 10.7, 0));
     P.push(part(bx(6, 3, 11.4), 0x1d2a33, -L / 2 + 14, 13, 0));
     P.push(part(cyl(1.9, 1.9, 6), 0xb02a20, -L / 2 + 6, 17.5, 0));
@@ -288,7 +303,7 @@
     const L = 112,
       P = hullSteps(L, 17, 5.5, 0x23282c, -1.5);
     P.push(part(cyl(0.05, 0.05, 3.4, 6), 0x555555, -L / 2 + 1.2, 5.7, 0), ...FLG.at(fl || 'jp', 2.1, -L / 2 + 1.15, 7.3, 0, Math.PI));
-    P.push(part(bx(L * 0.78, 1.4, 17.2), 0x4a2a22, -L * 0.11, -1.2, 0));
+    P.push(part(bx(L * 0.78, 1.0, 17.2), 0x4a2a22, -L * 0.11, -0.1, 0)); /* boot-topping, across the waterline */
     P.push(part(bx(12, 10, 14), 0xd8d8d0, -L / 2 + 9, 10.5, 0));
     P.push(part(bx(5, 2.6, 14.4), 0x1d2a33, -L / 2 + 12, 12.8, 0));
     P.push(part(cyl(1.6, 1.6, 5), 0x303438, -L / 2 + 5, 16.5, 0));
@@ -588,7 +603,17 @@
       }
   }
   AFLD.hullSteps = hullSteps;
-  AFLD.models = { freighter, tanker, patrol, pce, fighter, ki84, fuelTruck, cargoTruck, jeep, tug, crew, drums }; /* the port and the airbase reuse these models */
+  /* the cargo ships at their real sizes (GX.fit, figures from References/vehicle research spec sheet.pdf; length, beam, draught,
+     heights in proportion): Japanese Type 2A wartime standard cargo ship 137.0 x 18.2 m, 7.8 m draught; Type 2TL wartime standard
+     tanker 153.5 x 20.0 m, 9.1 m; American Liberty ship (EC2-S-C1) 134.6 x 17.3 m, 8.5 m; T2-SE-A1 tanker 159.6 x 20.7 m, 9.2 m.
+     The shapes stay the generic ones until the ships are rebuilt. */
+  const SHIPR = {
+      freighter: { jp: { L: 137, W: 18.2, D: 7.8 }, us: { L: 134.6, W: 17.3, D: 8.5 } },
+      tanker: { jp: { L: 153.5, W: 20, D: 9.1 }, us: { L: 159.6, W: 20.7, D: 9.2 } },
+    },
+    freighterR = (fl) => GX.fit(freighter(fl), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
+    tankerR = (fl) => GX.fit(tanker(fl), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
+  AFLD.models = { freighter: freighterR, tanker: tankerR, patrol, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
   /* soft contact shadows under everything parked */
   {
     const c = document.createElement('canvas');

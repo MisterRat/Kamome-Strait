@@ -74,11 +74,10 @@ function ptMesh(kind) {
     P.push(part(cyl(0.7, 0.5, 9, 12), 0xf07020, 0, 0, 0, 0, 0, Math.PI / 2));
     for (const x of [-2.5, 1.5]) P.push(part(cyl(0.68, 0.64, 1, 12), 0xf4f4f0, x, 0, 0, 0, 0, Math.PI / 2));
   } else {
-    P.push(part(cyl(0.7, 0.4, 10, 10), 0xc8c8b8, 0, 0, 0, 0, 0, Math.PI / 2));
-    P.push(part(bx(2.2, 0.25, 14), 0xc8c8b8, 1, 0, 0));
-    P.push(part(bx(1.2, 0.2, 4.4), 0xc8c8b8, -4.4, 0.2, 0));
-    P.push(part(bx(1.2, 2, 0.2), 0xc8c8b8, -4.6, 1, 0));
-    P.push(part(bx(0.8, 0.8, 1.4), 0xd0b020, 4.6, 0, 0));
+    /* the tow plane: a P-51D (the American side's one aircraft type) in natural metal with a yellow nose, gear up, at its real size
+       (AFLD.models.fighter, GX.fit); the airfield model stands on its wheels, so it is lowered to put the fuselage on the flight path */
+    const T = new THREE.Matrix4().makeTranslation(0, -1.4, 0);
+    for (const q of AFLD.models.fighter(0xb7bcc2, 0xd0b020, { air: 1, ang: 0.3 })) P.push({ ...q, m: new THREE.Matrix4().multiplyMatrices(T, q.m) });
   }
   const a = new GX.Acc();
   a.add(P, null);

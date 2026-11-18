@@ -35,10 +35,19 @@ const GX = (() => {
       this.c = [];
     }
     add(parts, T) {
+      const kd = parts.keel; /* a fitted ship: her hull below the waterline (model y < 0) deepened to her real draught (GX.fit) */
       for (const q of parts) {
         const g = q.g.index ? q.g.toNonIndexed() : q.g.clone();
-        const m = q.m && T ? new M4().multiplyMatrices(T, q.m) : q.m || T;
-        if (m) g.applyMatrix4(m);
+        if (kd) {
+          if (q.m) g.applyMatrix4(q.m);
+          const p = g.attributes.position.array;
+          for (let i = 1; i < p.length; i += 3) if (p[i] < -kd.c) p[i] = -kd.c + (p[i] + kd.c) * kd.k; /* the top kd.c metres stay as built */
+          g.computeVertexNormals();
+          if (T) g.applyMatrix4(T);
+        } else {
+          const m = q.m && T ? new M4().multiplyMatrices(T, q.m) : q.m || T;
+          if (m) g.applyMatrix4(m);
+        }
         if (q.c) cl.setRGB(q.c[0], q.c[1], q.c[2]);
         else cl.setHex(q.hex);
         const p = g.attributes.position.array,
@@ -61,5 +70,37 @@ const GX = (() => {
       return g;
     }
   }
-  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc };
+  /* REAL SIZE: fit a model (nose along +x, ground or waterline at y = 0) to the type it stands for.
+     real = { L, W, H, D }: length, width (beam), height and, for a ship, draught, in metres. L and W are measured on the body, without
+     aerials, masts and other thin parts (footprint under 0.15 m); H null keeps the model's proportion (scaled with the length).
+     fitM gives the scale matrix (so a family of models can share one: the trucks on one chassis), fit applies it and, with D, sets
+     the hull depth below the waterline (parts.keel, applied when baked). The blueprint tool checks the results (Blueprints/). */
+  const body = (P, M) => {
+    const b = new THREE.Box3(),
+      t = new THREE.Box3(),
+      I = new M4();
+    for (const q of P) {
+      if (!q.g.boundingBox) q.g.computeBoundingBox();
+      t.copy(q.g.boundingBox).applyMatrix4(q.m || I);
+      if (M) t.applyMatrix4(M);
+      if (Math.max(t.max.x - t.min.x, t.max.z - t.min.z) < 0.15) continue;
+      b.union(t);
+    }
+    return b;
+  };
+  const fitM = (P, r) => {
+    const b = body(P),
+      kl = r.L / (b.max.x - b.min.x);
+    return new M4().makeScale(kl, r.H ? r.H / (b.max.y - Math.max(0, b.min.y)) : kl, r.W / (b.max.z - b.min.z));
+  };
+  const fit = (P, r, M) => {
+    M = M || fitM(P, r);
+    const out = P.map((q) => ({ ...q, m: new M4().multiplyMatrices(M, q.m || new M4()) }));
+    if (r && r.D) {
+      const k = body(out).min.y;
+      if (k < -0.6) out.keel = { c: 0.5, k: (r.D - 0.5) / (-k - 0.5) };
+    }
+    return out;
+  };
+  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit };
 })();
