@@ -110,38 +110,24 @@ let WSOCK = null;
     305,
   ); /* apron: 10 m slabs, now reaching the northern hangar */
   mk(new THREE.PlaneGeometry(40, 24).rotateX(-Math.PI / 2), slab(4, 2.4), -45, 0.13, 300); /* taxiway */
-  for (let k = 0; k < 3; k++) {
-    const z = 150 + k * 70,
-      x = -190; /* arched hangars */
-    mk(new THREE.BoxGeometry(24, 7, 40), lam(0x8a929a), x, 3.5, z);
-    mk(
-      new THREE.CylinderGeometry(12, 12, 40, 18, 1, false, Math.PI / 2, Math.PI).rotateX(Math.PI / 2).scale(1, 0.45, 1),
-      lam(0x7b848c),
-      x,
-      7,
-      z,
-    );
-    mk(new THREE.PlaneGeometry(15, 5.5), lam(0x23272b), x + 12.05, 2.8, z).rotation.y = Math.PI / 2;
+  /* Fletcher Field's buildings, reference-built (MODELS, the US airfield buildings piece), all in one mesh: three Butler combat hangars
+     (doors on the apron at x = -178, as before), the steel-angle control tower with its Quonset operations hut, a row of Stran-Steel
+     Quonset barracks and an Elephant hut store on the grass north of the apron, and the line's support kit (M5 bomb trailers behind a
+     Clarktor, C-10 starter carts by the fighters) */
+  {
+    const acc = new GX.Acc(),
+      at = (P, x, z, yaw) => acc.add(P, GX.xf(x, Math.max(0, H(x, z)), z, yaw || 0));
+    for (let k = 0; k < 3; k++) at(MODELS.get('us-butler-hangar'), -178 - 24.39, 150 + k * 70, 0);
+    at(MODELS.get('us-control-tower'), -95, -120, 0);
+    at(MODELS.get('us-quonset', 'std'), -80, -120, Math.PI / 2);
+    for (let k = 0; k < 6; k++) at(MODELS.get('us-quonset', 'std'), -200 + k * 12, 72, Math.PI / 2); /* clear of the gun pit at (-168, 100) */
+    at(MODELS.get('us-quonset', 'elephant'), -110, 80, Math.PI / 2);
+    at(MODELS.get('us-clarktor6'), -76.5, 484, 0);
+    for (let k = 0; k < 3; k++) at(MODELS.get('us-m5-trailer'), -80.6 - k * 4.1, 484, 0);
+    for (const z of [342, 414]) at(MODELS.get('us-c10-cart'), -101.5, z, Math.PI / 2);
+    const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+    scene.add(m);
   }
-  const tw = new THREE.Group();
-  tw.position.set(-95, 0, -120);
-  scene.add(tw); /* control tower */
-  [
-    [new THREE.BoxGeometry(5, 14, 5), lam(0xb8bcc0), 0, 7, 0],
-    [new THREE.BoxGeometry(9, 4, 9), lam(0x9aa0a6), 0, 16, 0],
-    [
-      new THREE.BoxGeometry(9.2, 2.4, 9.2),
-      new THREE.MeshLambertMaterial({ color: 0x6fa0c0, transparent: true, opacity: 0.7 }),
-      0,
-      16.4,
-      0,
-    ],
-    [new THREE.BoxGeometry(10.5, 0.6, 10.5), lam(0x2b2e32), 0, 18.6, 0],
-  ].forEach((a) => {
-    const o = new THREE.Mesh(a[0], a[1]);
-    o.position.set(a[2], a[3], a[4]);
-    tw.add(o);
-  });
   mk(new THREE.CylinderGeometry(0.15, 0.15, 8, 8), lam(0xdddddd), 32, 4, 300); /* windsock */
   WSOCK = mk(new THREE.ConeGeometry(0.65, 3.6, 12, 1, true).rotateZ(-Math.PI / 2), lam(0xff6a00), 34, 8, 300);
   FLG.mesh('us', 12, 3.4, 42, 300, 0, 0); /* the Stars and Stripes at Fletcher Field */

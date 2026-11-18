@@ -117,24 +117,16 @@
     Zr = Math.PI / 2;
   slab(0, -48, 1100, 14, TXI); /* the parallel taxiway */
   for (const u of [-540, -20, 540]) slab(u, -30, 14, 24, TXI); /* three links from it to the runway: both ends and the middle */
-  slab(-40, -102, 290, 96, APR); /* the apron, flush with the taxiway */
   slab(135, -108, 70, 60, 0x8a887c); /* gravel fuel yard beside it */
   add(0, Yp - 0.02, -48, 1100, 0.04, 0.35, 0xc9b23a); /* taxiway centre line */
   for (const u of [-540, -20, 540]) add(u, Yp - 0.02, -30, 0.35, 0.04, 22, 0xc9b23a);
   add(-40, Yp - 0.02, -66, 280, 0.04, 0.35, 0xc9b23a); /* apron taxi line */
-  /* two arched hangars on the back of the apron, doors facing the runway */
-  for (const u of [-150, -80]) {
-    add(u, Y0 + 0.14, -135, 44, 7, 30, 0x8a929a);
-    P.push(part(cyl(15, 15, 44, 20), 0x7b848c, u, Y0 + 7.14, -135, 0, 0, Zr, 0.42, 1, 1));
-    add(u, Y0 + 0.14, -119.8, 28, 5.6, 0.4, 0x23272b);
-  }
-  add(-20, Y0 + 0.14, -142, 24, 5, 12, 0xb8b4a4); /* operations building */
-  add(-20, Y0 + 5.14, -142, 26, 0.5, 14, 0x6b6f66);
-  /* control tower at the east end of the apron */
-  add(75, Y0 + 0.14, -138, 5, 14, 5, 0xb8bcc0);
-  add(75, Y0 + 14.14, -138, 9, 4, 9, 0x9aa0a6);
-  add(75, Y0 + 14.9, -138, 9.2, 2.4, 9.2, 0x4a6a80);
-  add(75, Y0 + 18.14, -138, 10.5, 0.6, 10.5, 0x2b2e32);
+  /* the buildings, reference-built (MODELS, the US airfield buildings piece): two Butler combat hangars on the back of the apron, doors
+     toward the runway (on the line v = -119.8, as before), two Quonset huts for operations, the steel-angle control tower */
+  const put = (M, u, v, yaw) => P.push(...M.map((q) => ({ ...q, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) })));
+  for (const u of [-150, -80]) put(MODELS.get('us-butler-hangar'), u, -119.8 - 24.39, -Zr);
+  for (const u of [-28, -12]) put(MODELS.get('us-quonset', 'std'), u, -142, 0);
+  put(MODELS.get('us-control-tower'), 75, -138, 0);
   for (let k = 0; k < 3; k++) P.push(part(cyl(5, 5, 7, 14), 0xc9c9c0, 118 + k * 14, Yp + 3.5, -128)); /* the fuel tanks, on their gravel yard */
   add(104, Yp, -118, 3, 1.2, 3, 0x3a3d40); /* pump */
   P.push(part(cyl(0.4, 0.6, 34, 8), 0x8a2a20, 140, Y0 + 17, 100)); /* the KMM beacon mast */
@@ -163,7 +155,13 @@
   acc.add(P, GX.xf(0, 0, 0, 0));
   const bm = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
   const grp = new THREE.Group();
-  grp.add(rw, bm);
+  /* the apron: Marston mat (M8 pierced steel plank) laid over the coral, as on the forward strips */
+  const psp = GX.psp().clone();
+  psp.needsUpdate = true;
+  psp.repeat.set(290 / 6.1, 96 / 3.05);
+  const ap = new THREE.Mesh(new THREE.PlaneGeometry(290, 96).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: psp }));
+  ap.position.set(-40, Y0 + 0.13, -102);
+  grp.add(rw, bm, ap);
   grp.position.set(ISL.F.x, 0, ISL.F.z);
   grp.rotation.y = Math.atan2(-ISL.uz, ISL.ux);
   grp.updateMatrix();

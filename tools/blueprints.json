@@ -689,6 +689,178 @@
   ]
  },
  {
+  "id": "us-butler-hangar",
+  "file": "US_Butler_hangar",
+  "title": "Butler combat hangar (US airfields)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-butler-hangar'));",
+  "type": "Butler steel-arch combat hangar, 130 x 160 ft",
+  "ref": [
+   [
+    "Length",
+    48.77,
+    "160 ft, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Width",
+    39.62,
+    "130 ft clear span, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Height",
+    11.89,
+    "39 ft crown, docs/research_1945_bases.md (US structures in detail)"
+   ]
+  ],
+  "notes": [
+   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+   "Nine three-hinged box-truss arches at 6.10 m, corrugated sheeting with the lowest row open, canvas curtain doors under a box-girder header, tail notch at the back (adds 5 m to the length).",
+   "Three at Fletcher Field, two at Kamome Field."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[0]",
+   "Width": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[2]",
+   "Height": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[1]"
+  }
+ },
+ {
+  "id": "us-quonset",
+  "file": "US_Quonset_hut",
+  "title": "Quonset hut, Stran-Steel 20 x 48 ft (US airfields)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-quonset', 'std'));",
+  "type": "Stran-Steel Quonset hut, 20 x 48 ft",
+  "ref": [
+   [
+    "Length",
+    14.63,
+    "48 ft, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Width",
+    6.1,
+    "20 ft, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Height",
+    3.15,
+    "10 ft 4 in outside, docs/research_1945_bases.md (US structures in detail)"
+   ]
+  ],
+  "notes": [
+   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+   "13 ribs at 1.22 m, olive-drab corrugated steel on a concrete slab (slab adds 1 m), end walls with a double door, two windows and a vent.",
+   "Operations huts and barracks at Fletcher Field and Kamome Field."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[0]",
+   "Width": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[2]",
+   "Height": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[1]"
+  }
+ },
+ {
+  "id": "us-quonset-elephant",
+  "file": "US_Quonset_Elephant_hut",
+  "title": "Quonset Elephant hut, 40 x 100 ft (Fletcher Field store)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-quonset', 'elephant'));",
+  "type": "Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft",
+  "ref": [
+   [
+    "Length",
+    30.48,
+    "100 ft, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Width",
+    12.19,
+    "40 ft, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Height",
+    6.1,
+    "20 ft centre, docs/research_1945_bases.md (US structures in detail)"
+   ]
+  ],
+  "notes": [
+   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+   "26 ribs, large end doors (slab adds 1 m)."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[0]",
+   "Width": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[2]",
+   "Height": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[1]"
+  }
+ },
+ {
+  "id": "us-control-tower",
+  "file": "US_control_tower",
+  "title": "Steel-angle control tower (US airfields)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-control-tower'));",
+  "type": "Bolted steel-angle airfield control tower, 4 storeys",
+  "ref": [
+   [
+    "Height",
+    15,
+    "12-15 m, 3-4 storeys, docs/research_1945_bases.md (US structures in detail)"
+   ]
+  ],
+  "notes": [
+   "Height measured to the cab roof (without the mast).",
+   "Glazed green-tinted cab leaning out, catwalk with rail, outside stair, mast and Aldis lamp."
+  ],
+  "measure": {
+   "Height": "__partsSize(MODELS.get('us-control-tower'),[0x3e4234])[1]"
+  }
+ },
+ {
+  "id": "us-m5-trailer",
+  "file": "US_M5_bomb_trailer",
+  "title": "M5 bomb trailer with two 500 lb bombs (Fletcher Field)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-m5-trailer'));",
+  "type": "M5 2-ton bomb trailer",
+  "ref": [
+   [
+    "Length",
+    3.6,
+    "~3.6 m, docs/research_1945_bases.md (US structures in detail)"
+   ]
+  ],
+  "notes": [
+   "A train of three behind a Clarktor at the end of the line."
+  ]
+ },
+ {
+  "id": "us-c10-cart",
+  "file": "US_C10_power_cart",
+  "title": "C-10 auxiliary power unit (Fletcher Field)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-c10-cart'));",
+  "type": "C-10 auxiliary power unit (starter cart)",
+  "ref": [
+   [
+    "Length",
+    1.5,
+    "1.5 x 0.9 x 1.1 m, docs/research_1945_bases.md (US structures in detail)"
+   ],
+   [
+    "Width",
+    0.9,
+    "1.5 x 0.9 x 1.1 m"
+   ],
+   [
+    "Height",
+    1.1,
+    "1.5 x 0.9 x 1.1 m"
+   ]
+  ],
+  "notes": [
+   "Beside the fighters on the line."
+  ]
+ },
+ {
   "id": "jp-tug",
   "file": "Japanese_aircraft_tractor",
   "title": "Japanese aircraft tractor (Japanese airbases)",

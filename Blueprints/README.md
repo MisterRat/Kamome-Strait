@@ -36,6 +36,12 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | US cargo truck (home airfield) | GMC CCKW 353 2½-ton 6x6 cargo truck | 6.51 x 2.24 x 2.80 | match | `US_cargo_truck_blueprint.png`, `US_cargo_truck_measurements.md` |
 | US jeep (home airfield) | Willys MB / Ford GPW jeep | 3.36 x 1.57 x 1.77 | match | `US_jeep_blueprint.png`, `US_jeep_measurements.md` |
 | US aircraft tug (home airfield) | Clark Clarktor 6 aircraft tug | 2.54 x 1.32 x 1.42 | match | `US_aircraft_tug_blueprint.png`, `US_aircraft_tug_measurements.md` |
+| Butler combat hangar (US airfields) | Butler steel-arch combat hangar, 130 x 160 ft | 54.97 x 41.62 x 12.29 | match | `US_Butler_hangar_blueprint.png`, `US_Butler_hangar_measurements.md` |
+| Quonset hut, Stran-Steel 20 x 48 ft (US airfields) | Stran-Steel Quonset hut, 20 x 48 ft | 15.63 x 6.90 x 3.21 | match | `US_Quonset_hut_blueprint.png`, `US_Quonset_hut_measurements.md` |
+| Quonset Elephant hut, 40 x 100 ft (Fletcher Field store) | Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft | 31.48 x 12.99 x 6.26 | match | `US_Quonset_Elephant_hut_blueprint.png`, `US_Quonset_Elephant_hut_measurements.md` |
+| Steel-angle control tower (US airfields) | Bolted steel-angle airfield control tower, 4 storeys | 7.00 x 7.70 x 19.24 | match | `US_control_tower_blueprint.png`, `US_control_tower_measurements.md` |
+| M5 bomb trailer with two 500 lb bombs (Fletcher Field) | M5 2-ton bomb trailer | 3.60 x 1.54 x 1.14 | match | `US_M5_bomb_trailer_blueprint.png`, `US_M5_bomb_trailer_measurements.md` |
+| C-10 auxiliary power unit (Fletcher Field) | C-10 auxiliary power unit (starter cart) | 1.49 x 0.92 x 1.10 | match | `US_C10_power_cart_blueprint.png`, `US_C10_power_cart_measurements.md` |
 | Japanese aircraft tractor (Japanese airbases) | Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN) | 3.40 x 1.60 x 1.53 | match | `Japanese_aircraft_tractor_blueprint.png`, `Japanese_aircraft_tractor_measurements.md` |
 | USAAF ground crewman (home airfield) | USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap | 0.30 x 0.55 x 1.76 | match | `Ground_crewman_blueprint.png`, `Ground_crewman_measurements.md` |
 | Japanese army ground crewman (Japanese airbases) | IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi | 0.30 x 0.55 x 1.68 | match | `Japanese_army_ground_crewman_blueprint.png`, `Japanese_army_ground_crewman_measurements.md` |

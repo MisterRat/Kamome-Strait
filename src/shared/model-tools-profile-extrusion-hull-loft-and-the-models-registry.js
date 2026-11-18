@@ -90,6 +90,14 @@ const MODELS = (() => {
     }
     return P;
   };
+  /* a part seen from both sides (a thin skin or wall): the part and a copy facing the other way */
+  GX.both = (q) => {
+    const g = (q.g.index ? q.g.toNonIndexed() : q.g.clone()),
+      p = g.attributes.position.array;
+    for (let i = 0; i < p.length; i += 9) for (let k = 0; k < 3; k++) [p[i + 3 + k], p[i + 6 + k]] = [p[i + 6 + k], p[i + 3 + k]];
+    g.computeVertexNormals();
+    return [q, { ...q, g }];
+  };
   /* a road wheel or tyre with a painted hub, axis across (z) */
   GX.wheel = (x, y, z, r, w, tyre, hub, n) => [
     part(GX.cyl(r, r, w, n || 12), tyre || 0x1c1c1c, x, y, z, Math.PI / 2),

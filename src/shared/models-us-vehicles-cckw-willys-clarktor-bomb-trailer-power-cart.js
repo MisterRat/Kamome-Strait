@@ -119,7 +119,7 @@
   }, { L: 2.54, W: 1.32, H: 1.42, name: 'Clarktor 6 aircraft tug' });
   /* M5 bomb trailer: ~3.6 m open steel channel frame, cradles, pneumatic tyres, tow bars; with two 500 lb bombs */
   MODELS.add('us-m5-trailer', (bombs) => {
-    const P = [part(bx(2.9, 0.12, 1.2), OD2, 0, 0.55, 0), part(bx(0.7, 0.06, 0.06), DK, 1.8, 0.45, 0), part(bx(0.5, 0.06, 0.06), DK, -1.7, 0.45, 0)];
+    const P = [part(bx(2.7, 0.12, 1.2), OD2, 0, 0.55, 0), part(bx(0.45, 0.06, 0.06), DK, 1.575, 0.45, 0), part(bx(0.45, 0.06, 0.06), DK, -1.575, 0.45, 0)];
     for (const x of [-0.8, 0, 0.8]) P.push(part(bx(0.12, 0.18, 1.1), 0x6a5a3a, x, 0.7, 0));
     for (const s of [-1, 1]) for (const x of [-1.0, 1.0]) P.push(...W(x, 0.3, s * 0.68, 0.3, 0.16, TYRE, OD2, 10));
     if (bombs !== false)
@@ -130,15 +130,15 @@
   MODELS.add('us-c10-cart', (c) => {
     const k = c || OD,
       P = [
-        part(bx(1.3, 0.75, 0.82), k, 0, 0.65, 0),
-        part(bx(1.3, 0.05, 0.86), DK, 0, 1.05, 0),
-        part(bx(0.3, 0.5, 0.7), 0x2c2f26, 0.66, 0.6, 0),
-        part(cyl(0.2, 0.2, 0.3, 10), 0x2a2a28, -0.4, 1.15, 0, Z),
-        part(bx(0.5, 0.05, 0.05), DK, 1.0, 0.4, 0),
-        part(bx(0.04, 0.3, 0.3), 0x3a3a34, -0.66, 0.75, 0),
+        part(bx(1.1, 0.62, 0.8), k, -0.05, 0.6, 0),
+        part(bx(1.1, 0.05, 0.84), DK, -0.05, 0.93, 0),
+        part(bx(0.22, 0.45, 0.66), 0x2c2f26, 0.55, 0.55, 0),
+        part(cyl(0.15, 0.15, 0.3, 10), 0x2a2a28, -0.35, 0.95, 0, Z),
+        part(bx(0.2, 0.05, 0.05), DK, 0.75, 0.35, 0),
+        part(bx(0.04, 0.3, 0.3), 0x3a3a34, -0.62, 0.7, 0),
       ];
-    for (const s of [-1, 1]) P.push(...W(-0.45, 0.22, s * 0.43, 0.22, 0.1, TYRE, k, 8));
-    P.push(...W(0.55, 0.18, 0, 0.18, 0.1, TYRE, k, 8));
+    for (const s of [-1, 1]) P.push(...W(-0.4, 0.22, s * 0.4, 0.22, 0.1, TYRE, k, 8));
+    P.push(...W(0.5, 0.18, 0, 0.18, 0.1, TYRE, k, 8));
     return P;
   }, { L: 1.5, W: 0.9, H: 1.1, name: 'C-10 auxiliary power unit (starter cart)' });
 })();

@@ -29,6 +29,10 @@ PAPER, INK, DIM, RED, BLUE = (247, 247, 242), (20, 30, 60), (25, 45, 110), (170,
 
 PAGE_JS = r"""
 window.__bake = (P) => new THREE.Mesh(new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+/* the size [length x, height y, width z] of only the parts of a model painted in the given colours (a building's skin without its slab) */
+window.__partsSize = (P, hexes) => { const b = new THREE.Box3(), t = new THREE.Box3();
+  for (const q of P) { if (!hexes.includes(q.hex)) continue; if (!q.g.boundingBox) q.g.computeBoundingBox(); t.copy(q.g.boundingBox).applyMatrix4(q.m || new THREE.Matrix4()); b.union(t); }
+  const s = b.getSize(new THREE.Vector3()); return [s.x, b.max.y, s.z]; };
 /* a placed object (and any separate scene objects that belong to it, e.g. a gun on its emplacement) back in the object's own frame */
 window.__local = (base, extra) => {
   window.__WL = SEA.Y - base.position.y; /* where the still water is, in the object's own frame */
