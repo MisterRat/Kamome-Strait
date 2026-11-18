@@ -15,8 +15,7 @@ function ptTowStep(dt) {
   const tb = PT.L.find((t) => t.kind === 'ptboat'),
     ts = PT.L.find((t) => t.kind === 'sled');
   if (!tb) return OCEAN.U.uB0.value.setW(0), OCEAN.U.uB1.value.setW(0);
-  const o = tb.o,
-    time = OCEAN.U.uTime.value;
+  const o = tb.o;
   o.c.set(pos.x, 0, pos.z);
   /* along the oval at 30 knots (relative to the ship, whose motion the oval shares) */
   const dP = new THREE.Vector3().addScaledVector(o.u, -PTOW.A * Math.sin(o.th)).addScaledVector(o.w, PTOW.B * Math.cos(o.th)),
@@ -34,14 +33,13 @@ function ptTowStep(dt) {
   /* the boat: planing, bow up about 3 degrees, heeled into the turn, riding the sea */
   const hd = Math.atan2(-tb.v.z, tb.v.x),
     turn = k * (PTOW.A * PTOW.B) / Math.max(1, dP.lengthSq()) /* rate of turn on the oval, rad/s */;
-  const fx = Math.cos(hd),
-    fz = -Math.sin(hd),
-    hBow = OCEAN.h(tb.p.x + fx * 9, tb.p.z + fz * 9, time),
-    hSt = OCEAN.h(tb.p.x - fx * 10, tb.p.z - fz * 10, time);
-  /* she rides the sea under her bow and stern, lifted about half a metre as she planes, bow up about 3 degrees */
-  tb.p.y = (hBow + hSt) / 2 + 0.5;
+  /* she rides the sea (the shared RIDE: samples 9.5 m fore and aft, 2.8 m each side, a quick 3 s roll), lifted about half a metre
+     as she planes, bow up about 3 degrees, heeled into the turn */
+  const rd = tb.ride || (tb.ride = RIDE.make(9.5, 2.8, 3));
+  RIDE.step(rd, tb.p.x, tb.p.z, Math.cos(hd), -Math.sin(hd), dt, 0);
+  tb.p.y = OCEAN.Y + rd.hv + 0.5;
   tb.m.position.copy(tb.p);
-  tb.m.rotation.set(-turn * 1.5, hd, 0.05 + Math.atan2(hBow - hSt, 19), 'YXZ');
+  tb.m.rotation.set(rd.ro - turn * 1.5, hd, 0.05 + rd.pi, 'YXZ');
   OCEAN.U.uB0.value.set(tb.p.x, tb.p.z, hd, 1);
   OCEAN.U.uBY.value.x = tb.p.y;
   tb.p.y += 1.5; /* the hit point: amidships, above the deck */
@@ -50,10 +48,14 @@ function ptTowStep(dt) {
     const s0 = ts.p.clone(),
       a = ptTrail(o, PTOW.TOW, new THREE.Vector3()),
       b = ptTrail(o, PTOW.TOW - 6, new THREE.Vector3());
-    a.y = OCEAN.h(a.x, a.z, time) + 1.6;
+    /* the sled rides the sea too (RIDE: a small raft, samples 3.5 m fore and aft and 1.2 m each side, a 2 s roll) */
+    const sy = Math.atan2(-(b.z - a.z), b.x - a.x),
+      sr = ts.ride || (ts.ride = RIDE.make(3.5, 1.2, 2));
+    RIDE.step(sr, a.x, a.z, Math.cos(sy), -Math.sin(sy), dt, 0);
+    a.y = OCEAN.Y + sr.hv + 1.6;
     ts.p.copy(a);
     ts.m.position.copy(a);
-    ts.m.rotation.set(0, Math.atan2(-(b.z - a.z), b.x - a.x), 0.03, 'YXZ');
+    ts.m.rotation.set(sr.ro, sy, 0.03 + sr.pi, 'YXZ');
     OCEAN.U.uB1.value.set(a.x, a.z, ts.m.rotation.y, 2);
     OCEAN.U.uBY.value.y = a.y - 1.5;
     if (s0.lengthSq() && dt > 0) ts.v.lerp(new THREE.Vector3().subVectors(ts.p, s0).divideScalar(dt).setY(0), Math.min(1, dt * 4));
