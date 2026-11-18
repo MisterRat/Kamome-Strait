@@ -13,6 +13,7 @@ pce/pce-842-patrol-craft-escort-one-file-no-external.js
 shared/error-handling-nothing-in-this-file-is-allowed-t.js
 pce/version-major-minor-the-user-decides-when-the-ma.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
+shared/sea-the-world-s-sea-levels-in-one-place.js
 pce/the-player-takes-the-pce-842-from-the-allied-fleet.js
 pce/the-player-s-ship-mesh-and-her-start-line-filled.js
 pce/how-she-sits-on-the-waves-heave-pitch-roll-and-r.js

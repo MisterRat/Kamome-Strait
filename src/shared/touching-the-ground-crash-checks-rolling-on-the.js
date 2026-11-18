@@ -5,7 +5,7 @@ function groundContact(dt, v) {
   onGround = false;
   if (pos.y < h + GEAR.h) {
     axes();
-    if (h <= -8) {
+    if (h <= SEA.PAINT) {
       crash('SPLASHDOWN');
       return false;
     }

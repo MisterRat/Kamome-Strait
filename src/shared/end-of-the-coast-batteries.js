@@ -448,10 +448,12 @@ const SITES = [],
           [x, z] = SITE.w(u, d),
           wx = SITE.A.x * du + SITE.S.x * dd,
           wz = SITE.A.z * du + SITE.S.z * dd,
-          now = performance.now();
+          yw = Math.atan2(-wz, wx),
+          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
+        RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.matrixAutoUpdate = true; /* the scene is frozen after the build */
-        m.position.set(x, y0 + Math.sin(now / 900) * 0.12, z);
-        m.rotation.set(0, Math.atan2(-wz, wx), Math.sin(now / 1300) * 0.015);
+        m.position.set(x, y0 + rd.hv, z);
+        m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');
       }
       m.updateMatrixWorld(true);
       for (const g of guns) {
@@ -906,9 +908,11 @@ const SITES = [],
           [x, z] = F.w(u, d),
           wx = F.A.x * du + F.S.x * dd,
           wz = F.A.z * du + F.S.z * dd,
-          now = performance.now();
-        m.position.set(x, y0 + Math.sin(now / 900) * 0.12, z);
-        m.rotation.set(0, Math.atan2(-wz, wx), Math.sin(now / 1300) * 0.015);
+          yw = Math.atan2(-wz, wx),
+          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
+        RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
+        m.position.set(x, y0 + rd.hv, z);
+        m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');
       }
       m.updateMatrixWorld(true);
       for (const g of guns) {
@@ -1137,7 +1141,7 @@ const SITES = [],
     c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, col: 0x555555, kind: 'civ' };
     T.push(c.t);
     m.rotation.y = c.yaw;
-    m.position.set(p0[0], -8 + s1 / 2, p0[1]);
+    m.position.set(p0[0], SEA.PAINT + s1 / 2, p0[1]);
     return c;
   };
   const updCiv = (c, t, dt) => {
@@ -1179,9 +1183,13 @@ const SITES = [],
     while (dy > Math.PI) dy -= 2 * Math.PI;
     while (dy < -Math.PI) dy += 2 * Math.PI;
     c.yaw += dy * Math.min(1, dt * 1.5);
-    const now = performance.now();
-    c.m.position.set(a[0] + dx * k, -8 + c.s1 / 2 + Math.sin(now / 1100 + c.phase) * 0.1, a[1] + dz * k);
-    c.m.rotation.set(0, c.yaw, Math.sin(now / 1500 + c.phase) * 0.012);
+    /* she rides the waves (RIDE): samples 0.43 x her length fore and aft and 0.08 x it each side, a slower roll for the big ones */
+    const cx = a[0] + dx * k,
+      cz = a[1] + dz * k,
+      rd = c.ride || (c.ride = RIDE.make(0.43 * c.len, 0.08 * c.len, c.len < 60 ? 6 : 9));
+    if (dt > 0) RIDE.step(rd, cx, cz, Math.cos(c.yaw), -Math.sin(c.yaw), dt, 0);
+    c.m.position.set(cx, SEA.PAINT + c.s1 / 2 + rd.hv, cz);
+    c.m.rotation.set(rd.ro, c.yaw, rd.pi, 'YXZ');
     c.m.children[0].visible = moving;
   };
   /* ----- build everything ----- */

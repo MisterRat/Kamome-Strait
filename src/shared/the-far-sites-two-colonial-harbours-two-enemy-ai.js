@@ -132,7 +132,7 @@ function HR(x, z) {
       const w = ss(9000, 11800, ew);
       r = r * (1 - w) + -64 * w; /* as deep as the far sea, so the water colour does not change at the edge */
     }
-    if (ed > 12800) r = Math.min(r, -8);
+    if (ed > 12800) r = Math.min(r, SEA.PAINT);
     if (ed > 14500) r = WH(x, z);
     if (ed > 12000) {
       const o = ISL.h(x, z);
@@ -145,7 +145,7 @@ function HR(x, z) {
   if (sq > 0) r = r * (1 - sq) + SITE.H1 * sq;
   return r;
 }
-const H = (x, z) => Math.max(HR(x, z), -8);
+const H = (x, z) => Math.max(HR(x, z), SEA.PAINT);
 const SZ = 26000,
   SEG = 260,
   MMT = document.createElement('canvas');

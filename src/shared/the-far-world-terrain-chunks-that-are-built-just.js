@@ -997,7 +997,7 @@ const WORLD = (() => {
   };
   const clr = [0, 0, 0];
   const paint = (h, ny, x, z, o) => {
-    if (h < -8) {
+    if (h < SEA.PAINT) {
       clr[0] = 0.17;
       clr[1] = 0.43;
       clr[2] = 0.66;
@@ -1105,7 +1105,7 @@ const WORLD = (() => {
           nx = nz = 0;
           ny = 1;
         }
-        const y = Math.max(h, -8);
+        const y = Math.max(h, SEA.PAINT);
         if (y < mn) mn = y;
         it.pos[k * 3] = x;
         it.pos[k * 3 + 1] = y;
@@ -1148,10 +1148,10 @@ const WORLD = (() => {
             fx = Math.min(1, Math.max(0, u - a)),
             fz = Math.min(1, Math.max(0, v - b)),
             k0 = a + row * b,
-            ha = Math.max(hs[k0], -8),
-            hd = Math.max(hs[k0 + 1], -8),
-            hb = Math.max(hs[k0 + row], -8),
-            hc = Math.max(hs[k0 + row + 1], -8);
+            ha = Math.max(hs[k0], SEA.PAINT),
+            hd = Math.max(hs[k0 + 1], SEA.PAINT),
+            hb = Math.max(hs[k0 + row], SEA.PAINT),
+            hc = Math.max(hs[k0 + row + 1], SEA.PAINT);
           return fx + fz <= 1 ? ha + fx * (hd - ha) + fz * (hb - ha) : hc + (1 - fx) * (hb - hc) + (1 - fz) * (hd - hc);
         };
       const mark = (x, z, r, val) => {
@@ -1564,10 +1564,10 @@ nearRoads(h.x, h.z);
           fx = Math.min(1, Math.max(0, u - a)),
           fz = Math.min(1, Math.max(0, v - b)),
           k0 = a + row * b,
-          ha = Math.max(hs[k0], -8),
-          hd = Math.max(hs[k0 + 1], -8),
-          hb = Math.max(hs[k0 + row], -8),
-          hc = Math.max(hs[k0 + row + 1], -8);
+          ha = Math.max(hs[k0], SEA.PAINT),
+          hd = Math.max(hs[k0 + 1], SEA.PAINT),
+          hb = Math.max(hs[k0 + row], SEA.PAINT),
+          hc = Math.max(hs[k0 + row + 1], SEA.PAINT);
         return fx + fz <= 1 ? ha + fx * (hd - ha) + fz * (hb - ha) : hc + (1 - fx) * (hb - hc) + (1 - fz) * (hd - hc);
       };
       const slopeAt = (x, z) => {
@@ -1878,7 +1878,7 @@ nearRoads(h.x, h.z);
         if (z >= AX[k][0] && z < AX[k][1]) ib = k;
       }
       const c = ia >= 0 && ib >= 0 ? CHI.get(ia * 32 + ib) : null;
-      if (!c || c.st !== 2 || !c.it) return Math.max(WH(x, z), -8);
+      if (!c || c.st !== 2 || !c.it) return Math.max(WH(x, z), SEA.PAINT);
       const hs = c.it.hs,
         row = SEGC + 1,
         u = (x - c.x0) / ((c.x1 - c.x0) / SEGC),
@@ -1888,10 +1888,10 @@ nearRoads(h.x, h.z);
         fx = Math.min(1, Math.max(0, u - a)),
         fz = Math.min(1, Math.max(0, v - b)),
         k0 = a + row * b,
-        ha = Math.max(hs[k0], -8),
-        hd = Math.max(hs[k0 + 1], -8),
-        hb = Math.max(hs[k0 + row], -8),
-        hc = Math.max(hs[k0 + row + 1], -8);
+        ha = Math.max(hs[k0], SEA.PAINT),
+        hd = Math.max(hs[k0 + 1], SEA.PAINT),
+        hb = Math.max(hs[k0 + row], SEA.PAINT),
+        hc = Math.max(hs[k0 + row + 1], SEA.PAINT);
       return fx + fz <= 1 ? ha + fx * (hd - ha) + fz * (hb - ha) : hc + (1 - fx) * (hb - hc) + (1 - fz) * (hd - hc);
     },
     near(c, x, z) {

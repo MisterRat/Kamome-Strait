@@ -8,7 +8,7 @@ function HMESH(x, z) {
     j = Math.floor(v),
     fx = u - i,
     fz = v - j,
-    q = (a, b) => Math.max(HR((a / SEG - 0.5) * SZ, (b / SEG - 0.5) * SZ), -8),
+    q = (a, b) => Math.max(HR((a / SEG - 0.5) * SZ, (b / SEG - 0.5) * SZ), SEA.PAINT),
     ha = q(i, j),
     hb = q(i, j + 1),
     hc = q(i + 1, j + 1),

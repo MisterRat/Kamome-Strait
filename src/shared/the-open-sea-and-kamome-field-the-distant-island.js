@@ -2,7 +2,7 @@
 {
   /* open sea out to 60 km under everything: the terrain mesh ends at 13 km and the world beyond is water */
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(120000, 120000).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: new THREE.Color(0.11, 0.22, 0.375) /* the colour the shore shader paints at -40 m, so the sea is seamless */ }));
-  sea.position.y = -11.8; /* under the ocean's troughs and below a ship's keel (it must never show inside her engine room) */
+  sea.position.y = SEA.PLANE; /* under the ocean's troughs and below a ship's keel (it must never show inside her engine room) */
   sea.frustumCulled = false;
   sea.renderOrder = -3;
   sea.material.polygonOffset = true; /* pushed back in depth, so it never z-fights with the chunks' water at a long distance (horizontal stripes) */
@@ -25,7 +25,7 @@
       o = ISL.h(x, z),
       h = o ? o.h : -40,
       r = hash(x * 0.01, z * 0.01) * 0.08;
-    ip.setY(i, Math.max(h, -8));
+    ip.setY(i, Math.max(h, SEA.PAINT));
     /* the vertices carry only the grass: sand, shallows and deep water are painted per pixel from a height map (as on the main map) */
     c1.setRGB(0.27 + r, 0.45 + r, 0.17).lerp(c2.setRGB(0.33, 0.5, 0.2), o && o.e < 0.5 ? 1 : 0);
     icol[i * 3] = c1.r;

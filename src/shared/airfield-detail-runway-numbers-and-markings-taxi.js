@@ -571,7 +571,7 @@
     ['pt', '106', 24.4, 3000, 5500, 13, 4],
   ];
   for (const [kind, num, L, r0, r1, sp, seed] of FLEET) {
-    if (!AFLD.addShip([], L, r0, r1, sp, seed, -8.15, kind === 'pt' ? 0.4 : 0.6)) continue; /* waterline at the sea plane */
+    if (!AFLD.addShip([], L, r0, r1, sp, seed, SEA.WL, kind === 'pt' ? 0.4 : 0.6)) continue; /* waterline at the sea plane */
     const o = AFLD.a[AFLD.a.length - 1];
     if (kind === 'pce') {
       o.m.geometry.dispose();

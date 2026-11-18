@@ -8,7 +8,7 @@
    her hull is a hit (counted, like the strafing, until battle damage comes). The guns are targets: the 3"/50 knocks them out. */
 /* the still-water level the guns and their shells work to: the ocean's where the world has one, else the painted sea (-8 m) */
 function coastSea() {
-  return typeof OCEAN !== 'undefined' ? OCEAN.Y : -8;
+  return typeof OCEAN !== 'undefined' ? OCEAN.Y : SEA.PAINT;
 }
 const COAST = {
   G: [] /* guns: { grp, tur, bar, p (pivot), yaw, el, t (target entry), cd, er, ed, n, ... } */,

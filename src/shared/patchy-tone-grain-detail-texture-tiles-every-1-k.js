@@ -34,7 +34,7 @@ function fieldTex() {
   for (let i = 0; i < n; i++) {
     const h = HR(p.getX(i), p.getZ(i));
     hs[i] = h;
-    p.setY(i, Math.max(h, -8));
+    p.setY(i, Math.max(h, SEA.PAINT));
   }
   tg.computeVertexNormals();
   const nr = tg.attributes.normal,
@@ -50,8 +50,8 @@ function fieldTex() {
       ny = nr.getY(i),
       r = hash(x * 0.01, z * 0.01) * 0.1,
       pm = vn(x * 0.0009 + 3.1, z * 0.0009 - 1.7);
-    if (h < -8) {
-      c.setRGB(0.17, 0.43, 0.66).lerp(c2.setRGB(0.06, 0.2, 0.42), ss(-8, -60, h));
+    if (h < SEA.PAINT) {
+      c.setRGB(0.17, 0.43, 0.66).lerp(c2.setRGB(0.06, 0.2, 0.42), ss(SEA.PAINT, -60, h));
       c.lerp(c2.setRGB(0.8, 0.92, 0.96), ss(-11.5, -8.05, h) * 0.45);
       wat[i] = 1;
     } else {
@@ -62,7 +62,7 @@ function fieldTex() {
       if (h > 650) c.setRGB(0.5, 0.48, 0.44).lerp(c2.setRGB(0.95, 0.97, 1), ss(650, 800, h));
       land[i] = ss(0.95, 0.985, ny) * (1 - ss(120, 250, h)); /* flat low ground only: no field lines on slopes */
     }
-    if (h >= -8) {
+    if (h >= SEA.PAINT) {
       const ak = ss(340, 260, Math.abs(x)) * ss(-2260, -2160, z) * ss(1120, 1000, z);
       c.lerp(c2.setRGB(0.3 + r, 0.5 + r, 0.2), ak);
       land[i] *= 1 - ak;

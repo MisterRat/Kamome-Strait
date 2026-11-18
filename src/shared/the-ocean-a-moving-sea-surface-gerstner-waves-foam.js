@@ -14,7 +14,7 @@
    OCEAN.h(x, z, t) gives the same wave height on the CPU, so the ship rides the very waves you see.
    ===================================================================================================================== */
 const OCEAN = (() => {
-  const Y = -7.97 /* still-water level: 3 cm above the terrain's painted water at -8 m, so the two never fight for the same depth */,
+  const Y = SEA.Y /* still-water level: 3 cm above the terrain's painted water at -8 m, so the two never fight for the same depth */,
     G = 9.81;
   /* [direction (deg, the way the wave travels), wavelength m, amplitude m, phase]: sea state 3, trade wind from the east */
   const W = [

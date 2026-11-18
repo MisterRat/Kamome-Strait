@@ -13,6 +13,7 @@ p51/p-51d-mustang-flight-simulator-one-file-no-exter.js
 shared/error-handling-nothing-in-this-file-is-allowed-t.js
 p51/version-major-minor-the-user-decides-when-the-ma.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
+shared/sea-the-world-s-sea-levels-in-one-place.js
 p51/hardcore-simulation-mode-off-by-default-the-sim.js
 shared/trim-tabs-hardcore-option-trim-each-is-1-1-of-th.js
 p51/sound-everything-is-synthesised-with-the-web-aud.js
