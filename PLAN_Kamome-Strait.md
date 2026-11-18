@@ -71,7 +71,7 @@ Today every change is made inside one huge HTML file per game, so each fix has t
 1. **Compare (read-only).** *Done 2026-11-17: `Kamome-Strait_Phase1_Report.md` (awaiting the user's review).* Confirm both files use the same three.js version, then diff `P-51_Mustang_FS.html` against `PCE-842.html` section by section. Sort the code into: identical; shared but changed (which side wins, for example the ocean: the PCE version); unique to one game. Output a list with a proposed winner for every diverged section; change nothing.
 2. **Agree the rules.** *Decided 2026-11-17 (Phase 1 report, section 4): A. the PCE ocean goes into the P-51 (its own step after the split, screenshots and the performance test first); B. the PCE's toned-down shallow-water colour for both; C. Kamome Strait starts with its own new saved settings (`kamome…`), the stand-alone games keep theirs; D. the P-51's allied fleet (PT-105, PCE-843, PCE-842, PT-106) everywhere, minus the ship the player commands; the US freighter and tanker models are kept in the shared code, to be improved and used later. Every other difference: the newer side, as listed in the report.*
    Original wording: One shared source folder, one folder per game, and a winner for every diverged section. The user approves the winners list from phase 1.
-3. **Split and build.** *Step 1 done 2026-11-17: both games cut into pieces and rebuilt byte-identical (`node build.js --check` reports `== baseline` for both). See "Source layout" below. Next: step 2, take in the newer shared code one block at a time (Phase 1 report rows 1, 4, 7, then 2, 3, 5), then step 3, the role hooks.*
+3. **Split and build.** *Step 1 done 2026-11-17: both games cut into pieces and rebuilt byte-identical (`node build.js --check` reports `== baseline` for both). See "Source layout" below. Step 2 done 2026-11-17 (awaiting the user's review, nothing released): see the step 2 log below. Next: step 3, the role hooks.*
    Original wording: Cut the code into modules and write the build script. Rebuild both games and prove they play the same as before: screenshots, page errors expected `[]`, the existing test scripts. Nothing replaces a released file until this passes.
 4. **Combine.** Add a start menu (fly the P-51 or command the PCE-842), then the crossover features from section 1.
 
@@ -91,12 +91,30 @@ Today every change is made inside one huge HTML file per game, so each fix has t
 
 
 - Folder: `C:\Code\Arcade\Kamome-Strait`
-- Repo: `MisterRat/Kamome-Strait` (created 2026-11-17, public, empty until the first push; `build/` is git-ignored until Kamome Strait has a playable build of its own)
+- Repo: `MisterRat/Kamome-Strait` (created 2026-11-17; private until Kamome Strait is out of alpha (the user's call); `build/` is git-ignored until Kamome Strait has a playable build of its own)
 - Layout: `src/shared/`, `src/p51/`, `src/pce/`, `build.js`, `PLAN_Kamome-Strait.md`, `README.md`, tests, and the built HTML files.
 - The existing P-51 and PCE-842 folders and repos stay as they are until the merge is ready. The rebuilt `P-51_Mustang_FS.html` and `PCE-842.html` live only in Kamome-Strait until the user signs off; then they are copied over to their own folders and repos.
 - Versions: Kamome Strait starts at 0.01 and stays below 1 until the user says. The rebuilt P-51 and PCE-842 keep 5.34 and 0.51 until something actually changes in them.
 - Tests: copy the P-51 and PCE-842 smoke, perf and calibration scripts into `tests/` and point them at the built files.
 - The license stays PolyForm Noncommercial 1.0.0, like the other games.
+
+### Phase 3 step 2 log (2026-11-17)
+
+Built files in `build/` only; the released games in `C:\Code\Arcade` are untouched. `--check` now differs from `baseline/` on purpose.
+
+| Version | Change | Check |
+|---|---|---|
+| PCE-842 0.52 | One shared copy of the PCE-842 and PT-105 models (the P-51's: numbered hulls); PTB placed as in the P-51 | Bow screenshot unchanged; page errors `[]` |
+| P-51 5.35 | Shared hull cut-out (`HULLM`) in the cloud-shadow shaders; does nothing without a manned ship | Screenshots unchanged; page errors `[]` |
+| P-51 5.36, PCE-842 0.53 | `coastSea()`: the coast batteries use the ocean if the world has one, else the painted sea (5.34 threw `OCEAN is not defined` if `coastUpdate` ran) | 600 `coastUpdate` steps in both, no error |
+| P-51 5.37, PCE-842 0.54 | One allied fleet (PT-105, PCE-843, PCE-842, PT-106) for the world; `HOOKS` registry (shared piece after the version piece); the PCE game claims the PCE-842 with `HOOKS.claimShip`; freighter and tanker models kept | Fleet positions as before; the player's PCE-842 on the same patrol line; screenshots |
+| P-51 5.38, PCE-842 0.55 | The PCE ocean, toned-down shallows and open-sea plane (-11.8 m) shared; the P-51 drives the ocean clock and graphics tier | Screenshots at 30, 300, 1,500 and 5,000 m; ditching unchanged; draw calls about the same; software-rendered frame time about +30% with the sea filling the screen low down, about the same at 1,500 m |
+
+Notes from step 2:
+- `HOOKS` (`src/shared/hooks-...js`) is the pattern for every new module: shared code calls `HOOKS.<name>` handlers, a game's own piece registers them. Add hooks there, never game names in shared code.
+- AI ships sit at a fixed waterline (-8.15 m) and do not ride the ocean's waves; only the player's ship does. Later: a shared "ride the waves" for every hull.
+- The PCE game now has the fleet's PT-105 at sea and its own PT-105 tow boat for gunnery practice (when targets are out): two boats numbered 105. To decide with the user.
+- The ocean's ship uniform (`uShip`) and the hull cut-out handle one manned ship; multiplayer needs one per manned ship.
 
 ## 6. Freeze log and notes for the P-51 and PCE-842 sessions (they report to Kamome)
 
