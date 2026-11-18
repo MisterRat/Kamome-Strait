@@ -16,7 +16,7 @@ node build.js            # writes build/P-51_Mustang_FS.html and build/PCE-842.h
 node build.js --check    # also compares them byte for byte with baseline/
 ```
 
-`src/shared/` holds code every game uses, `src/<game>/` what only that game has, and `src/<game>.manifest` the order the pieces are joined in. The plan is in [PLAN_Kamome-Strait.md](PLAN_Kamome-Strait.md).
+`src/shared/` holds code every game uses, `src/<game>/` what only that game has, and `src/<game>.manifest` the order the pieces are joined in. The plan is in [PLAN_Kamome-Strait.md](PLAN_Kamome-Strait.md). `Blueprints/` holds diagrams generated from the models.
 
 ## License
 

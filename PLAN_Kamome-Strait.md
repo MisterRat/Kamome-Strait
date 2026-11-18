@@ -86,6 +86,8 @@ Today every change is made inside one huge HTML file per game, so each fix has t
 - `src/<game>.manifest`: the pieces of that game in file order, one path per line (`#` starts a comment). Reordering or swapping a piece is a manifest edit.
 - `build.js`: `node build.js` writes `build/P-51_Mustang_FS.html` and `build/PCE-842.html`; `node build.js --check` also compares them with `baseline/` byte for byte. No dependencies.
 - `baseline/`: the frozen P-51 5.34 and PCE-842 0.51, untouched. Once a game deliberately changes, `--check` reports the difference: that is expected, and a new baseline is taken only when the user accepts a release.
+- `Blueprints/`: diagrams generated from our models (plan and profile views, measurement reports), checked into the repo. Put each new model's blueprints here, named after the model.
+- `References/`: outside documents for research accuracy (plans, manuals, photographs, one folder per subject such as `Ki-84/`, `Ukuru-class/`). Kept in the local folder only (git-ignored: third-party material, about 190 MB). Moved here from `PCE-842/` on 2026-11-18; the P-51's own references are still in `C:\Code\Arcade\P-51`.
 - `tools/split.py`: the one-off splitter used for step 1, kept for the record. Do not re-run it on edited sources.
 - Pieces are named after their first comment line. Edit pieces, never `build/`.
 
