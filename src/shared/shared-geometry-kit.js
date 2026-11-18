@@ -28,6 +28,41 @@ const GX = (() => {
       new Q().setFromAxisAngle(new V3(0, 1, 0), yaw || 0),
       new V3(k || 1, k || 1, k || 1),
     );
+  /* split a non-indexed geometry's triangles (in halves along their longest edge) until no edge is longer than e, at most 4 times
+     over: a camouflaged panel needs vertices for its pattern to land on */
+  const subdiv = (g, e) => {
+    let p = Array.from(g.attributes.position.array),
+      n = Array.from(g.attributes.normal.array);
+    for (let pass = 0; pass < 4; pass++) {
+      const P2 = [],
+        N2 = [];
+      let split = false;
+      for (let i = 0; i < p.length; i += 9) {
+        const v = [0, 1, 2].map((k) => p.slice(i + k * 3, i + k * 3 + 3)),
+          w = [0, 1, 2].map((k) => n.slice(i + k * 3, i + k * 3 + 3)),
+          L = [0, 1, 2].map((k) => Math.hypot(...v[k].map((c, j) => c - v[(k + 1) % 3][j])));
+        const k = L.indexOf(Math.max(...L));
+        if (L[k] <= e) {
+          P2.push(...v[0], ...v[1], ...v[2]);
+          N2.push(...w[0], ...w[1], ...w[2]);
+          continue;
+        }
+        split = true;
+        const a = k,
+          b = (k + 1) % 3,
+          c = (k + 2) % 3,
+          m = v[a].map((x, j) => (x + v[b][j]) / 2),
+          mn = w[a].map((x, j) => (x + w[b][j]) / 2);
+        P2.push(...v[a], ...m, ...v[c], ...m, ...v[b], ...v[c]);
+        N2.push(...w[a], ...mn, ...w[c], ...mn, ...w[b], ...w[c]);
+      }
+      p = P2;
+      n = N2;
+      if (!split) break;
+    }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
+  };
   class Acc {
     constructor() {
       this.p = [];
@@ -50,13 +85,24 @@ const GX = (() => {
         }
         if (q.c) cl.setRGB(q.c[0], q.c[1], q.c[2]);
         else cl.setHex(q.hex);
+        if (q.cf && q.cfE) subdiv(g, q.cfE);
         const p = g.attributes.position.array,
           n = g.attributes.normal.array;
         for (let i = 0; i < p.length; i++) {
           this.p.push(p[i]);
           this.n.push(n[i]);
         }
-        for (let i = 0; i < p.length; i += 3) this.c.push(cl.r, cl.g, cl.b);
+        if (q.cf) {
+          /* a painted pattern (camouflage): colour per vertex from its position in the model's own frame (q.cf(x, y, z) -> hex) */
+          const iT = T ? new M4().copy(T).invert() : null,
+            v = new V3();
+          for (let i = 0; i < p.length; i += 3) {
+            v.set(p[i], p[i + 1], p[i + 2]);
+            if (iT) v.applyMatrix4(iT);
+            cl.setHex(q.cf(v.x, v.y, v.z));
+            this.c.push(cl.r, cl.g, cl.b);
+          }
+        } else for (let i = 0; i < p.length; i += 3) this.c.push(cl.r, cl.g, cl.b);
         g.dispose();
       }
       return this;

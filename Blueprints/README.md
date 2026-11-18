@@ -19,23 +19,25 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Battle-practice target raft | Battle-practice target raft with screen (generic) | 12.00 x 5.00 x 8.40 | no reference yet | `Target_raft_blueprint.png`, `Target_raft_measurements.md` |
 | Towed target sleeve | Towed aerial target sleeve (generic) | 9.00 x 1.40 x 1.40 | no reference yet | `Target_sleeve_blueprint.png`, `Target_sleeve_measurements.md` |
 | Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.26 x 11.84 x 23.80 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
-| Japanese freighter | Type 2A wartime standard cargo ship (generic shape, real size) | 137.00 x 18.20 x 37.44 | match | `Japanese_freighter_blueprint.png`, `Japanese_freighter_measurements.md` |
-| Japanese tanker | Type 2TL wartime standard tanker (generic shape, real size) | 153.50 x 20.00 x 35.25 | match | `Japanese_tanker_blueprint.png`, `Japanese_tanker_measurements.md` |
-| US freighter (kept for later) | Liberty ship EC2-S-C1, kept for later (generic shape, real size) | 134.60 x 17.30 x 37.62 | match | `US_freighter_blueprint.png`, `US_freighter_measurements.md` |
-| US tanker (kept for later) | T2-SE-A1 tanker, kept for later (generic shape, real size) | 159.60 x 20.70 x 36.38 | match | `US_tanker_blueprint.png`, `US_tanker_measurements.md` |
+| Japanese freighter | Type 2A wartime standard cargo ship | 137.00 x 18.20 x 25.19 | match | `Japanese_freighter_blueprint.png`, `Japanese_freighter_measurements.md` |
+| Japanese tanker | Type 2TL wartime standard tanker | 153.50 x 20.00 x 27.50 | match | `Japanese_tanker_blueprint.png`, `Japanese_tanker_measurements.md` |
+| US freighter (kept for later) | Liberty ship EC2-S-C1, kept for later | 134.60 x 17.30 x 30.13 | match | `US_freighter_blueprint.png`, `US_freighter_measurements.md` |
+| US tanker (kept for later) | T2-SE-A1 tanker, kept for later | 159.60 x 20.70 x 28.01 | match | `US_tanker_blueprint.png`, `US_tanker_measurements.md` |
 | 12 cm/45 3rd Year Type gun in its coast emplacement | 12 cm/45 3rd Year Type naval gun on a coast-defence pedestal | 9.20 x 9.20 x 3.47 | close | `12cm-45_coast_gun_blueprint.png`, `12cm-45_coast_gun_measurements.md` |
 | Type 96 25 mm twin AA gun in its emplacement | Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit | 9.80 x 9.80 x 3.14 | no reference yet | `Type96_25mm_twin_blueprint.png`, `Type96_25mm_twin_measurements.md` |
 | 150 cm searchlight in its emplacement | 150 cm searchlight (Type 96 class) | 7.00 x 7.00 x 3.20 | no reference yet | `150cm_searchlight_blueprint.png`, `150cm_searchlight_measurements.md` |
 | Japanese army cargo truck (enemy target) | Isuzu Type 94 six-wheeled truck (cargo truck) | 5.40 x 1.90 x 2.25 | match | `Japanese_cargo_truck_blueprint.png`, `Japanese_cargo_truck_measurements.md` |
-| Japanese army supply truck, covered (enemy target) | Isuzu Type 94 six-wheeled truck (covered supply truck) | 5.40 x 1.90 x 2.25 | match | `Japanese_supply_truck_blueprint.png`, `Japanese_supply_truck_measurements.md` |
-| Japanese army tanker truck (enemy target) | Isuzu Type 94 six-wheeled truck (tanker truck) | 5.70 x 1.90 x 2.02 | close | `Japanese_tanker_truck_blueprint.png`, `Japanese_tanker_truck_measurements.md` |
-| Japanese army light car (enemy target) | Kurogane Type 95 scout car | 3.38 x 1.52 x 2.27 | match | `Japanese_scout_car_blueprint.png`, `Japanese_scout_car_measurements.md` |
-| Japanese army half-track (enemy target) | Isuzu Type 98 Ko-Hi half-track prime mover | 4.65 x 1.90 x 3.23 | match | `Japanese_halftrack_blueprint.png`, `Japanese_halftrack_measurements.md` |
-| Japanese army tank (enemy target) | Type 95 Ha-Go light tank | 4.30 x 2.07 x 3.82 | match | `Japanese_tank_blueprint.png`, `Japanese_tank_measurements.md` |
-| US fuel bowser (home airfield) | GMC CCKW 2½-ton 6x6 chassis, fuel truck | 6.00 x 2.24 x 2.33 | close | `US_fuel_truck_blueprint.png`, `US_fuel_truck_measurements.md` |
+| Japanese army supply truck, covered (enemy target) | Isuzu Type 94 six-wheeled truck (covered supply truck) | 5.40 x 1.90 x 2.41 | match | `Japanese_supply_truck_blueprint.png`, `Japanese_supply_truck_measurements.md` |
+| Japanese army tanker truck (enemy target) | Isuzu Type 94 six-wheeled truck (tanker truck) | 5.50 x 1.90 x 2.32 | match | `Japanese_tanker_truck_blueprint.png`, `Japanese_tanker_truck_measurements.md` |
+| Japanese army light car (enemy target) | Kurogane Type 95 scout car | 3.38 x 1.52 x 1.68 | match | `Japanese_scout_car_blueprint.png`, `Japanese_scout_car_measurements.md` |
+| Japanese army half-track (enemy target) | Isuzu Type 98 Ko-Hi half-track prime mover | 4.65 x 1.90 x 2.15 | match | `Japanese_halftrack_blueprint.png`, `Japanese_halftrack_measurements.md` |
+| Japanese army tank (enemy target) | Type 95 Ha-Go light tank | 4.30 x 2.07 x 2.28 | match | `Japanese_tank_blueprint.png`, `Japanese_tank_measurements.md` |
+| US fuel bowser (home airfield) | GMC CCKW 2½-ton 6x6 chassis, fuel truck | 6.60 x 2.24 x 2.93 | match | `US_fuel_truck_blueprint.png`, `US_fuel_truck_measurements.md` |
 | US cargo truck (home airfield) | GMC CCKW 353 2½-ton 6x6 cargo truck | 6.51 x 2.24 x 2.80 | match | `US_cargo_truck_blueprint.png`, `US_cargo_truck_measurements.md` |
 | US jeep (home airfield) | Willys MB / Ford GPW jeep | 3.36 x 1.57 x 1.77 | match | `US_jeep_blueprint.png`, `US_jeep_measurements.md` |
 | US aircraft tug (home airfield) | Clark Clarktor 6 aircraft tug | 2.54 x 1.32 x 1.42 | match | `US_aircraft_tug_blueprint.png`, `US_aircraft_tug_measurements.md` |
-| US ground crewman (figure) | US ground crewman | 0.32 x 0.82 x 1.84 | no reference yet | `Ground_crewman_blueprint.png`, `Ground_crewman_measurements.md` |
+| Japanese aircraft tractor (Japanese airbases) | Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN) | 3.40 x 1.60 x 1.53 | match | `Japanese_aircraft_tractor_blueprint.png`, `Japanese_aircraft_tractor_measurements.md` |
+| USAAF ground crewman (home airfield) | USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap | 0.30 x 0.55 x 1.76 | match | `Ground_crewman_blueprint.png`, `Ground_crewman_measurements.md` |
+| Japanese army ground crewman (Japanese airbases) | IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi | 0.30 x 0.55 x 1.68 | match | `Japanese_army_ground_crewman_blueprint.png`, `Japanese_army_ground_crewman_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).

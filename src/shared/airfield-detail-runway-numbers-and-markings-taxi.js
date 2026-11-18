@@ -165,46 +165,6 @@
   /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
   const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI });
 
-  const fuelTruck = (c) => {
-    const P = [];
-    P.push(part(bx(7.2, 0.45, 2.2), 0x2d2f30, 0, 0.85, 0));
-    P.push(part(bx(1.9, 1.7, 2.2), c, 2.7, 1.95, 0));
-    P.push(part(bx(0.05, 0.8, 1.8), 0x1d2a33, 3.66, 2.25, 0));
-    P.push(part(cyl(1.05, 1.05, 4.6), 0xa9afb4, -0.8, 2.15, 0, 0, 0, -Z));
-    P.push(part(bx(0.6, 0.9, 1.7), 0x3a3d40, -3.1, 1.5, 0));
-    for (const x of [2.4, -1.5, -2.8]) for (const s of [-1, 1]) P.push(wheel(x, s * 1.05, 0.55, 0.45));
-    return P;
-  };
-  const cargoTruck = () => {
-    const P = [];
-    P.push(part(bx(7.2, 0.45, 2.2), 0x2d2f30, 0, 0.85, 0));
-    P.push(part(bx(1.8, 1.6, 2.2), 0x56603f, 2.5, 1.9, 0));
-    P.push(part(bx(1.2, 0.9, 2.0), 0x56603f, 3.7, 1.65, 0));
-    P.push(part(bx(0.05, 0.7, 1.8), 0x1d2a33, 3.43, 2.3, 0));
-    P.push(part(bx(4.8, 0.2, 2.4), 0x4a4d3a, -0.7, 1.2, 0));
-    P.push(part(bx(4.6, 1.5, 2.2), 0x8b8667, -0.7, 2.05, 0));
-    P.push(part(cyl(1.1, 1.1, 4.6, 10), 0x8b8667, -0.7, 2.8, 0, 0, 0, -Z));
-    for (const x of [2.5, -1.8, -3.0]) for (const s of [-1, 1]) P.push(wheel(x, s * 1.05, 0.55, 0.45));
-    return P;
-  };
-  const jeep = () => {
-    const P = [];
-    P.push(part(bx(3.0, 0.55, 1.55), 0x56603f, 0, 0.8, 0));
-    P.push(part(bx(1.0, 0.4, 1.4), 0x56603f, 1.5, 1.2, 0));
-    P.push(part(bx(0.05, 0.55, 1.4), 0x1d2a33, 0.55, 1.5, 0, 0, 0, -0.35));
-    P.push(part(bx(0.55, 0.5, 1.2), 0x3f4630, -0.5, 1.15, 0));
-    P.push(part(cyl(0.32, 0.32, 0.2, 10), 0x151515, -1.6, 1.1, 0, 0, 0, Z));
-    for (const x of [1, -1]) for (const s of [-1, 1]) P.push(wheel(x, s * 0.82, 0.34, 0.28));
-    return P;
-  };
-  const tug = () => {
-    const P = [];
-    P.push(part(bx(2.4, 0.8, 1.3), 0xc9a227, 0, 0.95, 0));
-    P.push(part(bx(1.0, 0.8, 1.1), 0xc9a227, -0.2, 1.7, 0));
-    P.push(part(bx(1.6, 0.08, 0.08), 0x333333, 2.0, 0.5, 0));
-    for (const x of [0.8, -0.8]) for (const s of [-1, 1]) P.push(wheel(x, s * 0.7, 0.4, 0.3));
-    return P;
-  };
   const drums = () => {
     const P = [],
       cols = [0x56603f, 0x8b4a2b, 0x3b5675, 0x56603f];
@@ -220,11 +180,12 @@
   const FIT = {},
     fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
     fighterR = (body, trim, o) => GX.fit(fighter(body, trim, o), null, fitOnce('p51', fighter(0, 0, {}), { L: 9.83, W: 11.28, H: null })),
-    cckw = () => fitOnce('cckw', cargoTruck(), { L: 6.51, W: 2.24, H: 2.8 }),
-    fuelTruckR = (c) => GX.fit(fuelTruck(c), null, cckw()),
-    cargoTruckR = () => GX.fit(cargoTruck(), null, cckw()),
-    jeepR = () => GX.fit(jeep(), { L: 3.36, W: 1.57, H: 1.77 }),
-    tugR = () => GX.fit(tug(), { L: 2.54, W: 1.32, H: 1.42 });
+    /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
+    cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
+    fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
+    cargoTruckR = () => GX.fit(MODELS.get('us-cckw-cargo'), null, cckw()),
+    jeepR = () => GX.fit(MODELS.get('us-willys-mb'), { L: 3.36, W: 1.57, H: 1.77 }),
+    tugR = () => GX.fit(MODELS.get('us-clarktor6'), { L: 2.54, W: 1.32, H: 1.42 });
   /* the line-up: six fighters in front of the apron's east side, two at the hangar doors */
   [
     [-108, 336, 0.1, 0xb7bcc2, 0xb22a24, {}],
@@ -251,20 +212,12 @@
     scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })));
   }
   /* the moving ones: each is its own small mesh; AFLD.update() drives them along their routes */
-  const crew = (shirt) => {
-    const P = [];
-    P.push(part(bx(0.28, 0.7, 0.5), shirt, 0, 1.15, 0));
-    P.push(part(bx(0.26, 0.8, 0.2), 0x4a4a3a, 0, 0.4, 0.13));
-    P.push(part(bx(0.26, 0.8, 0.2), 0x4a4a3a, 0, 0.4, -0.13));
-    P.push(part(bx(0.2, 0.6, 0.14), shirt, 0, 1.15, 0.34));
-    P.push(part(bx(0.2, 0.6, 0.14), shirt, 0, 1.15, -0.34));
-    P.push(part(sph(), 0xc89a7a, 0, 1.66, 0, 0, 0, 0, 0.14, 0.15, 0.14));
-    P.push(part(sph(), 0x3b4228, 0, 1.74, 0, 0, 0, 0, 0.16, 0.1, 0.16));
-    return P;
-  };
+  /* the USAAF ground crew (MODELS 'crew', the ground crews piece): herringbone twill in olive drab or light sage, A-3 caps */
+  const CREWV = { 0x6f7a8a: 0, 0x8b7d5a: 1, 0xa89b84: 2 },
+    crew = (shirt, pose) => MODELS.get('crew', 'us', pose || 'walk', CREWV[shirt] || 0);
   /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
      goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
-  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a), {
+  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {
     path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
     door: [-176.5, 145.5],
     spot: [-172.4, 150],
@@ -278,49 +231,6 @@
   AFLD.add(crew(0x6f7a8a), [[-97, 398], [-97, 436]], 1.3, 8, 'walk');
   AFLD.add(crew(0xa89b84), [[-172, 160], [-172, 205]], 1.4, 6, 'walk');
   AFLD.add(crew(0x8b7d5a), [[-150, 346], [-124, 346]], 1.2, 9, 'walk');
-  /* ships on the open sea: a freighter, a tanker and a patrol boat. Bows point toward +x. */
-  const hullSteps = (L, b, h, col, y0) => {
-    const P = [];
-    P.push(part(bx(L * 0.78, h, b), col, -L * 0.11, y0 + h / 2, 0));
-    [[0.1, 0.8], [0.06, 0.55], [0.035, 0.3]].forEach((q, i) => {
-      P.push(part(bx(L * q[0], h, b * q[1]), col, L * (0.28 + [0.05, 0.13, 0.19][i]), y0 + h / 2, 0));
-    });
-    return P;
-  };
-  const freighter = (fl) => {
-    const L = 95,
-      P = hullSteps(L, 14, 6.5, 0x2f3438, -1.5);
-    P.push(part(cyl(0.05, 0.05, 3.4, 6), 0x555555, -L / 2 + 1.2, 6.7, 0), ...FLG.at(fl || 'jp', 2.1, -L / 2 + 1.15, 8.3, 0, Math.PI));
-    P.push(part(bx(L * 0.78, 1.0, 14.2), 0x7a2a22, -L * 0.11, -0.1, 0)); /* boot-topping, across the waterline */
-    P.push(part(bx(14, 9, 11), 0xdadad4, -L / 2 + 11, 10.7, 0));
-    P.push(part(bx(6, 3, 11.4), 0x1d2a33, -L / 2 + 14, 13, 0));
-    P.push(part(cyl(1.9, 1.9, 6), 0xb02a20, -L / 2 + 6, 17.5, 0));
-    P.push(part(cyl(0.2, 0.2, 14), 0x555555, 14, 12, 0));
-    for (let i = 0; i < 4; i++) P.push(part(bx(11, 1.2, 9.5), 0x6b5a3a, 28 - i * 15, 5.7, 0));
-    return P;
-  };
-  const tanker = (fl) => {
-    const L = 112,
-      P = hullSteps(L, 17, 5.5, 0x23282c, -1.5);
-    P.push(part(cyl(0.05, 0.05, 3.4, 6), 0x555555, -L / 2 + 1.2, 5.7, 0), ...FLG.at(fl || 'jp', 2.1, -L / 2 + 1.15, 7.3, 0, Math.PI));
-    P.push(part(bx(L * 0.78, 1.0, 17.2), 0x4a2a22, -L * 0.11, -0.1, 0)); /* boot-topping, across the waterline */
-    P.push(part(bx(12, 10, 14), 0xd8d8d0, -L / 2 + 9, 10.5, 0));
-    P.push(part(bx(5, 2.6, 14.4), 0x1d2a33, -L / 2 + 12, 12.8, 0));
-    P.push(part(cyl(1.6, 1.6, 5), 0x303438, -L / 2 + 5, 16.5, 0));
-    P.push(part(bx(L * 0.58, 0.5, 1.2), 0x6a6a64, 8, 4.5, 0));
-    for (let i = 0; i < 5; i++) P.push(part(cyl(2.2, 2.2, 1.0), 0x3d4247, 30 - i * 11, 4.2, 0));
-    return P;
-  };
-  const patrol = (fl) => {
-    const L = 32,
-      P = hullSteps(L, 6, 2.6, 0x7b838a, -0.8);
-    P.push(part(cyl(0.04, 0.04, 2.6, 6), 0x555555, -L / 2 + 0.8, 3.1, 0), ...FLG.at(fl || 'jn', 1.2, -L / 2 + 0.76, 4.3, 0, Math.PI));
-    P.push(part(bx(7, 2.6, 4.6), 0x969ea5, -3, 3.4, 0));
-    P.push(part(bx(3, 1.2, 4.7), 0x1d2a33, -2, 3.7, 0));
-    P.push(part(cyl(0.12, 0.12, 6), 0x444444, -4, 7, 0));
-    P.push(part(cyl(0.18, 0.18, 3), 0x333333, 8, 3.2, 0, 0, 0, -Z));
-    return P;
-  };
   /* the US Navy patrol craft escort off the home airfield, a PCE-842 class (56.2 m x 10.1 m, 850 tons): lofted hull with the raised forecastle and rounded transom,
      3"/50 forward with the Hedgehog behind it, pilothouse and open flying bridge with Mk 51 director and SO/SA radar, a stubby funnel, two 40 mm Bofors, four 20 mm Oerlikons
      in tubs, depth charge rails and K-guns on the fantail, whaleboats, Carley floats, rails, ensign and the hull number. Bow toward +x; waterline at y = 0, keel 2.9 m below it. */
@@ -602,18 +512,18 @@
         console.warn('PCE guns', e);
       }
   }
-  AFLD.hullSteps = hullSteps;
   /* the cargo ships at their real sizes (GX.fit, figures from References/vehicle research spec sheet.pdf; length, beam, draught,
      heights in proportion): Japanese Type 2A wartime standard cargo ship 137.0 x 18.2 m, 7.8 m draught; Type 2TL wartime standard
      tanker 153.5 x 20.0 m, 9.1 m; American Liberty ship (EC2-S-C1) 134.6 x 17.3 m, 8.5 m; T2-SE-A1 tanker 159.6 x 20.7 m, 9.2 m.
-     The shapes stay the generic ones until the ships are rebuilt. */
+     The ships are the reference-built models; GX.fit only confirms their size (and sets the draught). */
   const SHIPR = {
       freighter: { jp: { L: 137, W: 18.2, D: 7.8 }, us: { L: 134.6, W: 17.3, D: 8.5 } },
       tanker: { jp: { L: 153.5, W: 20, D: 9.1 }, us: { L: 159.6, W: 20.7, D: 9.2 } },
     },
-    freighterR = (fl) => GX.fit(freighter(fl), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
-    tankerR = (fl) => GX.fit(tanker(fl), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
-  AFLD.models = { freighter: freighterR, tanker: tankerR, patrol, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
+    /* the reference-built ships (MODELS, the cargo ships piece), checked to size here */
+    freighterR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-liberty' : 'jp-type2a'), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
+    tankerR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-t2' : 'jp-type2tl'), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
+  AFLD.models = { freighter: freighterR, tanker: tankerR, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
   /* soft contact shadows under everything parked */
   {
     const c = document.createElement('canvas');

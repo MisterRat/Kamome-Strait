@@ -233,7 +233,7 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.freighter('jp'));",
-  "type": "Type 2A wartime standard cargo ship (generic shape, real size)",
+  "type": "Type 2A wartime standard cargo ship",
   "wl": "0",
   "ref": [
    [
@@ -253,8 +253,8 @@
    ]
   ],
   "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
   ]
  },
  {
@@ -264,7 +264,7 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.tanker('jp'));",
-  "type": "Type 2TL wartime standard tanker (generic shape, real size)",
+  "type": "Type 2TL wartime standard tanker",
   "wl": "0",
   "ref": [
    [
@@ -284,8 +284,8 @@
    ]
   ],
   "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
   ]
  },
  {
@@ -295,7 +295,7 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.freighter('us'));",
-  "type": "Liberty ship EC2-S-C1, kept for later (generic shape, real size)",
+  "type": "Liberty ship EC2-S-C1, kept for later",
   "wl": "0",
   "ref": [
    [
@@ -315,8 +315,8 @@
    ]
   ],
   "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
   ]
  },
  {
@@ -326,7 +326,7 @@
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.tanker('us'));",
-  "type": "T2-SE-A1 tanker, kept for later (generic shape, real size)",
+  "type": "T2-SE-A1 tanker, kept for later",
   "wl": "0",
   "ref": [
    [
@@ -346,8 +346,8 @@
    ]
   ],
   "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built)."
+   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
   ]
  },
  {
@@ -689,18 +689,68 @@
   ]
  },
  {
+  "id": "jp-tug",
+  "file": "Japanese_aircraft_tractor",
+  "title": "Japanese aircraft tractor (Japanese airbases)",
+  "fwd": "+x",
+  "make": "return __bake(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')));",
+  "type": "Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN)",
+  "ref": [
+   [
+    "Length",
+    3.4,
+    "~3.4 x 1.6 x 1.5 m (Kato 4-ton), vehicle research spec sheet (References)"
+   ],
+   [
+    "Width",
+    1.6,
+    "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
+   ],
+   [
+    "Height",
+    1.5,
+    "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
+   ]
+  ],
+  "notes": [
+   "Army khaki-brown at the army airbases; the IJN version is navy grey-blue with a yellow anchor on the grille.",
+   "Photo: References/Komatsu G40.jpg"
+  ]
+ },
+ {
   "id": "crew",
   "file": "Ground_crewman",
-  "title": "US ground crewman (figure)",
+  "title": "USAAF ground crewman (home airfield)",
   "fwd": "+x",
-  "make": "return __bake(AFLD.models.crew(0x6f7a8a));",
-  "type": "US ground crewman",
+  "make": "return __bake(MODELS.get('crew', 'us', 'stand', 0));",
+  "type": "USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap",
   "ref": [
    [
     "Height",
-    null,
-    "about 1.7 to 1.75 m for a WWII serviceman"
+    1.75,
+    "a typical serviceman, about 1.75 m"
    ]
+  ],
+  "notes": [
+   "Uniform from docs/research_1945_bases.md (ground crews). Poses in the game: stand, walk, work, kneel; three uniform variants (OD #7, light sage, mixed)."
+  ]
+ },
+ {
+  "id": "crew-ja",
+  "file": "Japanese_army_ground_crewman",
+  "title": "Japanese army ground crewman (Japanese airbases)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('crew', 'ja', 'stand', 0));",
+  "type": "IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi",
+  "ref": [
+   [
+    "Height",
+    1.7,
+    "a typical Japanese serviceman of the time, about 1.6-1.7 m"
+   ]
+  ],
+  "notes": [
+   "Uniform from docs/research_1945_bases.md (ground crews). At work on the parked Ki-84s at each Japanese airbase."
   ]
  }
 ]

@@ -1,10 +1,10 @@
 # US freighter (kept for later): game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 134.60 m long, 17.30 m wide, 37.62 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 134.60 m long, 17.30 m wide, 30.13 m high (solid parts only, as drawn on the blueprint).
 
-**Represents:** Liberty ship EC2-S-C1, kept for later (generic shape, real size)
+**Represents:** Liberty ship EC2-S-C1, kept for later
 
-**Where she floats in the game:** the still water is 29.12 m below her highest point and 8.50 m above her keel (her draught in the game).
+**Where she floats in the game:** the still water is 21.63 m below her highest point and 8.50 m above her keel (her draught in the game).
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@ Results: match within 3%, close within 8%, **check** beyond that. The box takes 
 
 ## Notes
 
-- Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).
 - Hull below the waterline deepened to the real draught (the top 0.5 m as built).
+- Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece).
 
 Blueprint: `US_freighter_blueprint.png`.

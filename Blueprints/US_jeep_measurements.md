@@ -1,6 +1,6 @@
 # US jeep (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 3.36 m long, 1.57 m wide, 1.77 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 3.36 m long, 1.57 m wide, 1.77 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Willys MB / Ford GPW jeep
 

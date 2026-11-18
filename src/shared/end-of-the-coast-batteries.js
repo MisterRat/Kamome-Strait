@@ -565,6 +565,21 @@ const SITES = [],
       top = Math.max(...KI84.CONTACT.map(([cx, cz]) => HMESH(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry)) + 0.3));
     target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01);
   }
+  /* the ground crew at work on the line (IJAAF khaki-tan coveralls, field caps) and a tractor to tow the fighters: one static mesh */
+  {
+    const acc = new GX.Acc(),
+      at = (P, u, d, yaw) => {
+        const [x, z] = FR.w(u, d);
+        acc.add(P, GX.xf(x, HMESH(x, z) + 0.3, z, FR.ryS + yaw));
+      };
+    [[1, 'work', 3.2, 2.2, Math.PI], [1, 'stand', 6, -2.5, 2.2], [4, 'kneel', 2.5, -3.6, 0.4], [4, 'work', 3.4, 2.4, Math.PI], [7, 'stand', -4, 3, -1.2], [7, 'walk', 8, 6, 0.8]].forEach(([i, pose, du, dd, yaw], k) =>
+      at(MODELS.get('crew', 'ja', pose, k), -250 + i * 62 + du, DR - 100 + dd, yaw),
+    );
+    at(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')), -250 + 2 * 62 + 9, DR - 92, 0.6);
+    const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+    csTree(m);
+    scene.add(m);
+  }
   /* the base yard behind the apron: bare gravel ground for the hangars, offices and stores (as at the other two bases) */
   const yc = document.createElement('canvas');
   yc.width = yc.height = 256;

@@ -1,10 +1,10 @@
 # Japanese freighter: game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 137.00 m long, 18.20 m wide, 37.44 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 137.00 m long, 18.20 m wide, 25.19 m high (solid parts only, as drawn on the blueprint).
 
-**Represents:** Type 2A wartime standard cargo ship (generic shape, real size)
+**Represents:** Type 2A wartime standard cargo ship
 
-**Where she floats in the game:** the still water is 29.64 m below her highest point and 7.80 m above her keel (her draught in the game).
+**Where she floats in the game:** the still water is 17.39 m below her highest point and 7.80 m above her keel (her draught in the game).
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@ Results: match within 3%, close within 8%, **check** beyond that. The box takes 
 
 ## Notes
 
-- Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).
 - Hull below the waterline deepened to the real draught (the top 0.5 m as built).
+- Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece).
 
 Blueprint: `Japanese_freighter_blueprint.png`.
