@@ -1,4 +1,4 @@
-/* the subject of the lesson: PT-105, the rafts */
+/* the subject of the lesson: PT-108, the rafts */
 const lesT = (k) => (PT.on ? PT.L.find((t) => t.kind === k) : null);
 const lesRep = (L, kind, after) => {
   let n = 0;
@@ -20,14 +20,14 @@ const LES = {
     { t: '<b>Page Up</b>: change to the <b>10-mile scale</b>. Watch the land and the contacts shrink toward the centre.', ok: () => RADAR.ri === 2 },
     { t: '<b>Page Down</b>: back to the <b>5-mile scale</b>.', ok: () => RADAR.ri === 1 },
     {
-      t: '<b>Q / E</b> turn the orange <b>bearing cursor</b> (hold Shift for speed). Lay it on <b>PT-105</b>, the boat running round us at about a mile.',
+      t: '<b>Q / E</b> turn the orange <b>bearing cursor</b> (hold Shift for speed). Lay it on <b>PT-108</b>, the boat running round us at about a mile.',
       ok: () => {
         const p = lesT('ptboat');
         return p && Math.abs(angW(cRel(p.p.x, p.p.z)[0] - COMMS.rd.b)) < 0.05;
       },
     },
     {
-      t: '<b>R / F</b> move the <b>range strobe</b> (the dotted ring and the small circle on the cursor) out and in. Put it on PT-105.',
+      t: '<b>R / F</b> move the <b>range strobe</b> (the dotted ring and the small circle on the cursor) out and in. Put it on PT-108.',
       ok: () => {
         const p = lesT('ptboat');
         if (!p) return false;
@@ -50,7 +50,7 @@ const LES = {
       },
     },
     {
-      t: '<b>Tracking</b>: one report says where a contact <i>is</i>; two, at least 40 seconds apart, say where she is <i>going</i>. Go back to the 5-mile scale and <b>report PT-105 again</b> (wait if it is too soon). The plot works out her course and speed and draws her line.',
+      t: '<b>Tracking</b>: one report says where a contact <i>is</i>; two, at least 40 seconds apart, say where she is <i>going</i>. Go back to the 5-mile scale and <b>report PT-108 again</b> (wait if it is too soon). The plot works out her course and speed and draws her line.',
       go: (L) => (L.a = COMMS.rd.tr),
       ok: (L) => {
         const p = lesT('ptboat'),
@@ -59,7 +59,7 @@ const LES = {
       },
     },
     {
-      t: '<b>TEST</b>: report <b>every contact</b> within 5 miles (the rafts, PT-105, her sled, any ship) in <b>2 minutes</b>. Wrong reports count against you.',
+      t: '<b>TEST</b>: report <b>every contact</b> within 5 miles (the rafts, PT-108, her sled, any ship) in <b>2 minutes</b>. Wrong reports count against you.',
       go: (L) => {
         L.a = SHIP.t;
         L.bad0 = COMMS.rd.bad;

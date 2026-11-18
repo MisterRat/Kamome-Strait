@@ -1,23 +1,9 @@
-/* the ship's attitude: she rides OCEAN's waves. Her heave is the mean of the sea under the bow, the stern and both sides (a 56 m hull
-   averages out the short waves), pitch and roll follow the slope of the sea along and across her, with the lag of a heavy hull, plus a little
-   heel outward in a turn. Places the model; her wake is OCEAN's foam trail (the P-51's painted wake is not used for her). */
+/* the ship's attitude: she rides OCEAN's waves through the shared RIDE module (heave, pitch and roll with the lag of a heavy hull), plus a
+   little heel outward in a turn. Places the model; her wake is OCEAN's foam trail (the P-51's painted wake is not used for her). */
+RIDE.init(SHIPW, 24, 4.5, 8); /* her bow and stern samples 24 m out, the sides 4.5 m: about 0.43 of her 56 m and 0.45 of her 10 m beam */
 function shipPose(dt) {
-  const t = OCEAN.U.uTime.value,
-    fx = -Math.sin(SHIP.hdg),
-    fz = -Math.cos(SHIP.hdg),
-    hB = OCEAN.h(pos.x + fx * 24, pos.z + fz * 24, t),
-    hS = OCEAN.h(pos.x - fx * 24, pos.z - fz * 24, t),
-    hP = OCEAN.h(pos.x + fz * 4.5, pos.z - fx * 4.5, t) /* port side */,
-    hR = OCEAN.h(pos.x - fz * 4.5, pos.z + fx * 4.5, t),
-    hv = (hB + hS + hP + hR) / 4 - OCEAN.Y,
-    k = Math.min(1, dt * 2.2);
-  SHIPW.hv += (hv - SHIPW.hv) * k;
-  SHIPW.pi += (Math.atan2(hB - hS, 48) * 0.85 - SHIPW.pi) * Math.min(1, dt * 1.6);
-  /* roll: driven by the slope across her beam, with her own roll period of about 8 s and light damping */
-  const rT = Math.atan2(hP - hR, 9) * 0.9 - SHIP.r * SHIP.u * 0.8,
-    w0 = (2 * Math.PI) / 8;
-  SHIPW.vr += (w0 * w0 * (rT - SHIPW.ro) - 2 * 0.18 * w0 * SHIPW.vr) * dt;
-  SHIPW.ro += SHIPW.vr * dt;
+  const t = OCEAN.U.uTime.value;
+  RIDE.step(SHIPW, pos.x, pos.z, -Math.sin(SHIP.hdg), -Math.cos(SHIP.hdg), dt, -SHIP.r * SHIP.u * 0.8);
   /* the Wave motion setting: the ship is eased level (and to the still waterline) when it is off, or off at the guns and the player is on one */
   const wm = FM.use('sea') ? 'on' : WAVE.mode /* Hardcore: the sea always moves her */,
     wk = wm === 'off' || (wm === 'guns' && GUN.cur && camMode == 1) ? 0 : 1;

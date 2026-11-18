@@ -207,7 +207,7 @@ function ptUpdate(dt) {
     cp[n++] = t.p.y;
     cp[n++] = t.p.z;
   }
-  /* PT-105's tow line, from her stern bitt to the sled's bridle */
+  /* PT-108's tow line, from her stern bitt to the sled's bridle */
   const tb = PT.L.find((t) => t.kind === 'ptboat'),
     ts = PT.L.find((t) => t.kind === 'sled');
   if (tb && ts) {

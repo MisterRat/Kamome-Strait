@@ -1,11 +1,11 @@
-/* ---------- PT-105 towing the sled ----------
+/* ---------- PT-108 towing the sled ----------
    She runs an oval round the ship at 30 knots: 1,800 m out ahead and astern, 500 m abeam, centred on the ship and moving with
    her. The sled, 300 m astern on its tow line, follows exactly in her track, so it passes inside the 20 mm's 1,000 yards on each
    run down the ship's side and stays inside the 40 mm's 4,000 yards round the ends (a close pass about every four minutes).
    The oval is laid along the ship's heading when the exercise starts and stays fixed in direction. */
 const PTOW = { A: 1800, B: 500, TOW: 300, KN: 30 };
 function ptTowStart() {
-  const boat = PTB.build(),
+  const boat = PTB.build('108') /* the tow boat: PT-108, a squadron mate of the fleet's PT-105 (PTRon 5, in service to November 1945) */,
     sl = PTB.sled(),
     ax = Math.atan2(-Math.cos(SHIP.hdg), -Math.sin(SHIP.hdg)) /* the ship's heading as an angle in x, z */,
     o = { th: -0.6, c: new THREE.Vector3(pos.x, 0, pos.z), u: new THREE.Vector3(Math.cos(ax), 0, Math.sin(ax)), trail: [], v: PTOW.KN * 0.5144 };

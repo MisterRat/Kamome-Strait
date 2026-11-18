@@ -140,7 +140,7 @@ const AFLD = {
       m.add(wk);
       m.position.set(pts[0][0], yo === undefined ? -6.4 : yo, pts[0][1]);
       scene.add(m);
-      this.a.push({ m, pts, sp, wait: 0, kind: 'ship', y0: yo, i: 1, dir: 1, w: 0, v: sp, yaw: Math.atan2(-uz, ux), x: pts[0][0], z: pts[0][1], init: false, ph: rnd() * 6 });
+      this.a.push({ m, pts, sp, wait: 0, kind: 'ship', y0: yo, i: 1, dir: 1, w: 0, v: sp, yaw: Math.atan2(-uz, ux), x: pts[0][0], z: pts[0][1], init: false, ph: rnd() * 6, L });
       return true;
     }
     return false;
@@ -203,9 +203,14 @@ const AFLD = {
       o.x += (dx / d) * st;
       o.z += (dz / d) * st;
       if (o.kind === 'ship') {
-        o.ph += dt;
-        o.m.position.set(o.x, (o.y0 === undefined ? -6.4 : o.y0) + Math.sin(o.ph * 0.9) * 0.12, o.z);
-        o.m.rotation.set(Math.sin(o.ph * 0.7) * 0.012, o.yaw, Math.sin(o.ph * 0.6) * 0.01, 'YXZ');
+        /* she rides the ocean's waves (RIDE): the sample points from her length (0.43 x) and her sides 0.08 x it (0.45 of a beam about 0.18 of her length), roll period by size */
+        if (!o.ride) {
+          const L = o.L || 56;
+          o.ride = RIDE.make(0.43 * L, 0.08 * L, L < 35 ? 4 : 8);
+        }
+        RIDE.step(o.ride, o.x, o.z, Math.cos(o.yaw), -Math.sin(o.yaw), dt, 0);
+        o.m.position.set(o.x, (o.y0 === undefined ? -6.4 : o.y0) + o.ride.hv, o.z);
+        o.m.rotation.set(o.ride.ro, o.yaw, o.ride.pi, 'YXZ');
         continue;
       }
       o.m.position.set(o.x, o.y0 + (o.kind === 'walk' ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);

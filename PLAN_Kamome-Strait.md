@@ -109,11 +109,10 @@ Built files in `build/` only; the released games in `C:\Code\Arcade` are untouch
 | P-51 5.36, PCE-842 0.53 | `coastSea()`: the coast batteries use the ocean if the world has one, else the painted sea (5.34 threw `OCEAN is not defined` if `coastUpdate` ran) | 600 `coastUpdate` steps in both, no error |
 | P-51 5.37, PCE-842 0.54 | One allied fleet (PT-105, PCE-843, PCE-842, PT-106) for the world; `HOOKS` registry (shared piece after the version piece); the PCE game claims the PCE-842 with `HOOKS.claimShip`; freighter and tanker models kept | Fleet positions as before; the player's PCE-842 on the same patrol line; screenshots |
 | P-51 5.38, PCE-842 0.55 | The PCE ocean, toned-down shallows and open-sea plane (-11.8 m) shared; the P-51 drives the ocean clock and graphics tier | Screenshots at 30, 300, 1,500 and 5,000 m; ditching unchanged; draw calls about the same; software-rendered frame time about +30% with the sea filling the screen low down, about the same at 1,500 m |
+| P-51 5.39, PCE-842 0.56 | Shared `RIDE` module: every hull rides the ocean's waves (heave, pitch, roll); the PCE-842's `shipPose` and every AI fleet ship use it. The PCE game's tow boat is now PT-108 (a PTRon 5 squadron mate of PT-105, in service to November 1945) | `RIDE.step` matches the old `shipPose` maths exactly (max difference 0 over 600 steps); AI ships ride; PT-108 screenshot |
 
 Notes from step 2:
 - `HOOKS` (`src/shared/hooks-...js`) is the pattern for every new module: shared code calls `HOOKS.<name>` handlers, a game's own piece registers them. Add hooks there, never game names in shared code.
-- AI ships sit at a fixed waterline (-8.15 m) and do not ride the ocean's waves; only the player's ship does. Later: a shared "ride the waves" for every hull.
-- The PCE game now has the fleet's PT-105 at sea and its own PT-105 tow boat for gunnery practice (when targets are out): two boats numbered 105. To decide with the user.
 - The ocean's ship uniform (`uShip`) and the hull cut-out handle one manned ship; multiplayer needs one per manned ship.
 
 ## 6. Freeze log and notes for the P-51 and PCE-842 sessions (they report to Kamome)

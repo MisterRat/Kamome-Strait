@@ -1,4 +1,4 @@
-/* practice traffic only: what the tow planes, PT-105 and the exercise sub would say */
+/* practice traffic only: what the tow planes, PT-108 and the exercise sub would say */
 const RQ_GEN = [
   ['TOW ONE', 'ON STATION, 1,600 YARDS. SLEEVE STREAMED. COMMENCE FIRING WHEN READY.'],
   ['TOW TWO', 'MAKING MY PASS DOWN YOUR STARBOARD SIDE. CLOSE IN FOR THE 20 MM.'],
