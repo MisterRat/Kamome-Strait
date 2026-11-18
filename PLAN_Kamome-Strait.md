@@ -170,7 +170,22 @@ The end goal is a large multiplayer game, and more simulators will join later (f
 - **Settings.** One namespace (`kamome...`) with a section per simulator. Decide whether players' existing P-51 and PCE-842 settings are carried over.
 - **Not now:** networking, servers, lobbies, accounts. Multiplayer is its own later effort (see also the FATED multiplayer plan).
 
-## 9. Open questions for the user
+## 9. Models and graphics programme (approved by the user 2026-11-18)
+
+**Rules**
+- **One model per role.** Japanese: Ukuru-class kaibokan (escort and patrol), Type T-14 motor torpedo boat (Gyoraitei, their PT boat), Nakajima Ki-84 Hayate (aircraft). American: Elco 80 ft PT boat and PCE-842 (patrol craft), P-51D (aircraft). Every ship, boat and aircraft in the world is one of these unless the user adds a type.
+- **No generic blocky shapes where we have reference data or photos.** A model is rebuilt from its references (References/, `References/vehicle research spec sheet.pdf`, digest in `docs/research_1945_bases.md`) and built to its real size with `GX.fit`; `tools/blueprint.py` checks it (Blueprints/).
+- **Browser budget (CPU and memory).** Static models bake into one vertex-coloured geometry each (`GX.Acc`, one draw call); repeated models share one geometry (cached, or instanced when there are many); no image textures on vehicles and ships (vertex colour and painted bands only; small canvas textures only where a pattern is the point, shared between models). Rough triangle budgets: vehicle 1,500, small boat 3,000, cargo ship 6,000, building 1,500, crew figure 300. Far copies use a cheaper shape or are dropped by distance. Check draw calls and frame time before and after each step (the perf test), and keep scenery loading unnoticeable.
+
+**Order of work (approved)**
+1. **Paint schemes** (1945, from the research): Japanese army vehicles khaki-brown, the Ha-Go three-tone (khaki-yellow, olive green, red-brown), Japanese navy equipment grey; Japanese cargo ships light grey-green with dark-green disruptive bands, red-brown below the waterline under a thin black boot-topping; US vehicles lusterless olive drab with white stars, the tug chrome yellow; US Liberty haze grey, T2 Navy Blue below the main deck and haze grey above, deck blue decks.
+2. **Ground crew uniforms:** US herringbone-twill sage or OD #7 with the A-3 cap; Japanese army khaki-tan with field cap, Japanese navy blue-grey (white singlet and headband in the heat). Each side's airfield uses its own.
+3. **US airfield buildings at their real sizes:** Quonset huts (Stran-Steel 6.10 x 14.63 m, 13 ribs; Elephant 12.19 x 30.48 m), Butler steel-arch hangar (39.62 x 48.77 x 11.89 m), steel-angle control tower (12-15 m, glazed cab, catwalk), Marston mat (PSP) surfaces; support kit: M5 bomb trailer, C-10 generator cart.
+4. **Ports and anchorages rebuilt as needed:** Japanese outer-island practice: deep-draught ships at anchor offshore, unloaded by Daihatsu barges; narrow coral-block jetties (6-10 m wide) for small craft; timber A-frame derricks; camouflaged godowns; drums under netting. The home port's long pier (5.45) gives way to a stone jetty and an anchorage in deep water.
+5. **Type T-14 motor torpedo boat** (Japanese PT boat): 15.0 x 3.60 m, 0.72 m draught, 14.5 t, 33-35 kn; wooden hard-chine planing hull, dark grey or mottled green; low open or canvas-hooded pilothouse forward of amidships, short signal mast; two 45 cm torpedoes on side-drop cradles; one 25 mm (or 13.2 mm) on the after deck; 2-4 depth charges at the stern. Rides the waves (`RIDE`) and enters the ocean hull list like the PT boats.
+6. **Rebuild the generic models from references:** Japanese vehicles (Type 94 truck family, Kurogane, Ko-Hi, Ha-Go), US vehicles (CCKW and its fuel truck, Willys MB, Clarktor 6), the cargo ships (Type 2A, Type 2TL; Liberty and T2 kept for later), the parked P-51D.
+
+## 10. Open questions for the user
 
 - Which version wins wherever the games differ, beyond the ocean? Answered by the winners list in phases 1-2.
 - Should the merged game replace the two existing games on the landing page, or sit beside them?
