@@ -115,7 +115,7 @@
       for (let j = 0; j < 4; j++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cs[(i + j) % 4], i * 0.72, 0.44, j * 0.72));
     put(P, x, z, yaw, 1);
   };
-  const veh = (t, x, z, yaw, k) => put(VM.parts(t), x, z, yaw, k);
+  const veh = (t, x, z, yaw) => put(VM.fitParts(t), x, z, yaw, 1); /* parked vehicles at their real sizes (VM REAL) */
   const lay = (cx, cz, o) => {
     fence(cx, cz, o.f[0], o.f[1], o.f[2], o.f[3]);
     [

@@ -1,6 +1,6 @@
 # Japanese patrol boat: game model measured against the references
 
-Measured from the PCE-842 0.61 build by `tools/blueprint.py` (2026-11-18). Model box: 32.04 m long, 6.00 m wide, 10.80 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.62 build by `tools/blueprint.py` (2026-11-18). Model box: 32.04 m long, 6.00 m wide, 10.80 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Japanese patrol boat (generic, 32 m)
 

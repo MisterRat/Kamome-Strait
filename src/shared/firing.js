@@ -206,7 +206,7 @@ function resetWeapons() {
     t.dead = false;
     t.hp = t.hp0;
     t.m.scale.y = 1;
-    t.m.position.y = H(t.c.x, t.c.z) + t.s1 / 2;
+    t.m.position.y = t.type === 'ship' && t.k0 !== undefined ? SEA.WL + t.k0 + t.s1 / 2 : H(t.c.x, t.c.z) + t.s1 / 2; /* a ship back on her waterline */
     if (t.type === 'ship') t.m.rotation.z = 0;
     t.m.traverse((o) => {
       if (o.userData.c0 !== undefined) o.material.color.set(o.userData.c0);

@@ -1,6 +1,6 @@
 # Japanese tanker: game model measured against the references
 
-Measured from the PCE-842 0.61 build by `tools/blueprint.py` (2026-11-18). Model box: 111.55 m long, 17.20 m wide, 20.90 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.62 build by `tools/blueprint.py` (2026-11-18). Model box: 111.55 m long, 17.20 m wide, 20.90 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Japanese tanker (generic, 112 m)
 

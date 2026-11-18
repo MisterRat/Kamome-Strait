@@ -319,7 +319,44 @@ const VM = (() => {
     return P;
   };
   const BSET = { warehouse: 1, hq: 1, bunker: 1, hangar: 1, fuel: 1 };
-  const bake = (P, s, isB) => {
+  /* REAL SIZES: the vehicles that stand for a real type are scaled, axis by axis, so their body (without aerials and other thin
+     parts) has that type's width, height and length in metres; a null height keeps the model's own proportion to the length.
+     Checked by tools/blueprint.py (Blueprints/). Truck, supply and tanker: Isuzu Type 94 six-wheeled truck (5.4 x 1.9 x 2.7 m with
+     the canvas tilt); jeep: Kurogane Type 95 (3.6 x 1.52 x 1.68); apc: Type 1 Ho-Ha (6.1 x 2.1 x 2.51); tank: Type 95 Ha-Go
+     (4.38 x 2.06 x 2.13). */
+  const REAL = {
+    truck: [1.9, null, 5.4],
+    supply: [1.9, 2.7, 5.4],
+    tanker: [1.9, null, 5.4],
+    jeep: [1.52, 1.68, 3.6],
+    apc: [2.1, 2.51, 6.1],
+    tank: [2.06, 2.13, 4.38],
+  };
+  /* the scale (in the model's own frame, nose along +x) that brings type t to its real size */
+  const fitS = {};
+  const fitScale = (t) => {
+    if (fitS[t]) return fitS[t];
+    const r = REAL[t],
+      b = new THREE.Box3(),
+      tb = new THREE.Box3();
+    for (const q of defs[t]()) {
+      if (!q.g.boundingBox) q.g.computeBoundingBox();
+      tb.copy(q.g.boundingBox).applyMatrix4(q.m || new THREE.Matrix4());
+      if (Math.max(tb.max.x - tb.min.x, tb.max.z - tb.min.z) < 0.15) continue; /* aerials, flag staffs, thin rails */
+      b.union(tb);
+    }
+    const kl = r[2] / (b.max.x - b.min.x);
+    return (fitS[t] = new THREE.Matrix4().makeScale(kl, r[1] ? r[1] / (b.max.y - b.min.y) : kl, r[0] / (b.max.z - b.min.z)));
+  };
+  const bake = (P, s, isB, t) => {
+    if (REAL[t]) {
+      const g = new GX.Acc().add(P, new THREE.Matrix4().makeRotationY(-Z).multiply(fitScale(t))).geometry();
+      g.computeBoundingBox();
+      const b = g.boundingBox;
+      g.translate(-(b.max.x + b.min.x) / 2, -s[1] / 2 - b.min.y, -(b.max.z + b.min.z) / 2);
+      g.computeBoundingSphere();
+      return g;
+    }
     const g = new GX.Acc().add(P, new THREE.Matrix4().makeRotationY(isB ? 0 : -Z)).geometry();
     if (isB) {
       g.translate(0, -s[1] / 2, 0);
@@ -352,8 +389,10 @@ const VM = (() => {
   return {
     has: (t) => !!defs[t],
     isB: (t) => !!BSET[t],
-    make: (t, s) => cache[t] || (cache[t] = bake(defs[t](), s, !!BSET[t])),
+    make: (t, s) => cache[t] || (cache[t] = bake(defs[t](), s, !!BSET[t], t)),
     parts: (t) => defs[t](),
+    /* the parts at the type's real size (for parked vehicles; nose along +x, wheels on y = 0) */
+    fitParts: (t) => (REAL[t] ? defs[t]().map((q) => ({ ...q, m: new THREE.Matrix4().multiplyMatrices(fitScale(t), q.m || new THREE.Matrix4()) })) : defs[t]()),
     part,
     bx,
     cyl,

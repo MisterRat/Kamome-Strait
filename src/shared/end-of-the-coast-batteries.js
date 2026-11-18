@@ -15,18 +15,20 @@ const SITES = [],
       const g = new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry();
       g.computeBoundingBox();
       const b = g.boundingBox,
-        s1 = b.max.y - b.min.y;
-      g.translate(0, -b.min.y - s1 / 2, 0); /* base at the model's own zero, the mesh origin in the middle (as the other targets) */
+        s1 = b.max.y - b.min.y,
+        k0 = b.min.y; /* read before translate(), which recomputes the box in place */
+      g.translate(0, -k0 - s1 / 2, 0); /* base at the model's own zero, the mesh origin in the middle (as the other targets) */
       g.computeBoundingSphere();
-      return [new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })), s1];
+      return [new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })), s1, k0 /* the model's lowest point (a ship: her keel, below her waterline at 0) */];
     },
     target = (P, type, hp, r, u, d, ry, yOff) => {
-      const [m, s1] = asMesh(P),
+      const [m, s1, k0] = asMesh(P),
         [x, z] = FR.w(u, d);
-      m.position.set(x, H(x, z) + s1 / 2 + (yOff || 0), z);
+      /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
+      m.position.set(x, type === 'ship' ? SEA.WL + k0 + s1 / 2 : H(x, z) + s1 / 2 + (yOff || 0), z);
       m.rotation.y = ry;
       scene.add(m);
-      const e = { m, lit: null, c: m.position, r, hp, hp0: hp, type, dead: false, s1, col: 0x555555, kind: 'st' };
+      const e = { m, lit: null, c: m.position, r, hp, hp0: hp, type, dead: false, s1, k0, col: 0x555555, kind: 'st' };
       T.push(e);
       if (FR === SITE) SITES.push(e); /* the far sites keep their own lists */
       return e;
@@ -182,7 +184,7 @@ const SITES = [],
     scene.add(m);
   }
   const ship = (parts, len, u, d, hp) => target(parts, 'ship', hp, len * 0.3, u, d, SITE.ryS);
-  const hullUp = (P) => P; /* ship models are built with their keel 1.5 m below zero; asMesh puts the lowest point at the waterline */
+  const hullUp = (P) => P; /* ship models are built with their waterline at y = 0 and the keel below it; target() floats them there */
   ship(hullUp(M.freighter('jp')), 95, -17, 188, 150);
   ship(hullUp(M.tanker('jp')), 112, 18, 190, 180);
   ship(hullUp(M.patrol('jn')), 32, -60, 175, 60);
@@ -387,7 +389,7 @@ const SITES = [],
       per = 2 * Ls + 2 * Math.PI * R,
       e = ship(ukuru(), 78, u0, d0, 140),
       y0 = e.m.position.y,
-      oy = 1.6 - e.s1 / 2; /* mesh-local y = model y + oy */
+      oy = -e.k0 - e.s1 / 2; /* mesh-local y = model y + oy */
     const MAT = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }),
       guns = [];
     /* the same Type 96 25 mm twin mounts as the bases: AA.gun entries that ride on the hull and fire under the Ground Fire option */
@@ -407,7 +409,7 @@ const SITES = [],
       guns.push(g);
     }
     {
-      const wk = shipWakeMesh(1, 1.6 - e.s1 / 2 + 1.65);
+      const wk = shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */;
       e.m.add(wk);
     }
     const tmp = new V();
@@ -852,7 +854,7 @@ const SITES = [],
     const e = target(ukuru(), 'ship', 140, 78 * 0.3, u0, d0, F.ryS);
     FR = SITE;
     const y0 = e.m.position.y,
-      oy = 1.6 - e.s1 / 2,
+      oy = -e.k0 - e.s1 / 2,
       MATu = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }),
       guns = [],
       tmp = new V();
@@ -871,7 +873,7 @@ const SITES = [],
       AA.gun.push(g);
       guns.push(g);
     }
-    e.m.add(shipWakeMesh(1, 1.6 - e.s1 / 2 + 1.65));
+    e.m.add(shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */);
     e.m.matrixAutoUpdate = true;
     let s = Math.random() * per;
     const P = { e, vis: true, track: { u0, u1, d0, R } };
@@ -1124,8 +1126,8 @@ const SITES = [],
       }
     }
     if (!p1) return null; /* no sea route between the two harbours: no ships (never a ship sailing over land) */
-    const [m, s1] = asMesh(parts);
-    m.add(shipWakeMesh(1, -s1 / 2 + 3.25));
+    const [m, s1, k0] = asMesh(parts);
+    m.add(shipWakeMesh(1, -k0 - s1 / 2 + 0.45)); /* on the water, just above her waterline */
     scene.add(m);
     const pts = [p0, p1, ...mid, p2, p3],
       seg = [];
@@ -1135,13 +1137,13 @@ const SITES = [],
       seg.push(l);
       L += l;
     }
-    const c = { m, s1, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len };
+    const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len };
     CIV.push(c);
     /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts */
-    c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, col: 0x555555, kind: 'civ' };
+    c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
     T.push(c.t);
     m.rotation.y = c.yaw;
-    m.position.set(p0[0], SEA.PAINT + s1 / 2, p0[1]);
+    m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */
     return c;
   };
   const updCiv = (c, t, dt) => {
@@ -1188,7 +1190,7 @@ const SITES = [],
       cz = a[1] + dz * k,
       rd = c.ride || (c.ride = RIDE.make(0.43 * c.len, 0.08 * c.len, c.len < 60 ? 6 : 9));
     if (dt > 0) RIDE.step(rd, cx, cz, Math.cos(c.yaw), -Math.sin(c.yaw), dt, 0);
-    c.m.position.set(cx, SEA.PAINT + c.s1 / 2 + rd.hv, cz);
+    c.m.position.set(cx, SEA.WL + c.k0 + c.s1 / 2 + rd.hv, cz);
     c.m.rotation.set(rd.ro, c.yaw, rd.pi, 'YXZ');
     c.m.children[0].visible = moving;
   };

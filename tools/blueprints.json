@@ -366,8 +366,13 @@
    ]
   ],
   "notes": [
-   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one.",
+   "The reference height (2.7 m) is with the canvas tilt; a model without a tilt keeps its own proportions, so it is lower."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('truck')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "supply",
@@ -394,8 +399,12 @@
    ]
   ],
   "notes": [
-   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('supply')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "tanker-truck",
@@ -422,8 +431,13 @@
    ]
   ],
   "notes": [
-   "Enemy vehicles are fitted to their target's box in the game, so each one is scaled to that box rather than built to its own drawing."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one.",
+   "The reference height (2.7 m) is with the canvas tilt; a model without a tilt keeps its own proportions, so it is lower."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('tanker')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "jeep-jp",
@@ -450,8 +464,12 @@
    ]
   ],
   "notes": [
-   "Fitted to its target's box."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('jeep')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "apc",
@@ -478,8 +496,12 @@
    ]
   ],
   "notes": [
-   "Fitted to its target's box."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('apc')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "tank",
@@ -506,8 +528,12 @@
    ]
   ],
   "notes": [
-   "Fitted to its target's box."
-  ]
+   "Built to the real type's size in the game (VM REAL in the vehicle models): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length, width and height.",
+   "Height is measured on the body; the drawing's overall height also includes the aerial or staff where the model has one."
+  ],
+  "measure": {
+   "Height": "(()=>{const b=new THREE.Box3(),t=new THREE.Box3();for(const q of VM.fitParts('tank')){if(!q.g.boundingBox)q.g.computeBoundingBox();t.copy(q.g.boundingBox).applyMatrix4(q.m||new THREE.Matrix4());if(Math.max(t.max.x-t.min.x,t.max.z-t.min.z)<0.15)continue;b.union(t);}return b.max.y-b.min.y;})()"
+  }
  },
  {
   "id": "us-fuel-truck",

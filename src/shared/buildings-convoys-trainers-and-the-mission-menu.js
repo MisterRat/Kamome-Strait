@@ -3,10 +3,10 @@ Object.assign(SP, {
   warehouse: { s: [24, 8, 14], hp: 90, c: 0x8d9296, roof: 0x5b6065 },
   hq: { s: [16, 10, 12], hp: 140, c: 0xa89b84, roof: 0x6b4a3a },
   bunker: { s: [14, 4, 14], hp: 200, c: 0x6d7266, roof: 0x555a4c },
-  jeep: { s: [1.9, 1.6, 3.6], hp: 5, c: 0x6b7050, cab: 1 },
-  supply: { s: [2.6, 2.8, 6.5], hp: 8, c: 0x5a6840, cab: 1 },
-  tanker: { s: [2.8, 3, 7], hp: 10, c: 0x9a9ea2, cab: 1 },
-  apc: { s: [2.8, 2.4, 5.6], hp: 18, c: 0x4a5438 },
+  jeep: { s: [1.52, 1.68, 3.6], hp: 5, c: 0x6b7050, cab: 1 } /* vehicle boxes at the real sizes (VM REAL) */,
+  supply: { s: [1.9, 2.7, 5.4], hp: 8, c: 0x5a6840, cab: 1 },
+  tanker: { s: [1.9, 3, 5.4], hp: 10, c: 0x9a9ea2, cab: 1 },
+  apc: { s: [2.1, 2.51, 6.1], hp: 18, c: 0x4a5438 },
 });
 const BLD = [];
 {
