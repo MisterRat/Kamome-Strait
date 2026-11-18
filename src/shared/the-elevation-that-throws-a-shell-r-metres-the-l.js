@@ -20,7 +20,7 @@ function coastUpdate(dt) {
   COAST.msgT = Math.max(0, COAST.msgT - dt);
   if (!on && !COAST.S.length) return;
   const night = WX.lt || 0,
-    tgt = new THREE.Vector3(pos.x, OCEAN.Y + 3, pos.z),
+    tgt = new THREE.Vector3(pos.x, coastSea() + 3, pos.z),
     sol = {};
   for (const g of COAST.G) {
     g.rec = Math.max(0, g.rec - dt * 1.5);
@@ -104,7 +104,7 @@ function coastUpdate(dt) {
       L.copy(a).lerp(s.p, j / 6);
       hit = shipStruck(L);
     }
-    const sea = s.p.y <= OCEAN.Y,
+    const sea = s.p.y <= coastSea(),
       land = !sea && s.p.y < H(s.p.x, s.p.z);
     if (!hit && !sea && !land && s.t < 90) continue;
     const g = s.g;

@@ -6,6 +6,10 @@
    lead her by her course and speed at the moment of firing, and walk the fall of shot onto her: the first round is off by several
    per cent of the range, and each spotted splash halves the error, down to the battery's limit (about 1% of the range, 3 mils in line). A shell that comes down inside
    her hull is a hit (counted, like the strafing, until battle damage comes). The guns are targets: the 3"/50 knocks them out. */
+/* the still-water level the guns and their shells work to: the ocean's where the world has one, else the painted sea (-8 m) */
+function coastSea() {
+  return typeof OCEAN !== 'undefined' ? OCEAN.Y : -8;
+}
 const COAST = {
   G: [] /* guns: { grp, tur, bar, p (pivot), yaw, el, t (target entry), cd, er, ed, n, ... } */,
   S: [] /* shells in flight */,
@@ -116,7 +120,7 @@ const COAST = {
   };
   /* the battery of a port: two guns on land either side of the harbour, a little back from the water, clear of the buildings */
   COAST.port = (F, rnd, taken, use) => {
-    const SEA = typeof OCEAN !== 'undefined' ? OCEAN.Y : -8; /* P-51 Mustang FS paints its sea at -8 m and has no OCEAN */
+    const SEA = coastSea();
     const [x0, z0] = F.w(0, 0),
       [x1, z1] = F.w(0, 100),
       seaYaw = Math.atan2(-(z1 - z0), x1 - x0);

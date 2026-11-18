@@ -15,7 +15,7 @@ function coastFly(p0, el, yaw, out) {
     x += vx * h;
     y += vy * h;
     t += h;
-    if (y <= OCEAN.Y + 2 && vy < 0) break;
+    if (y <= coastSea() + 2 && vy < 0) break;
   }
   if (out) (out.r = x), (out.t = t);
   return x;
