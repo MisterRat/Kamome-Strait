@@ -47,9 +47,7 @@ shared/hedgerows-you-can-see-and-fly-over-low-leafy-wal.js
 shared/a-road-that-ends-on-another-road-stops-at-that-r.js
 shared/shared-geometry-kit.js
 shared/the-ki-84-hayate-the-nakajima-ki-84-ia-frank-arm.js
-pce/end-of-the-ki-84-hayate.js
-pce/the-pce-842-model-built-from-the-pce-874-booklet.js
-pce/distance-to-the-nearest-line-of-a-grid-of-spacin.js
+shared/end-of-the-ki-84-hayate.js
 shared/vegetation-conifers-broadleaf-trees-palms-on-the.js
 shared/near-far-tree-levels-fade-into-each-other-with-a.js
 shared/every-frame-tell-the-shaders-where-the-camera-is.js
@@ -59,7 +57,10 @@ shared/is-this-spot-bare-grass-land-not-sand-or-water-n.js
 shared/the-engraved-panel-lines-rivets-and-small-parts.js
 shared/every-frame-tell-the-shader-where-the-camera-is.js
 shared/runway.js
-pce/flags-the-rising-sun-ensign-ijn-red-disc-and-six.js
+shared/flags-the-rising-sun-ensign-ijn-red-disc-and-six.js
+shared/the-pce-842-model-built-from-the-pce-874-booklet.js
+shared/distance-to-the-nearest-line-of-a-grid-of-spacin.js
+shared/pt-105-the-tow-boat-and-her-target-sled.js
 shared/airfield-dressing.js
 shared/the-wake-every-ship-at-sea-uses-one-flat-quad-wi.js
 shared/the-working-airfield-vehicles-ground-crew-and-a.js
@@ -241,7 +242,6 @@ pce/fly-a-copy-of-the-shell-on-until-it-comes-down-o.js
 pce/the-gunner-s-eye-and-line-of-sight-world-for-the.js
 pce/the-telescope-s-eyepiece-3-50-a-round-field-with.js
 pce/practice-targets-t-turns-them-all-on-t-again-off.js
-pce/pt-105-the-tow-boat-and-her-target-sled.js
 pce/pt-105-towing-the-sled.js
 pce/a-point-on-the-oval-world-for-the-angle-th.js
 pce/the-sled-s-position-d-metres-behind-the-boat-alo.js
