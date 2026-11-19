@@ -18,13 +18,16 @@ const SHORET = (() => {
   return { value: t };
 })();
 const SHORE_PAINT =
-  'if(shH<-14.0)discard;' /* deep water is drawn by OCEAN, so its wave troughs are never cut by this flat paint */ +
+  'if(shH<-24.0)discard;' /* deep water (over 16 m) is drawn by OCEAN, so its wave troughs are never cut by this flat paint */ +
   '{float air=(1.0-smoothstep(300.0,400.0,abs(vWP.x)))*smoothstep(-2300.0,-2200.0,vWP.z)*(1.0-smoothstep(1000.0,1100.0,vWP.z));' +
   'float ed=mix(3.0,-3.2,air);float bm=1.0-smoothstep(ed-1.5,ed+1.5,shH);' +
   'vec3 sandC=vec3(0.64,0.56,0.40)+(vn2(vWP.xz*0.035)-0.5)*0.05+(vn2(vWP.xz*0.35)-0.5)*0.025;' +
   'sandC=mix(sandC,vec3(0.56,0.48,0.34),1.0-smoothstep(-8.0,-3.0,shH));' +
   'vec3 wc=mix(vec3(0.07,0.15,0.29),vec3(0.15,0.29,0.46),smoothstep(-60.0,-22.0,shH));' +
   'wc=mix(wc,vec3(0.34,0.53,0.58),smoothstep(-28.0,-8.0,shH));' +
+  /* and it fades into the open-sea plane's colour before it stops, so where it stops cannot be seen (a hard stop on the bilinear
+     depth map drew stepped, right-angled edges) */
+  'wc=mix(vec3(0.11,0.22,0.375),wc,smoothstep(-24.0,-15.0,shH));' +
   'vec3 col=mix(diffuseColor.rgb,sandC,bm);col=mix(col,wc,shM);diffuseColor.rgb=col;}\n';
 const tmat = new THREE.MeshLambertMaterial({ vertexColors: true, map: fieldTex() });
 tmat.onBeforeCompile = (sh) => {

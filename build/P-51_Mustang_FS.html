@@ -590,7 +590,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.56';
+const VERSION = '5.57';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -2173,13 +2173,16 @@ const SHORET = (() => {
   return { value: t };
 })();
 const SHORE_PAINT =
-  'if(shH<-14.0)discard;' /* deep water is drawn by OCEAN, so its wave troughs are never cut by this flat paint */ +
+  'if(shH<-24.0)discard;' /* deep water (over 16 m) is drawn by OCEAN, so its wave troughs are never cut by this flat paint */ +
   '{float air=(1.0-smoothstep(300.0,400.0,abs(vWP.x)))*smoothstep(-2300.0,-2200.0,vWP.z)*(1.0-smoothstep(1000.0,1100.0,vWP.z));' +
   'float ed=mix(3.0,-3.2,air);float bm=1.0-smoothstep(ed-1.5,ed+1.5,shH);' +
   'vec3 sandC=vec3(0.64,0.56,0.40)+(vn2(vWP.xz*0.035)-0.5)*0.05+(vn2(vWP.xz*0.35)-0.5)*0.025;' +
   'sandC=mix(sandC,vec3(0.56,0.48,0.34),1.0-smoothstep(-8.0,-3.0,shH));' +
   'vec3 wc=mix(vec3(0.07,0.15,0.29),vec3(0.15,0.29,0.46),smoothstep(-60.0,-22.0,shH));' +
   'wc=mix(wc,vec3(0.34,0.53,0.58),smoothstep(-28.0,-8.0,shH));' +
+  /* and it fades into the open-sea plane's colour before it stops, so where it stops cannot be seen (a hard stop on the bilinear
+     depth map drew stepped, right-angled edges) */
+  'wc=mix(vec3(0.11,0.22,0.375),wc,smoothstep(-24.0,-15.0,shH));' +
   'vec3 col=mix(diffuseColor.rgb,sandC,bm);col=mix(col,wc,shM);diffuseColor.rgb=col;}\n';
 const tmat = new THREE.MeshLambertMaterial({ vertexColors: true, map: fieldTex() });
 tmat.onBeforeCompile = (sh) => {
@@ -16697,6 +16700,24 @@ const OCEAN = (() => {
   const U = {
     uTime: { value: 0 },
     shoreTex: SHORET,
+    /* the home terrain mesh's own node heights (its 100 m grid, as drawn), relative to the still water: -6..+2 m in 8 bits. Where the
+       mesh rises out of the flat painted shallows toward a beach the sea fades out, so the line where the terrain's straight-edged
+       triangles cut through the sea surface is never seen */
+    tmTex: (() => {
+      const N = SEG + 1,
+        d = new Uint8Array(N * N);
+      for (let j = 0; j < N; j++)
+        for (let i = 0; i < N; i++) {
+          const h = Math.max(HR((i / SEG - 0.5) * SZ, (j / SEG - 0.5) * SZ), SEA.PAINT);
+          d[j * N + i] = Math.round(255 * Math.max(0, Math.min(1, (h - SEA.Y + 6) / 8)));
+        }
+      const t = new THREE.DataTexture(d, N, N, THREE.LuminanceFormat, THREE.UnsignedByteType);
+      t.magFilter = t.minFilter = THREE.LinearFilter;
+      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+      t.generateMipmaps = false;
+      t.needsUpdate = true;
+      return { value: t };
+    })(),
     wTex: { value: wTex },
     uQ: { value: 2 } /* graphics tier: 0 low, 1 medium, 2 high */,
     uHA: { value: Array.from({ length: NH }, () => new THREE.Vector4()) } /* the hulls drawn: x, z, bow direction (fx, fz) */,
@@ -16734,14 +16755,17 @@ const OCEAN = (() => {
         '#include <begin_vertex>',
         '#include <begin_vertex>\n{vec2 P=(modelMatrix*vec4(position,1.0)).xz;float dist=length(P-cameraPosition.xz);float dep=ocDepth(P);float am=smoothstep(0.4,4.0,dep);vec3 D=vec3(0.0);\n' +
           glV +
-          /* over the shallows the terrain paints the water flat at -8 m (it stops at about 6 m deep): there the waves only rise, never
+          /* over the shallows the terrain paints the water flat at -8 m (it stops at 16 m deep): there the waves only rise, never
              trough below that paint, or it would show through the sea in patches the shape of this grid's triangles */
-          'D.y=mix(max(D.y,0.0),D.y,smoothstep(9.0,12.0,dep));transformed+=D;vOW=vec3(P.x+D.x,' + f(Y) + '+D.y,P.y+D.z);vDep=dep;}',
+          'D.y=mix(max(D.y,0.0),D.y,smoothstep(17.0,20.0,dep));' +
+          /* and over the paint it rides a little above it, more with distance, so the depth buffer can always tell them apart (3 cm is
+             lost a few hundred metres off, and the paint then shows through in a band with the crests poking up out of it) */
+          'D.y+=(1.0-smoothstep(14.0,20.0,dep))*(0.04+dist*0.0015);transformed+=D;vOW=vec3(P.x+D.x,' + f(Y) + '+D.y,P.y+D.z);vDep=dep;}',
       );
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform vec4 uHA[' + NH + '];uniform vec4 uHB[' + NH + '];uniform vec4 uTrK[' + NTC + '];uniform float uTime;uniform float uQ;uniform vec3 uTr[' + NTR * NTC + '];uniform float uWL[32];uniform sampler2D shoreTex;uniform sampler2D wTex;varying vec3 vOW;varying float vDep;\n' +
+        '#include <common>\nuniform vec4 uHA[' + NH + '];uniform vec4 uHB[' + NH + '];uniform vec4 uTrK[' + NTC + '];uniform float uTime;uniform float uQ;uniform vec3 uTr[' + NTR * NTC + '];uniform float uWL[32];uniform sampler2D shoreTex;uniform sampler2D wTex;uniform sampler2D tmTex;varying vec3 vOW;varying float vDep;\n' +
           glDepth +
           'float ohs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}' +
           'float ovn(vec2 p){vec2 i=floor(p),u=fract(p);u=u*u*(3.0-2.0*u);return mix(mix(ohs(i),ohs(i+vec2(1,0)),u.x),mix(ohs(i+vec2(0,1)),ohs(i+1.0),u.x),u.y);}' +
@@ -16778,8 +16802,15 @@ const OCEAN = (() => {
           '{float n=ofb(P*0.16+vec2(uTime*0.05,uTime*0.03));fo=max(fo,sk*smoothstep(0.15,0.95,tw*1.15+(n-0.5)*0.9)*min(1.0,tw*1.6));}}\n' +
           'fo=clamp(fo,0.0,1.0);\n' +
           /* the water's own colour: deep blue, a little greener and clearer where it shoals */
-          'diffuseColor.rgb=mix(vec3(0.16,0.42,0.47),mix(vec3(0.06,0.2,0.27),diffuseColor.rgb,smoothstep(10.0,32.0,dep)),smoothstep(0.5,9.0,dep));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.88,0.92,0.94),fo);\n' +
-          'diffuseColor.a=max(mix(0.38,0.95,smoothstep(1.5,12.0,dep))*smoothstep(0.05,0.6,dep),fo);\n',
+          /* over the paint (to 16 m) the very colour the ground paints there (SHORE_PAINT's water at that depth), so where the sea
+             thins out over the shallows nothing changes colour; deeper, the sea's own blues */
+          '{float sh=' + f(SEA.PAINT) + '-dep;vec3 wc=mix(vec3(0.07,0.15,0.29),vec3(0.15,0.29,0.46),smoothstep(-60.0,-22.0,sh));wc=mix(wc,vec3(0.34,0.53,0.58),smoothstep(-28.0,-8.0,sh));wc=mix(vec3(0.11,0.22,0.375),wc,smoothstep(-24.0,-15.0,sh));' +
+          'diffuseColor.rgb=mix(wc,mix(vec3(0.06,0.2,0.27),diffuseColor.rgb,smoothstep(10.0,32.0,dep)),smoothstep(10.0,20.0,dep));}'
+          + 'diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.88,0.92,0.94),fo);\n' +
+          /* its opacity: lighter over the shallows (the ground paints them), and gone where the terrain mesh rises out of them (home
+             map: tmTex): the mesh's 100 m triangles cut through the sea surface along straight, right-angled lines, which must not
+             show. Out in the far world (no mesh map) it is clear in under 6 m and comes in by 18 m */
+          'vec2 ah=abs(P);float clr;if(max(ah.x,ah.y)<12900.0){float tm=texture2D(tmTex,(P+13000.0)/26000.0*(' + f(SEG / (SEG + 1)) + ')+' + f(0.5 / (SEG + 1)) + ').r*8.0-6.0;clr=smoothstep(0.5,12.0,dep)*(1.0-smoothstep(-0.02,1.5,tm));}else clr=smoothstep(6.0,18.0,dep);diffuseColor.a=max(0.95*clr,fo);\n',
       )
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal=normalize((viewMatrix*vec4(ocN,0.0)).xyz);')
       /* the sun on the water: a surface reflects as Fresnel says (about 2% looking straight down, more at a slant), and the
@@ -16793,7 +16824,7 @@ const OCEAN = (() => {
         '#include <envmap_fragment>',
         '#include <envmap_fragment>\n{vec3 vd=normalize(vViewPosition);float ct=clamp(dot(normal,vd),0.0,1.0);float fr=(0.02+0.98*pow(1.0-ct,5.0))*(1.0-fo);\n' +
           '#ifdef USE_FOG\nvec3 sky=fogColor;\n#else\nvec3 sky=vec3(0.66,0.8,0.93);\n#endif\n' +
-          'outgoingLight=mix(outgoingLight,sky*0.92,fr*0.85);diffuseColor.a=max(diffuseColor.a,fr*smoothstep(0.3,3.0,dep));}',
+          'outgoingLight=mix(outgoingLight,sky*0.92,fr*0.85);diffuseColor.a=max(diffuseColor.a,fr*clr);}',
       );
   };
   mat.userData.key = 'ocean1';
@@ -16866,7 +16897,7 @@ const OCEAN = (() => {
       am = dep <= 0.4 ? 0 : dep >= 4 ? 1 : ((u) => u * u * (3 - 2 * u))((dep - 0.4) / 3.6) /* the waves run in to the last few metres (the shader's am) */;
     let y = 0;
     if (am > 0) for (const o of W) y += o.A * am * Math.sin(o.k * (o.dx * x + o.dz * z) - o.w * t + o.ph);
-    if (dep < 12) y = y + (Math.max(y, 0) - y) * (1 - (dep <= 9 ? 0 : ((u) => u * u * (3 - 2 * u))((dep - 9) / 3))) /* as the shader: only crests over the shallows */;
+    if (dep < 20) y = y + (Math.max(y, 0) - y) * (1 - (dep <= 17 ? 0 : ((u) => u * u * (3 - 2 * u))((dep - 17) / 3))) /* as the shader: only crests over the shallows (the paint reaches 16 m) */;
     return Y + y;
   }
   /* HULLS: the ships the sea knows about (see the header) */
