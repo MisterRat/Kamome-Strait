@@ -13,7 +13,7 @@
      - foam: on steep crests, along the beaches, round a ship's hull (bow wave) and down her wake (a trail of her past positions).
    OCEAN.h(x, z, t) gives the same wave height on the CPU, so the ships ride the very waves you see (RIDE).
    HULLS: any number of ships join with OCEAN.hull({ kind, cut, foam, trail }) and are moved each frame with OCEAN.place(h, ...);
-   OCEAN.unhull(h) takes one out. kind is the hull's waterline shape: 'pce' (the PCE-874 plans' table), 'pt' (an 80 ft Elco), 'box'
+   OCEAN.unhull(h) takes one out. kind is the hull's waterline shape: 'pce' (the PCE-874 plans' table), 'pt' (an 80 ft Elco), 't14' (a Type T-14, the pt outline at 0.66), 'box'
    (the target sled); cut 'all' keeps the water out of the whole hull (a manned ship: her engine room stays dry), 'deck' only above
    her waterline (the sea washing over the deck); foam adds the bow wave (pce), trail the wake down her track. The NH hulls nearest
    the eye are drawn each frame, and the NTC nearest trails: enough for every ship in view.
@@ -108,7 +108,7 @@ const OCEAN = (() => {
         '#include <color_fragment>\n' +
           /* no water inside the small hulls (a PT boat, the sled) above their waterlines: their outlines in their own frames */
           'for(int hi=0;hi<' + NH + ';hi++){vec4 ha=uHA[hi],hq=uHB[hi];if(hq.x<0.5||hq.x>2.5)continue;if(vOW.y>hq.y+0.35){vec2 d=vOW.xz-ha.xy;if(dot(d,d)>900.0)continue;float lx=dot(d,ha.zw),lz=dot(d,vec2(-ha.w,ha.z));' +
-          'if(hq.x<1.5){if(lx>-12.0&&lx<9.0){float hw=lx<-2.2?2.25:2.25*sqrt(max(0.0,1.0-pow(max(0.0,lx+2.2)/11.2,2.0)));if(abs(lz)<hw)discard;}}' + /* her waterline, well inside the flare of her topsides */
+          'if(hq.x<1.5){if(hq.x>1.1){lx/=0.66;lz/=0.66;}if(lx>-12.0&&lx<9.0){float hw=lx<-2.2?2.25:2.25*sqrt(max(0.0,1.0-pow(max(0.0,lx+2.2)/11.2,2.0)));if(abs(lz)<hw)discard;}}' + /* her waterline, well inside the flare of her topsides */
           'else if(abs(lx)<4.2&&abs(lz)<1.45)discard;}}\n' +
           'vec2 P=vOW.xz;float fp=length(fwidth(P));float dep=ocDepth(P);float am=smoothstep(0.4,4.0,dep);float nx=0.0,nz=0.0,ny=1.0,cr=0.0;\n' +
           glF +
@@ -227,7 +227,7 @@ const OCEAN = (() => {
   }
   /* HULLS: the ships the sea knows about (see the header) */
   const HULLS = [],
-    KIND = { pt: 1, box: 2, pce: 3 };
+    KIND = { pt: 1, t14: 1.2, box: 2, pce: 3 } /* t14: the PT boat's outline at 0.66 scale (a 15 m Type T-14) */;
   function hull(o) {
     const hh = { k: KIND[o.kind] || 0, cut: o.cut === 'all', foam: !!o.foam, fore: o.fore || 27, aft: o.aft || 26, x: 1e7, z: 1e7, fx: 1, fz: 0, u: 0, y: SEA.WL };
     if (o.trail) (hh.tr = Array.from({ length: NTR }, () => new THREE.Vector3(0, 0, -1))), (hh.last = -1e9);

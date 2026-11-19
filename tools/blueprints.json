@@ -1,1129 +1,1219 @@
 [
- {
-  "id": "p51",
-  "file": "P-51D",
-  "title": "North American P-51D Mustang (the player's aircraft)",
-  "game": "p51",
-  "kind": "aircraft",
-  "fwd": "-z",
-  "make": "const m = model.clone(true); m.position.set(0,0,0); m.rotation.set(0,0,0); m.visible = true; return m;",
-  "type": "North American P-51D Mustang",
-  "ref": [
-   [
-    "Length",
-    9.83,
-    "32 ft 3 in: USAF fact sheets and museum data (warbirdsresourcegroup.org; tnairmuseum.com)"
-   ],
-   [
-    "Span",
-    11.28,
-    "37 ft 0 in (same sources; the Canadian RCAF page gives 37 ft 1 in)"
-   ],
-   [
-    "Height",
-    null,
-    "4.08 m (13 ft 4.5 in) tail wheel on the ground, propeller blade vertical; the flying model is drawn in flight attitude, so not compared"
-   ]
-  ],
-  "notes": [
-   "Drawn as the player's aircraft in flight: gear down, level thrust line, so its height is not the published tail-down height."
-  ]
- },
- {
-  "id": "p51-parked",
-  "file": "P-51D_parked",
-  "title": "P-51D Mustang, parked (home airfield)",
-  "kind": "aircraft",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.fighter(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }));",
-  "type": "North American P-51D Mustang (simplified airfield model)",
-  "ref": [
-   [
-    "Length",
-    9.83,
-    "P-51D, as the player's model"
-   ],
-   [
-    "Span",
-    11.28,
-    "P-51D, as the player's model"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
-  ]
- },
- {
-  "id": "ki84",
-  "file": "Ki-84",
-  "title": "Nakajima Ki-84-Ia Hayate (bandit and raider)",
-  "kind": "aircraft",
-  "fwd": "+x",
-  "make": "return KI84.mesh({ gear: 'down' });",
-  "type": "Nakajima Ki-84-Ia Hayate (\"Frank\")",
-  "ref": [
-   [
-    "Length",
-    9.92,
-    "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
-   ],
-   [
-    "Span",
-    11.238,
-    "11.238 m (migflug.com)"
-   ],
-   [
-    "Height",
-    null,
-    "3.385 m tail down (migflug.com); the flying model is level, so not compared"
-   ]
-  ]
- },
- {
-  "id": "ki84-parked",
-  "file": "Ki-84_parked",
-  "title": "Nakajima Ki-84-Ia Hayate, parked",
-  "kind": "aircraft",
-  "fwd": "+x",
-  "make": "return __bake(KI84.parked({ body: 0x55603a }));",
-  "type": "Nakajima Ki-84-Ia Hayate (\"Frank\"), parked",
-  "ref": [
-   [
-    "Length",
-    9.92,
-    "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
-   ],
-   [
-    "Span",
-    11.238,
-    "11.238 m (migflug.com)"
-   ],
-   [
-    "Height",
-    3.385,
-    "3.385 m tail down (migflug.com)"
-   ]
-  ]
- },
- {
-  "id": "tow-plane",
-  "file": "Target-tug_aircraft",
-  "title": "Target-towing aircraft: P-51D (gunnery practice)",
-  "kind": "aircraft",
-  "fwd": "+x",
-  "make": "return ptMesh('tug');",
-  "type": "North American P-51D Mustang (simplified airfield model, gear up)",
-  "ref": [
-   [
-    "Length",
-    9.83,
-    "P-51D, as the player's model"
-   ],
-   [
-    "Span",
-    11.28,
-    "P-51D, as the player's model"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
-  ]
- },
- {
-  "id": "pt105",
-  "file": "PT-105",
-  "title": "PT-105, 80 ft Elco motor torpedo boat",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return PTB.build('105');",
-  "type": "Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108",
-  "ref": [
-   [
-    "Length",
-    24.38,
-    "80 ft (NavSource PT-104 / PT-108 pages)"
-   ],
-   [
-    "Beam",
-    6.3,
-    "20 ft 8 in (NavSource)"
-   ],
-   [
-    "Draught",
-    null,
-    "5 ft (1.52 m) NavSource; 3 ft 6 in aft per Pacific Wrecks"
-   ]
-  ],
-  "wl": "SEA.Y - SEA.WL"
- },
- {
-  "id": "sled",
-  "file": "Target_sled",
-  "title": "Target sled (towed by PT-108)",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return PTB.sled();",
-  "type": "Gunnery target sled (generic)",
-  "wl": "-1.6",
-  "ref": [],
-  "notes": [
-   "Not a specific type; the post-war G-60 sled was much bigger (60 ft by 25 ft), so this small sled is a stand-in for the towed sleds and rafts of the time."
-  ]
- },
- {
-  "id": "raft",
-  "file": "Target_raft",
-  "title": "Battle-practice target raft",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return ptMesh('raft');",
-  "type": "Battle-practice target raft with screen (generic)",
-  "wl": "0",
-  "ref": [],
-  "notes": [
-   "Built as described in the PCE game: about a 12 m raft carrying a 10 x 7 m screen with a bull's-eye."
-  ]
- },
- {
-  "id": "sleeve",
-  "file": "Target_sleeve",
-  "title": "Towed target sleeve",
-  "fwd": "+x",
-  "make": "return ptMesh('sleeve');",
-  "type": "Towed aerial target sleeve (generic)",
-  "ref": [],
-  "notes": [
-   "About 9 m of cloth as modelled; no reference figure checked yet."
-  ]
- },
- {
-  "id": "ukuru",
-  "file": "Ukuru-class",
-  "title": "Ukuru-class kaibokan (Japanese coastal escort)",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __local(SITE.patrol.e.m);",
-  "type": "Ukuru-class kaibokan (escort ship)",
-  "ref": [
-   [
-    "Length",
-    78.8,
-    "78.8 m overall (navypedia: 72.5 pp, 77.5 wl, 78.8 oa; Wikipedia gives 77.7 m)"
-   ],
-   [
-    "Beam",
-    9.1,
-    "9.10 m (navypedia; Wikipedia 9.1 m)"
-   ],
-   [
-    "Draught",
-    3.06,
-    "3.06 m (navypedia; Wikipedia 3.05 m)"
-   ]
-  ],
-  "notes": [
-   "Placed in the game with her keel at the painted sea level, so she floats about her full draught too high (see 'where she floats').",
-   "Hull below the waterline deepened to her real draught, 3.06 m (GX.fit). One type serves every Japanese patrol vessel (the port has a second, alongside)."
-  ]
- },
- {
-  "id": "jp-daihatsu",
-  "file": "Japanese_Daihatsu_barge",
-  "title": "Daihatsu landing barge (Japanese harbours)",
-  "fwd": "+x",
-  "kind": "ship",
-  "wl": "0",
-  "make": "return __bake(MODELS.get('jp-daihatsu'));",
-  "type": "Daihatsu (Type A) landing barge",
-  "ref": [
-   [
-    "Length",
-    14.88,
-    "14.88 m (Daihatsu, Type A); 14 m in docs/research_1945_bases.md (naval bases)"
-   ],
-   [
-    "Beam",
-    3.35,
-    "3.35 m"
-   ],
-   [
-    "Draught",
-    0.7,
-    "about 0.7 m loaded"
-   ]
-  ],
-  "notes": [
-   "Bow ramp, open well with cargo, steering position aft. Works the anchored ships: at the home port one lies at the T-head and one shuttles between the freighter and the T-head; at each far harbour the civil ship's own barge shuttles to the jetty while she lies at anchor."
-  ]
- },
- {
-  "id": "jp-lighter",
-  "file": "Japanese_lighter",
-  "title": "Wooden lighter (Japanese harbours)",
-  "fwd": "+x",
-  "kind": "ship",
-  "wl": "0",
-  "make": "return __bake(MODELS.get('jp-lighter'));",
-  "type": "wooden cargo lighter (unpowered barge)",
-  "ref": [
-   [
-    "Length",
-    12,
-    "about 12 m, docs/research_1945_bases.md (naval bases)"
-   ],
-   [
-    "Beam",
-    4,
-    "about 4 m"
-   ]
-  ],
-  "notes": [
-   "Alongside the anchored ships and at the T-head, loaded with crates and drums."
-  ]
- },
- {
-  "id": "jp-aframe-derrick",
-  "file": "Japanese_A-frame_derrick",
-  "title": "Timber A-frame derrick (home port T-head)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('jp-aframe-derrick'));",
-  "type": "hand-cranked timber A-frame derrick (shear legs)",
-  "ref": [
-   [
-    "Height",
-    11,
-    "about 11 m legs (model)"
-   ]
-  ],
-  "notes": [
-   "Two on the T-head, leaning out over the berths; targets (as the old gantry cranes were). From docs/research_1945_bases.md (naval bases)."
-  ]
- },
- {
-  "id": "jp-mole",
-  "file": "Japanese_coral_mole",
-  "title": "Coral-block mole with timber T-head (home port)",
-  "fwd": "+x",
-  "kind": "ship",
-  "wl": "0",
-  "make": "return __bake(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6));",
-  "type": "coral-block mole (stone jetty) with a timber T-head",
-  "ref": [
-   [
-    "Width",
-    8,
-    "narrow masonry jetties 6-10 m wide, docs/research_1945_bases.md (naval bases)"
-   ]
-  ],
-  "notes": [
-   "112 m from the shore's drop-off to the T-head (24 m wide timber deck on piles); top 2.2 m above still water; tyre fenders, pilings and bollards; the Decauville line runs along it.",
-   "Width is checked on the mole; the overall width is the T-head."
-  ],
-  "measure": {
-   "Width": "__partsSize(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6),[0xc4bda8,0xb3ab95])[2]"
+  {
+    "id": "p51",
+    "file": "P-51D",
+    "title": "North American P-51D Mustang (the player's aircraft)",
+    "game": "p51",
+    "kind": "aircraft",
+    "fwd": "-z",
+    "make": "const m = model.clone(true); m.position.set(0,0,0); m.rotation.set(0,0,0); m.visible = true; return m;",
+    "type": "North American P-51D Mustang",
+    "ref": [
+      [
+        "Length",
+        9.83,
+        "32 ft 3 in: USAF fact sheets and museum data (warbirdsresourcegroup.org; tnairmuseum.com)"
+      ],
+      [
+        "Span",
+        11.28,
+        "37 ft 0 in (same sources; the Canadian RCAF page gives 37 ft 1 in)"
+      ],
+      [
+        "Height",
+        null,
+        "4.08 m (13 ft 4.5 in) tail wheel on the ground, propeller blade vertical; the flying model is drawn in flight attitude, so not compared"
+      ]
+    ],
+    "notes": [
+      "Drawn as the player's aircraft in flight: gear down, level thrust line, so its height is not the published tail-down height."
+    ]
+  },
+  {
+    "id": "p51-parked",
+    "file": "P-51D_parked",
+    "title": "P-51D Mustang, parked (home airfield)",
+    "kind": "aircraft",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.fighter(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }));",
+    "type": "North American P-51D Mustang (simplified airfield model)",
+    "ref": [
+      [
+        "Length",
+        9.83,
+        "P-51D, as the player's model"
+      ],
+      [
+        "Span",
+        11.28,
+        "P-51D, as the player's model"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
+    ]
+  },
+  {
+    "id": "ki84",
+    "file": "Ki-84",
+    "title": "Nakajima Ki-84-Ia Hayate (bandit and raider)",
+    "kind": "aircraft",
+    "fwd": "+x",
+    "make": "return KI84.mesh({ gear: 'down' });",
+    "type": "Nakajima Ki-84-Ia Hayate (\"Frank\")",
+    "ref": [
+      [
+        "Length",
+        9.92,
+        "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
+      ],
+      [
+        "Span",
+        11.238,
+        "11.238 m (migflug.com)"
+      ],
+      [
+        "Height",
+        null,
+        "3.385 m tail down (migflug.com); the flying model is level, so not compared"
+      ]
+    ]
+  },
+  {
+    "id": "ki84-parked",
+    "file": "Ki-84_parked",
+    "title": "Nakajima Ki-84-Ia Hayate, parked",
+    "kind": "aircraft",
+    "fwd": "+x",
+    "make": "return __bake(KI84.parked({ body: 0x55603a }));",
+    "type": "Nakajima Ki-84-Ia Hayate (\"Frank\"), parked",
+    "ref": [
+      [
+        "Length",
+        9.92,
+        "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
+      ],
+      [
+        "Span",
+        11.238,
+        "11.238 m (migflug.com)"
+      ],
+      [
+        "Height",
+        3.385,
+        "3.385 m tail down (migflug.com)"
+      ]
+    ]
+  },
+  {
+    "id": "tow-plane",
+    "file": "Target-tug_aircraft",
+    "title": "Target-towing aircraft: P-51D (gunnery practice)",
+    "kind": "aircraft",
+    "fwd": "+x",
+    "make": "return ptMesh('tug');",
+    "type": "North American P-51D Mustang (simplified airfield model, gear up)",
+    "ref": [
+      [
+        "Length",
+        9.83,
+        "P-51D, as the player's model"
+      ],
+      [
+        "Span",
+        11.28,
+        "P-51D, as the player's model"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
+    ]
+  },
+  {
+    "id": "pt105",
+    "file": "PT-105",
+    "title": "PT-105, 80 ft Elco motor torpedo boat",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return PTB.build('105');",
+    "type": "Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108",
+    "ref": [
+      [
+        "Length",
+        24.38,
+        "80 ft (NavSource PT-104 / PT-108 pages)"
+      ],
+      [
+        "Beam",
+        6.3,
+        "20 ft 8 in (NavSource)"
+      ],
+      [
+        "Draught",
+        null,
+        "5 ft (1.52 m) NavSource; 3 ft 6 in aft per Pacific Wrecks"
+      ]
+    ],
+    "wl": "SEA.Y - SEA.WL"
+  },
+  {
+    "id": "sled",
+    "file": "Target_sled",
+    "title": "Target sled (towed by PT-108)",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return PTB.sled();",
+    "type": "Gunnery target sled (generic)",
+    "wl": "-1.6",
+    "ref": [],
+    "notes": [
+      "Not a specific type; the post-war G-60 sled was much bigger (60 ft by 25 ft), so this small sled is a stand-in for the towed sleds and rafts of the time."
+    ]
+  },
+  {
+    "id": "raft",
+    "file": "Target_raft",
+    "title": "Battle-practice target raft",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return ptMesh('raft');",
+    "type": "Battle-practice target raft with screen (generic)",
+    "wl": "0",
+    "ref": [],
+    "notes": [
+      "Built as described in the PCE game: about a 12 m raft carrying a 10 x 7 m screen with a bull's-eye."
+    ]
+  },
+  {
+    "id": "sleeve",
+    "file": "Target_sleeve",
+    "title": "Towed target sleeve",
+    "fwd": "+x",
+    "make": "return ptMesh('sleeve');",
+    "type": "Towed aerial target sleeve (generic)",
+    "ref": [],
+    "notes": [
+      "About 9 m of cloth as modelled; no reference figure checked yet."
+    ]
+  },
+  {
+    "id": "ukuru",
+    "file": "Ukuru-class",
+    "title": "Ukuru-class kaibokan (Japanese coastal escort)",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return __local(SITE.patrol.e.m);",
+    "type": "Ukuru-class kaibokan (escort ship)",
+    "ref": [
+      [
+        "Length",
+        78.8,
+        "78.8 m overall (navypedia: 72.5 pp, 77.5 wl, 78.8 oa; Wikipedia gives 77.7 m)"
+      ],
+      [
+        "Beam",
+        9.1,
+        "9.10 m (navypedia; Wikipedia 9.1 m)"
+      ],
+      [
+        "Draught",
+        3.06,
+        "3.06 m (navypedia; Wikipedia 3.05 m)"
+      ]
+    ],
+    "notes": [
+      "Placed in the game with her keel at the painted sea level, so she floats about her full draught too high (see 'where she floats').",
+      "Hull below the waterline deepened to her real draught, 3.06 m (GX.fit). One type serves every Japanese patrol vessel (the port has a second, alongside)."
+    ]
+  },
+  {
+    "id": "jp-daihatsu",
+    "file": "Japanese_Daihatsu_barge",
+    "title": "Daihatsu landing barge (Japanese harbours)",
+    "fwd": "+x",
+    "kind": "ship",
+    "wl": "0",
+    "make": "return __bake(MODELS.get('jp-daihatsu'));",
+    "type": "Daihatsu (Type A) landing barge",
+    "ref": [
+      [
+        "Length",
+        14.88,
+        "14.88 m (Daihatsu, Type A); 14 m in docs/research_1945_bases.md (naval bases)"
+      ],
+      [
+        "Beam",
+        3.35,
+        "3.35 m"
+      ],
+      [
+        "Draught",
+        0.7,
+        "about 0.7 m loaded"
+      ]
+    ],
+    "notes": [
+      "Bow ramp, open well with cargo, steering position aft. Works the anchored ships: at the home port one lies at the T-head and one shuttles between the freighter and the T-head; at each far harbour the civil ship's own barge shuttles to the jetty while she lies at anchor."
+    ]
+  },
+  {
+    "id": "jp-lighter",
+    "file": "Japanese_lighter",
+    "title": "Wooden lighter (Japanese harbours)",
+    "fwd": "+x",
+    "kind": "ship",
+    "wl": "0",
+    "make": "return __bake(MODELS.get('jp-lighter'));",
+    "type": "wooden cargo lighter (unpowered barge)",
+    "ref": [
+      [
+        "Length",
+        12,
+        "about 12 m, docs/research_1945_bases.md (naval bases)"
+      ],
+      [
+        "Beam",
+        4,
+        "about 4 m"
+      ]
+    ],
+    "notes": [
+      "Alongside the anchored ships and at the T-head, loaded with crates and drums."
+    ]
+  },
+  {
+    "id": "jp-aframe-derrick",
+    "file": "Japanese_A-frame_derrick",
+    "title": "Timber A-frame derrick (home port T-head)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('jp-aframe-derrick'));",
+    "type": "hand-cranked timber A-frame derrick (shear legs)",
+    "ref": [
+      [
+        "Height",
+        11,
+        "about 11 m legs (model)"
+      ]
+    ],
+    "notes": [
+      "Two on the T-head, leaning out over the berths; targets (as the old gantry cranes were). From docs/research_1945_bases.md (naval bases)."
+    ]
+  },
+  {
+    "id": "jp-mole",
+    "file": "Japanese_coral_mole",
+    "title": "Coral-block mole with timber T-head (home port)",
+    "fwd": "+x",
+    "kind": "ship",
+    "wl": "0",
+    "make": "return __bake(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6));",
+    "type": "coral-block mole (stone jetty) with a timber T-head",
+    "ref": [
+      [
+        "Width",
+        8,
+        "narrow masonry jetties 6-10 m wide, docs/research_1945_bases.md (naval bases)"
+      ]
+    ],
+    "notes": [
+      "112 m from the shore's drop-off to the T-head (24 m wide timber deck on piles); top 2.2 m above still water; tyre fenders, pilings and bollards; the Decauville line runs along it.",
+      "Width is checked on the mole; the overall width is the T-head."
+    ],
+    "measure": {
+      "Width": "__partsSize(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6),[0xc4bda8,0xb3ab95])[2]"
+    }
+  },
+  {
+    "id": "jp-rail-cart",
+    "file": "Japanese_Decauville_cart",
+    "title": "Decauville hand cart on 600 mm track (home port)",
+    "fwd": "+x",
+    "make": "const P = MODELS.get('jp-decauville', 6).concat(MODELS.get('jp-rail-cart', true)); return __bake(P);",
+    "type": "600 mm Decauville track and hand-pushed cart",
+    "ref": [
+      [
+        "Width",
+        1.0,
+        "600 mm gauge track, sleepers about 1 m"
+      ]
+    ],
+    "notes": [
+      "A 6 m length of track shown; on the mole the track runs from the shore to the T-head with two carts."
+    ]
+  },
+  {
+    "id": "jp-drum-dump",
+    "file": "Japanese_drum_dump",
+    "title": "Fuel drums under palm-frond netting (home port)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('jp-drum-dump', 7, 4));",
+    "type": "200-litre drums under camouflage netting",
+    "ref": [
+      [
+        "Height",
+        2.4,
+        "net poles about 2.4 m (model)"
+      ]
+    ],
+    "notes": [
+      "28 drums, some two high, at the root of the mole. From docs/research_1945_bases.md (naval bases)."
+    ]
+  },
+  {
+    "id": "jp-godown",
+    "file": "Japanese_godown",
+    "title": "Timber godown (Japanese ports and bases)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('jp-godown', 24, 14));",
+    "type": "low gable-roofed timber warehouse, mottled camouflage",
+    "ref": [
+      [
+        "Length",
+        24,
+        "the target's footprint (24 x 14 m)"
+      ],
+      [
+        "Width",
+        14,
+        "24 x 14 m"
+      ]
+    ],
+    "notes": [
+      "Deep eaves (1.2 m), stone plinth, sliding doors, mottled dark green and brown. Replaces the generic warehouse everywhere (home port, airbases, far sites).",
+      "Length and width measured on the walls."
+    ],
+    "measure": {
+      "Length": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[0]",
+      "Width": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[2]"
+    }
+  },
+  {
+    "id": "crew-jn",
+    "file": "Japanese_navy_dock_hand",
+    "title": "Japanese navy dock hand (home port)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('crew', 'jn', 'stand', 0));",
+    "type": "IJNAS / naval base working rig, 1945: blue-grey trousers, white singlet, white headband",
+    "ref": [
+      [
+        "Height",
+        1.7,
+        "about 1.6-1.7 m"
+      ]
+    ],
+    "notes": [
+      "On the mole's T-head. Uniform from docs/research_1945_bases.md (ground crews)."
+    ]
+  },
+  {
+    "id": "jp-freighter",
+    "file": "Japanese_freighter",
+    "title": "Japanese freighter",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.freighter('jp'));",
+    "type": "Type 2A wartime standard cargo ship",
+    "wl": "0",
+    "ref": [
+      [
+        "Length",
+        137,
+        "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Beam",
+        18.2,
+        "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Draught",
+        7.8,
+        "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+      "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
+    ]
+  },
+  {
+    "id": "jp-tanker",
+    "file": "Japanese_tanker",
+    "title": "Japanese tanker",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.tanker('jp'));",
+    "type": "Type 2TL wartime standard tanker",
+    "wl": "0",
+    "ref": [
+      [
+        "Length",
+        153.5,
+        "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Beam",
+        20,
+        "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Draught",
+        9.1,
+        "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+      "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
+    ]
+  },
+  {
+    "id": "us-freighter",
+    "file": "US_freighter",
+    "title": "US freighter (kept for later)",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.freighter('us'));",
+    "type": "Liberty ship EC2-S-C1, kept for later",
+    "wl": "0",
+    "ref": [
+      [
+        "Length",
+        134.6,
+        "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Beam",
+        17.3,
+        "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Draught",
+        8.5,
+        "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+      "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
+    ]
+  },
+  {
+    "id": "us-tanker",
+    "file": "US_tanker",
+    "title": "US tanker (kept for later)",
+    "kind": "ship",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.tanker('us'));",
+    "type": "T2-SE-A1 tanker, kept for later",
+    "wl": "0",
+    "ref": [
+      [
+        "Length",
+        159.6,
+        "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Beam",
+        20.7,
+        "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+      ],
+      [
+        "Draught",
+        9.2,
+        "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
+      "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
+    ]
+  },
+  {
+    "id": "coast12",
+    "file": "12cm-45_coast_gun",
+    "title": "12 cm/45 3rd Year Type gun in its coast emplacement",
+    "fwd": "+x",
+    "make": "COAST.add(0, 0, 0); const g = COAST.G.pop(); T.pop(); scene.remove(g.grp); window.__M['Gun length overall'] = __size(g.bar).x; return __local(g.grp);",
+    "type": "12 cm/45 3rd Year Type naval gun on a coast-defence pedestal",
+    "ref": [
+      [
+        "Gun length overall",
+        5.55,
+        "218.5 in (5.550 m), most models (NavWeaps 12 cm/45 3rd Year Type)"
+      ]
+    ]
+  },
+  {
+    "id": "aa25",
+    "file": "Type96_25mm_twin",
+    "title": "Type 96 25 mm twin AA gun in its emplacement",
+    "fwd": "+x",
+    "make": "const t = __target('aa25'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) window.__M['Barrel group length'] = __size(g.bar).x; return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
+    "type": "Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit",
+    "ref": [
+      [
+        "Barrel group length",
+        null,
+        "barrel 1.5 m (L/60); the whole gun with its receiver is longer (War Thunder wiki; Wikipedia)"
+      ]
+    ],
+    "notes": [
+      "Twin mount weight 1,100 kg (NavWeaps)."
+    ]
+  },
+  {
+    "id": "sl150",
+    "file": "150cm_searchlight",
+    "title": "150 cm searchlight in its emplacement",
+    "fwd": "+x",
+    "make": "const t = __target('sl150'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) { const s = __size(g.bar); window.__M['Lamp drum diameter'] = Math.max(s.y, s.z); } return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
+    "type": "150 cm searchlight (Type 96 class)",
+    "ref": [
+      [
+        "Lamp drum diameter",
+        1.5,
+        "150 cm mirror (by its designation); the drum round the mirror is a little larger"
+      ]
+    ]
+  },
+  {
+    "id": "truck",
+    "file": "Japanese_cargo_truck",
+    "title": "Japanese army cargo truck (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('truck').m);",
+    "type": "Isuzu Type 94 six-wheeled truck (cargo truck)",
+    "ref": [
+      [
+        "Length",
+        5.4,
+        "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.9,
+        "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        2.25,
+        "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
+    ],
+    "measure": {
+      "Height": "(()=>{const b=GX.body(VM.fitParts('truck'));return b.max.y-Math.max(0,b.min.y);})()"
+    }
+  },
+  {
+    "id": "supply",
+    "file": "Japanese_supply_truck",
+    "title": "Japanese army supply truck, covered (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('supply').m);",
+    "type": "Isuzu Type 94 six-wheeled truck (covered supply truck)",
+    "ref": [
+      [
+        "Length",
+        5.4,
+        "5.40 x 1.90 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.9,
+        "5.40 x 1.90 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+      "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
+    ]
+  },
+  {
+    "id": "tanker-truck",
+    "file": "Japanese_tanker_truck",
+    "title": "Japanese army tanker truck (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('tanker').m);",
+    "type": "Isuzu Type 94 six-wheeled truck (tanker truck)",
+    "ref": [
+      [
+        "Length",
+        5.4,
+        "5.40 x 1.90 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.9,
+        "5.40 x 1.90 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+      "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
+    ]
+  },
+  {
+    "id": "jeep-jp",
+    "file": "Japanese_scout_car",
+    "title": "Japanese army light car (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('jeep').m);",
+    "type": "Kurogane Type 95 scout car",
+    "ref": [
+      [
+        "Length",
+        3.38,
+        "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.52,
+        "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        1.68,
+        "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
+    ],
+    "measure": {
+      "Height": "(()=>{const b=GX.body(VM.fitParts('jeep'));return b.max.y-Math.max(0,b.min.y);})()"
+    }
+  },
+  {
+    "id": "apc",
+    "file": "Japanese_halftrack",
+    "title": "Japanese army half-track (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('apc').m);",
+    "type": "Isuzu Type 98 Ko-Hi half-track prime mover",
+    "ref": [
+      [
+        "Length",
+        4.65,
+        "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.9,
+        "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        2.15,
+        "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
+    ],
+    "measure": {
+      "Height": "(()=>{const b=GX.body(VM.fitParts('apc'));return b.max.y-Math.max(0,b.min.y);})()"
+    }
+  },
+  {
+    "id": "tank",
+    "file": "Japanese_tank",
+    "title": "Japanese army tank (enemy target)",
+    "fwd": "+z",
+    "make": "return __local(__target('tank').m);",
+    "type": "Type 95 Ha-Go light tank",
+    "ref": [
+      [
+        "Length",
+        4.3,
+        "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        2.07,
+        "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        2.28,
+        "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
+      "Photo: References/Type 95 Ha-Go.jpg"
+    ],
+    "measure": {
+      "Height": "(()=>{const b=GX.body(VM.fitParts('tank'));return b.max.y-Math.max(0,b.min.y);})()"
+    }
+  },
+  {
+    "id": "us-fuel-truck",
+    "file": "US_fuel_truck",
+    "title": "US fuel bowser (home airfield)",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
+    "type": "GMC CCKW 2\u00bd-ton 6x6 chassis, fuel truck",
+    "ref": [
+      [
+        "Length",
+        6.51,
+        "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        2.24,
+        "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Shares the cargo truck's scale (one CCKW chassis)."
+    ]
+  },
+  {
+    "id": "us-cargo-truck",
+    "file": "US_cargo_truck",
+    "title": "US cargo truck (home airfield)",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.cargoTruck());",
+    "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck",
+    "ref": [
+      [
+        "Length",
+        6.51,
+        "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        2.24,
+        "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        2.8,
+        "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Photo: References/GMC CCKW 353.jpg"
+    ]
+  },
+  {
+    "id": "us-jeep",
+    "file": "US_jeep",
+    "title": "US jeep (home airfield)",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.jeep());",
+    "type": "Willys MB / Ford GPW jeep",
+    "ref": [
+      [
+        "Length",
+        3.36,
+        "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.57,
+        "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        1.77,
+        "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Photo: References/Willys MB Jeep.jpg"
+    ]
+  },
+  {
+    "id": "us-tug",
+    "file": "US_aircraft_tug",
+    "title": "US aircraft tug (home airfield)",
+    "fwd": "+x",
+    "make": "return __bake(AFLD.models.tug());",
+    "type": "Clark Clarktor 6 aircraft tug",
+    "ref": [
+      [
+        "Length",
+        2.54,
+        "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.32,
+        "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+      ],
+      [
+        "Height",
+        1.42,
+        "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
+      ]
+    ],
+    "notes": [
+      "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
+      "Photo: References/Clarktor 6.jpg"
+    ]
+  },
+  {
+    "id": "us-butler-hangar",
+    "file": "US_Butler_hangar",
+    "title": "Butler combat hangar (US airfields)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-butler-hangar'));",
+    "type": "Butler steel-arch combat hangar, 130 x 160 ft",
+    "ref": [
+      [
+        "Length",
+        48.77,
+        "160 ft, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Width",
+        39.62,
+        "130 ft clear span, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Height",
+        11.89,
+        "39 ft crown, docs/research_1945_bases.md (US structures in detail)"
+      ]
+    ],
+    "notes": [
+      "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+      "Nine three-hinged box-truss arches at 6.10 m, corrugated sheeting with the lowest row open, canvas curtain doors under a box-girder header, tail notch at the back (adds 5 m to the length).",
+      "Three at Fletcher Field, two at Kamome Field."
+    ],
+    "measure": {
+      "Length": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[0]",
+      "Width": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[2]",
+      "Height": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[1]"
+    }
+  },
+  {
+    "id": "us-quonset",
+    "file": "US_Quonset_hut",
+    "title": "Quonset hut, Stran-Steel 20 x 48 ft (US airfields)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-quonset', 'std'));",
+    "type": "Stran-Steel Quonset hut, 20 x 48 ft",
+    "ref": [
+      [
+        "Length",
+        14.63,
+        "48 ft, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Width",
+        6.1,
+        "20 ft, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Height",
+        3.15,
+        "10 ft 4 in outside, docs/research_1945_bases.md (US structures in detail)"
+      ]
+    ],
+    "notes": [
+      "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+      "13 ribs at 1.22 m, olive-drab corrugated steel on a concrete slab (slab adds 1 m), end walls with a double door, two windows and a vent.",
+      "Operations huts and barracks at Fletcher Field and Kamome Field."
+    ],
+    "measure": {
+      "Length": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[0]",
+      "Width": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[2]",
+      "Height": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[1]"
+    }
+  },
+  {
+    "id": "us-quonset-elephant",
+    "file": "US_Quonset_Elephant_hut",
+    "title": "Quonset Elephant hut, 40 x 100 ft (Fletcher Field store)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-quonset', 'elephant'));",
+    "type": "Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft",
+    "ref": [
+      [
+        "Length",
+        30.48,
+        "100 ft, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Width",
+        12.19,
+        "40 ft, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Height",
+        6.1,
+        "20 ft centre, docs/research_1945_bases.md (US structures in detail)"
+      ]
+    ],
+    "notes": [
+      "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
+      "26 ribs, large end doors (slab adds 1 m)."
+    ],
+    "measure": {
+      "Length": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[0]",
+      "Width": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[2]",
+      "Height": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[1]"
+    }
+  },
+  {
+    "id": "us-control-tower",
+    "file": "US_control_tower",
+    "title": "Steel-angle control tower (US airfields)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-control-tower'));",
+    "type": "Bolted steel-angle airfield control tower, 4 storeys",
+    "ref": [
+      [
+        "Height",
+        15,
+        "12-15 m, 3-4 storeys, docs/research_1945_bases.md (US structures in detail)"
+      ]
+    ],
+    "notes": [
+      "Height measured to the cab roof (without the mast).",
+      "Glazed green-tinted cab leaning out, catwalk with rail, outside stair, mast and Aldis lamp."
+    ],
+    "measure": {
+      "Height": "__partsSize(MODELS.get('us-control-tower'),[0x3e4234])[1]"
+    }
+  },
+  {
+    "id": "us-m5-trailer",
+    "file": "US_M5_bomb_trailer",
+    "title": "M5 bomb trailer with two 500 lb bombs (Fletcher Field)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-m5-trailer'));",
+    "type": "M5 2-ton bomb trailer",
+    "ref": [
+      [
+        "Length",
+        3.6,
+        "~3.6 m, docs/research_1945_bases.md (US structures in detail)"
+      ]
+    ],
+    "notes": [
+      "A train of three behind a Clarktor at the end of the line."
+    ]
+  },
+  {
+    "id": "us-c10-cart",
+    "file": "US_C10_power_cart",
+    "title": "C-10 auxiliary power unit (Fletcher Field)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('us-c10-cart'));",
+    "type": "C-10 auxiliary power unit (starter cart)",
+    "ref": [
+      [
+        "Length",
+        1.5,
+        "1.5 x 0.9 x 1.1 m, docs/research_1945_bases.md (US structures in detail)"
+      ],
+      [
+        "Width",
+        0.9,
+        "1.5 x 0.9 x 1.1 m"
+      ],
+      [
+        "Height",
+        1.1,
+        "1.5 x 0.9 x 1.1 m"
+      ]
+    ],
+    "notes": [
+      "Beside the fighters on the line."
+    ]
+  },
+  {
+    "id": "jp-tug",
+    "file": "Japanese_aircraft_tractor",
+    "title": "Japanese aircraft tractor (Japanese airbases)",
+    "fwd": "+x",
+    "make": "return __bake(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')));",
+    "type": "Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN)",
+    "ref": [
+      [
+        "Length",
+        3.4,
+        "~3.4 x 1.6 x 1.5 m (Kato 4-ton), vehicle research spec sheet (References)"
+      ],
+      [
+        "Width",
+        1.6,
+        "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
+      ],
+      [
+        "Height",
+        1.5,
+        "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
+      ]
+    ],
+    "notes": [
+      "Army khaki-brown at the army airbases; the IJN version is navy grey-blue with a yellow anchor on the grille.",
+      "Photo: References/Komatsu G40.jpg"
+    ]
+  },
+  {
+    "id": "jp-control-tower",
+    "file": "Japanese_control_tower",
+    "title": "Japanese airfield control tower (Japanese airbases)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('jp-control-tower'));",
+    "type": "low reinforced-concrete bunker tower, two storeys",
+    "ref": [
+      [
+        "Height",
+        9,
+        "7-10 m, 2-3 storeys, docs/research_1945_bases.md (airfields)"
+      ]
+    ],
+    "notes": [
+      "Slit windows, flat observation roof with a parapet and a sandbagged AA position, external steel ladders, mottled camouflage, the Rising Sun on the roof.",
+      "Height measured to the parapet's top (8.55 m); the flag staff rises above it."
+    ],
+    "measure": {
+      "Height": "__partsSize(MODELS.get('jp-control-tower'),[0x8a8a7c,0x4e5a3c,0x6a5a40])[1]"
+    }
+  },
+  {
+    "id": "crew",
+    "file": "Ground_crewman",
+    "title": "USAAF ground crewman (home airfield)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('crew', 'us', 'stand', 0));",
+    "type": "USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap",
+    "ref": [
+      [
+        "Height",
+        1.75,
+        "a typical serviceman, about 1.75 m"
+      ]
+    ],
+    "notes": [
+      "Uniform from docs/research_1945_bases.md (ground crews). Poses in the game: stand, walk, work, kneel; three uniform variants (OD #7, light sage, mixed)."
+    ]
+  },
+  {
+    "id": "crew-ja",
+    "file": "Japanese_army_ground_crewman",
+    "title": "Japanese army ground crewman (Japanese airbases)",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('crew', 'ja', 'stand', 0));",
+    "type": "IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi",
+    "ref": [
+      [
+        "Height",
+        1.7,
+        "a typical Japanese serviceman of the time, about 1.6-1.7 m"
+      ]
+    ],
+    "notes": [
+      "Uniform from docs/research_1945_bases.md (ground crews). At work on the parked Ki-84s at each Japanese airbase."
+    ]
+  },
+  {
+    "id": "jp-t14",
+    "file": "Japanese_T-14_torpedo_boat",
+    "title": "Type T-14 motor torpedo boat (Gyoraitei)",
+    "fwd": "+x",
+    "kind": "ship",
+    "wl": "0",
+    "make": "return __bake(MODELS.get('jp-t14'));",
+    "type": "Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45",
+    "measure": {
+      "Length": "__partsSize(MODELS.get('jp-t14', 0, false), [0x4e5457, 0x6e2f27, 0x5c5e57])[0]",
+      "Beam": "__partsSize(MODELS.get('jp-t14', 0, false), [0x4e5457, 0x6e2f27, 0x5c5e57])[2]",
+      "Draught": "-new THREE.Box3().setFromObject(__bake(MODELS.get('jp-t14', 0, false))).min.y"
+    },
+    "ref": [
+      [
+        "Length",
+        15.0,
+        "15.0 m (user spec; Navypedia)"
+      ],
+      [
+        "Beam",
+        3.6,
+        "3.60 m (user spec; Navypedia 3.65 m)"
+      ],
+      [
+        "Draught",
+        0.72,
+        "0.72 m (user spec; Navypedia 0.62 m)"
+      ],
+      [
+        "Displacement",
+        null,
+        "14.5 t full load"
+      ],
+      [
+        "Speed",
+        null,
+        "33-35 kn, one 920 hp Type 71 petrol engine, one shaft"
+      ],
+      [
+        "Crew",
+        null,
+        "7"
+      ]
+    ],
+    "labels": [
+      [
+        "pilothouse and signal mast",
+        1.5,
+        4.0,
+        0
+      ],
+      [
+        "canvas hood",
+        0.2,
+        2.1,
+        0
+      ],
+      [
+        "45 cm torpedo on side-drop cradle",
+        -2.5,
+        1.4,
+        1.2
+      ],
+      [
+        "Type 96 25 mm",
+        -5.55,
+        2.0,
+        0
+      ],
+      [
+        "depth charges",
+        -6.7,
+        1.2,
+        1.05
+      ],
+      [
+        "ensign staff",
+        -7.35,
+        2.4,
+        0
+      ]
+    ],
+    "notes": [
+      "Wooden hard-chine planing hull with V frames, lofted from 26 stations: dark grey (variant 0) or mottled green (variant 1), red anti-fouling below the chine, a rubbing strake along the sheer.",
+      "Pilothouse forward of amidships with a raked three-pane windscreen; the open cockpit abaft it under a canvas hood, with the wheel; a signal mast with yard and masthead lamp on the pilothouse roof.",
+      "Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner."
+    ]
   }
- },
- {
-  "id": "jp-rail-cart",
-  "file": "Japanese_Decauville_cart",
-  "title": "Decauville hand cart on 600 mm track (home port)",
-  "fwd": "+x",
-  "make": "const P = MODELS.get('jp-decauville', 6).concat(MODELS.get('jp-rail-cart', true)); return __bake(P);",
-  "type": "600 mm Decauville track and hand-pushed cart",
-  "ref": [
-   [
-    "Width",
-    1.0,
-    "600 mm gauge track, sleepers about 1 m"
-   ]
-  ],
-  "notes": [
-   "A 6 m length of track shown; on the mole the track runs from the shore to the T-head with two carts."
-  ]
- },
- {
-  "id": "jp-drum-dump",
-  "file": "Japanese_drum_dump",
-  "title": "Fuel drums under palm-frond netting (home port)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('jp-drum-dump', 7, 4));",
-  "type": "200-litre drums under camouflage netting",
-  "ref": [
-   [
-    "Height",
-    2.4,
-    "net poles about 2.4 m (model)"
-   ]
-  ],
-  "notes": [
-   "28 drums, some two high, at the root of the mole. From docs/research_1945_bases.md (naval bases)."
-  ]
- },
- {
-  "id": "jp-godown",
-  "file": "Japanese_godown",
-  "title": "Timber godown (Japanese ports and bases)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('jp-godown', 24, 14));",
-  "type": "low gable-roofed timber warehouse, mottled camouflage",
-  "ref": [
-   [
-    "Length",
-    24,
-    "the target's footprint (24 x 14 m)"
-   ],
-   [
-    "Width",
-    14,
-    "24 x 14 m"
-   ]
-  ],
-  "notes": [
-   "Deep eaves (1.2 m), stone plinth, sliding doors, mottled dark green and brown. Replaces the generic warehouse everywhere (home port, airbases, far sites).",
-   "Length and width measured on the walls."
-  ],
-  "measure": {
-   "Length": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[0]",
-   "Width": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[2]"
-  }
- },
- {
-  "id": "crew-jn",
-  "file": "Japanese_navy_dock_hand",
-  "title": "Japanese navy dock hand (home port)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('crew', 'jn', 'stand', 0));",
-  "type": "IJNAS / naval base working rig, 1945: blue-grey trousers, white singlet, white headband",
-  "ref": [
-   [
-    "Height",
-    1.7,
-    "about 1.6-1.7 m"
-   ]
-  ],
-  "notes": [
-   "On the mole's T-head. Uniform from docs/research_1945_bases.md (ground crews)."
-  ]
- },
- {
-  "id": "jp-freighter",
-  "file": "Japanese_freighter",
-  "title": "Japanese freighter",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.freighter('jp'));",
-  "type": "Type 2A wartime standard cargo ship",
-  "wl": "0",
-  "ref": [
-   [
-    "Length",
-    137,
-    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Beam",
-    18.2,
-    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Draught",
-    7.8,
-    "137.0 x 18.2 m, 7.8 m draught, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
-   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
-  ]
- },
- {
-  "id": "jp-tanker",
-  "file": "Japanese_tanker",
-  "title": "Japanese tanker",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.tanker('jp'));",
-  "type": "Type 2TL wartime standard tanker",
-  "wl": "0",
-  "ref": [
-   [
-    "Length",
-    153.5,
-    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Beam",
-    20,
-    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Draught",
-    9.1,
-    "153.5 x 20.0 m, 9.1 m draught, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
-   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
-  ]
- },
- {
-  "id": "us-freighter",
-  "file": "US_freighter",
-  "title": "US freighter (kept for later)",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.freighter('us'));",
-  "type": "Liberty ship EC2-S-C1, kept for later",
-  "wl": "0",
-  "ref": [
-   [
-    "Length",
-    134.6,
-    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Beam",
-    17.3,
-    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Draught",
-    8.5,
-    "134.6 x 17.3 m, 8.5 m draught, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
-   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
-  ]
- },
- {
-  "id": "us-tanker",
-  "file": "US_tanker",
-  "title": "US tanker (kept for later)",
-  "kind": "ship",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.tanker('us'));",
-  "type": "T2-SE-A1 tanker, kept for later",
-  "wl": "0",
-  "ref": [
-   [
-    "Length",
-    159.6,
-    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Beam",
-    20.7,
-    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
-   ],
-   [
-    "Draught",
-    9.2,
-    "159.6 x 20.7 m, 9.2 m draught, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
-   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
-  ]
- },
- {
-  "id": "coast12",
-  "file": "12cm-45_coast_gun",
-  "title": "12 cm/45 3rd Year Type gun in its coast emplacement",
-  "fwd": "+x",
-  "make": "COAST.add(0, 0, 0); const g = COAST.G.pop(); T.pop(); scene.remove(g.grp); window.__M['Gun length overall'] = __size(g.bar).x; return __local(g.grp);",
-  "type": "12 cm/45 3rd Year Type naval gun on a coast-defence pedestal",
-  "ref": [
-   [
-    "Gun length overall",
-    5.55,
-    "218.5 in (5.550 m), most models (NavWeaps 12 cm/45 3rd Year Type)"
-   ]
-  ]
- },
- {
-  "id": "aa25",
-  "file": "Type96_25mm_twin",
-  "title": "Type 96 25 mm twin AA gun in its emplacement",
-  "fwd": "+x",
-  "make": "const t = __target('aa25'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) window.__M['Barrel group length'] = __size(g.bar).x; return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
-  "type": "Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit",
-  "ref": [
-   [
-    "Barrel group length",
-    null,
-    "barrel 1.5 m (L/60); the whole gun with its receiver is longer (War Thunder wiki; Wikipedia)"
-   ]
-  ],
-  "notes": [
-   "Twin mount weight 1,100 kg (NavWeaps)."
-  ]
- },
- {
-  "id": "sl150",
-  "file": "150cm_searchlight",
-  "title": "150 cm searchlight in its emplacement",
-  "fwd": "+x",
-  "make": "const t = __target('sl150'); const g = AA.gun.find((g) => g.t === t); if (g && g.bar) { const s = __size(g.bar); window.__M['Lamp drum diameter'] = Math.max(s.y, s.z); } return __local(t.m, g && g.grp && g.grp !== t.m && !t.m.children.includes(g.grp) ? [g.grp] : []);",
-  "type": "150 cm searchlight (Type 96 class)",
-  "ref": [
-   [
-    "Lamp drum diameter",
-    1.5,
-    "150 cm mirror (by its designation); the drum round the mirror is a little larger"
-   ]
-  ]
- },
- {
-  "id": "truck",
-  "file": "Japanese_cargo_truck",
-  "title": "Japanese army cargo truck (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('truck').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (cargo truck)",
-  "ref": [
-   [
-    "Length",
-    5.4,
-    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.9,
-    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    2.25,
-    "5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
-  ],
-  "measure": {
-   "Height": "(()=>{const b=GX.body(VM.fitParts('truck'));return b.max.y-Math.max(0,b.min.y);})()"
-  }
- },
- {
-  "id": "supply",
-  "file": "Japanese_supply_truck",
-  "title": "Japanese army supply truck, covered (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('supply').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (covered supply truck)",
-  "ref": [
-   [
-    "Length",
-    5.4,
-    "5.40 x 1.90 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.9,
-    "5.40 x 1.90 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
-   "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
-  ]
- },
- {
-  "id": "tanker-truck",
-  "file": "Japanese_tanker_truck",
-  "title": "Japanese army tanker truck (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('tanker').m);",
-  "type": "Isuzu Type 94 six-wheeled truck (tanker truck)",
-  "ref": [
-   [
-    "Length",
-    5.4,
-    "5.40 x 1.90 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.9,
-    "5.40 x 1.90 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
-   "Shares the cargo truck's scale (one Type 94 chassis), so its own length and height follow its shape."
-  ]
- },
- {
-  "id": "jeep-jp",
-  "file": "Japanese_scout_car",
-  "title": "Japanese army light car (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('jeep').m);",
-  "type": "Kurogane Type 95 scout car",
-  "ref": [
-   [
-    "Length",
-    3.38,
-    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.52,
-    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    1.68,
-    "3.38 x 1.52 x 1.68 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
-  ],
-  "measure": {
-   "Height": "(()=>{const b=GX.body(VM.fitParts('jeep'));return b.max.y-Math.max(0,b.min.y);})()"
-  }
- },
- {
-  "id": "apc",
-  "file": "Japanese_halftrack",
-  "title": "Japanese army half-track (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('apc').m);",
-  "type": "Isuzu Type 98 Ko-Hi half-track prime mover",
-  "ref": [
-   [
-    "Length",
-    4.65,
-    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.9,
-    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    2.15,
-    "4.65 x 1.90 x 2.15 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff."
-  ],
-  "measure": {
-   "Height": "(()=>{const b=GX.body(VM.fitParts('apc'));return b.max.y-Math.max(0,b.min.y);})()"
-  }
- },
- {
-  "id": "tank",
-  "file": "Japanese_tank",
-  "title": "Japanese army tank (enemy target)",
-  "fwd": "+z",
-  "make": "return __local(__target('tank').m);",
-  "type": "Type 95 Ha-Go light tank",
-  "ref": [
-   [
-    "Length",
-    4.3,
-    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    2.07,
-    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    2.28,
-    "4.30 x 2.07 x 2.28 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Height is measured on the body; the drawing's overall height also includes any aerial or staff.",
-   "Photo: References/Type 95 Ha-Go.jpg"
-  ],
-  "measure": {
-   "Height": "(()=>{const b=GX.body(VM.fitParts('tank'));return b.max.y-Math.max(0,b.min.y);})()"
-  }
- },
- {
-  "id": "us-fuel-truck",
-  "file": "US_fuel_truck",
-  "title": "US fuel bowser (home airfield)",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
-  "type": "GMC CCKW 2\u00bd-ton 6x6 chassis, fuel truck",
-  "ref": [
-   [
-    "Length",
-    6.51,
-    "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    2.24,
-    "CCKW 353 6.51 x 2.24 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Shares the cargo truck's scale (one CCKW chassis)."
-  ]
- },
- {
-  "id": "us-cargo-truck",
-  "file": "US_cargo_truck",
-  "title": "US cargo truck (home airfield)",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.cargoTruck());",
-  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck",
-  "ref": [
-   [
-    "Length",
-    6.51,
-    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    2.24,
-    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    2.8,
-    "6.51 x 2.24 x 2.80 m over the canvas bows, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Photo: References/GMC CCKW 353.jpg"
-  ]
- },
- {
-  "id": "us-jeep",
-  "file": "US_jeep",
-  "title": "US jeep (home airfield)",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.jeep());",
-  "type": "Willys MB / Ford GPW jeep",
-  "ref": [
-   [
-    "Length",
-    3.36,
-    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.57,
-    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    1.77,
-    "3.36 x 1.57 x 1.77 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Photo: References/Willys MB Jeep.jpg"
-  ]
- },
- {
-  "id": "us-tug",
-  "file": "US_aircraft_tug",
-  "title": "US aircraft tug (home airfield)",
-  "fwd": "+x",
-  "make": "return __bake(AFLD.models.tug());",
-  "type": "Clark Clarktor 6 aircraft tug",
-  "ref": [
-   [
-    "Length",
-    2.54,
-    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.32,
-    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
-   ],
-   [
-    "Height",
-    1.42,
-    "2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References)"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).",
-   "Photo: References/Clarktor 6.jpg"
-  ]
- },
- {
-  "id": "us-butler-hangar",
-  "file": "US_Butler_hangar",
-  "title": "Butler combat hangar (US airfields)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-butler-hangar'));",
-  "type": "Butler steel-arch combat hangar, 130 x 160 ft",
-  "ref": [
-   [
-    "Length",
-    48.77,
-    "160 ft, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Width",
-    39.62,
-    "130 ft clear span, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Height",
-    11.89,
-    "39 ft crown, docs/research_1945_bases.md (US structures in detail)"
-   ]
-  ],
-  "notes": [
-   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
-   "Nine three-hinged box-truss arches at 6.10 m, corrugated sheeting with the lowest row open, canvas curtain doors under a box-girder header, tail notch at the back (adds 5 m to the length).",
-   "Three at Fletcher Field, two at Kamome Field."
-  ],
-  "measure": {
-   "Length": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[0]",
-   "Width": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[2]",
-   "Height": "__partsSize(MODELS.get('us-butler-hangar'),[0x8e969b,0x848c91])[1]"
-  }
- },
- {
-  "id": "us-quonset",
-  "file": "US_Quonset_hut",
-  "title": "Quonset hut, Stran-Steel 20 x 48 ft (US airfields)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-quonset', 'std'));",
-  "type": "Stran-Steel Quonset hut, 20 x 48 ft",
-  "ref": [
-   [
-    "Length",
-    14.63,
-    "48 ft, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Width",
-    6.1,
-    "20 ft, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Height",
-    3.15,
-    "10 ft 4 in outside, docs/research_1945_bases.md (US structures in detail)"
-   ]
-  ],
-  "notes": [
-   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
-   "13 ribs at 1.22 m, olive-drab corrugated steel on a concrete slab (slab adds 1 m), end walls with a double door, two windows and a vent.",
-   "Operations huts and barracks at Fletcher Field and Kamome Field."
-  ],
-  "measure": {
-   "Length": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[0]",
-   "Width": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[2]",
-   "Height": "__partsSize(MODELS.get('us-quonset','std'),[0x5b6045,0x535840])[1]"
-  }
- },
- {
-  "id": "us-quonset-elephant",
-  "file": "US_Quonset_Elephant_hut",
-  "title": "Quonset Elephant hut, 40 x 100 ft (Fletcher Field store)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-quonset', 'elephant'));",
-  "type": "Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft",
-  "ref": [
-   [
-    "Length",
-    30.48,
-    "100 ft, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Width",
-    12.19,
-    "40 ft, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Height",
-    6.1,
-    "20 ft centre, docs/research_1945_bases.md (US structures in detail)"
-   ]
-  ],
-  "notes": [
-   "Length, width and height are measured on the corrugated skin alone (without the slab, the tail notch or the ribs).",
-   "26 ribs, large end doors (slab adds 1 m)."
-  ],
-  "measure": {
-   "Length": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[0]",
-   "Width": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[2]",
-   "Height": "__partsSize(MODELS.get('us-quonset','elephant'),[0x5b6045,0x535840])[1]"
-  }
- },
- {
-  "id": "us-control-tower",
-  "file": "US_control_tower",
-  "title": "Steel-angle control tower (US airfields)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-control-tower'));",
-  "type": "Bolted steel-angle airfield control tower, 4 storeys",
-  "ref": [
-   [
-    "Height",
-    15,
-    "12-15 m, 3-4 storeys, docs/research_1945_bases.md (US structures in detail)"
-   ]
-  ],
-  "notes": [
-   "Height measured to the cab roof (without the mast).",
-   "Glazed green-tinted cab leaning out, catwalk with rail, outside stair, mast and Aldis lamp."
-  ],
-  "measure": {
-   "Height": "__partsSize(MODELS.get('us-control-tower'),[0x3e4234])[1]"
-  }
- },
- {
-  "id": "us-m5-trailer",
-  "file": "US_M5_bomb_trailer",
-  "title": "M5 bomb trailer with two 500 lb bombs (Fletcher Field)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-m5-trailer'));",
-  "type": "M5 2-ton bomb trailer",
-  "ref": [
-   [
-    "Length",
-    3.6,
-    "~3.6 m, docs/research_1945_bases.md (US structures in detail)"
-   ]
-  ],
-  "notes": [
-   "A train of three behind a Clarktor at the end of the line."
-  ]
- },
- {
-  "id": "us-c10-cart",
-  "file": "US_C10_power_cart",
-  "title": "C-10 auxiliary power unit (Fletcher Field)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('us-c10-cart'));",
-  "type": "C-10 auxiliary power unit (starter cart)",
-  "ref": [
-   [
-    "Length",
-    1.5,
-    "1.5 x 0.9 x 1.1 m, docs/research_1945_bases.md (US structures in detail)"
-   ],
-   [
-    "Width",
-    0.9,
-    "1.5 x 0.9 x 1.1 m"
-   ],
-   [
-    "Height",
-    1.1,
-    "1.5 x 0.9 x 1.1 m"
-   ]
-  ],
-  "notes": [
-   "Beside the fighters on the line."
-  ]
- },
- {
-  "id": "jp-tug",
-  "file": "Japanese_aircraft_tractor",
-  "title": "Japanese aircraft tractor (Japanese airbases)",
-  "fwd": "+x",
-  "make": "return __bake(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')));",
-  "type": "Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN)",
-  "ref": [
-   [
-    "Length",
-    3.4,
-    "~3.4 x 1.6 x 1.5 m (Kato 4-ton), vehicle research spec sheet (References)"
-   ],
-   [
-    "Width",
-    1.6,
-    "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
-   ],
-   [
-    "Height",
-    1.5,
-    "~3.4 x 1.6 x 1.5 m, vehicle research spec sheet"
-   ]
-  ],
-  "notes": [
-   "Army khaki-brown at the army airbases; the IJN version is navy grey-blue with a yellow anchor on the grille.",
-   "Photo: References/Komatsu G40.jpg"
-  ]
- },
- {
-  "id": "jp-control-tower",
-  "file": "Japanese_control_tower",
-  "title": "Japanese airfield control tower (Japanese airbases)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('jp-control-tower'));",
-  "type": "low reinforced-concrete bunker tower, two storeys",
-  "ref": [
-   [
-    "Height",
-    9,
-    "7-10 m, 2-3 storeys, docs/research_1945_bases.md (airfields)"
-   ]
-  ],
-  "notes": [
-   "Slit windows, flat observation roof with a parapet and a sandbagged AA position, external steel ladders, mottled camouflage, the Rising Sun on the roof.",
-   "Height measured to the parapet's top (8.55 m); the flag staff rises above it."
-  ],
-  "measure": {
-   "Height": "__partsSize(MODELS.get('jp-control-tower'),[0x8a8a7c,0x4e5a3c,0x6a5a40])[1]"
-  }
- },
- {
-  "id": "crew",
-  "file": "Ground_crewman",
-  "title": "USAAF ground crewman (home airfield)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('crew', 'us', 'stand', 0));",
-  "type": "USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap",
-  "ref": [
-   [
-    "Height",
-    1.75,
-    "a typical serviceman, about 1.75 m"
-   ]
-  ],
-  "notes": [
-   "Uniform from docs/research_1945_bases.md (ground crews). Poses in the game: stand, walk, work, kneel; three uniform variants (OD #7, light sage, mixed)."
-  ]
- },
- {
-  "id": "crew-ja",
-  "file": "Japanese_army_ground_crewman",
-  "title": "Japanese army ground crewman (Japanese airbases)",
-  "fwd": "+x",
-  "make": "return __bake(MODELS.get('crew', 'ja', 'stand', 0));",
-  "type": "IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi",
-  "ref": [
-   [
-    "Height",
-    1.7,
-    "a typical Japanese serviceman of the time, about 1.6-1.7 m"
-   ]
-  ],
-  "notes": [
-   "Uniform from docs/research_1945_bases.md (ground crews). At work on the parked Ki-84s at each Japanese airbase."
-  ]
- }
 ]

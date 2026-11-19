@@ -3,7 +3,7 @@
 from given camera positions (the game keeps running; only the camera used for drawing is ours).
 
 Usage: python3 kamome_shot.py <html> <out-prefix> [shots.json]
-shots.json: [{"name": "bow", "eye": [x,y,z] | "eyeRel": [x,y,z], "look": [x,y,z] | "lookRel": [x,y,z], "fov": 50,
+shots.json: [{"name": "bow", "at": "JS returning [[eye],[look]] (optional)", "eye": [x,y,z] | "eyeRel": [x,y,z], "look": [x,y,z] | "lookRel": [x,y,z], "fov": 50,
               "js": "optional code run first", "wait": ms}]
 "Rel" positions are relative to the player's ship (PCE-842: SHIPM.mesh) or aircraft (pos).
 Prints JSON: {"errors": [...], "calls": n, "shots": [...]}"""
@@ -29,6 +29,7 @@ with sync_playwright() as p:
     pg.add_style_tag(content='body > *:not(canvas#c){visibility:hidden!important}')
     for s in shots:
         if s.get('js'): pg.evaluate("()=>{" + s['js'] + "}")
+        if s.get('at'): s['eye'], s['look'] = pg.evaluate("()=>{" + s['at'] + "}")  # JS returning [[eye], [look]] (absolute)
         r = pg.evaluate("""(s)=>{const ships=AFLD.a.filter(o=>o.kind==='ship');
           const base=s.ship!=null?ships[s.ship].m.position.clone():(typeof SHIPM!=='undefined'&&SHIPM.mesh)?SHIPM.mesh.position.clone():pos.clone();
           const v=(a,rel)=>a?(rel?base.clone().add(new THREE.Vector3(...a)):new THREE.Vector3(...a)):null;

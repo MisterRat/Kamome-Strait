@@ -553,6 +553,78 @@ const SITES = [],
       }
     };
   }
+  /* ----- Type T-14 motor torpedo boats (the Japanese side's PT boat, MODELS 'jp-t14'): 15 m, 3.6 m beam, 0.72 m draught ----- */
+  /* a racetrack in a site's frame: s metres round it -> [u, d, heading in the (u,d) plane: 0 = along +u, turning toward +d] */
+  const raceAt = (s, u0, u1, d0, R) => {
+    const Ls = u1 - u0;
+    if (s < Ls) return [u0 + s, d0, 0];
+    if ((s -= Ls) < Math.PI * R) return [u1 + Math.sin(s / R) * R, d0 + R - Math.cos(s / R) * R, s / R];
+    if ((s -= Math.PI * R) < Ls) return [u1 - s, d0 + 2 * R, Math.PI];
+    s -= Ls;
+    return [u0 - Math.sin(s / R) * R, d0 + R + Math.cos(s / R) * R, Math.PI + s / R];
+  };
+  /* n boats in loose line ahead (gap m apart, staggered 12 m to seaward) round a racetrack at sp m/s; returns the per-frame update */
+  const mkT14s = (F, u0, u1, d0, R, n, sp, gap) => {
+    const per = 2 * (u1 - u0) + 2 * Math.PI * R,
+      B = [],
+      F0 = FR;
+    FR = F;
+    for (let i = 0; i < n; i++) {
+      const e = target(MODELS.get('jp-t14', i % 2), 'ship', 30, 15 * 0.3, u0, d0, F.ryS);
+      e.m.add(shipWakeMesh(15 / 78, -e.k0 - e.s1 / 2 + 0.12) /* a small boat's wake, on the water at her waterline */);
+      e.m.matrixAutoUpdate = true;
+      B.push({ e, y0: e.m.position.y, wl: -e.k0 - e.s1 / 2, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null });
+    }
+    FR = F0;
+    let s = Math.random() * per;
+    return (dt) => {
+      s = (s + sp * dt) % per;
+      for (const b of B) {
+        const m = b.e.m;
+        if (b.e.dead) {
+          if (b.hull) OCEAN.unhull(b.hull), (b.hull = null);
+          continue;
+        }
+        const [u, d, h] = raceAt((s - b.off + per) % per, u0, u1, d0 + b.dz, R),
+          du = Math.cos(h),
+          dd = Math.sin(h),
+          [x, z] = F.w(u, d),
+          wx = F.A.x * du + F.S.x * dd,
+          wz = F.A.z * du + F.S.z * dd,
+          yw = Math.atan2(-wz, wx);
+        RIDE.step(b.ride, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
+        m.position.set(x, b.y0 + b.ride.hv, z);
+        m.rotation.set(b.ride.ro, yw, b.ride.pi - 0.035 /* bow up: she is on the plane */, 'YXZ');
+        m.updateMatrixWorld(true);
+        if (typeof OCEAN !== 'undefined') OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), sp, m.position.y + b.wl, 0);
+      }
+    };
+  };
+  /* is a racetrack (and m metres round it) water deeper than dmin? (h: the seabed function of that map) */
+  const deepOK = (F, u0, u1, d0, R, m, dmin, h) => {
+    for (let u = u0 - R - m; u <= u1 + R + m; u += 40)
+      for (let d = d0 - m; d <= d0 + 2 * R + m; d += 40) {
+        const [x, z] = F.w(u, d);
+        if (h(x, z) > -dmin) return false;
+      }
+    return true;
+  };
+  {
+    /* two lie alongside the mole's east face, the second rafted outboard of the first, bows to seaward */
+    for (const [k, du] of [[0, MOLE.W / 2 + 2.05], [1, MOLE.W / 2 + 2.05 + 3.7]]) {
+      const e = ship(MODELS.get('jp-t14', k), 15, du, MOLE.d0 + 72 - k * 4, 30);
+      ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(6.4, 1.6, 3), e });
+    }
+    /* and two on patrol inshore of the kaibokan, west of the mole: 18 knots round a 900 m racetrack */
+    for (const [u0, u1, d0] of [[-1150, -250, 260], [-900, -250, 300], [250, 1100, 260]])
+      if (deepOK(SITE, u0, u1, d0, 35, 30, 4, HR)) {
+        const upd = mkT14s(SITE, u0, u1, d0, 35, 2, 9.3, 45),
+          _p = SITE.pat;
+        SITE.pat = (dt) => (_p && _p(dt), upd(dt));
+        SITE.t14 = [u0, u1, d0];
+        break;
+      }
+  }
   /* two hand-cranked timber A-frame derricks on the T-head, leaning out over the berths either side (targets, as the cranes were) */
   for (const s of [-1, 1]) {
     const u = s * (MOLE.tw / 2 - 3),
@@ -976,8 +1048,12 @@ const SITES = [],
     e.m.add(shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */);
     e.m.matrixAutoUpdate = true;
     let s = Math.random() * per;
-    const P = { e, vis: true, track: { u0, u1, d0, R } };
+    /* two Type T-14s on an inner track, inshore of her, where the sea is deep enough */
+    const tU1 = Math.min(u1, u0 + 900),
+      t14 = deepOK(F, u0, tU1, d0 - 180, 35, 30, 6, WH) ? mkT14s(F, u0, tU1, d0 - 180, 35, 2, 9.3, 45) : null;
+    const P = { e, vis: true, track: { u0, u1, d0, R }, t14 };
     P.upd = (dt) => {
+      if (t14) t14(dt);
       const m = e.m;
       if (!e.dead) {
         s = (s + 8.5 * dt) % per;

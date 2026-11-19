@@ -54,5 +54,6 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Japanese airfield control tower (Japanese airbases) | low reinforced-concrete bunker tower, two storeys | 9.07 x 8.08 x 13.15 | close | `Japanese_control_tower_blueprint.png`, `Japanese_control_tower_measurements.md` |
 | USAAF ground crewman (home airfield) | USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap | 0.30 x 0.55 x 1.76 | match | `Ground_crewman_blueprint.png`, `Ground_crewman_measurements.md` |
 | Japanese army ground crewman (Japanese airbases) | IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi | 0.30 x 0.55 x 1.68 | match | `Japanese_army_ground_crewman_blueprint.png`, `Japanese_army_ground_crewman_measurements.md` |
+| Type T-14 motor torpedo boat (Gyoraitei) | Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45 | 15.67 x 3.67 x 5.43 | match | `Japanese_T-14_torpedo_boat_blueprint.png`, `Japanese_T-14_torpedo_boat_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).
