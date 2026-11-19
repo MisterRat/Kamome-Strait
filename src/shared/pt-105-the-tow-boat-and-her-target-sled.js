@@ -166,7 +166,10 @@ const PTB = (() => {
     B(0.06, 0.35, 2.3, 0x9bb3c0, X(13.33), ch + 1.42, 0, 0, 0, 0.2);
     T(0.24, 0.025, 0x3a2a1a, X(13.1), ck + 1.0, -0.1, 0, Math.PI / 2, 0);
     C(0.04, 0.04, 0.35, STEEL, X(13.22), ck + 1.0, -0.1, 0, 0, Math.PI / 2);
+    B(0.12, 0.88, 0.12, STEEL, X(13.1), ck + 0.44, -0.5) /* the throttle pedestal from the cockpit floor */;
+    B(0.22, 0.1, 0.34, STEEL, X(13.1), ck + 0.92, -0.5) /* the quadrant */;
     for (const z of [-0.6, -0.5, -0.4]) B(0.06, 0.22, 0.04, 0xb02020, X(13.1), ck + 1.05, z, 0, 0, 0.4);
+    C(0.05, 0.05, 0.88, STEEL, X(13.1), ck + 0.44, -0.95) /* the compass's pedestal */;
     C(0.13, 0.15, 0.25, 0x9a8a50, X(13.1), ck + 1.0, -0.95);
     man(12.6, -0.1, 0, ck);
     /* the mast (aft end of the chart house), yard, the ensign and the red "Baker" flag she flies while towing; a whip aerial */
@@ -176,7 +179,7 @@ const PTB = (() => {
     B(0.05, 0.05, 1.7, 0x8a8a7a, xm, mt + 3.2, 0);
     /* the flags stream aft from their halyards: the red "Baker" at the starboard yardarm, the ensign at the masthead with its union
        at the hoist (next to the mast) */
-    B(0.75, 0.45, 0.02, 0xc8202a, xm - 0.42, mt + 2.95, 0.78);
+    B(0.75, 0.45, 0.02, 0xc8202a, xm - 0.39, mt + 2.95, 0.78) /* the Baker flag, its hoist at the yard */;
     for (let i = 0; i < 7; i++) B(0.95, 0.06, 0.02, i % 2 ? 0xf0f0ea : 0xb8202a, xm - 0.55, mt + 3.75 - i * 0.06, 0);
     B(0.4, 0.24, 0.026, 0x2a3a6a, xm - 0.28, mt + 3.66, 0);
     C(0.012, 0.006, 3.6, 0x30302a, X(16.0), ch + 1.26 + 1.8, -1.0);
@@ -210,7 +213,7 @@ const PTB = (() => {
         put(cyl(0.03, 0.026, 0.09, 8), 0x1c1d1c, 1.56, 0.64, k, 0, 0, -Math.PI / 2) /* the muzzle */;
         put(bx(0.16, 0.04, 0.1), 0x9a8a50, 0.0, 0.66, k + Math.sign(k) * 0.1, 0, 0, 0.2) /* the belt feeding in from outboard */;
       }
-      put(new THREE.TorusGeometry(0.08, 0.008, 4, 14), GUNM, 0.25, 0.86, 0, 0, Math.PI / 2, 0) /* the ring sight */;
+      put(new THREE.TorusGeometry(0.08, 0.008, 4, 14), GUNM, 0.2, 0.86, 0, 0, Math.PI / 2, 0) /* the ring sight */;
       /* the curved ammunition trays (Mk 17 plan in the References): one each side round the inside of the ring, from abeam the
          guns aft, rounds showing, the belt chutes up into the guns; they turn with the mount, not with the guns' elevation */
       const TR = [];
@@ -223,7 +226,7 @@ const PTB = (() => {
           TR.push(part(bx(0.11, 0.03, 0.17), 0x9a8a50, cx, 0.88, cz, 0, a, 0));
         }
       for (const k of [-1, 1]) TR.push(part(bx(0.3, 0.05, 0.08), 0x9a8a50, 0.1, 1.05, -k * 0.3, 0, -k * 0.5, 0.35));
-      put(cyl(0.006, 0.006, 0.18, 4), GUNM, 0.25, 0.77, 0);
+      put(cyl(0.008, 0.008, 0.32, 4), GUNM, 0.2, 0.7, 0) /* its post, from the cradle */;
       const M = new THREE.Matrix4().compose(
         new THREE.Vector3(X(s) + Math.cos(yaw) * 0.1, y + 0.62, z - Math.sin(yaw) * 0.1),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, el, 'YXZ')),
@@ -268,7 +271,7 @@ const PTB = (() => {
       for (const k of [-1, 1]) g(G, bx(0.08, 0.62, 0.05), GUNM, 0, 0.68, k * 0.1, k * 0.12, 0, 0) /* the yoke arms */;
       g(G, cyl(0.06, 0.06, 0.28, 10), STEEL, 0, 1.0, 0, HP, 0, 0) /* the trunnion boss */;
       g(E, bx(1.25, 0.16, 0.16), 0x3a3d3a, -0.35, 0, 0) /* the receiver, from the breech forward past the trunnions */;
-      g(E, bx(0.9, 0.04, 0.12), 0x2c2e2c, -0.35, -0.11, 0) /* the slide under it */;
+      g(E, bx(0.9, 0.04, 0.12), 0x2c2e2c, -0.35, -0.095, 0) /* the slide under it */;
       g(E, bx(0.18, 0.12, 0.12), 0x2c2e2c, -1.03, 0.02, 0) /* the back plate */;
       g(E, cyl(0.05, 0.05, 0.45, 10), GUNM, 0.45, 0.02, 0, 0, 0, -HP) /* the recoil sleeve */;
       g(E, cyl(0.03, 0.034, 2.0, 10), 0x30322f, 1.65, 0.02, 0, 0, 0, -HP) /* the barrel */;
@@ -278,14 +281,14 @@ const PTB = (() => {
       for (const y of [0.15, 0.62]) g(E, bx(0.32, 0.04, 0.22), STEEL, -0.36, y, 0);
       for (let i = 0; i < 3; i++) g(E, cyl(0.025, 0.025, 0.2, 6), 0x9a8a50, -0.46 + i * 0.1, 0.7, 0, HP, 0, 0) /* rounds showing */;
       /* the shoulder yoke behind the breech, the hand grip and trigger, a ring sight on the left */
-      g(E, bx(0.05, 0.05, 0.44), STEEL, -1.18, -0.02, 0);
+      g(E, bx(0.05, 0.05, 0.44), STEEL, -1.13, -0.02, 0) /* the shoulder yoke, on the back plate */;
       for (const k of [-1, 1]) {
-        g(E, new THREE.TorusGeometry(0.08, 0.025, 5, 10, Math.PI), 0x262626, -1.2, 0.06, k * 0.22, 0, HP, -HP);
+        g(E, new THREE.TorusGeometry(0.08, 0.025, 5, 10, Math.PI), 0x262626, -1.15, 0.06, k * 0.22, 0, HP, -HP);
         g(E, bx(0.3, 0.035, 0.035), STEEL, -1.05, -0.02, k * 0.2);
       }
       g(E, cyl(0.018, 0.018, 0.18, 5), 0x262626, -0.85, -0.18, 0.08, 0, 0, 0.3);
-      g(E, bx(0.04, 0.2, 0.04), GUNM, -0.15, 0.18, -0.16);
-      g(E, new THREE.TorusGeometry(0.09, 0.008, 4, 16), GUNM, -0.15, 0.3, -0.16, 0, HP, 0);
+      g(E, bx(0.04, 0.2, 0.04), GUNM, -0.15, 0.18, -0.1) /* the ring sight's post, on the receiver's side */;
+      g(E, new THREE.TorusGeometry(0.09, 0.008, 4, 16), GUNM, -0.15, 0.3, -0.1, 0, HP, 0);
       const Te = new THREE.Matrix4().compose(new THREE.Vector3(0, 1.0, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0.12)), new THREE.Vector3(1, 1, 1));
       for (const q of E) (q.m = new THREE.Matrix4().multiplyMatrices(Te, q.m)), G.push(q);
       const Tm = GX.xf(X(s37), y37, 0, 0);
@@ -330,8 +333,8 @@ const PTB = (() => {
       [-1.36, 0xd02020],
       [1.36, 0x20c040],
     ]) {
-      B(0.3, 0.22, 0.03, GREEN, X(15.9), ch2 + 1.0, z + Math.sign(z) * 0.05);
-      B(0.1, 0.12, 0.08, hex, X(15.95), ch2 + 1.0, z + Math.sign(z) * 0.1);
+      B(0.3, 0.22, 0.03, GREEN, X(15.9), ch2 + 1.0, z + Math.sign(z) * -0.04) /* the screen, on the chart house side */;
+      B(0.1, 0.12, 0.08, hex, X(15.95), ch2 + 1.0, z + Math.sign(z) * 0.01) /* the lamp, on its screen */;
     }
     C(0.16, 0.18, 0.26, GUNM, X(15.6), top + 0.25, 0.6, 0, 0, Math.PI / 2, 12);
     C(0.14, 0.14, 0.02, 0xfff4c8, X(15.6) + 0.14, top + 0.25, 0.6, 0, 0, Math.PI / 2, 12);
@@ -389,6 +392,7 @@ const PTB = (() => {
     B(0.6, 0.45, 0.4, 0x4f5a42, X(9.1), dy(9.1, -2.0) + 0.23, -2.0);
     B(0.6, 0.45, 0.4, 0x4f5a42, X(13.9), dy(13.9, 2.0) + 0.23, 2.0);
     /* in the cockpit: the binnacle hood, voice tubes and the radio */
+    C(0.05, 0.05, 1.12, STEEL, X(13.1), ck2 + 0.56, -0.6) /* the binnacle's pedestal */;
     S(0.12, 0x9a8a50, X(13.1), ck2 + 1.18, -0.6, 1, 0.6, 1);
     for (const z of [-0.3, -0.42]) C(0.035, 0.035, 0.8, 0x9a8a50, X(13.18), ck2 + 0.6, z);
     B(0.4, 0.35, 0.3, 0x3a4038, X(11.5), ck2 + 0.55, 0.9);
@@ -782,8 +786,8 @@ bool pIs(vec3 c, vec3 k){ return distance(c, k) < 0.012; }`,
       B(1.0, 0.35, 0.02, SIL, -2.6, y0 + 1.45, k);
     }
     /* the flag staff with a red flag, the bridle to the tow line */
-    C(0.04, 0.04, 2.0, 0x8a8a7a, -4.2, y0 + 4.3, 1.4);
-    B(0.02, 0.5, 0.8, 0xd02a20, -4.6, y0 + 5.0, 1.4);
+    C(0.04, 0.04, 2.0, 0x8a8a7a, -4.0, y0 + 4.6, 0) /* the flag staff, carried up from the after screen post */;
+    B(0.02, 0.5, 0.8, 0xd02a20, -4.0, y0 + 5.3, 0.43) /* the red flag, its hoist on the staff */;
     for (const z of [-1.4, 1.4]) C(0.025, 0.025, 2.4, 0x2a2a24, 4.9 + 1.0, y0 + 0.75, z * 0.5, Math.PI / 2 + Math.sign(z) * 0.95, 0, Math.PI / 2);
     const a = new GX.Acc();
     a.add(P, null);

@@ -48,42 +48,6 @@ const VM = (() => {
   const win = (P, x, y, z, ry, w, h) => {
     P.push(part(bx(w + 0.24, h + 0.24, 0.1), 0xe4e0d4, x, y, z, 0, ry), part(bx(w, h, 0.14), 0x20303c, x, y, z, 0, ry));
   };
-  const warehouse = () => {
-    const P = [],
-      W = 24,
-      D = 14,
-      c = 0x8d9296;
-    P.push(part(bx(W + 0.1, 0.8, D + 0.1), 0x6d6a60, 0, 0.4, 0), part(bx(W, 5, D), c, 0, 2.5, 0));
-    gable(P, W, D, 5, 3, c, 0x5b6065, 0.4);
-    for (let i = 0; i <= 24; i++)
-      for (const s of [-1, 1]) P.push(part(bx(0.12, 4.2, 0.14), 0x7c8185, -11.6 + i, 2.9, s * (D / 2 + 0.07)));
-    P.push(
-      part(bx(8.4, 4.2, 0.22), 0x4a4f54, 3, 2.2, D / 2 + 0.1),
-      part(bx(10, 0.25, 0.4), 0x2b2d2f, 3, 4.5, D / 2 + 0.25),
-      part(bx(1.4, 2.4, 0.2), 0x3a4a3a, -8, 1.3, D / 2 + 0.1),
-    );
-    for (let i = 0; i < 4; i++) P.push(part(bx(0.08, 4.1, 0.1), 0x2b2d2f, 0.2 + i * 2.2, 2.2, D / 2 + 0.22));
-    for (const s of [-1, 1])
-      for (let i = 0; i < 5; i++) win(P, -9 + i * 4.4, 3.6, s * (D / 2 + 0.05), s > 0 ? 0 : Math.PI, 1.4, 0.8);
-    P.push(
-      part(bx(6, 1.0, 2.4), 0x5a5d5f, -6, 0.5, D / 2 + 1.2),
-      part(bx(7, 0.1, 0.9), 0x3d4043, -6, 1.05, D / 2 + 0.6),
-      crate(-8, 1.0, D / 2 + 1.4, 1.1, 0x8b6c3c),
-      crate(-6.6, 1.0, D / 2 + 1.2, 1.1, 0x7a5f35, 0.3),
-      crate(-7.4, 2.1, D / 2 + 1.3, 1.0, 0x8b6c3c),
-      barrel(-4.2, D / 2 + 1.0, 0x56603f),
-      barrel(-3.5, D / 2 + 1.2, 0x8b4a2b),
-      crate(11, 0, D / 2 + 0.9, 1.4, 0x7a5f35),
-      crate(12.3, 0, D / 2 + 1.0, 1.1, 0x8b6c3c),
-      crate(11.6, 1.4, D / 2 + 0.9, 1.0, 0x7a5f35),
-    );
-    P.push(
-      part(bx(2.6, 0.06, 3.2), 0x6e5a46, 6.5, 2.8, -D / 2 - 0.03),
-      part(bx(2.8, 2.2, 0.05), 0x7d6a54, -6, 1.6, -D / 2 - 0.03),
-      part(cyl(0.1, 0.1, 6, 6), 0x3a3d40, W / 2 + 0.1, 2.6, -D / 2 + 0.8),
-    );
-    return P;
-  };
   const hq = () => {
     const P = [],
       W = 16,
@@ -199,7 +163,7 @@ const VM = (() => {
     for (let i = 0; i < 17; i++) P.push(part(bx(0.12, 0.06, 0.8), 0x3a3d40, R + 0.15, 0.5 + i * 0.5, 0));
     P.push(
       part(cyl(0.3, 0.3, 3.2, 8), 0x3a3d40, R + 1.4, 0.9, -1.6, 0, 0, Z),
-      part(cyl(0.28, 0.28, 0.2, 8), 0xb22a24, R + 2.4, 1.5, -1.6),
+      part(cyl(0.28, 0.28, 0.2, 8), 0xb22a24, R + 2.4, 1.3, -1.6) /* the valve wheel, on the pipe */,
       part(cyl(0.18, 0.18, 3, 8), 0x3a3d40, R + 1.4, 0.5, -1.6, Z, 0, 0),
       part(bx(0.7, 0.7, 0.7), 0x56603f, R + 3.1, 0.35, -1.6),
     );
@@ -257,7 +221,7 @@ const VM = (() => {
     jeep: () => MODELS.get('jp-kurogane'),
     apc: () => MODELS.get('jp-ko-hi'),
     tank: () => MODELS.get('jp-ha-go'),
-    warehouse,
+    warehouse: () => MODELS.get('jp-godown', 24, 14) /* the Japanese timber godown (the waterfront piece) */,
     hq,
     bunker,
     hangar,

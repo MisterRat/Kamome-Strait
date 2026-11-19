@@ -52,57 +52,77 @@
         transom: S.cruiser ? null : S.side,
       }),
     );
-    /* bulwark cap and rubbing strake */
+    /* bulwark cap */
     P.push(part(bx(L * 0.86, 0.12, B * 2 + 0.1), 0x2a2c2c, X0 + L * 0.47, F + 0.06, 0));
+    /* EVERYTHING STACKS on what is under it: topAt(x, z) is the highest top already built there (the main deck, an island, a tier) */
+    const tops = [];
+    const topAt = (x, z) => tops.reduce((y, q) => (x >= q[0] && x <= q[1] && Math.abs(z || 0) <= q[3] ? Math.max(y, q[2]) : y), F);
     /* islands: [x0, x1, height above the main deck, width fraction, colour] (forecastle, bridge, poop, engine house) */
     for (const [a, b, h, wf, c] of S.islands) {
       const y0 = F - 0.1;
-      P.push(part(bx(b - a, h, B * 2 * wf), c, (a + b) / 2, y0 + h / 2, 0));
+      P.push(part(bx(b - a, h + 0.1, B * 2 * wf), c, (a + b) / 2, y0 + (h + 0.1) / 2, 0));
+      tops.push([a, b, F + h, B * wf]);
       if (h > 2.5 && wf < 0.95)
-        for (const s of [-1, 1]) for (let x = a + 1.5; x < b - 1; x += 2.2) P.push(part(bx(0.9, 0.7, 0.05), 0x161c20, x, y0 + h - 1.0, s * (B * wf + 0.03)));
+        for (const s of [-1, 1]) for (let x = a + 1.5; x < b - 1; x += 2.2) P.push(part(bx(0.9, 0.7, 0.02), 0x161c20, x, F + h - 1.0, s * (B * wf + 0.005)));
     }
-    /* bridge house tiers and wheelhouse windows */
-    for (const [x, w, d, y, c] of S.tiers) {
-      P.push(part(bx(d, 2.6, w), c, x, y + 1.3, 0), part(bx(0.06, 0.9, w * 0.8), 0x161c20, x + d / 2 + 0.03, y + 1.6, 0));
+    /* bridge house tiers, each on what is under it; wheelhouse windows on the front, a roof plate on top */
+    for (const [x, w, d, , c] of S.tiers) {
+      const y = topAt(x, 0);
+      P.push(part(bx(d, 2.6, w), c, x, y + 1.3, 0), part(bx(0.02, 0.9, w * 0.8), 0x161c20, x + d / 2 + 0.005, y + 1.6, 0));
       P.push(part(bx(d + 0.6, 0.12, w + 0.6), 0x2e3030, x, y + 2.66, 0));
+      tops.push([x - d / 2, x + d / 2, y + 2.72, w / 2]);
     }
-    /* hatches with their coamings: [x, length, width] */
+    /* hatches with their coamings (standing on the deck): [x, length, width] */
     for (const [x, l, w] of S.hatch) P.push(part(bx(l + 0.5, 0.9, w + 0.5), S.coam, x, F + 0.45, 0), part(bx(l, 0.18, w), S.hatchTop, x, F + 0.95, 0));
-    /* masts: goalposts (two posts and a crossbar), kingposts, pole masts; derricks lie fore and aft from each */
+    /* masts: goalposts (two posts and a crossbar), kingposts, pole masts, standing on the deck; each derrick's heel on its post, its head
+       held up by a topping lift from the masthead */
     for (const m of S.masts) {
       const [kind, x, h] = m,
-        c = S.mast;
-      if (kind === 'goal') {
-        for (const s of [-1, 1]) P.push(part(cyl(0.32, 0.4, h, 8), c, x, F + h / 2, s * 3.2));
-        P.push(part(bx(0.6, 0.6, 7.4), c, x, F + h - 0.4, 0));
-      } else if (kind === 'king') for (const s of [-1, 1]) P.push(part(cyl(0.28, 0.35, h, 8), c, x, F + h / 2, s * 2.6));
-      else P.push(part(cyl(0.25, 0.4, h, 8), c, x, F + h / 2, 0), part(bx(0.25, 0.25, 5), c, x, F + h * 0.8, 0));
+        c = S.mast,
+        y0 = topAt(x, 0) - 0.2,
+        zs = kind === 'goal' ? [-3.2, 3.2] : kind === 'king' ? [-2.6, 2.6] : [0];
+      for (const z of zs) P.push(GX.rod([x, y0, z], [x, F + h, z], kind === 'pole' ? 0.4 : 0.36, c, kind === 'pole' ? 0.25 : 0.3, 8));
+      if (kind === 'goal') P.push(part(bx(0.6, 0.6, 7.0), c, x, F + h - 0.3, 0));
+      if (kind === 'pole') P.push(part(bx(0.25, 0.25, 5), c, x, F + h * 0.8, 0));
       for (const dir of m[3] || [1, -1])
-        for (const s of kind === 'pole' ? [-0.8, 0.8] : [-2.6, 2.6])
-          P.push(part(cyl(0.12, 0.18, 12, 6), c, x + dir * 5.2, F + 4.2, s, 0, 0, dir * -1.25));
+        for (const z of kind === 'pole' ? [-0.6, 0.6] : zs) {
+          const zp = kind === 'pole' ? 0 : z,
+            heel = [x + dir * 0.35, F + 2.0, zp],
+            head = [x + dir * 10, F + h * 0.62, z * 0.7];
+          P.push(GX.rod(heel, head, 0.18, c, 0.12, 6), GX.rod(head, [x, F + h - 0.5, zp], 0.03, 0x2a2a2a, 0.03, 4));
+        }
     }
-    /* funnel */
+    /* funnel, on the house top under it */
     if (S.funnel) {
-      const [x, h, r, c] = S.funnel;
-      P.push(part(cyl(r, r * 1.06, h, 14), c, x, F + S.funnelY + h / 2, 0, 0, 0, 0, 1.25, 1, 1), part(cyl(r * 1.02, r * 1.02, 0.6, 14), 0x1a1a1a, x, F + S.funnelY + h - 0.3, 0, 0, 0, 0, 1.25, 1, 1));
+      const [x, h, r, c] = S.funnel,
+        y = topAt(x, 0) - 0.1;
+      P.push(part(cyl(r, r * 1.06, h, 14), c, x, y + h / 2, 0, 0, 0, 0, 1.25, 1, 1), part(cyl(r * 1.02, r * 1.02, 0.6, 14), 0x1a1a1a, x, y + h - 0.3, 0, 0, 0, 0, 1.25, 1, 1));
     }
-    /* catwalk (tankers): an elevated walkway on stanchions along the centreline, with the deck piping beneath it */
+    /* catwalk (tankers): an elevated walkway on stanchions standing on the deck, from the bridge island to the engine house and on to
+       the forecastle, with the deck piping beneath it and the tank hatches */
     if (S.catwalk) {
-      const [a, b] = S.catwalk;
-      P.push(part(bx(b - a, 0.15, 1.1), S.walk, (a + b) / 2, F + 2.4, 0));
-      for (let x = a + 1; x < b; x += 6) P.push(part(bx(0.15, 2.4, 0.15), S.walk, x, F + 1.2, 0.45), part(bx(0.15, 2.4, 0.15), S.walk, x, F + 1.2, -0.45));
-      for (const z of [-2.2, -1.2, 1.2, 2.2]) P.push(part(cyl(0.18, 0.18, b - a, 6), 0x3a3a36, (a + b) / 2, F + 0.35, z, 0, 0, Z));
-      for (let x = a + 4; x < b - 2; x += 10) for (const s of [-1, 1]) P.push(part(cyl(0.45, 0.45, 0.4, 8), 0x3a3a36, x, F + 0.2, s * 4.5)); /* tank hatches */
+      const [a, b] = S.catwalk,
+        yw = F + 2.4;
+      P.push(part(bx(b - a + 0.6, 0.15, 1.1), S.walk, (a + b) / 2, yw, 0));
+      for (let x = a + 1; x < b; x += 6) for (const z of [0.45, -0.45]) P.push(GX.rod([x, F - 0.05, z], [x, yw, z], 0.08, S.walk, 0.08, 4));
+      for (const z of [-2.2, -1.2, 1.2, 2.2]) P.push(part(cyl(0.18, 0.18, b - a, 6), 0x3a3a36, (a + b) / 2, F + 0.15, z, 0, 0, Z));
+      for (let x = a + 4; x < b - 2; x += 10) for (const s of [-1, 1]) P.push(part(cyl(0.45, 0.45, 0.4, 8), 0x3a3a36, x, F + 0.15, s * 4.5));
     }
-    /* guns of the armed guard (US) or a stern gun (Japan), on tubs */
-    for (const [x, y] of S.guns || []) P.push(part(cyl(1.6, 1.7, 1.2, 10), S.side2 || S.side, x, F + y + 0.6, 0), part(cyl(0.12, 0.12, 4, 6), 0x2a2a2a, x + 2, F + y + 1.6, 0, 0, 0, -Z));
+    /* guns of the armed guard (US) or a stern gun (Japan): a tub on the top under it, the barrel from the mount */
+    for (const [x] of S.guns || []) {
+      const y = topAt(x, 0) - 0.05;
+      P.push(part(cyl(1.6, 1.7, 1.2, 10), S.side2 || S.side, x, y + 0.6, 0), part(cyl(0.12, 0.12, 4, 6), 0x2a2a2a, x + 1.9, y + 1.0, 0, 0, 0, -Z));
+    }
     /* Japanese disruptive camouflage: diagonal, wavy dark-green bands across every vertical surface painted the hull colour */
     if (S.camo) {
       const cf = (x, y) => (Math.sin(x / 6.5 + y / 2.2 + 0.9 * Math.sin(x / 21)) > 0.5 ? S.camo : S.side);
       P.forEach((q) => q.hex === S.side && ((q.cf = cf), (q.cfE = 2.5)));
     }
     /* ensign staff at the stern */
-    P.push(part(cyl(0.06, 0.08, 4, 6), 0x555555, X0 + 0.8, F + S.poopH + 2, 0), ...FLG.at(S.flag, 2.4, X0 + 0.75, F + S.poopH + 3.9, 0, Math.PI));
+    {
+      const y = topAt(X0 + 1.2, 0) - 0.05;
+      P.push(part(cyl(0.06, 0.08, 4, 6), 0x555555, X0 + 1.2, y + 2, 0), ...FLG.at(S.flag, 2.4, X0 + 1.15, y + 3.9, 0, Math.PI));
+    }
     return P;
   };
   /* Japanese colours (1945): light grey-green, dark pine-green bands, red-brown antifouling, thin black boot-top, red-brown decks */

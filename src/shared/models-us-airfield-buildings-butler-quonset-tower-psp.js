@@ -127,12 +127,14 @@
         const d = Math.hypot(2 * (a + b) / 2, 3);
         P.push(part(bx(0.08, d, 0.08), S, 0, y0 + 1.5, s * (a + b) / 2, 0, 0, Math.atan2(2 * (a + b) / 2, 3)), part(bx(0.08, d, 0.08), S, s * (a + b) / 2, y0 + 1.5, 0, Math.atan2(2 * (a + b) / 2, 3), 0, 0));
       }
-      /* the outside stair, flight by flight */
-      P.push(part(bx(3.2, 0.1, 0.8), 0x7a6648, 0, y0 + 1.5, -(b + 0.6), 0, 0, k % 2 ? 0.75 : -0.75));
+      /* the stair, flight by flight, inside the frame on the -z side: each flight from one floor up to the next (through its hatch) */
+      const sx = k % 2 ? 1 : -1;
+      P.push(GX.beam([sx * (a - 0.5), y0 + 0.06, -(a - 0.6)], [-sx * (b - 0.5), y1, -(b - 0.6)], 0.7, 0.1, 0x7a6648));
     }
     /* the cab: floor 12 m, 3 m high, glass leaning out, roof with overhang, catwalk with rail */
     P.push(part(bx(5.4, 0.25, 5.4), 0x7a6648, 0, H + 0.1, 0) /* catwalk deck */);
-    for (const s of [-1, 1]) P.push(part(bx(5.4, 0.06, 0.06), S, 0, H + 1.1, s * 2.7), part(bx(0.06, 0.06, 5.4), S, s * 2.7, H + 1.1, 0));
+    for (const s of [-1, 1]) P.push(part(bx(5.4, 0.06, 0.06), S, 0, H + 1.1, s * 2.67), part(bx(0.06, 0.06, 5.4), S, s * 2.67, H + 1.1, 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(GX.rod([sx * 2.67, H + 0.2, sz * 2.67], [sx * 2.67, H + 1.13, sz * 2.67], 0.035, S)); /* rail posts on the catwalk deck */
     P.push(part(bx(3.8, 0.9, 3.8), 0x6a6e56, 0, H + 0.6, 0));
     for (const [rx, ry, z, x] of [[0.12, 0, 1.95, 0], [-0.12, 0, -1.95, 0]]) P.push(part(bx(3.9, 1.9, 0.06), 0x4f7a6a, x, H + 2.0, z, rx, ry, 0));
     for (const [rz, x] of [[-0.12, 1.95], [0.12, -1.95]]) P.push(part(bx(0.06, 1.9, 3.9), 0x4f7a6a, x, H + 2.0, 0, 0, 0, rz));

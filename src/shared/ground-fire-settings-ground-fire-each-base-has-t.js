@@ -24,11 +24,12 @@ AA.load();
   const build = (P) => new GX.Acc().add(P, GX.xf(0, G0, 0, 0, 1)).geometry();
   const raw = (P) => new GX.Acc().add(P).geometry(); /* parts of the moving heads are placed on their own pivots */
   const lam = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 });
-  const bags = (P, r, n, a0, a1, layers) => {
+  /* sandbags in a ring, the first layer resting on the floor (top at y0), each layer on the one below */
+  const bags = (P, r, n, a0, a1, layers, y0) => {
     for (let L = 0; L < layers; L++)
       for (let i = 0; i < n; i++) {
         const a = a0 + ((i + L * 0.5) / n) * (a1 - a0);
-        P.push(part(bx(1.5, 0.45, 0.62), L ? 0x7d7452 : 0x8a8058, Math.cos(a) * r, 0.55 + L * 0.42, Math.sin(a) * r, 0, -a - Z));
+        P.push(part(bx(1.5, 0.45, 0.62), L ? 0x7d7452 : 0x8a8058, Math.cos(a) * r, (y0 == null ? 0.325 : y0) + 0.22 + L * 0.42, Math.sin(a) * r, 0, -a - Z));
       }
   };
   /* ----- Type 96 25 mm twin mount ----- */
@@ -40,10 +41,10 @@ AA.load();
       P.push(part(bx(0.25, 0.18, 1.9), 0x3d4038, Math.cos(a) * 0.95, 0.4, Math.sin(a) * 0.95, 0, Z - a));
     }
     P.push(
-      part(bx(0.7, 0.4, 0.45), 0x4a5035, 2.1, 0.55, -1.4, 0, 0.4),
-      part(bx(0.7, 0.4, 0.45), 0x4a5035, 2.45, 0.55, -0.6, 0, 0.2),
-      part(bx(0.7, 0.4, 0.45), 0x3e4430, 2.3, 0.95, -1.0, 0, 0.3),
-      part(bx(0.5, 0.3, 0.8), 0x6b5a3a, -2.4, 0.5, 1.2, 0, 0.5) /* spare magazines */,
+      part(bx(0.7, 0.4, 0.45), 0x4a5035, 2.1, 0.52, -1.4, 0, 0.4) /* ammunition boxes on the floor */,
+      part(bx(0.7, 0.4, 0.45), 0x4a5035, 2.45, 0.52, -0.6, 0, 0.2),
+      part(bx(0.7, 0.4, 0.45), 0x3e4430, 2.3, 0.91, -1.0, 0, 0.3),
+      part(bx(0.5, 0.3, 0.8), 0x6b5a3a, -2.4, 0.47, 1.2, 0, 0.5) /* spare magazines */,
     );
     return build(P);
   };
@@ -58,10 +59,14 @@ AA.load();
       part(bx(0.06, 0.4, 0.06), 0x33352e, 1.25, 0.1, -0.75),
       part(bx(0.5, 0.06, 0.8), 0x33352e, -1.0, 0.3, -0.45),
       part(bx(0.5, 0.06, 0.8), 0x33352e, 1.0, 0.3, -0.45),
-      part(cyl(0.22, 0.22, 0.07, 12), 0x1d1d1d, -1.0, 0.75, -0.1, 0, 0, Z) /* hand wheels */,
+      part(cyl(0.22, 0.22, 0.07, 12), 0x1d1d1d, -1.0, 0.75, -0.1, 0, 0, Z) /* hand wheels, on shafts from the side plates */,
       part(cyl(0.22, 0.22, 0.07, 12), 0x1d1d1d, 1.0, 0.75, -0.1, 0, 0, Z),
-      part(cyl(0.04, 0.04, 0.8, 8), 0x1a1a1a, -0.45, 1.25, 0.2, Z), /* sight tube */
-      part(bx(0.12, 0.2, 0.12), 0x1a1a1a, -0.45, 1.1, -0.15),
+      GX.rod([-0.74, 0.75, -0.1], [-0.97, 0.75, -0.1], 0.03, 0x1a1a1a),
+      GX.rod([0.74, 0.75, -0.1], [0.97, 0.75, -0.1], 0.03, 0x1a1a1a),
+      part(bx(0.12, 0.2, 0.12), 0x1a1a1a, -0.5, 1.15, -0.15) /* the sight's bracket, on the left plate */,
+      part(cyl(0.04, 0.04, 0.8, 8), 0x1a1a1a, -0.5, 1.27, 0.2, Z) /* sight tube, on its bracket */,
+      GX.beam([-0.74, 0.12, -0.75], [-1.25, 0.12, -0.75], 0.08, 0.08, 0x33352e) /* the seats' arms from the base */,
+      GX.beam([0.74, 0.12, -0.75], [1.25, 0.12, -0.75], 0.08, 0.08, 0x33352e),
     ];
     return raw(P);
   };
@@ -72,8 +77,8 @@ AA.load();
         part(cyl(0.062, 0.062, 2.45, 10), 0x1c1c1c, s * 0.2, 0, 1.85, Z),
         part(cyl(0.1, 0.1, 0.95, 10), 0x2c2f28, s * 0.2, 0, 1.0, Z) /* jacket */,
         part(cyl(0.1, 0.075, 0.3, 10), 0x121212, s * 0.2, 0, 3.15, Z) /* flash hider */,
-        part(bx(0.2, 0.27, 0.64), 0x2f3526, s * 0.2, 0.36, 0.3) /* curved top magazine */,
-        part(bx(0.2, 0.22, 0.4), 0x2f3526, s * 0.2, 0.46, -0.1, 0.5),
+        part(bx(0.2, 0.27, 0.64), 0x2f3526, s * 0.2, 0.33, 0.3) /* curved top magazine, seated on the breech */,
+        part(bx(0.2, 0.22, 0.4), 0x2f3526, s * 0.2, 0.42, -0.1, 0.5),
       );
     }
     return raw(P);
@@ -82,13 +87,14 @@ AA.load();
   const lampBase = () => {
     const P = [part(cyl(3.3, 3.5, 0.3, 20), 0x4d432d, 0, 0.13, 0), part(bx(2.0, 0.25, 1.7), 0x4b5238, 0, 0.85, 0), part(cyl(0.38, 0.5, 0.9, 12), 0x3d4038, 0, 1.4, 0)];
     for (const s of [-1, 1]) P.push(part(cyl(0.52, 0.52, 0.17, 14), 0x16171a, s * 1.15, 0.52, -0.2, 0, 0, Z));
+    P.push(part(cyl(0.06, 0.06, 2.46, 8), 0x2a2c26, 0, 0.52, -0.2, 0, 0, Z), part(bx(0.3, 0.2, 0.3), 0x2a2c26, 0, 0.64, -0.2)); /* the axle through both wheels, and its bracket to the platform */
     P.push(
-      part(bx(0.16, 0.16, 2.0), 0x3d4038, 0, 0.75, -1.8) /* drawbar */,
+      part(bx(0.16, 0.16, 2.0), 0x3d4038, 0, 0.78, -1.74) /* drawbar, from the platform */,
       part(bx(1.6, 0.9, 0.95), 0x58603f, 2.3, 0.6, 0.6) /* generator */,
       part(cyl(0.06, 0.06, 0.7, 8), 0x1d1d1d, 2.7, 1.3, 0.6),
       part(bx(0.5, 0.35, 0.4), 0x3e4430, -2.2, 0.4, 0.8),
     );
-    bags(P, 3.0, 11, Math.PI * 0.05, Math.PI * 0.95, 2);
+    bags(P, 3.0, 11, Math.PI * 0.05, Math.PI * 0.95, 2, 0.28);
     return build(P);
   };
   const lampYoke = () => raw([part(bx(0.18, 1.1, 0.45), 0x4b5238, 1.0, 0.35, 0), part(bx(0.18, 1.1, 0.45), 0x4b5238, -1.0, 0.35, 0), part(bx(2.2, 0.2, 0.5), 0x3d4038, 0, -0.2, 0)]);
@@ -135,9 +141,10 @@ AA.load();
         part(bx(0.16, 0.1, 0.3), 0x2a2a26, s * 0.12, y0 + 0.05, zo + 0.4),
         part(bx(0.15, 0.4, 0.15), 0x6f6643, s * 0.12, y0 + 0.3, zo + 0.3),
         part(bx(0.17, 0.15, 0.5), 0x6f6643, s * 0.12, y0 + 0.55, zo + 0.05),
-        part(bx(0.11, 0.11, 0.55), 0x6f6643, s * 0.27, y0 + 1.0, zo + 0.3),
+        part(bx(0.11, 0.11, 0.55), 0x6f6643, s * 0.26, y0 + 1.0, zo + 0.3) /* the arm, from the shoulder forward */,
       ]),
-      part(bx(0.42, 0.55, 0.26), 0x7a6f4a, 0, y0 + 0.95, zo - 0.15),
+      part(bx(0.42, 0.55, 0.26), 0x7a6f4a, 0, y0 + 0.9, zo - 0.1) /* the torso, sitting on the thighs */,
+      part(cyl(0.05, 0.05, 0.14, 6), 0xc89a7a, 0, y0 + 1.22, zo - 0.12) /* neck */,
       part(sph(10), 0xc89a7a, 0, y0 + 1.4, zo - 0.12, 0, 0, 0, 0.12, 0.13, 0.12),
       part(sph(10), 0x4a4f35, 0, y0 + 1.47, zo - 0.12, 0, 0, 0, 0.16, 0.1, 0.16),
     ]);
@@ -224,13 +231,13 @@ AA.load();
   /* ----- QF 3.7-inch heavy AA gun (the home airfield's own battery) ----- */
   const pit37 = () => {
     const P = [part(cyl(5.2, 5.4, 0.3, 24), 0x5a5238, 0, 0.12, 0), part(cyl(0.55, 0.7, 0.8, 12), 0x4d513c, 0, 0.7, 0)];
-    bags(P, 4.5, 22, 0, Math.PI * 2, 2);
+    bags(P, 4.5, 22, 0, Math.PI * 2, 2, 0.27);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI * 0.5 + 0.4; /* the cruciform platform with its four outriggers */
-      P.push(part(bx(0.34, 0.2, 2.9), 0x4d513c, Math.cos(a) * 1.5, 0.4, Math.sin(a) * 1.5, 0, Z - a), part(cyl(0.14, 0.14, 0.4, 8), 0x2a2c26, Math.cos(a) * 2.9, 0.35, Math.sin(a) * 2.9));
+      P.push(part(bx(0.34, 0.2, 2.9), 0x4d513c, Math.cos(a) * 1.5, 0.37, Math.sin(a) * 1.5, 0, Z - a), part(cyl(0.14, 0.14, 0.4, 8), 0x2a2c26, Math.cos(a) * 2.9, 0.35, Math.sin(a) * 2.9));
     }
     P.push(part(bx(1.1, 0.8, 0.6), 0x6e6a48, 2.9, 0.5, 1.9, 0, 0.3), part(bx(1.1, 0.8, 0.6), 0x6e6a48, 3.0, 0.5, 1.1, 0, 0.1), part(bx(0.5, 0.35, 0.9), 0x5b6046, -3.0, 0.45, -1.5, 0, 0.5));
-    for (let i = 0; i < 5; i++) P.push(part(cyl(0.12, 0.12, 0.9, 8), 0xb59a4c, -2.6 + i * 0.28, 0.5, 2.7, 0, 0, Z)); /* shells ready to hand */
+    for (let i = 0; i < 5; i++) P.push(part(cyl(0.12, 0.12, 0.9, 8), 0xb59a4c, -2.6 + i * 0.28, 0.39, 2.7, 0, 0, Z)); /* shells ready to hand, on the floor */
     return build(P);
   };
   const tur37 = () =>
@@ -238,14 +245,18 @@ AA.load();
       part(cyl(0.9, 1.0, 0.35, 16), 0x4d513c, 0, 0.15, 0),
       part(bx(0.25, 1.1, 1.3), 0x5b6046, 0.85, 0.75, 0.1),
       part(bx(0.25, 1.1, 1.3), 0x5b6046, -0.85, 0.75, 0.1),
-      part(bx(2.3, 1.15, 0.07), 0x5f6448, 0, 1.25, 1.0) /* shield */,
+      part(bx(2.3, 1.15, 0.07), 0x5f6448, 0, 1.25, 0.785) /* shield, on the side plates' front edges */,
       part(bx(0.5, 0.07, 0.45), 0x2a2c26, -1.4, 0.55, -0.55),
       part(bx(0.5, 0.07, 0.45), 0x2a2c26, 1.4, 0.55, -0.55),
       part(cyl(0.05, 0.05, 0.55, 8), 0x1a1a1a, -1.4, 0.3, -0.55),
       part(cyl(0.05, 0.05, 0.55, 8), 0x1a1a1a, 1.4, 0.3, -0.55),
+      GX.beam([-0.95, 0.12, -0.55], [-1.42, 0.12, -0.55], 0.1, 0.1, 0x1a1a1a) /* seat posts' arms from the base */,
+      GX.beam([0.95, 0.12, -0.55], [1.42, 0.12, -0.55], 0.1, 0.1, 0x1a1a1a),
       part(cyl(0.25, 0.25, 0.08, 12), 0x1d1d1d, -1.05, 1.05, -0.3, 0, 0, Z),
       part(cyl(0.25, 0.25, 0.08, 12), 0x1d1d1d, 1.05, 1.05, -0.3, 0, 0, Z),
-      part(bx(0.5, 0.4, 0.5), 0x33352e, 1.3, 1.3, -0.2) /* fuze setter */,
+      GX.rod([-0.96, 1.05, -0.3], [-1.02, 1.05, -0.3], 0.035, 0x1a1a1a),
+      GX.rod([0.96, 1.05, -0.3], [1.02, 1.05, -0.3], 0.035, 0x1a1a1a),
+      part(bx(0.5, 0.4, 0.5), 0x33352e, 1.2, 1.3, -0.2) /* fuze setter, on the right plate */,
     ]);
   const bar37 = () =>
     raw([

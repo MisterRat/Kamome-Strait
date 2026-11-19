@@ -620,7 +620,8 @@ const PCEM = (() => {
     const yF = (f) => hd(f) + 0.12;
     /* jackstaff and the forward anchor light */
     C(0.035, 0.05, 4.6, WOOD, XF(-0.6), hd(-0.6) + 2.3 + 0.9, 0, 0, 0, 0, 6);
-    S(0.1, WHITE, XF(-0.6), hd(-0.6) + 5.65, 0);
+    B(0.12, 0.3, 0.16, STEEL, XF(-0.6), hd(-0.6) + 1.0, 0) /* the jackstaff's socket on the stem head */;
+    S(0.1, WHITE, XF(-0.6), hd(-0.6) + 5.57, 0) /* the anchor light, on the staff's head */;
     /* anchors in their hawse pipes, chain pipes, the windlass and bitts */
     for (const s of [-1, 1]) {
       const f = 5.4,
@@ -689,6 +690,8 @@ const PCEM = (() => {
         for (const s of [-1, 1]) {
           Cx(0.05, 0.45, DARK, -0.2, 0.3, s * 0.32, 8);
           B(0.1, 0.12, 0.1, DARK, -0.45, 0.3, s * 0.32);
+          bone([-0.15, -0.2, s * 0.13], [-0.15, 0.3, s * 0.32], 0.05, 0.05, GUNC) /* the sight's bracket from the cradle */;
+          bone([-0.15, 0.3, s * 0.32], [-0.15, 0.2, s * 0.6], 0.04, 0.04, GUNC) /* the telescope's arm */;
           /* the telescope: tube, eyepiece and its rubber eyecup toward the seat, sun shade forward */
           Cx(0.035, 0.55, DARK, -0.2, 0.2, s * 0.6, 10);
           Cx(0.045, 0.08, RUBBER, -0.5, 0.2, s * 0.6, 10);
@@ -823,7 +826,7 @@ const PCEM = (() => {
       const pane = (w, h, x, y, z, ry) => add(new THREE.PlaneGeometry(w, h), WIN, x, y, z, 0, ry, 0);
       for (let i = -1; i <= 1; i++) pane(0.62, 0.42, X_PH0 + 0.012, yw, i * 0.78, HP);
       for (const s of [-1, 1]) {
-        pane(0.5, 0.42, X_PH0 - 0.36 + 0.01, yw, s * (W_PH - 0.36 + 0.01), HP - s * (PI / 4));
+        pane(0.5, 0.42, X_PH0 - 0.3665, yw, s * (W_PH - 0.3665), HP - s * (PI / 4)); /* 12 mm proud of the angled corner */
         for (const d of [0.9, 1.7]) pane(0.5, 0.42, X_PH0 - 0.75 - d, yw, s * (W_PH + 0.012), s > 0 ? 0 : PI);
         B(0.8, 1.85, 0.05, STEEL, XF(31.5), Y2 + 0.95, s * (W_PH + 0.02));
       }
@@ -844,6 +847,7 @@ const PCEM = (() => {
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2),
         new THREE.Vector3(0.86, 1, 0.37),
       );
+      for (const dx of [-0.5, 0.5]) B(0.05, 0.3, 0.05, STEEL, XF(29.5) + dx, Y2 - 0.2, s * 5.15) /* the float's slings, from the wing's side down to its ring */;
       for (let i = -3; i <= 3; i++) {
         const xs = i * 0.22,
           h = 2 * 0.37 * Math.sqrt(Math.max(0, 1 - (xs / 0.86) ** 2));
@@ -998,7 +1002,7 @@ const PCEM = (() => {
     /* the signal yard with halyards, and the small whip antennas */
     Cz(0.05, 4.6, STEEL, xm, 17.1, 0, 6);
     for (const s of [-1, 1]) {
-      C(0.012, 0.012, 7.3, DARK, xm - 0.2, 13.4, s * 2.2, 0.0, 0, 0.05, 3);
+      bone([xm, 17.1, s * 2.25], [XF(33.0) + 0.3, Y3 + 0.05, s * 2.2], 0.02, 0.02, DARK) /* signal halyard, from the yardarm down to the flag bag at the open bridge's after edge */;
       B(0.03, 0.03, 0.03, DARK, xm, 17.1, s * 2.25);
     }
     /* the surface-search radar at the masthead: pedestal and radome */
@@ -1129,7 +1133,8 @@ const PCEM = (() => {
         B(0.3, 0.04, 0.5, STEEL, -0.75, 0.45, s * 1.05);
         if (own && s < 0) continue;
         add(new THREE.TorusGeometry(0.12, 0.012, 4, 16), DARK, 0.05, 1.62, s * 1.0, 0, HP, 0);
-        C(0.012, 0.012, 0.4, DARK, 0.05, 1.42, s * 1.0, 0, 0, 0, 3);
+        C(0.012, 0.012, 0.44, DARK, 0.05, 1.39, s * 1.0, 0, 0, 0, 3) /* the sight's post */;
+        bone([0.05, 1.4, s * pz], [0.05, 1.3, s * 1.0], 0.03, 0.03, DARK) /* its arm from the carriage side plate */;
       }
       /* the crew: the trainer (right) on his seat, two loaders standing behind the breeches with clips */
       man(-0.78, 0.36, 1.05, 0, 'sit', 'wheel', true);
@@ -1197,6 +1202,7 @@ const PCEM = (() => {
         B(0.36, 0.03, 0.15, GUNC, 0.55, 0.45, k * 0.98, k * 0.35, 0, -0.35);
         add(new THREE.TorusGeometry(0.11, 0.015, 4, 12), STEEL, -0.12, 1.02, k * 0.72, 0, 0, 0);
         C(0.015, 0.015, 0.12, DARK, -0.12, 1.02, k * 0.79, HP, 0, 0, 5);
+        bone([-0.12, 1.02, k * 0.27], [-0.12, 1.02, k * 0.72], 0.02, 0.02, STEEL) /* the hand wheel's shaft, from the side plate */;
       }
       /* the crew: the trainer (right), the loader on his platform with a clip */
       man(-0.78, 0.36, 1.05, 0, 'sit', 'wheel', true);
@@ -1208,6 +1214,7 @@ const PCEM = (() => {
       /* the clip guide on top with a clip of four rounds */
       for (const z of [-0.09, 0.09]) B(0.36, 0.42, 0.04, STEEL, -0.28, 0.42, z);
       for (let k = 0; k < 4; k++) C(0.022, 0.022, 0.4, BRASS, -0.4 + k * 0.08, 0.48, 0, 0, 0, 0, 6);
+      B(0.34, 0.03, 0.18, STEEL, -0.28, 0.29, 0) /* the clip's charger, between the guide plates, the rounds standing in it */;
       Cz(0.07, 0.6, STEEL, 0, 0, 0, 10) /* the trunnions */;
       Cx(0.075, 1.0, 0x5b6268, 0.6, -0.13, 0, 12) /* the recoil cylinder */;
       Cx(0.085, 0.4, GUNC, 0.5, 0.06, 0, 12);
@@ -1248,7 +1255,7 @@ const PCEM = (() => {
     const R = d * Math.tan(leads[leads.length - 1]);
     for (let i = 0; i < 8; i++) B(0.004, R, 0.004, DARK, d, (R / 2) * Math.cos((i * PI) / 4), (R / 2) * Math.sin((i * PI) / 4), 0, (i * PI) / 4, 0);
     S(0.006, DARK, d, 0, 0);
-    if (er) add(new THREE.TorusGeometry(er, 0.0016, 4, 20), DARK, de, 0, 0, 0, HP, 0);
+    if (er) add(new THREE.TorusGeometry(er, 0.0016, 4, 20), DARK, de, 0, 0, 0, HP, 0), C(0.004, 0.004, R + post - er + 0.004, DARK, de, -(R + post + er) / 2, 0, 0, 0, 0, 5) /* the eye ring's post, down to the sight bar */;
     /* the post that carries the front sight, and the sight bar under both */
     C(0.007, 0.007, post, DARK, d, -R - post / 2, 0, 0, 0, 0, 5);
     Cx(0.012, d - de + 0.06, DARK, (d + de) / 2, -R - post, 0, 6);
@@ -1404,7 +1411,7 @@ const PCEM = (() => {
       const x = XF(87),
         z = -3.0;
       C(0.08, 0.09, 2.6, STEEL, x, ym(87) + 1.3, z, 0, 0, 0, 8);
-      B(1.5, 0.08, 0.08, STEEL, x + 0.7, ym(87) + 2.55, z, 0, 0, -0.2);
+      B(1.5, 0.08, 0.08, STEEL, x + 0.7, ym(87) + 2.42, z, 0, 0, -0.2) /* the arm, from the post's head */;
     }
     /* deck hatches and a couple of ventilators aft */
     for (const f of [68.2, 79.2]) B(1.1, 0.25, 1.1, STEEL, XF(f), ym(f) + 0.12, 0);
@@ -1420,7 +1427,12 @@ const PCEM = (() => {
       ...g,
       pivot: T40_PIV,
       eye: [-0.6, 1.79, -1.0] /* the pointer's eye */,
-      sight: grab(() => ringSight(0.5, 0.12, LEAD40, 0.12, 0)) /* built about the eye; a linkage keeps it on the line of the bores */,
+      sight: grab(() => {
+        ringSight(0.5, 0.12, LEAD40, 0.12, 0);
+        /* the linkage: a rod from the sight bar down to the mount's platform, which keeps it on the line of the bores */
+        const yb = -0.5 * Math.tan(LEAD40[LEAD40.length - 1]) - 0.12;
+        C(0.015, 0.015, 1.79 + yb + 0.02, DARK, 0.3, (yb - 1.79) / 2, 0, 0, 0, 0, 5);
+      }) /* built about the eye */,
       muzzles: [
         [2.74, 0, -0.29],
         [2.74, 0, 0.29],
@@ -1445,7 +1457,7 @@ const PCEM = (() => {
           bone([a * 0.42, 0.02, b * 0.42], [a * 0.1, 0.8, b * 0.1], 0.07, 0.035, GUNC);
           B(0.16, 0.03, 0.16, STEEL, a * 0.43, 0.015, b * 0.43);
         }
-        for (const [a, b] of [[1, 0], [0, 1]]) B(a ? 0.62 : 0.04, 0.04, b ? 0.62 : 0.04, GUNC, 0, 0.32, 0) /* the cross braces */;
+        for (const s of [-1, 1]) bone([-0.29, 0.32, -s * 0.29], [0.29, 0.32, s * 0.29], 0.04, 0.04, GUNC) /* the cross braces, leg to leg */;
         C(0.2, 0.2, 0.06, GUNC, 0, 0.8, 0, 0, 0, 0, 14);
         C(0.11, 0.13, 0.1, GUNC, 0, 0.86, 0, 0, 0, 0, 12);
         return;
@@ -1472,7 +1484,7 @@ const PCEM = (() => {
       for (const s of [-1, 1]) {
         bone([-0.25, -0.05, s * 0.16], [-0.52, 0.2, s * 0.2], 0.035, 0.035, STEEL);
         add(new THREE.TorusGeometry(0.09, 0.03, 5, 10, PI), RUBBER, -0.55, 0.2, s * 0.2, 0, HP, -HP) /* the curved shoulder rest */;
-        C(0.018, 0.018, 0.16, DARK, -0.42, -0.14, s * 0.13, 0, 0, 0.3, 5) /* hand grips */;
+        C(0.018, 0.018, 0.16, DARK, -0.3, -0.17, s * 0.13, 0, 0, 0.3, 5) /* hand grips, under the cradle */;
       }
       /* the shield: two plates forward of the gunner, low enough for him to see over them through the sight */
       B(0.04, 0.62, 0.42, GUNC, 0.45, -0.1, -0.24);
@@ -1482,6 +1494,11 @@ const PCEM = (() => {
         T = GX.xf(-0.4, 0.45, -0.1, 0);
       for (const q of Q) q.m = new M4().multiplyMatrices(T, q.m);
       P.push(...Q);
+      {
+        /* its bracket: from the drum's top up (or down) to the sight bar, beside the drum */
+        const yb = 0.45 - 0.78 * Math.tan(LEAD20[LEAD20.length - 1]) - 0.06;
+        B(0.05, Math.abs(yb - 0.3) + 0.03, 0.07, GUNC, 0.05, (yb + 0.3) / 2, -0.085);
+      }
     });
     const pm = grab(() => man(-0.62, 0, 0, 0, 'lean', 'rests'));
     return { base, train, elev, pm };
@@ -1591,7 +1608,7 @@ const PCEM = (() => {
     }
     /* steering stand and wheel (brass hub, eight spokes with handles): the wheel turns with the helm (WHEEL, a moving part) */
     const xs = x1 - 0.75;
-    B(0.42, 1.05, 0.36, 0x4d5257, xs, y0 + 0.52, 0);
+    B(0.42, 1.2, 0.36, 0x4d5257, xs, y0 + 0.6, 0) /* the steering stand, its shaft coming out of its face */;
     Cx(0.05, 0.3, BRASS, xs - 0.32, y0 + 1.12, 0, 10);
     WHEEL.pivot = [xs - 0.46, y0 + 1.12, 0];
     WHEEL.parts = grab(() => {

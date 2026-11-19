@@ -169,8 +169,8 @@
     const P = [],
       cols = [0x56603f, 0x8b4a2b, 0x3b5675, 0x56603f];
     for (let i = 0; i < 3; i++)
-      for (let j = 0; j < 4; j++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[(i + j) % 4], i * 0.72, 0.56, j * 0.72));
-    for (let i = 0; i < 2; i++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[i], 0.36 + i * 0.72, 1.44, 0.7));
+      for (let j = 0; j < 4; j++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[(i + j) % 4], i * 0.72, 0.44, j * 0.72)); /* standing on y = 0 (place() adds the apron) */
+    for (let i = 0; i < 2; i++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[i], 0.36 + i * 0.72, 1.32, 0.7)); /* resting on the drums below */
     return P;
   };
   /* REAL SIZES (GX.fit), figures from References/vehicle research spec sheet.pdf and the P-51D's own (the player's model):

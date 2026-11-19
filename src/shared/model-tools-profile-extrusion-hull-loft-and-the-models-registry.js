@@ -98,6 +98,26 @@ const MODELS = (() => {
     g.computeVertexNormals();
     return [q, { ...q, g }];
   };
+  /* a round rod from point a to point b ([x, y, z] each), radius r (r1 at b if given): stays, columns, legs that must end where they attach */
+  GX.rod = (a, b, r, hex, r1, n) => {
+    const A = new THREE.Vector3(...a),
+      B = new THREE.Vector3(...b),
+      d = B.clone().sub(A),
+      l = d.length(),
+      q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()),
+      m = new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1));
+    return { g: GX.cyl(r1 == null ? r : r1, r, l, n || 6), hex, m };
+  };
+  /* a box beam from point a to point b, w wide and h deep (its width across, in the horizontal plane when it can be) */
+  GX.beam = (a, b, w, h, hex) => {
+    const A = new THREE.Vector3(...a),
+      B = new THREE.Vector3(...b),
+      d = B.clone().sub(A),
+      l = d.length(),
+      q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), d.normalize()),
+      m = new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1));
+    return { g: GX.bx(l, h, w), hex, m };
+  };
   /* a road wheel or tyre with a painted hub, axis across (z) */
   GX.wheel = (x, y, z, r, w, tyre, hub, n) => [
     part(GX.cyl(r, r, w, n || 12), tyre || 0x1c1c1c, x, y, z, Math.PI / 2),

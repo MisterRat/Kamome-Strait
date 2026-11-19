@@ -1,6 +1,6 @@
 # P-51D Mustang, parked (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 9.83 m long, 11.28 m wide, 2.89 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 9.83 m long, 11.28 m wide, 2.89 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** North American P-51D Mustang (simplified airfield model)
 

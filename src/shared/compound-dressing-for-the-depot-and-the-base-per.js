@@ -72,9 +72,9 @@
       part(new THREE.ConeGeometry(2.3, 1.1, 4).rotateY(Math.PI / 4), 0x4a4f3c, 0, 8.6, 0),
       part(bx(0.5, 0.4, 0.5), 0x2b2d2f, 1.45, 6.85, 1.45),
       part(cyl(0.03, 0.03, 2, 5), 0x2b2d2f, -1.0, 9.2, -1.0),
-      part(bx(2.8, 0.3, 0.08), 0x9c8c5e, 0, 6.8, 1.52),
-      part(bx(0.08, 0.3, 2.8), 0x9c8c5e, 1.52, 6.8, 0),
-      part(bx(0.08, 0.3, 2.8), 0x9c8c5e, -1.52, 6.8, 0),
+      part(bx(2.8, 0.3, 0.08), 0x9c8c5e, 0, 6.75, 1.46) /* sandbag screens, standing on the platform's edge */,
+      part(bx(0.08, 0.3, 2.8), 0x9c8c5e, 1.46, 6.75, 0),
+      part(bx(0.08, 0.3, 2.8), 0x9c8c5e, -1.46, 6.75, 0),
     );
     put(P, x, z, 0, 1);
   };

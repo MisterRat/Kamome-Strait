@@ -136,7 +136,7 @@ bool iIs(vec3 c, vec3 k){ return distance(c, k) < 0.012; }
   /* the ensigns: the Stars and Stripes at the gaff (under way) and on the stern staff, as children of the ship */
   function flags(mesh) {
     if (typeof FLG === 'undefined') return;
-    mesh.add(FLG.flagOnly('us', 1.6, XF(39.8) - 0.55, 16.25, 0, PI));
+    mesh.add(FLG.flagOnly('us', 1.6, XF(39.8) - 0.17, 16.25, 0, PI)); /* its hoist on the mast's after side */
     mesh.add(FLG.flagOnly('us', 1.25, XF(89.7) - 0.04, hm(89.7) + 0.12 + 3.35, 0, PI));
   }
   return { XF, hb, top, WL, F_STEM, F_END, STN, ER, build, buildInterior, flags, mounts, solid, material, intMaterial, FACES, WHEEL, OOD, Y2, Y3, hd, hm,

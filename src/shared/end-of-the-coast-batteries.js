@@ -168,26 +168,100 @@ const SITES = [],
   });
   /* ===== the port ===== */
   drape(-130, 130, -95, 48, cc(CORAL, 26, 14), 1, 1, 0.35); /* the quay: pale coral earth */
+  /* the waterfront (1945 Japanese practice, docs/research_1945_bases.md): a narrow coral-block mole with a timber T-head for the small
+     craft, the big ships at anchor offshore in the deepest water near by, worked by Daihatsu barges and wooden lighters */
+  const MOLE = { d0: 95, L: 112, W: 8, h: 2.2, tw: 24 } /* from 95 m out (where the shore drops to the sea) to the T-head at 207 m */;
   {
-    /* a finger pier on piles, running 270 m out (40 to 310 m from the shore), long enough for a 150 m ship to lie alongside clear of
-       the beach; the deck stays 4.5 m above the sea */
-    const P = [part(bx(270, 0.8, 16), 0x6f5a40, 0, 0, 0)];
-    for (let k = 0; k <= 10; k++)
-      for (const s of [-1, 1]) {
-        P.push(part(cyl(0.45, 0.45, 9, 8), 0x4a3a2a, -120 + k * 24, -4.6, s * 7.4));
-        P.push(part(cyl(0.3, 0.3, 1, 8), 0x2a2a28, -120 + k * 24, 0.9, s * 7.6));
-      }
-    P.push(part(bx(270, 0.25, 0.4), 0x5a4630, 0, 0.5, 7.9), part(bx(270, 0.25, 0.4), 0x5a4630, 0, 0.5, -7.9));
-    const [m] = asMesh(P),
-      [x, z] = SITE.w(0, 175);
-    m.position.set(x, -3.0, z);
+    const P = MODELS.get('jp-mole', MOLE.L, MOLE.W, MOLE.h, MOLE.tw, -6),
+      g = new GX.Acc().add(P, null).geometry(),
+      m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })),
+      [x, z] = SITE.w(0, MOLE.d0);
+    m.position.set(x, SEA.WL, z);
     m.rotation.y = SITE.ryS;
     scene.add(m);
   }
+  /* where to anchor a ship of length len and draught dr, near (u, d0) in frame F: the first spot seaward with dr x 0.8 of water under
+     the whole hull (sampled), else the deepest spot found; hf is the frame's height function */
+  const anchorD = (F, u, len, dr, d0, hf) => {
+    let best = null,
+      bz = 1e9;
+    for (let d = d0; d <= d0 + 700; d += 10) {
+      let worst = -1e9;
+      for (let dd = d - len / 2; dd <= d + len / 2; dd += 15)
+        for (const uu of [u - 8, u, u + 8]) {
+          const [x, z] = F.w(uu, dd);
+          worst = Math.max(worst, hf(x, z));
+        }
+      if (worst < SEA.WL - dr * 0.8) return d;
+      if (worst < bz) (bz = worst), (best = d);
+    }
+    return best;
+  };
+  /* anchored hulls ride the waves where they lie (RIDE); each entry: { m, base y, yaw, ride, e (its target, if any) } */
+  const ANCH = [];
+  const rideAt = (o, dt) => {
+    if (o.e && o.e.dead) return;
+    const m = o.m;
+    if (o.sh) {
+      /* a shuttle (a Daihatsu working a ship): alongside her, run in to the T-head, lie there, run back; 4 knots, turning to her course */
+      const S = o.sh,
+        L = Math.hypot(S.b[0] - S.a[0], S.b[1] - S.a[1]),
+        run = L / 2.1,
+        cyc = 2 * (run + S.wait),
+        t = (performance.now() / 1000 + S.ph) % cyc;
+      let k, back;
+      if (t < S.wait) (k = 0), (back = false);
+      else if (t < S.wait + run) (k = (t - S.wait) / run), (back = false);
+      else if (t < 2 * S.wait + run) (k = 1), (back = true);
+      else (k = 1 - (t - 2 * S.wait - run) / run), (back = true);
+      const e = k * k * (3 - 2 * k);
+      m.position.x = S.a[0] + (S.b[0] - S.a[0]) * e;
+      m.position.z = S.a[1] + (S.b[1] - S.a[1]) * e;
+      const want = back ? Math.atan2(S.b[1] - S.a[1], -(S.b[0] - S.a[0])) : Math.atan2(-(S.b[1] - S.a[1]), S.b[0] - S.a[0]);
+      let dy = want - o.yaw;
+      while (dy > Math.PI) dy -= 2 * Math.PI;
+      while (dy < -Math.PI) dy += 2 * Math.PI;
+      if (k > 0 && k < 1) o.yaw += dy * Math.min(1, dt * 0.8);
+    }
+    RIDE.step(o.ride, m.position.x, m.position.z, Math.cos(o.yaw), -Math.sin(o.yaw), dt, 0);
+    m.matrixAutoUpdate = true;
+    m.position.y = o.y0 + o.ride.hv;
+    m.rotation.set(o.ride.ro, o.yaw, o.ride.pi, 'YXZ');
+  };
+  SITE.anch = ANCH;
+  SITE.rideAt = rideAt;
   const ship = (parts, len, u, d, hp) => target(parts, 'ship', hp, len * 0.3, u, d, SITE.ryS);
   const hullUp = (P) => P; /* ship models are built with their waterline at y = 0 and the keel below it; target() floats them there */
-  ship(hullUp(M.freighter('jp')), 137, -17.5, 225, 150); /* alongside the pier, her stern clear of the beach */
-  ship(hullUp(M.tanker('jp')), 153.5, 18.5, 232, 180);
+  /* the freighter and the tanker at anchor (bows to seaward), each with a Daihatsu or a lighter alongside */
+  const anchorShip = (P, len, dr, beam, u, hp) => {
+    const d = anchorD(SITE, u, len, dr, 230, HR) /* HR: the seabed itself (H stops at the sea surface) */,
+      e = ship(hullUp(P), len, u, d, hp);
+    ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(0.43 * len, 0.45 * beam, len < 60 ? 6 : 9), e });
+    return { e, d };
+  };
+  const afloat = (P, u, d, yaw, len, beam) => {
+    const [m, s1, k0] = asMesh(P),
+      [x, z] = SITE.w(u, d);
+    m.position.set(x, SEA.WL + k0 + s1 / 2, z);
+    m.rotation.y = yaw;
+    scene.add(m);
+    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3) };
+    ANCH.push(o);
+    return o;
+  };
+  const FRT = anchorShip(M.freighter('jp'), 137, 7.8, 18.2, -70, 150),
+    TNK = anchorShip(M.tanker('jp'), 153.5, 9.1, 20, 60, 180);
+  {
+    /* the freighter's Daihatsu: lies alongside her, then runs her cargo in to the T-head and back */
+    const o = afloat(MODELS.get('jp-daihatsu'), -70 + 9.1 + 2.4, FRT.d - 20, SITE.ryS, 14.9, 3.35);
+    o.sh = { a: SITE.w(-70 + 9.1 + 2.4, FRT.d - 20), b: SITE.w(-MOLE.tw / 2 - 2.2, MOLE.d0 + MOLE.L + 12), wait: 60, ph: 0 };
+  }
+  afloat(MODELS.get('jp-lighter'), -70 - 9.1 - 2.6, FRT.d + 10, SITE.ryS, 12, 4);
+  afloat(MODELS.get('jp-lighter'), 60 - 10 - 2.6, TNK.d - 30, SITE.ryS, 12, 4);
+  /* small craft at the T-head: a Daihatsu and a lighter moored to it */
+  afloat(MODELS.get('jp-daihatsu'), -MOLE.tw / 2 - 2.2, MOLE.d0 + MOLE.L - 6, SITE.ryS + Math.PI, 14.9, 3.35);
+  afloat(MODELS.get('jp-lighter'), MOLE.tw / 2 + 2.6, MOLE.d0 + MOLE.L - 7, SITE.ryS, 12, 4);
+  SITE.anchD = { frt: FRT.d, tnk: TNK.d };
   /* a Ukuru-class kaibokan (77.7 m x 9.1 m): the coastal escort that patrols up and down the shore off the port.
      The hull is lofted from stations (flared bow, raked stem, tumblehome-free flush deck with bulwarks); the guns are the same Type 96 25 mm mounts as the bases. */
   const UK = { L: 78, X0: -39, mounts: [[20.5, 3.0], [20.5, -3.0], [-3, 3.55], [-3, -3.55]] };
@@ -302,16 +376,16 @@ const SITES = [],
         y = dk(12);
       P.push(box(10.5, 2.5, 7.0, GREY2, x, y + 1.25, 0), box(10.7, 0.14, 7.2, GREY3, x, y + 2.57, 0));
       P.push(box(7.2, 2.1, 5.6, 0x7c838b, x + 0.4, y + 3.7, 0), box(7.4, 0.14, 5.8, GREY3, x + 0.4, y + 4.82, 0));
-      P.push(box(3.6, 0.9, 3.2, 0x757c84, x - 0.6, y + 5.35, 0), box(3.8, 0.1, 3.4, GREY3, x - 0.6, y + 5.85, 0));
+      P.push(box(3.6, 0.9, 3.2, 0x757c84, x - 0.6, y + 5.34, 0), box(3.8, 0.1, 3.4, GREY3, x - 0.6, y + 5.83, 0)); /* the compass platform, on the house top */
       P.push(box(3.6, 0.12, 10.6, GREY3, x + 0.6, y + 2.68, 0));
       for (const s of [-1, 1]) {
-        P.push(box(3.6, 0.5, 0.05, GREY2, x + 0.6, y + 3.0, s * 5.3), box(0.05, 0.5, 2.0, GREY2, x + 2.4, y + 3.0, s * 4.3));
-        P.push(part(cyl(0.42, 0.42, 0.6, 12), 0x3d4044, x + 0.6, y + 3.3, s * 4.8), part(cyl(0.4, 0.4, 0.05, 12), 0xd8e4f0, x + 1.05, y + 3.4, s * 4.8, 0, 0, Z));
+        P.push(box(3.6, 0.5, 0.05, GREY2, x + 0.6, y + 2.99, s * 5.27), box(0.05, 0.5, 2.0, GREY2, x + 2.37, y + 2.99, s * 4.3)); /* wing screens, on the wing deck's edges */
+        P.push(part(cyl(0.42, 0.42, 0.6, 12), 0x3d4044, x + 0.6, y + 3.04, s * 4.8), part(cyl(0.4, 0.4, 0.05, 12), 0xd8e4f0, x + 1.03, y + 3.14, s * 4.8, 0, 0, Z)); /* searchlight, standing on the wing deck */
         for (let k = -1; k <= 1; k++) P.push(box(0.8, 0.55, 0.06, WIN, x + 0.4 + k * 1.9, y + 3.9, s * 2.83), box(0.8, 0.5, 0.06, WIN, x + k * 2.8, y + 1.5, s * 3.53));
         P.push(box(0.05, 1.5, 0.7, 0x3a3d40, x - 0.5, y + 1.0, s * 3.55 + s * 0.02));
       }
       for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.6, 0.85, WIN, x + 4.03, y + 3.9, k * 1.05), box(0.06, 0.55, 0.8, WIN, x + 5.28, y + 1.5, k * 1.2));
-      P.push(part(cyl(0.8, 0.9, 0.9, 10), 0x6a7077, x - 0.6, y + 6.5, 0), box(0.5, 0.35, 1.4, 0x15171a, x - 0.1, y + 6.55, 0), box(0.18, 0.18, 2.6, 0x3a3d40, x - 0.6, y + 7.15, 0));
+      P.push(part(cyl(0.8, 0.9, 0.9, 10), 0x6a7077, x - 0.6, y + 6.32, 0), box(0.5, 0.35, 1.4, 0x15171a, x - 0.1, y + 6.37, 0), box(0.18, 0.18, 2.6, 0x3a3d40, x - 0.6, y + 6.86, 0)); /* the director on the platform, its rangefinder arms on top */
       P.push(box(1.5, 0.9, 0.12, 0x3a3d40, x + 2.3, y + 5.45, 0), box(0.12, 0.5, 0.12, 0x3a3d40, x + 2.3, y + 4.95, 0)); /* Type 22 radar */
       P.push(box(0.5, 0.3, 0.5, 0x5a5f62, x - 3.4, y + 2.9, 2.0), box(0.5, 0.3, 0.5, 0x5a5f62, x - 3.4, y + 2.9, -2.0));
       /* mast with yard, crow's nest, Type 13 radar and the aerial wires */
@@ -319,9 +393,9 @@ const SITES = [],
         my = y + 2.64;
       P.push(part(cyl(0.14, 0.26, 14, 8), 0x4a4d50, mx, my + 7, 0));
       P.push(box(0.1, 0.1, 5.4, 0x4a4d50, mx, my + 10.5, 0), part(cyl(0.75, 0.75, 0.08, 12), 0x3a3d40, mx, my + 8.2, 0), part(cyl(0.7, 0.7, 0.4, 12), 0x5a5f62, mx, my + 8.0, 0));
-      P.push(part(GX_.sph(8), 0xffe9a8, mx, my + 14.2, 0, 0, 0, 0, 0.12, 0.12, 0.12));
-      for (const z of [-0.9, 0.9]) P.push(box(0.08, 1.7, 0.08, 0x3a3d40, mx + 0.5, my + 12.4, z));
-      for (let r = 0; r < 4; r++) P.push(box(0.08, 0.06, 2.2, 0x2b2d2f, mx + 0.5, my + 11.7 + r * 0.45, 0));
+      P.push(part(GX_.sph(8), 0xffe9a8, mx, my + 14.08, 0, 0, 0, 0, 0.12, 0.12, 0.12)); /* masthead light, on the truck */
+      for (const z of [-0.9, 0.9]) P.push(box(0.08, 1.7, 0.08, 0x3a3d40, mx + 0.08, my + 11.39, z)); /* the Type 13 array's posts, standing on the yard */
+      for (let r = 0; r < 4; r++) P.push(box(0.08, 0.06, 2.2, 0x2b2d2f, mx + 0.08, my + 10.85 + r * 0.45, 0));
       P.push(wire(mx, my + 14, 38.4, dk(38.4) + 1.9, 0), wire(mx, my + 10.5, -38.4, dk(-38.4) + 3.2, 0), wire(mx, my + 10.5, mx - 6, y + 2.6, 2.7), wire(mx, my + 10.5, mx - 6, y + 2.6, -2.7));
     }
     /* funnel: hexagonal, as the class's simplified build had it */
@@ -330,7 +404,7 @@ const SITES = [],
         y = dk(-3);
       P.push(box(6.5, 1.4, 5.2, 0x7a8189, x, y + 0.7, 0), box(6.7, 0.1, 5.4, GREY3, x, y + 1.45, 0));
       P.push(part(cyl(1.45, 1.8, 5.0, 6), 0x6a7077, x, y + 3.9, 0), part(cyl(1.5, 1.5, 0.95, 6), 0x1b1c1e, x, y + 6.0, 0), part(cyl(1.58, 1.58, 0.12, 6), 0x303236, x, y + 6.5, 0));
-      P.push(box(0.05, 4.4, 0.5, 0x303236, x + 1.7, y + 3.6, 0), part(cyl(0.14, 0.14, 2.4, 8), 0x3a3d40, x - 1.9, y + 6.2, 0.7), part(cyl(0.12, 0.12, 2.0, 8), 0x3a3d40, x - 1.9, y + 6.0, -0.7));
+      P.push(box(0.05, 4.4, 0.5, 0x303236, x + 1.7, y + 3.6, 0), part(cyl(0.14, 0.14, 2.4, 8), 0x3a3d40, x - 1.62, y + 6.2, 0.7), part(cyl(0.12, 0.12, 2.0, 8), 0x3a3d40, x - 1.62, y + 6.0, -0.7)); /* steam pipes, against the funnel's after side */
       for (const s of [-1, 1]) P.push(part(cyl(0.45, 0.45, 0.8, 10), 0x4a4d50, x - 1.8, y + 1.9, s * 1.9), part(cyl(0.35, 0.5, 0.4, 10), 0x303236, x - 1.8, y + 2.5, s * 1.9));
     }
     /* after deckhouse with the twin 12 cm mount on its roof */
@@ -341,7 +415,7 @@ const SITES = [],
       for (let k = 0; k < 4; k++) for (const s of [-1, 1]) P.push(box(0.8, 0.5, 0.06, WIN, x - 1.5 + k * 2.4, y + 1.4, s * 3.33));
       P.push(box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, 1.4), box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, -1.4));
       const gy = y + 2.44;
-      P.push(part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0), box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.3, 0), box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.1, 0));
+      P.push(part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0), box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.25, 0), box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.05, 0)); /* the gun house, on its base ring */
       for (const s of [-1, 1]) P.push(rod(0.2, 1.4, 0x3a3d40, x + 1.2, gy + 1.3, s * 0.55), rod(0.11, 4.2, GUN, x + 3.1, gy + 1.3, s * 0.55), rod(0.15, 0.4, GUN, x + 5.2, gy + 1.3, s * 0.55));
       P.push(box(0.1, 0.55, 1.9, 0x15171a, x + 1.1, gy + 1.4, 0));
       for (const s of [-1, 1]) P.push(part(cyl(0.55, 0.55, 0.12, 12), 0xa8742e, x + 1.5, y + 1.3, s * 3.42, Z), part(cyl(0.56, 0.56, 0.1, 12), 0x3a3d40, x + 1.5, y + 1.3, s * 3.46, Z));
@@ -351,7 +425,7 @@ const SITES = [],
       const x = -11,
         y = dk(-11);
       P.push(box(5.6, 0.7, 1.5, 0x8c8f91, x, y + 1.6, s * 3.4), box(1.4, 0.65, 1.0, 0x8c8f91, x + 3.2, y + 1.6, s * 3.4, 0.0), box(2.2, 0.45, 1.2, 0x4a4f52, x - 0.4, y + 2.15, s * 3.4), box(5.9, 0.08, 1.7, 0x2b2d2f, x, y + 1.97, s * 3.4));
-      for (const dx of [-2, 2]) P.push(part(cyl(0.07, 0.07, 2.3, 6), 0x303436, x + dx, y + 1.1, s * 3.4 + s * 0.9, s * 0.35), box(0.12, 0.12, 0.12, 0x303436, x + dx, y + 2.2, s * 3.9));
+      for (const dx of [-2, 2]) P.push(part(cyl(0.07, 0.07, 2.3, 6), 0x303436, x + dx, y + 1.1, s * 3.4 + s * 0.9, -s * 0.35), box(0.12, 0.12, 0.12, 0x303436, x + dx, y + 2.18, s * 3.9)); /* davits, leaning in over the boat to their heads */
     }
     /* stern: depth-charge rails and drums, projectors, throwers, chutes, ensign staff */
     {
@@ -382,7 +456,11 @@ const SITES = [],
   /* her real draught (3.06 m) below the waterline; the model is otherwise built to her plans */
   const ukuruR = () => GX.fit(ukuru(), { D: 3.06 }, new THREE.Matrix4());
   /* the port's patrol vessel: a second Ukuru, alongside (the Japanese side's one patrol type) */
-  ship(ukuruR(), 78, -62, 245, 140);
+  {
+    const d = anchorD(SITE, -175, 78, 3.06, 200, HR),
+      e = ship(ukuruR(), 78, -175, d, 140);
+    ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(33.5, 4.2, 8), e });
+  }
   {
     /* the patrol: a racetrack along the coast 420 m out, 1.9 km long, with a U-turn at each end */
     const u0 = -350,
@@ -475,17 +553,32 @@ const SITES = [],
       }
     };
   }
-  /* cranes either side of the pier root: a tall gantry with a boom reaching toward the water */
-  const crane = () => {
-    /* a timber gantry derrick (the colonial harbour's cargo gear) */
-    const P = [];
-    for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) P.push(part(bx(0.7, 13, 0.7), 0x6a4a2a, x, 6.5, z));
-    P.push(part(bx(11, 1.2, 11), 0x5a4630, 0, 13.2, 0), part(bx(4, 3, 5), 0xb8a070, -2, 15.2, 0));
-    P.push(part(bx(40, 0.9, 1.8), 0x5a4630, 14, 15, 0), part(bx(0.2, 9, 0.2), 0x222222, 30, 10.5, 0), part(bx(1.2, 1.2, 1.2), 0x333333, 30, 6, 0));
-    return P;
-  };
-  target(crane(), 'crane', 70, 15, -34, 40, SITE.ryS);
-  target(crane(), 'crane', 70, 15, 34, 40, SITE.ryS);
+  /* two hand-cranked timber A-frame derricks on the T-head, leaning out over the berths either side (targets, as the cranes were) */
+  for (const s of [-1, 1]) {
+    const u = s * (MOLE.tw / 2 - 3),
+      d = MOLE.d0 + MOLE.L - 5,
+      [x, z] = SITE.w(u, d);
+    target(MODELS.get('jp-aframe-derrick'), 'crane', 70, 8, u, d, SITE.ryA + (s > 0 ? 0 : Math.PI), SEA.WL + MOLE.h + 0.3 - H(x, z));
+  }
+  /* on the mole: the Decauville line from the T-head to the shore with two hand carts, drums under netting at its root, and the
+     navy's dock hands (IJNAS working rig) at the T-head; one static mesh */
+  {
+    const acc = new GX.Acc(),
+      onMole = (P, u, d, yaw) => {
+        const [x, z] = SITE.w(u, d);
+        acc.add(P, GX.xf(x, SEA.WL + MOLE.h + 0.25, z, SITE.ryS + (yaw || 0)));
+      };
+    onMole(MODELS.get('jp-decauville', MOLE.L - 4), 1.2, MOLE.d0, 0);
+    onMole(MODELS.get('jp-rail-cart', true), 1.2, MOLE.d0 + 40, 0);
+    onMole(MODELS.get('jp-rail-cart', false), 1.2, MOLE.d0 + MOLE.L - 12, 0);
+    [['work', -6, -4, Z], ['stand', 4, -3, -2], ['walk', -2, -30, Math.PI], ['stand', -9, 1, 0.5]].forEach(([pose, du, dd, yaw], k) =>
+      onMole(MODELS.get('crew', 'jn', pose, k), du, MOLE.d0 + MOLE.L + dd, yaw),
+    );
+    const [dx, dz] = SITE.w(-30, 62);
+    acc.add(MODELS.get('jp-drum-dump', 7, 4), GX.xf(dx, H(dx, dz), dz, SITE.ryA));
+    const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }));
+    scene.add(m);
+  }
   [['warehouse', -95, -45], ['warehouse', -45, -50], ['warehouse', 10, -52], ['hq', -8, -88], ['bunker', 80, -82]].forEach(([t, u, d]) =>
     bld(t, u, d, SITE.ryA),
   );
@@ -605,21 +698,9 @@ const SITES = [],
   [['truck', -160, DR - 150], ['supply', 40, DR - 160], ['tanker', 180, DR - 150], ['jeep', -60, DR - 130], ['apc', 120, DR - 165]].forEach(
     ([t, u, d], i) => bld(t, u, d, FR.ryA + 0.3 * i),
   );
-  /* control tower on the yard, in front of the hangars (a target) */
+  /* control tower on the yard, in front of the hangars (a target): the reference-built Japanese tower (MODELS 'jp-control-tower') */
   {
-    const P = [],
-      c = 0xb8bcc0;
-    P.push(
-      part(bx(5, 14, 5), c, 0, 7, 0),
-      part(bx(7.6, 0.4, 7.6), 0x8e9398, 0, 14.2, 0),
-      part(bx(7, 2.4, 7), 0x5d6a74, 0, 15.6, 0),
-      part(bx(7.2, 1.3, 7.2), 0x1e2a33, 0, 15.7, 0),
-      part(bx(7.8, 0.35, 7.8), 0x6a6e72, 0, 17.0, 0),
-      part(cyl(0.06, 0.06, 5, 5), 0x2b2d2f, 2, 19.5, 2),
-      part(bx(5.2, 0.5, 5.2), 0xb33a2e, 0, 3.5, 0),
-      part(bx(5.2, 0.5, 5.2), 0xb33a2e, 0, 10.5, 0),
-    );
-    P.push(...FLG.pole('jn', 8, 3.2, 1.8, 17.3, -1.8, 0)); /* the Rising Sun on the tower */
+    const P = MODELS.get('jp-control-tower');
     target(P, 'tower', 60, 9, 0, DR - 190, FR.ryA);
   }
   /* perimeter fence round the whole airfield, with guard towers */
@@ -703,7 +784,7 @@ const SITES = [],
       P = [part(cyl(0.2, 0.34, h, 6), 0x7d6244, tx / 2, ty / 2, tz / 2, sa * lean, 0, -ca * lean)];
     for (let j = 0; j < 9; j++) {
       const a = (j / 9) * 6.2832 + r * 3;
-      P.push(part(bx(4.4, 0.05, 0.75), j % 2 ? 0x3b8a32 : 0x2f7a2a, tx + Math.cos(a) * 2.0, ty + 0.1, tz + Math.sin(a) * 2.0, 0, -a, -0.42));
+      P.push(part(bx(4.4, 0.05, 0.75), j % 2 ? 0x3b8a32 : 0x2f7a2a, tx + Math.cos(a) * 2.0, ty - 0.82, tz + Math.sin(a) * 2.0, 0, -a, -0.42)); /* each frond springs from the crown (its inner end at the trunk's head) and droops */
     }
     P.push(part(GX.sph(6), 0x5a3a1a, tx, ty - 0.1, tz, 0, 0, 0, 0.32, 0.3, 0.32));
     return P;
@@ -720,8 +801,8 @@ const SITES = [],
     part(bx(3.4, 0.5, 3.4), 0x6a5236, 0, 0.25, 0),
     part(cyl(0.26, 0.36, 11, 6), 0x6a4a2a, 0, 5.75, 0),
     part(bx(15, 0.36, 0.36), 0x5a4630, 5.2, 9.2, 0, 0, 0, 0.5),
-    part(bx(0.1, 7, 0.1), 0x222222, 10.4, 5.8, 0),
-    part(bx(1.6, 1.0, 1.4), 0xb8a070, 10.4, 2.0, 0),
+    part(bx(0.1, 9.6, 0.1), 0x222222, 10.4, 7.28, 0) /* the fall, from the boom down to the sling */,
+    part(bx(1.6, 1.0, 1.4), 0xb8a070, 10.4, 2.0, 0) /* the load in its sling */,
     part(bx(1.4, 1.4, 1.2), 0x7a2a22, -1.4, 1.2, 0),
   ];
   const canoe = (c) => [
@@ -776,7 +857,7 @@ const SITES = [],
       flat(F, -130, 130, 40, 66, wy, PLANK, 26, 5, 3);
       const P = [];
       for (let k = -13; k <= 13; k++) for (const dd of [41, 65]) P.push(part(cyl(0.3, 0.3, 11.5, 6), 0x4a3a2a, dd, wy - 5.7, k * 10));
-      P.push(part(bx(0.5, 0.5, 262), 0x5a4630, 66.1, wy - 0.1, 0), part(bx(0.5, 0.5, 262), 0x5a4630, 39.9, wy - 0.1, 0));
+      P.push(part(bx(0.5, 0.5, 262), 0x5a4630, 65, wy - 0.1, 0), part(bx(0.5, 0.5, 262), 0x5a4630, 41, wy - 0.1, 0)); /* the edge beams, on the pile heads */
       S.acc.add(P, L0);
       /* the finger jetty, 190 m out to deep water, with bollards and a little white lighthouse at its end */
       flat(F, -4, 4, 60, 255, wy, PLANK, 2, 40, 3);
@@ -1023,21 +1104,6 @@ const SITES = [],
   };
   /* ----- civilian ships: a freighter and a tanker sail between the two harbours, tie up at the jetty for a while, and sail back ----- */
   const CIV = [];
-  const berthD = (F, u, len) => {
-    for (let d = 100 + len / 2; d <= 215; d += 5) {
-      let ok = true;
-      for (let uu = u - 14; uu <= u + 14 && ok; uu += 14)
-        for (let dd = d - len / 2; dd <= d + len / 2 + 25; dd += 20) {
-          const [x, z] = F.w(uu, dd);
-          if (WH(x, z) > -9.5) {
-            ok = false;
-            break;
-          }
-        }
-      if (ok) return d;
-    }
-    return 160 + len / 2 * 0.2;
-  };
   /* a sea-lane finder: a coarse grid of open deep water (a cell counts only if it and its four neighbours are all at least 14 m deep), a breadth-first search, then the corners pulled tight by line of sight */
   const LANES = (() => {
     const C = 800,
@@ -1124,9 +1190,26 @@ const SITES = [],
     };
     return { route, los };
   })();
-  const mkCiv = (parts, len, FA, FB, u, phase) => {
-    const dA = berthD(FA, u, len),
-      dB = berthD(FB, u, len),
+  /* a far harbour's anchorage for a ship of length len and draught dr: the first spot seaward of the jetty head (255 m) with dr x 0.8 of
+     water under the whole hull, else the deepest found (WH is the far map's seabed) */
+  const anchorFar = (F, u, len, dr) => {
+    let best = 300,
+      bz = 1e9;
+    for (let d = 270 + len / 2; d <= 900; d += 10) {
+      let worst = -1e9;
+      for (let dd = d - len / 2; dd <= d + len / 2; dd += 15)
+        for (const uu of [u - 8, u, u + 8]) {
+          const [x, z] = F.w(uu, dd);
+          worst = Math.max(worst, WH(x, z));
+        }
+      if (worst < SEA.WL - dr * 0.8) return d;
+      if (worst < bz) (bz = worst), (best = d);
+    }
+    return best;
+  };
+  const mkCiv = (parts, len, FA, FB, u, phase, dr) => {
+    const dA = anchorFar(FA, u, len, dr || 8),
+      dB = anchorFar(FB, u, len, dr || 8),
       p0 = FA.w(u, dA),
       p3 = FB.w(u, dB);
     let p1 = null,
@@ -1158,6 +1241,14 @@ const SITES = [],
     }
     const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len };
     CIV.push(c);
+    /* her Daihatsu: works between her and the harbour's jetty head while she lies at anchor (1945 practice: deep-draught ships were
+       unloaded offshore by barge), and waits at that jetty while she is at sea */
+    {
+      const [bm, bs1, bk0] = asMesh(MODELS.get('jp-daihatsu'));
+      scene.add(bm);
+      c.bg = { m: bm, y0: SEA.WL + bk0 + bs1 / 2, ride: RIDE.make(6.4, 1.5, 3), yaw: FA.ryS, u, dA, dB, FA, FB };
+      bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(-9, 245)));
+    }
     /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts */
     c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
     T.push(c.t);
@@ -1212,6 +1303,29 @@ const SITES = [],
     c.m.position.set(cx, SEA.WL + c.k0 + c.s1 / 2 + rd.hv, cz);
     c.m.rotation.set(rd.ro, c.yaw, rd.pi, 'YXZ');
     c.m.children[0].visible = moving;
+    /* the Daihatsu: at anchor (the first or the second dock period) she shuttles ship -> jetty -> ship; at sea it waits at the jetty */
+    const B = c.bg;
+    if (B) {
+      const atB = tt >= c.dock + c.L / c.v,
+        F = atB ? B.FB : B.FA,
+        dd = atB ? B.dB : B.dA,
+        tl = moving ? -1 : (atB ? tt - c.dock - c.L / c.v : tt) / c.dock,
+        P0 = F.w(B.u + Math.sign(B.u) * -(0.07 * c.len + 3), dd - 15) /* alongside her, on the jetty side */,
+        P1 = F.w(-9, 245) /* the jetty head */;
+      let k = 1;
+      if (tl >= 0) k = tl < 0.15 ? 0 : tl < 0.4 ? (tl - 0.15) / 0.25 : tl < 0.6 ? 1 : tl < 0.85 ? 1 - (tl - 0.6) / 0.25 : 0;
+      const e = k * k * (3 - 2 * k),
+        bx = P0[0] + (P1[0] - P0[0]) * e,
+        bz = P0[1] + (P1[1] - P0[1]) * e,
+        dx = P1[0] - P0[0],
+        dz = P1[1] - P0[1],
+        out = tl >= 0.6 && tl < 0.85;
+      if (k > 0 && k < 1) B.yaw = out ? Math.atan2(dz, -dx) : Math.atan2(-dz, dx);
+      if (dt > 0) RIDE.step(B.ride, bx, bz, Math.cos(B.yaw), -Math.sin(B.yaw), dt, 0);
+      B.m.position.set(bx, B.y0 + B.ride.hv, bz);
+      B.m.rotation.set(B.ride.ro, B.yaw, B.ride.pi, 'YXZ');
+      B.m.matrixAutoUpdate = true;
+    }
   };
   /* ----- build everything ----- */
   const farBuild = (F, fn) => {
@@ -1244,8 +1358,8 @@ const SITES = [],
     const ports = FS.list.filter((f) => f.kind === 'port');
     if (ports.length > 1) {
       const [A, B] = ports;
-      mkCiv(M.freighter('jp'), 137, A, B, 13, 0);
-      mkCiv(M.tanker('jp'), 153.5, B, A, -13, 900);
+      mkCiv(M.freighter('jp'), 137, A, B, 70, 0, 7.8); /* anchored either side of the jetty's line, clear of each other */
+      mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
     }
   }
   SITE.far = FARS;
@@ -1274,10 +1388,12 @@ const SITES = [],
         const d = Math.hypot(cam.position.x - c.m.position.x, cam.position.z - c.m.position.z);
         c.vis = PHOTO.on || ROAM.on || d < Math.min(FAR_R, scene.fog.far + 3500) + 2000;
         c.m.traverse((q) => (q.layers.mask = c.vis ? 1 : 2));
+        if (c.bg) c.bg.m.traverse((q) => (q.layers.mask = c.vis ? 1 : 2));
       }
     };
     SITE.pat = (dt) => {
       if (_pat) _pat(dt);
+      for (const o of SITE.anch || []) SITE.rideAt(o, dt); /* the home port's ships and craft at anchor */
       const t = performance.now() / 1000;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
       for (const c of CIV) if (c.vis) updCiv(c, t, dt);

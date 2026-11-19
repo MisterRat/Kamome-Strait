@@ -1,14 +1,14 @@
 # Japanese aircraft tractor (Japanese airbases): game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 3.40 m long, 1.60 m wide, 1.53 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.68 build by `tools/blueprint.py` (2026-11-18). Model box: 3.40 m long, 1.60 m wide, 1.64 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN)
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
-| Length | 3.40 m (11 ft 2 in) | ~3.4 x 1.6 x 1.5 m (Kato 4-ton), vehicle research spec sheet (References) | 3.40 m | +0.00 m (0%) | match |
+| Length | 3.40 m (11 ft 2 in) | ~3.4 x 1.6 x 1.5 m (Kato 4-ton), vehicle research spec sheet (References) | 3.40 m | -0.00 m (0%) | match |
 | Width | 1.60 m (5 ft 3 in) | ~3.4 x 1.6 x 1.5 m, vehicle research spec sheet | 1.60 m | +0.00 m (0%) | match |
-| Height | 1.50 m (4 ft 11 in) | ~3.4 x 1.6 x 1.5 m, vehicle research spec sheet | 1.53 m | +0.03 m (2%) | match |
+| Height | 1.50 m (4 ft 11 in) | ~3.4 x 1.6 x 1.5 m, vehicle research spec sheet | 1.64 m | +0.14 m (9%) | **check** |
 
 Results: match within 3%, close within 8%, **check** beyond that. The box takes in everything drawn: guns, aerials, flags, rigging and figures. Hull-only or body-only sizes can be smaller, so check a **check** result against the drawing before rebuilding anything.
 

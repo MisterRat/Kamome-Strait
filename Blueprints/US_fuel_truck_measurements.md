@@ -1,6 +1,6 @@
 # US fuel bowser (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 6.60 m long, 2.24 m wide, 2.93 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.68 build by `tools/blueprint.py` (2026-11-18). Model box: 6.60 m long, 2.24 m wide, 2.83 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** GMC CCKW 2½-ton 6x6 chassis, fuel truck
 

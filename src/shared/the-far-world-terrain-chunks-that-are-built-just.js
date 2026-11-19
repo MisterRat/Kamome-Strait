@@ -369,10 +369,11 @@ const WORLD = (() => {
         post(-w / 2 + 0.3, d / 2 - 0.3, 1.3),
         post(w / 2 - 0.3, d / 2 - 0.3, 1.3),
         part(bx(w, 0.16, d), 0x7a6240, 0, 1.3, 0),
-        part(bx(w - 0.3, 2.0, d - 0.3), 0xb8a070, 0, 2.4, 0),
-        part(prismG(w + 1.6, 2.9, d + 1.6), 0xa38c46, 0, 3.4, 0),
+        part(bx(w - 0.3, 2.0, d - 0.3), 0xb8a070, 0, 2.37, 0) /* walls, standing on the floor */,
+        part(prismG(w + 1.6, 2.9, d + 1.6), 0xa38c46, 0, 3.36, 0) /* roof, on the walls */,
         part(bx(0.9, 1.5, 0.1), 0x3a2a1c, 0, 2.2, d / 2 - 0.1),
-        part(bx(0.5, 0.12, 0.9), 0x6a5236, 0, 0.7, d / 2 + 0.5),
+        part(bx(0.5, 0.65, 0.5), 0x6a5236, 0, 0.325, d / 2 + 0.25) /* a log step up to the floor, from the ground */,
+        part(bx(0.5, 1.0, 0.4), 0x6a5236, 0, 0.5, d / 2 - 0.05),
       ];
       return { P, T: xf(x, 0, z, yaw) };
     };
@@ -387,8 +388,9 @@ const WORLD = (() => {
         part(bx(1.2, 2.0, 0.12), 0x3a2a1c, 0, 3.4, d / 2 + 0.05),
         part(bx(1.3, 1.1, 0.12), 0x4a6a80, -w * 0.3, 3.7, d / 2 + 0.05),
         part(bx(1.3, 1.1, 0.12), 0x4a6a80, w * 0.3, 3.7, d / 2 + 0.05),
-        part(bx(1.6, 0.14, 2.2), 0x6a5236, 0, 1.0, d / 2 + 1.8),
       );
+      /* the verandah steps, from the ground up to the floor (2.2 m) */
+      for (let k = 0; k < 3; k++) P.push(part(bx(1.6, 2.1 - k * 0.7, 0.6), 0x6a5236, 0, (2.1 - k * 0.7) / 2, d / 2 + 1.2 + 0.3 + k * 0.6));
       return { P, T: xf(x, 0, z, yaw) };
     };
     const pig = (x, z, yaw, c) => {
@@ -403,7 +405,7 @@ const WORLD = (() => {
       return { P, T: xf(x, 0, z, yaw) };
     };
     const hen = (x, z, yaw) => {
-      const P = [part(bx(0.34, 0.36, 0.5), 0xf0ece0, 0, 0.4, 0), part(bx(0.18, 0.3, 0.18), 0xb83a2a, 0, 0.62, 0.28), part(bx(0.06, 0.2, 0.06), 0xc9a227, 0, 0.1, 0)];
+      const P = [part(bx(0.34, 0.36, 0.5), 0xf0ece0, 0, 0.38, 0), part(bx(0.18, 0.3, 0.18), 0xb83a2a, 0, 0.62, 0.28), part(bx(0.06, 0.21, 0.06), 0xc9a227, 0, 0.105, 0)]; /* body on its legs */
       return { P, T: xf(x, 0, z, yaw) };
     };
     const handcart = (x, z, yaw) => {
@@ -414,6 +416,8 @@ const WORLD = (() => {
         part(bx(2.2, 0.35, 0.1), 0x6a4a2a, 0, 1.4, -0.55),
         part(cyl(0.5, 0.5, 0.12, 12), k, 0, 0.5, 0.7, Z, 0, 0),
         part(cyl(0.5, 0.5, 0.12, 12), k, 0, 0.5, -0.7, Z, 0, 0),
+        part(cyl(0.05, 0.05, 1.52, 6), 0x3a3a34, 0, 0.5, 0, Z, 0, 0) /* the axle, through both wheels */,
+        part(bx(0.3, 0.34, 0.9), 0x5a4630, 0, 0.67, 0) /* the cart's bed on its axle */,
         part(bx(1.8, 0.08, 0.08), 0x5a4630, -2.0, 1.0, 0),
         part(bx(0.5, 0.4, 0.45), 0xcdbb88, 0.2, 1.45, 0),
       ];
@@ -499,7 +503,7 @@ const WORLD = (() => {
           part(bx(0.3, 4.6, 0.3), 0x5a4630, -1.1, 2.3, -8.2),
           part(bx(0.3, 4.6, 0.3), 0x5a4630, 1.1, 2.3, -8.2),
           part(bx(2.7, 0.3, 0.3), 0x5a4630, 0, 4.5, -8.2),
-          part(cyl(0, 0.55, 0.9, 8), 0x8a6a2a, 0, 3.8, -8.2),
+          part(cyl(0, 0.55, 0.9, 8), 0x8a6a2a, 0, 3.9, -8.2) /* the bell, hung from the beam */,
           part(bx(0.15, 1.2, 0.15), 0xf0ece0, 0, 6.2, 0),
           part(bx(0.7, 0.15, 0.15), 0xf0ece0, 0, 6.5, 0),
         ],

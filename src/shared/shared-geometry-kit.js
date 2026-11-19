@@ -15,6 +15,7 @@ const GX = (() => {
   const part = (g, hex, x, y, z, rx, ry, rz, sx, sy, sz) => ({
     g,
     hex,
+    src: window.__REC ? new Error().stack.split('\n').slice(2, 5).join(' ') : undefined /* the checker's source lines for each part */,
     m: new M4().compose(
       new V3(x, y, z),
       new Q().setFromEuler(new E(rx || 0, ry || 0, rz || 0)),
@@ -70,6 +71,12 @@ const GX = (() => {
       this.c = [];
     }
     add(parts, T) {
+      /* the connectivity checker (tools/connectivity.py) sets window.__REC before load: every part list built is recorded with its caller */
+      if (window.__REC && parts.length > 1) {
+        const r = { parts, T: T ? T.clone() : null, at: new Error().stack.split('\n').slice(2, 6).join(' | ') };
+        window.__REC.push(r);
+        (this.recs || (this.recs = [])).push(r);
+      }
       const kd = parts.keel; /* a fitted ship: her hull below the waterline (model y < 0) deepened to her real draught (GX.fit) */
       for (const q of parts) {
         const g = q.g.index ? q.g.toNonIndexed() : q.g.clone();
@@ -109,6 +116,15 @@ const GX = (() => {
     }
     geometry() {
       const g = new THREE.BufferGeometry();
+      if (this.recs) {
+        /* the checker assembles multi-mesh models from these: a later move of the geometry (translate, scale) moves its records too */
+        g.userData.recs = this.recs.map((r) => ({ ...r }));
+        const own = g.applyMatrix4;
+        g.applyMatrix4 = function (m) {
+          for (const r of this.userData.recs) r.T = r.T ? new M4().multiplyMatrices(m, r.T) : m.clone();
+          return own.call(this, m);
+        };
+      }
       g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
       g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));

@@ -227,6 +227,185 @@
   ]
  },
  {
+  "id": "jp-daihatsu",
+  "file": "Japanese_Daihatsu_barge",
+  "title": "Daihatsu landing barge (Japanese harbours)",
+  "fwd": "+x",
+  "kind": "ship",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('jp-daihatsu'));",
+  "type": "Daihatsu (Type A) landing barge",
+  "ref": [
+   [
+    "Length",
+    14.88,
+    "14.88 m (Daihatsu, Type A); 14 m in docs/research_1945_bases.md (naval bases)"
+   ],
+   [
+    "Beam",
+    3.35,
+    "3.35 m"
+   ],
+   [
+    "Draught",
+    0.7,
+    "about 0.7 m loaded"
+   ]
+  ],
+  "notes": [
+   "Bow ramp, open well with cargo, steering position aft. Works the anchored ships: at the home port one lies at the T-head and one shuttles between the freighter and the T-head; at each far harbour the civil ship's own barge shuttles to the jetty while she lies at anchor."
+  ]
+ },
+ {
+  "id": "jp-lighter",
+  "file": "Japanese_lighter",
+  "title": "Wooden lighter (Japanese harbours)",
+  "fwd": "+x",
+  "kind": "ship",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('jp-lighter'));",
+  "type": "wooden cargo lighter (unpowered barge)",
+  "ref": [
+   [
+    "Length",
+    12,
+    "about 12 m, docs/research_1945_bases.md (naval bases)"
+   ],
+   [
+    "Beam",
+    4,
+    "about 4 m"
+   ]
+  ],
+  "notes": [
+   "Alongside the anchored ships and at the T-head, loaded with crates and drums."
+  ]
+ },
+ {
+  "id": "jp-aframe-derrick",
+  "file": "Japanese_A-frame_derrick",
+  "title": "Timber A-frame derrick (home port T-head)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('jp-aframe-derrick'));",
+  "type": "hand-cranked timber A-frame derrick (shear legs)",
+  "ref": [
+   [
+    "Height",
+    11,
+    "about 11 m legs (model)"
+   ]
+  ],
+  "notes": [
+   "Two on the T-head, leaning out over the berths; targets (as the old gantry cranes were). From docs/research_1945_bases.md (naval bases)."
+  ]
+ },
+ {
+  "id": "jp-mole",
+  "file": "Japanese_coral_mole",
+  "title": "Coral-block mole with timber T-head (home port)",
+  "fwd": "+x",
+  "kind": "ship",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6));",
+  "type": "coral-block mole (stone jetty) with a timber T-head",
+  "ref": [
+   [
+    "Width",
+    8,
+    "narrow masonry jetties 6-10 m wide, docs/research_1945_bases.md (naval bases)"
+   ]
+  ],
+  "notes": [
+   "112 m from the shore's drop-off to the T-head (24 m wide timber deck on piles); top 2.2 m above still water; tyre fenders, pilings and bollards; the Decauville line runs along it.",
+   "Width is checked on the mole; the overall width is the T-head."
+  ],
+  "measure": {
+   "Width": "__partsSize(MODELS.get('jp-mole', 112, 8, 2.2, 24, -6),[0xc4bda8,0xb3ab95])[2]"
+  }
+ },
+ {
+  "id": "jp-rail-cart",
+  "file": "Japanese_Decauville_cart",
+  "title": "Decauville hand cart on 600 mm track (home port)",
+  "fwd": "+x",
+  "make": "const P = MODELS.get('jp-decauville', 6).concat(MODELS.get('jp-rail-cart', true)); return __bake(P);",
+  "type": "600 mm Decauville track and hand-pushed cart",
+  "ref": [
+   [
+    "Width",
+    1.0,
+    "600 mm gauge track, sleepers about 1 m"
+   ]
+  ],
+  "notes": [
+   "A 6 m length of track shown; on the mole the track runs from the shore to the T-head with two carts."
+  ]
+ },
+ {
+  "id": "jp-drum-dump",
+  "file": "Japanese_drum_dump",
+  "title": "Fuel drums under palm-frond netting (home port)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('jp-drum-dump', 7, 4));",
+  "type": "200-litre drums under camouflage netting",
+  "ref": [
+   [
+    "Height",
+    2.4,
+    "net poles about 2.4 m (model)"
+   ]
+  ],
+  "notes": [
+   "28 drums, some two high, at the root of the mole. From docs/research_1945_bases.md (naval bases)."
+  ]
+ },
+ {
+  "id": "jp-godown",
+  "file": "Japanese_godown",
+  "title": "Timber godown (Japanese ports and bases)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('jp-godown', 24, 14));",
+  "type": "low gable-roofed timber warehouse, mottled camouflage",
+  "ref": [
+   [
+    "Length",
+    24,
+    "the target's footprint (24 x 14 m)"
+   ],
+   [
+    "Width",
+    14,
+    "24 x 14 m"
+   ]
+  ],
+  "notes": [
+   "Deep eaves (1.2 m), stone plinth, sliding doors, mottled dark green and brown. Replaces the generic warehouse everywhere (home port, airbases, far sites).",
+   "Length and width measured on the walls."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[0]",
+   "Width": "__partsSize(MODELS.get('jp-godown', 24, 14),[0x4e5a3c,0x5e4a36,0x3a4630])[2]"
+  }
+ },
+ {
+  "id": "crew-jn",
+  "file": "Japanese_navy_dock_hand",
+  "title": "Japanese navy dock hand (home port)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('crew', 'jn', 'stand', 0));",
+  "type": "IJNAS / naval base working rig, 1945: blue-grey trousers, white singlet, white headband",
+  "ref": [
+   [
+    "Height",
+    1.7,
+    "about 1.6-1.7 m"
+   ]
+  ],
+  "notes": [
+   "On the mole's T-head. Uniform from docs/research_1945_bases.md (ground crews)."
+  ]
+ },
+ {
   "id": "jp-freighter",
   "file": "Japanese_freighter",
   "title": "Japanese freighter",
@@ -888,6 +1067,28 @@
    "Army khaki-brown at the army airbases; the IJN version is navy grey-blue with a yellow anchor on the grille.",
    "Photo: References/Komatsu G40.jpg"
   ]
+ },
+ {
+  "id": "jp-control-tower",
+  "file": "Japanese_control_tower",
+  "title": "Japanese airfield control tower (Japanese airbases)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('jp-control-tower'));",
+  "type": "low reinforced-concrete bunker tower, two storeys",
+  "ref": [
+   [
+    "Height",
+    9,
+    "7-10 m, 2-3 storeys, docs/research_1945_bases.md (airfields)"
+   ]
+  ],
+  "notes": [
+   "Slit windows, flat observation roof with a parapet and a sandbagged AA position, external steel ladders, mottled camouflage, the Rising Sun on the roof.",
+   "Height measured to the parapet's top (8.55 m); the flag staff rises above it."
+  ],
+  "measure": {
+   "Height": "__partsSize(MODELS.get('jp-control-tower'),[0x8a8a7c,0x4e5a3c,0x6a5a40])[1]"
+  }
  },
  {
   "id": "crew",

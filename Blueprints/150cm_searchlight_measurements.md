@@ -1,6 +1,6 @@
 # 150 cm searchlight in its emplacement: game model measured against the references
 
-Measured from the PCE-842 0.61 build by `tools/blueprint.py` (2026-11-18). Model box: 7.00 m long, 7.00 m wide, 3.20 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 7.00 m long, 7.00 m wide, 3.20 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** 150 cm searchlight (Type 96 class)
 

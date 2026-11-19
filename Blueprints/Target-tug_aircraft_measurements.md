@@ -1,6 +1,6 @@
 # Target-towing aircraft: P-51D (gunnery practice): game model measured against the references
 
-Measured from the PCE-842 0.63 build by `tools/blueprint.py` (2026-11-18). Model box: 9.83 m long, 11.28 m wide, 2.86 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 9.83 m long, 11.28 m wide, 2.86 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** North American P-51D Mustang (simplified airfield model, gear up)
 

@@ -435,7 +435,8 @@ const KI84 = (() => {
         add(new THREE.BoxGeometry(0.14, 0.04, 0.03), 0x55585a, x - 0.08, MW.ax + 0.33, sd * (MW.z - 0.1), 0, 0, 0.6);
         add(new THREE.CylinderGeometry(MW.r, MW.r, 0.17, 18), 0x161616, x, MW.ax, sd * MW.z, Math.PI / 2);
         add(new THREE.CylinderGeometry(0.2, 0.2, 0.18, 14), metal, x, MW.ax, sd * MW.z, Math.PI / 2);
-        add(new THREE.BoxGeometry(0.62, 0.9, 0.025), under, x, MW.ax + 0.42, sd * (MW.z + 0.12));
+        add(new THREE.BoxGeometry(0.62, 0.9, 0.025), under, x, MW.ax + 0.42, sd * (MW.z + 0.098)); /* the leg door, outboard of the wheel */
+        add(new THREE.BoxGeometry(0.1, 0.08, 0.24), 0x6c6f70, x, MW.ax + 0.8, sd * (MW.z - 0.005)); /* its bracket on the oleo leg */
         add(new THREE.BoxGeometry(0.62, 0.02, 0.5), under, x, MW.top - 0.22, sd * 0.42, sd * 1.3);
         /* the open wheel well under the wing */
         add(wdecal(WING, 0.36, 0.95, 0.32, sd, false), 0x3a4048);

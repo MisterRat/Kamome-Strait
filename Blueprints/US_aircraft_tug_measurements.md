@@ -1,12 +1,12 @@
 # US aircraft tug (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 2.54 m long, 1.32 m wide, 1.42 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.68 build by `tools/blueprint.py` (2026-11-18). Model box: 2.54 m long, 1.32 m wide, 1.42 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Clark Clarktor 6 aircraft tug
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
-| Length | 2.54 m (8 ft 4 in) | 2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References) | 2.54 m | +0.00 m (0%) | match |
+| Length | 2.54 m (8 ft 4 in) | 2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References) | 2.54 m | -0.00 m (0%) | match |
 | Width | 1.32 m (4 ft 4 in) | 2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References) | 1.32 m | +0.00 m (0%) | match |
 | Height | 1.42 m (4 ft 8 in) | 2.54 x 1.32 x 1.42 m, vehicle research spec sheet (References) | 1.42 m | -0.00 m (0%) | match |
 

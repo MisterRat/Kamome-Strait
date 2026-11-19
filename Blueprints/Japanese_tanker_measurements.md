@@ -1,10 +1,10 @@
 # Japanese tanker: game model measured against the references
 
-Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 153.50 m long, 20.00 m wide, 27.50 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 153.50 m long, 20.00 m wide, 24.77 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Type 2TL wartime standard tanker
 
-**Where she floats in the game:** the still water is 18.40 m below her highest point and 9.10 m above her keel (her draught in the game).
+**Where she floats in the game:** the still water is 15.67 m below her highest point and 9.10 m above her keel (her draught in the game).
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
