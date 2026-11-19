@@ -10,7 +10,7 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Model | Represents | Length x width x height (m) | Check | Files |
 |---|---|---|---|---|
 | North American P-51D Mustang (the player's aircraft) | North American P-51D Mustang | 9.84 x 11.28 x 3.72 | match | `P-51D_blueprint.png`, `P-51D_measurements.md` |
-| P-51D Mustang, parked (home airfield) | North American P-51D Mustang (simplified airfield model) | 9.83 x 11.28 x 2.89 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
+| P-51D Mustang, parked (home airfield) | North American P-51D Mustang (simplified airfield model) | 9.69 x 11.28 x 3.98 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
 | Nakajima Ki-84-Ia Hayate (bandit and raider) | Nakajima Ki-84-Ia Hayate ("Frank") | 9.92 x 11.27 x 3.58 | match | `Ki-84_blueprint.png`, `Ki-84_measurements.md` |
 | Nakajima Ki-84-Ia Hayate, parked | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.76 x 11.27 x 3.81 | **check** | `Ki-84_parked_blueprint.png`, `Ki-84_parked_measurements.md` |
 | Target-towing aircraft: P-51D (gunnery practice) | North American P-51D Mustang (simplified airfield model, gear up) | 9.83 x 11.28 x 2.86 | match | `Target-tug_aircraft_blueprint.png`, `Target-tug_aircraft_measurements.md` |
@@ -48,12 +48,22 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Quonset hut, Stran-Steel 20 x 48 ft (US airfields) | Stran-Steel Quonset hut, 20 x 48 ft | 15.63 x 6.90 x 3.21 | match | `US_Quonset_hut_blueprint.png`, `US_Quonset_hut_measurements.md` |
 | Quonset Elephant hut, 40 x 100 ft (Fletcher Field store) | Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft | 31.48 x 12.99 x 6.26 | match | `US_Quonset_Elephant_hut_blueprint.png`, `US_Quonset_Elephant_hut_measurements.md` |
 | Steel-angle control tower (US airfields) | Bolted steel-angle airfield control tower, 4 storeys | 7.00 x 7.00 x 19.24 | match | `US_control_tower_blueprint.png`, `US_control_tower_measurements.md` |
-| M5 bomb trailer with two 500 lb bombs (Fletcher Field) | M5 2-ton bomb trailer | 3.60 x 1.54 x 1.14 | match | `US_M5_bomb_trailer_blueprint.png`, `US_M5_bomb_trailer_measurements.md` |
-| C-10 auxiliary power unit (Fletcher Field) | C-10 auxiliary power unit (starter cart) | 1.49 x 0.92 x 1.10 | match | `US_C10_power_cart_blueprint.png`, `US_C10_power_cart_measurements.md` |
+| M5 bomb trailer with two 500 lb bombs (Fletcher Field) | M5 2-ton bomb trailer | 3.60 x 1.52 x 1.14 | match | `US_M5_bomb_trailer_blueprint.png`, `US_M5_bomb_trailer_measurements.md` |
+| C-10 auxiliary power unit (Fletcher Field) | C-10 auxiliary power unit (starter cart) | 1.49 x 0.90 x 1.10 | match | `US_C10_power_cart_blueprint.png`, `US_C10_power_cart_measurements.md` |
 | Japanese aircraft tractor (Japanese airbases) | Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN) | 3.40 x 1.60 x 1.64 | **check** | `Japanese_aircraft_tractor_blueprint.png`, `Japanese_aircraft_tractor_measurements.md` |
 | Japanese airfield control tower (Japanese airbases) | low reinforced-concrete bunker tower, two storeys | 9.07 x 8.08 x 13.15 | close | `Japanese_control_tower_blueprint.png`, `Japanese_control_tower_measurements.md` |
 | USAAF ground crewman (home airfield) | USAAF mechanic, 1945: herringbone-twill fatigues (OD #7), A-3 cap | 0.30 x 0.55 x 1.76 | match | `Ground_crewman_blueprint.png`, `Ground_crewman_measurements.md` |
 | Japanese army ground crewman (Japanese airbases) | IJAAF mechanic, 1945: khaki-tan coveralls, field cap with neck flaps, puttees, tabi | 0.30 x 0.55 x 1.68 | match | `Japanese_army_ground_crewman_blueprint.png`, `Japanese_army_ground_crewman_measurements.md` |
 | Type T-14 motor torpedo boat (Gyoraitei) | Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45 | 15.67 x 3.67 x 5.43 | match | `Japanese_T-14_torpedo_boat_blueprint.png`, `Japanese_T-14_torpedo_boat_measurements.md` |
+| Japanese base headquarters (timber, on piers) | IJA/IJN island headquarters building, 1945 | 19.61 x 17.80 x 10.00 | **check** | `Japanese_base_HQ_blueprint.png`, `Japanese_base_HQ_measurements.md` |
+| Japanese earth-covered concrete bunker | earth-covered concrete command bunker / magazine | 15.65 x 13.79 x 6.10 | **check** | `Japanese_bunker_blueprint.png`, `Japanese_bunker_measurements.md` |
+| Japanese timber-framed hangar | IJA/IJN island hangar, corrugated iron on a timber frame | 31.00 x 24.80 x 8.05 | close | `Japanese_hangar_blueprint.png`, `Japanese_hangar_measurements.md` |
+| Japanese buried fuel cistern and drum dump | buried concrete fuel cistern with 200 l drums | 9.20 x 11.41 x 3.06 | **check** | `Japanese_fuel_cistern_blueprint.png`, `Japanese_fuel_cistern_measurements.md` |
+| Pacific outrigger canoe | islanders' dugout outrigger canoe | 6.00 x 2.45 x 0.90 | match | `Pacific_outrigger_canoe_blueprint.png`, `Pacific_outrigger_canoe_measurements.md` |
+| Village stilt hut (thatched) | Pacific island stilt house | 6.00 x 6.70 x 6.99 | **check** | `Village_stilt_hut_blueprint.png`, `Village_stilt_hut_measurements.md` |
+| Planter's bungalow / harbour master's house | colonial planter's house on posts | 11.60 x 11.80 x 6.68 | **check** | `Planters_bungalow_blueprint.png`, `Planters_bungalow_measurements.md` |
+| Village pig | pig (plantation pen) | 1.93 x 0.84 x 0.99 | no reference yet | `Village_pig_blueprint.png`, `Village_pig_measurements.md` |
+| Village hen | hen (plantation) | 0.60 x 0.32 x 0.60 | no reference yet | `Village_hen_blueprint.png`, `Village_hen_measurements.md` |
+| Plantation handcart | two-wheeled wooden handcart | 4.00 x 1.52 x 1.65 | no reference yet | `Village_handcart_blueprint.png`, `Village_handcart_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).

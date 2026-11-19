@@ -86,7 +86,7 @@ AA.load();
   /* ----- 150 cm searchlight on its carriage ----- */
   const lampBase = () => {
     const P = [part(cyl(3.3, 3.5, 0.3, 20), 0x4d432d, 0, 0.13, 0), part(bx(2.0, 0.25, 1.7), 0x4b5238, 0, 0.85, 0), part(cyl(0.38, 0.5, 0.9, 12), 0x3d4038, 0, 1.4, 0)];
-    for (const s of [-1, 1]) P.push(part(cyl(0.52, 0.52, 0.17, 14), 0x16171a, s * 1.15, 0.52, -0.2, 0, 0, Z));
+    for (const s of [-1, 1]) P.push(...GX.tyre(s * 1.15, 0.52, -0.2, 0.52, 0.17, 0x16171a, 0x3d4038, 18, 'x')); /* the carriage's round tyres */
     P.push(part(cyl(0.06, 0.06, 2.46, 8), 0x2a2c26, 0, 0.52, -0.2, 0, 0, Z), part(bx(0.3, 0.2, 0.3), 0x2a2c26, 0, 0.64, -0.2)); /* the axle through both wheels, and its bracket to the platform */
     P.push(
       part(bx(0.16, 0.16, 2.0), 0x3d4038, 0, 0.78, -1.74) /* drawbar, from the platform */,

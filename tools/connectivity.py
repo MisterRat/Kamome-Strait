@@ -22,12 +22,12 @@ CASES = {
     'us-quonset-std': "MODELS.get('us-quonset','std')", 'us-quonset-elephant': "MODELS.get('us-quonset','elephant')",
     'jp-mole': "MODELS.get('jp-mole',112,8,2.2,24,-6)", 'jp-decauville': "MODELS.get('jp-decauville',6)", 'jp-godown': "MODELS.get('jp-godown',24,14)",
     'jp-drum-dump': "MODELS.get('jp-drum-dump',7,4)", 'p51-parked': "AFLD.models.fighter(0xb7bcc2,0xb22a24,{stripes:1,ang:0.4})",
-    'ki84-parked': "KI84.parked({body:0x55603a})", 'drums': "AFLD.models.drums()",
+    'ki84-parked': "KI84.parked({body:0x55603a})", 'jp-hq': "VM.parts('hq')", 'jp-bunker': "VM.parts('bunker')", 'jp-hangar': "VM.parts('hangar')", 'jp-fuel': "VM.parts('fuel')", 'village-hut': "WORLD.PB.hut(0,0,0,5,4).P", 'bungalow': "WORLD.PB.bungalow(0,0,0,9,7).P", 'pig': "WORLD.PB.pig(0,0,0,0xd9a0a0).P", 'hen': "WORLD.PB.hen(0,0,0).P", 'handcart': "WORLD.PB.handcart(0,0,0).P", 'drums': "AFLD.models.drums()",
     'pt105': "__asm(PTB.build('105'))", 'ukuru': "__asm(SITE.patrol.e.m)",
     'p51-player': "typeof model !== 'undefined' ? __meshParts(model) : []", 'ki84-flying': "__asm(KI84.mesh({gear:'up'}))", 'ki84-gear': "__asm(KI84.mesh({gear:'down'}))", 'sled': "__asm(PTB.sled())", 'raft': "typeof ptMesh === 'function' ? __asm(ptMesh('raft')) : []", 'sleeve': "typeof ptMesh === 'function' ? __asm(ptMesh('sleeve')) : []", 'towplane': "typeof ptMesh === 'function' ? __asm(ptMesh('tug')) : []",
 }
 SKIP = {'crew', 'us-quonset', 'jp-mole', 'jp-decauville', 'jp-godown', 'jp-drum-dump'}  # covered by the variants above
-LOOSE = {'jp-drum-dump', 'drums', 'jp-decauville', 'jp-rail-cart'}  # groups of separate objects on the ground (drums, sleepers)
+LOOSE = {'bungalow', 'jp-hq', 'jp-bunker', 'jp-hangar', 'jp-fuel', 'jp-drum-dump', 'drums', 'jp-decauville', 'jp-rail-cart'}  # groups of separate objects on the ground (drums, sleepers)
 BOATS = {'p51-player', 'ki84-flying', 'ki84-gear', 'sled', 'raft', 'towplane', 'sleeve', 'pt105', 'ukuru', 'pce842', 'jp-daihatsu', 'jp-lighter', 'jp-type2a', 'jp-type2tl', 'us-liberty', 'us-t2', 'jp-t14'}
 JS = r"""
 (cases) => {

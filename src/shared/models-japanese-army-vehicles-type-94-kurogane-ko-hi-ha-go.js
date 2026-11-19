@@ -32,7 +32,8 @@
       if (i === 0) P.push(part(bx(0.55, 0.42, 0.42), 0x3a3a34, x, 0.42, 0)); /* front: none; rear: the differential */
       else P.push(part(cyl(0.2, 0.2, 0.36, 10), 0x3a3a34, x, 0.42, 0, Z));
       for (const s of [-1, 1]) {
-        P.push(...W(x, 0.42, s * zw, 0.42, w, TYRE, 0x3b3a33));
+        if (i) for (const d of [-0.11, 0.11]) P.push(...W(x, 0.42, s * zw + d, 0.42, 0.2, TYRE, 0x3b3a33)); /* twin rear tyres */
+        else P.push(...W(x, 0.42, s * zw, 0.42, w, TYRE, 0x3b3a33));
         P.push(part(bx(0.9, FR0 - 0.44, 0.1), 0x2e2e2a, x, (FR0 + 0.44) / 2, s * RZ)); /* leaf spring: axle up to the rail */
       }
     });
@@ -163,8 +164,8 @@
       P.push(part(bx(1.9, 0.2, 0.12), 0x2e2e2a, -1.15, 0.62, sz * 0.62)); /* bogie beam under the rail, out to the track */
       for (const x of [-1.9, -0.4]) P.push(part(bx(0.15, 0.3, 0.3), 0x2e2e2a, x, 0.68, sz * 0.5));
       P.push(GX.ext([[-2.3, 0.45], [-2.1, 0.08], [-0.3, 0.06], [0.05, 0.42], [-0.05, 0.75], [-2.2, 0.72]], 0.32, 0x2a2a26, sz * 0.78));
-      for (const x of [-1.85, -1.4, -0.95, -0.5]) P.push(part(cyl(0.24, 0.24, 0.34, 10), 0x3a3b33, x, 0.3, sz * 0.78, Z));
-      P.push(part(cyl(0.27, 0.27, 0.34, 10), 0x3a3b33, -0.1, 0.48, sz * 0.78, Z), part(cyl(0.22, 0.22, 0.34, 10), 0x3a3b33, -2.18, 0.45, sz * 0.78, Z));
+      for (const x of [-1.85, -1.4, -0.95, -0.5]) P.push(...GX.tyre(x, 0.3, sz * 0.78, 0.24, 0.34, 0x262624, 0x3a3b33, 12)); /* rubber-tyred road wheels */
+      P.push(...GX.tyre(-0.1, 0.48, sz * 0.78, 0.27, 0.34, 0x3a3b33, 0x2e2f29, 12), ...GX.tyre(-2.18, 0.45, sz * 0.78, 0.22, 0.34, 0x3a3b33, 0x2e2f29, 12)); /* sprocket and idler */
     }
     P.push(part(bx(0.5, 0.06, 0.06), DK, -2.45, 0.75, 0)); /* the towing pintle, on the rear cross member */
     return GX.camo(P, [c], C3, 0.9, 1.7);
@@ -196,9 +197,9 @@
     for (const s of [-1, 1]) {
       const z = s * 0.89;
       P.push(GX.ext([[-2.12, 0.5], [-1.88, 0.1], [1.45, 0.08], [1.98, 0.58], [1.88, 0.86], [-1.95, 0.8]], 0.28, 0x262622, z));
-      for (const x of [-1.25, -0.6, 0.15, 0.8]) P.push(part(cyl(0.27, 0.27, 0.3, 10), 0x3a3b33, x, 0.33, z, Z));
+      for (const x of [-1.25, -0.6, 0.15, 0.8]) P.push(...GX.tyre(x, 0.33, z, 0.27, 0.3, 0x262624, 0x3a3b33, 12)); /* rubber-tyred road wheels */
       for (const x of [-0.92, 0.48]) P.push(part(bx(0.85, 0.16, 0.06), 0x3a3b33, x, 0.48, z + s * 0.17), part(cyl(0.12, 0.12, 0.12, 8), 0x3a3b33, x, 0.5, z + s * 0.2, Z)); /* bell cranks and their springs */
-      P.push(part(cyl(0.29, 0.29, 0.3, 10), 0x3a3b33, 1.72, 0.6, z, Z), part(cyl(0.23, 0.23, 0.3, 10), 0x3a3b33, -1.88, 0.5, z, Z));
+      P.push(...GX.tyre(1.72, 0.6, z, 0.29, 0.3, 0x3a3b33, 0x2e2f29, 12), ...GX.tyre(-1.88, 0.5, z, 0.23, 0.3, 0x3a3b33, 0x2e2f29, 12)); /* sprocket and idler */
       for (const x of [-0.6, 0.6]) P.push(part(cyl(0.08, 0.08, 0.3, 6), 0x3a3b33, x, 0.85, z, Z));
       P.push(part(bx(3.8, 0.04, 0.32), c, -0.15, 1.02, z)); /* fender */
     }

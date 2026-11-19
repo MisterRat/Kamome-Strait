@@ -1,6 +1,6 @@
 # Nakajima Ki-84-Ia Hayate, parked: game model measured against the references
 
-Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 9.76 m long, 11.27 m wide, 3.81 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 9.76 m long, 11.27 m wide, 3.81 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Nakajima Ki-84-Ia Hayate ("Frank"), parked
 

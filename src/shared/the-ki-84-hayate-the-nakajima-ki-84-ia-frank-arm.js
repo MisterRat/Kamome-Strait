@@ -433,8 +433,7 @@ const KI84 = (() => {
         add(new THREE.CylinderGeometry(0.06, 0.06, MW.top - MW.ax + 0.05, 8), 0x6c6f70, x, (MW.top + MW.ax) / 2, sd * (MW.z - 0.1));
         add(new THREE.CylinderGeometry(0.045, 0.045, 0.38, 8), 0xb9bcbd, x, MW.ax + 0.24, sd * (MW.z - 0.1));
         add(new THREE.BoxGeometry(0.14, 0.04, 0.03), 0x55585a, x - 0.08, MW.ax + 0.33, sd * (MW.z - 0.1), 0, 0, 0.6);
-        add(new THREE.CylinderGeometry(MW.r, MW.r, 0.17, 18), 0x161616, x, MW.ax, sd * MW.z, Math.PI / 2);
-        add(new THREE.CylinderGeometry(0.2, 0.2, 0.18, 14), metal, x, MW.ax, sd * MW.z, Math.PI / 2);
+        P.push(...GX.tyre(x, MW.ax, sd * MW.z, MW.r, 0.17, 0x161616, metal, 20)); /* the main wheel: round tyre, rim and hub */
         add(new THREE.BoxGeometry(0.62, 0.9, 0.025), under, x, MW.ax + 0.42, sd * (MW.z + 0.098)); /* the leg door, outboard of the wheel */
         add(new THREE.BoxGeometry(0.1, 0.08, 0.24), 0x6c6f70, x, MW.ax + 0.8, sd * (MW.z - 0.005)); /* its bracket on the oleo leg */
         add(new THREE.BoxGeometry(0.62, 0.02, 0.5), under, x, MW.top - 0.22, sd * 0.42, sd * 1.3);
@@ -443,7 +442,7 @@ const KI84 = (() => {
       }
       /* the tail wheel */
       add(new THREE.CylinderGeometry(0.035, 0.035, 0.36, 6), 0x6c6f70, X(8.7), -0.3, 0, 0, 0, 0.25);
-      add(new THREE.CylinderGeometry(0.13, 0.13, 0.09, 14), 0x161616, X(8.75), -0.47, 0, Math.PI / 2);
+      P.push(...GX.tyre(X(8.75), -0.47, 0, 0.13, 0.09, 0x161616, 0x6c6f70, 14)); /* the tail wheel */
     } else {
       /* gear up: the doors flush under the wing */
       for (const sd of [-1, 1]) add(wdecal(WING, 0.36, 0.95, 0.32, sd, false), line(under));

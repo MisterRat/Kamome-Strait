@@ -1215,5 +1215,182 @@
       "Pilothouse forward of amidships with a raked three-pane windscreen; the open cockpit abaft it under a canvas hood, with the wheel; a signal mast with yard and masthead lamp on the pilothouse roof.",
       "Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner."
     ]
+  },
+  {
+    "id": "jp-hq",
+    "file": "Japanese_base_HQ",
+    "title": "Japanese base headquarters (timber, on piers)",
+    "fwd": "+z",
+    "make": "return __bake(VM.parts('hq'));",
+    "type": "IJA/IJN island headquarters building, 1945",
+    "ref": [
+      [
+        "Length",
+        15.6,
+        "walls 15.6 x 9.4 m inside the target's 16 x 12 m footprint (game target size)"
+      ],
+      [
+        "Width",
+        null,
+        "9.4 m walls plus a 2.3 m veranda"
+      ]
+    ],
+    "notes": [
+      "docs/research_1945_bases.md (Airfields: dispersed wooden buildings; Naval bases): a single-storey timber building on concrete piers, weatherboard walls, windows with folding shutters, a veranda with posts and a hand rail, a hipped corrugated-iron roof with 1 m eaves; radio mast with guys, flagstaff with the ensign, sandbag blast walls and a signboard at the steps."
+    ]
+  },
+  {
+    "id": "jp-bunker",
+    "file": "Japanese_bunker",
+    "title": "Japanese earth-covered concrete bunker",
+    "fwd": "+z",
+    "make": "return __bake(VM.parts('bunker'));",
+    "type": "earth-covered concrete command bunker / magazine",
+    "ref": [
+      [
+        "Length",
+        14,
+        "mound 14 m across (game target size)"
+      ],
+      [
+        "Height",
+        3.15,
+        "3.15 m mound"
+      ]
+    ],
+    "notes": [
+      "docs/research_1945_bases.md (Buildings: earth-covered concrete magazines): a turfed coral mound over the concrete box, the concrete portal with steel door and embrasure, vent pipes, periscope housing, aerial, palm fronds, sandbag blast walls."
+    ]
+  },
+  {
+    "id": "jp-hangar",
+    "file": "Japanese_hangar",
+    "title": "Japanese timber-framed hangar",
+    "fwd": "+z",
+    "make": "return __bake(VM.parts('hangar'));",
+    "type": "IJA/IJN island hangar, corrugated iron on a timber frame",
+    "ref": [
+      [
+        "Length",
+        30,
+        "30 m deep (game target size)"
+      ],
+      [
+        "Height",
+        8,
+        "ridge 7.85 m"
+      ]
+    ],
+    "notes": [
+      "docs/research_1945_bases.md (Buildings: low corrugated-iron or timber sheds): timber king-post trusses, low gable roof, open front with four sliding doors on a top rail, strip windows, a lean-to workshop; mottled dark green and brown like the godowns."
+    ]
+  },
+  {
+    "id": "jp-fuel",
+    "file": "Japanese_fuel_cistern",
+    "title": "Japanese buried fuel cistern and drum dump",
+    "fwd": "+z",
+    "make": "return __bake(VM.parts('fuel'));",
+    "type": "buried concrete fuel cistern with 200 l drums",
+    "ref": [
+      [
+        "Width",
+        9.2,
+        "7 m cistern in a 9.2 m earth bank (game target 9 m)"
+      ]
+    ],
+    "notes": [
+      "docs/research_1945_bases.md (Fuel: buried concrete cisterns, stacks of 200 l drums in the tree line): the cistern banked with earth, domed roof, manhole, vent, filling pipe to a valve stand; drums under palm-frond netting on posts."
+    ]
+  },
+  {
+    "id": "pac-canoe",
+    "file": "Pacific_outrigger_canoe",
+    "title": "Pacific outrigger canoe",
+    "fwd": "+x",
+    "make": "return __bake(MODELS.get('pac-canoe'));",
+    "type": "islanders' dugout outrigger canoe",
+    "ref": [
+      [
+        "Length",
+        6.0,
+        "about 6 m dugout (village craft)"
+      ]
+    ],
+    "notes": [
+      "A dugout hull with raised pointed ends, open inside, an outrigger float on two booms with forked stanchions, a paddle; drawn up on the beaches of the harbours and villages."
+    ]
+  },
+  {
+    "id": "village-hut",
+    "file": "Village_stilt_hut",
+    "title": "Village stilt hut (thatched)",
+    "fwd": "+z",
+    "make": "return __bake(WORLD.PB.hut(0,0,0,5,4).P);",
+    "type": "Pacific island stilt house",
+    "ref": [
+      [
+        "Length",
+        5.0,
+        "5 x 4 m floor (game size)"
+      ]
+    ],
+    "notes": [
+      "Woven walls on a split-palm floor on six posts, steep thatch with thick eaves, ridge pole and crossed gable horns, a door and window, a pole ladder."
+    ]
+  },
+  {
+    "id": "bungalow",
+    "file": "Planters_bungalow",
+    "title": "Planter's bungalow / harbour master's house",
+    "fwd": "+z",
+    "make": "return __bake(WORLD.PB.bungalow(0,0,0,9,7).P);",
+    "type": "colonial planter's house on posts",
+    "ref": [
+      [
+        "Length",
+        9.0,
+        "9 x 7 m house (game size)"
+      ]
+    ],
+    "notes": [
+      "Whitewashed walls raised 2.2 m on posts, verandah all round with posts and rail, shuttered windows, a hipped corrugated-iron roof meeting the walls, steps to the door."
+    ]
+  },
+  {
+    "id": "pig",
+    "file": "Village_pig",
+    "title": "Village pig",
+    "fwd": "+z",
+    "make": "return __bake(WORLD.PB.pig(0,0,0,0xd9a0a0).P);",
+    "type": "pig (plantation pen)",
+    "ref": [],
+    "notes": [
+      "Plantation livestock."
+    ]
+  },
+  {
+    "id": "hen",
+    "file": "Village_hen",
+    "title": "Village hen",
+    "fwd": "+z",
+    "make": "return __bake(WORLD.PB.hen(0,0,0).P);",
+    "type": "hen (plantation)",
+    "ref": [],
+    "notes": [
+      "Plantation livestock."
+    ]
+  },
+  {
+    "id": "handcart",
+    "file": "Village_handcart",
+    "title": "Plantation handcart",
+    "fwd": "+x",
+    "make": "return __bake(WORLD.PB.handcart(0,0,0).P);",
+    "type": "two-wheeled wooden handcart",
+    "ref": [],
+    "notes": [
+      "Wooden bed on an axle with iron-shod wheels, shafts."
+    ]
   }
 ]

@@ -10,158 +10,8 @@
     acc.add(P, xf(x, 0.12, z, yaw));
     BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
   };
-  const wheel = (x, z, r, w) => part(cyl(r, r, w, 10), 0x151515, x, r, z, Z);
-  /* ---- smooth lifting surfaces: a lofted aerofoil section (rounded nose, thin tail) through any number of stations, so wings and
-     fins are tapered and rounded instead of boxes. Station = [z, xLeadingEdge, xTrailingEdge, yCentre, thickness]; z runs ascending. ---- */
-  const FR = [
-    [0, 0],
-    [0.04, 0.45],
-    [0.15, 0.8],
-    [0.35, 1],
-    [0.65, 0.75],
-    [0.9, 0.22],
-    [1, 0],
-    [0.9, -0.18],
-    [0.65, -0.55],
-    [0.35, -0.8],
-    [0.15, -0.7],
-    [0.04, -0.42],
-  ];
-  const foil = (st) => {
-    const n = FR.length,
-      pos = [],
-      idx = [];
-    for (const [z, xl, xt, y, t] of st) for (const [u, v] of FR) pos.push(xl + (xt - xl) * u, y + (v * t) / 2, z);
-    const V = (i, j) => i * n + (j % n);
-    const qd = [];
-    for (let i = 0; i < st.length - 1; i++) for (let j = 0; j < n; j++) qd.push([V(i, j), V(i + 1, j), V(i, j + 1), V(i + 1, j + 1)]);
-    /* work out which way round the triangles must go so the upper surface faces up */
-    const P = (k) => [pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]],
-      a = P(V(0, 3)),
-      b = P(V(1, 3)),
-      c = P(V(0, 4)),
-      ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]),
-      fl = ny < 0;
-    for (const [p0, p1, p2, p3] of qd) {
-      if (fl) idx.push(p0, p2, p1, p1, p2, p3);
-      else idx.push(p0, p1, p2, p2, p1, p3);
-    }
-    /* the two ends: a fan around the section centre, copied vertices so the edge stays crisp */
-    for (const end of [0, st.length - 1]) {
-      const base = pos.length / 3,
-        [z, xl, xt, y] = st[end];
-      for (let j = 0; j < n; j++) pos.push(pos[V(end, j) * 3], pos[V(end, j) * 3 + 1], pos[V(end, j) * 3 + 2]);
-      pos.push((xl + xt) / 2, y, z);
-      const cc = base + n,
-        up = end ? 1 : -1; /* the outward direction along z */
-      for (let j = 0; j < n; j++) {
-        const p = base + j,
-          q = base + ((j + 1) % n),
-          // the sign of the z component of (q-p)x(cc-p) decides the winding
-          cz = (pos[q * 3] - pos[p * 3]) * (pos[cc * 3 + 1] - pos[p * 3 + 1]) - (pos[q * 3 + 1] - pos[p * 3 + 1]) * (pos[cc * 3] - pos[p * 3]);
-        if (cz * up > 0) idx.push(p, q, cc);
-        else idx.push(p, cc, q);
-      }
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setIndex(idx);
-    g.computeVertexNormals();
-    return g;
-  };
-  /* a wing from a chord table [[|z|, chord]...]: the quarter-chord line sits at x = qx(z); thickness is tk x chord; y rises with dihedral.
-     Returns a builder for the whole wing or for a slice of it (z0..z1, chord fraction f0..f1 from the nose) made a little fatter by infl. */
-  const mkWing = (tbl, qx, y0, dih, tk) => {
-    const cz = (z) => {
-      z = Math.abs(z);
-      for (let i = 0; i < tbl.length - 1; i++)
-        if (z <= tbl[i + 1][0]) return tbl[i][1] + ((tbl[i + 1][1] - tbl[i][1]) * (z - tbl[i][0])) / (tbl[i + 1][0] - tbl[i][0] || 1);
-      return tbl[tbl.length - 1][1];
-    };
-    const W = {
-      c: cz,
-      y: (z) => y0 + dih * Math.abs(z),
-      top: (z) => y0 + dih * Math.abs(z) + (tk * cz(z)) / 2,
-      build(z0, z1, f0, f1, infl) {
-        f0 = f0 || 0;
-        f1 = f1 == null ? 1 : f1;
-        infl = infl || 0;
-        const zs = new Set([z0, z1]);
-        for (const [z] of tbl) for (const s of [-1, 1]) if (s * z > z0 && s * z < z1) zs.add(s * z);
-        return foil(
-          [...zs]
-            .sort((p, q) => p - q)
-            .map((z) => {
-              const c = cz(z),
-                xq = qx(z);
-              return [z, xq + 0.25 * c - f0 * c + (f0 ? 0 : infl), xq + 0.25 * c - f1 * c - (f1 < 1 ? 0 : infl), W.y(z), tk * c + infl];
-            }),
-        );
-      },
-    };
-    return W;
-  };
-  /* a fin standing up from the fuselage (root buried inside it): quarter-chord at x = xq0 - sweep*h, chord c0 -> c1, height h;
-     f0..f1 is the part of the chord (a fin takes 0..0.62, a rudder 0.62..1). Built lying along z; stand it up with rx = -Z. */
-  const mkFin = (xq0, sweep, c0, c1, h, f0, f1, tfac) =>
-    foil(
-      [-0.2, 0.0, h * 0.5, h * 0.9, h].map((z) => {
-        const k = Math.max(0, z) / h,
-          c = c0 + (c1 - c0) * k,
-          xq = xq0 - sweep * Math.max(0, z);
-        return [z, xq + 0.25 * c - f0 * c, xq + 0.25 * c - f1 * c, 0, (tfac || 0.11) * c * (k > 0.9 ? 0.6 : 1)];
-      }),
-    );
-  const PW = mkWing([[0, 2.7], [1.0, 2.6], [2.4, 2.2], [3.6, 1.85], [4.7, 1.4], [5.15, 1.0], [5.4, 0.55]], (z) => 0.6 - 0.05 * Math.abs(z), Y - 0.45, 0.02, 0.15),
-    PT = mkWing([[0, 1.15], [1.0, 1.0], [1.6, 0.75], [1.9, 0.4], [1.97, 0.15]], () => -4.35, Y + 0.2, 0.012, 0.09),
-    KW = mkWing([[0, 2.6], [1.2, 2.5], [3.0, 2.05], [4.4, 1.5], [5.2, 1.05], [5.5, 0.65], [5.62, 0.3]], (z) => 0.2 - 0.03 * Math.abs(z), Y - 0.45, 0.022, 0.15);
-  /* a parked P-51 style fighter, nose toward local +x */
-  const fighter = (body, trim, o) => {
-    o = o || {};
-    const P = [],
-      under = o.under || 0x8c9096;
-    P.push(part(cyl(0.78, 0.32, 7.8), body, -0.5, Y, 0, 0, 0, -Z));
-    P.push(part(cyl(0.6, 0.78, 1.2), trim, 4.0, Y, 0, 0, 0, -Z));
-    P.push(part(new THREE.ConeGeometry(0.32, 0.9, 12), o.spin || 0x1d1d1d, 5.05, Y, 0, 0, 0, -Z));
-    P.push(part(bx(1.5, 0.5, 0.7), under, -0.2, Y - 0.85, 0));
-    P.push(part(sph(), 0x27384a, -0.6, Y + 0.62, 0, 0, 0, 0, 1.15, 0.5, 0.45));
-    P.push(part(PW.build(-5.4, 5.4), body, 0, 0, 0));
-    P.push(part(PT.build(-1.97, 1.97), body, 0, 0, 0));
-    if (!o.air)
-      for (const s of [-1, 1]) {
-        P.push(part(bx(0.12, 0.95, 0.12), 0x6d7176, 0.3, 0.58, s * 1.35));
-        P.push(wheel(0.3, s * 1.35, 0.4, 0.22));
-        P.push(part(bx(0.14, 0.5, 0.7), under, 0.3, Y - 0.75, s * 1.35));
-      }
-    P.push(part(mkFin(-3.9, 0.35, 1.6, 0.75, 1.55, 0, 0.62), body, 0, Y + 0.1, 0, -Z)); /* fin, rooted in the fuselage */
-    P.push(part(mkFin(-3.9, 0.35, 1.6, 0.75, 1.55, 0.62, 1, 0.07), trim, 0, Y + 0.1, 0, -Z)); /* rudder */
-    if (!o.air) {
-      P.push(part(bx(0.08, 1.0, 0.08), 0x6d7176, -4.0, 0.7, 0));
-      P.push(part(sph(), 0x151515, -4.0, 0.17, 0, 0, 0, 0, 0.17, 0.17, 0.17));
-    }
-    const a = o.ang || 0;
-    P.push(part(bx(0.06, 3.0, 0.22), 0x181818, 4.62, Y, 0, a));
-    P.push(part(bx(0.06, 3.0, 0.22), 0x181818, 4.62, Y, 0, a + Z));
-    if (o.stripes) {
-      let k = 0;
-      for (const z of [2.3, 2.75, 3.2, 3.65, 4.1]) {
-        P.push(part(PW.build(z - 0.2, z + 0.2, 0, 1, 0.02), k++ % 2 ? 0x15151a : 0xf1f1ec, 0, 0, 0));
-        P.push(part(PW.build(-z - 0.2, -z + 0.2, 0, 1, 0.02), k % 2 ? 0x15151a : 0xf1f1ec, 0, 0, 0));
-      }
-      for (const [x, c] of [
-        [-3.5, 0xf1f1ec],
-        [-3.15, 0x15151a],
-        [-2.8, 0xf1f1ec],
-      ])
-        P.push(part(cyl(0.43, 0.43, 0.3), c, x, Y, 0, 0, 0, -Z));
-    } else
-      for (const s of [-1, 1]) {
-        P.push(part(cyl(0.42, 0.42, 0.04), 0x23346a, 0.05, PW.top(3.1) + 0.012, s * 3.1));
-      }
-    if (o.tanks)
-      for (const s of [-1, 1]) P.push(part(cyl(0.3, 0.3, 2.4, 10), 0xa5aaaf, 0.4, Y - 0.88, s * 2.7, 0, 0, -Z));
-    return P;
-  };
+  /* a parked P-51D: the scenery model built from the player's factory tables (MODELS 'us-p51d'), nose toward +x, wheels on y = 0 */
+  const fighter = (body, trim, o) => MODELS.get('us-p51d', body, trim, o);
   /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
   const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI });
 
@@ -179,7 +29,7 @@
      tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
   const FIT = {},
     fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
-    fighterR = (body, trim, o) => GX.fit(fighter(body, trim, o), null, fitOnce('p51', fighter(0, 0, {}), { L: 9.83, W: 11.28, H: null })),
+    fighterR = (body, trim, o) => fighter(body, trim, o) /* built to its real size (9.83 m x 11.28 m) */,
     /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
     cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
     fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),

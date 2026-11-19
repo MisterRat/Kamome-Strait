@@ -861,30 +861,6 @@ const SITES = [],
     P.push(part(GX.sph(6), 0x5a3a1a, tx, ty - 0.1, tz, 0, 0, 0, 0.32, 0.3, 0.32));
     return P;
   };
-  /* a corrugated-iron shed with timber walls: its long side along x, the door on +z */
-  const shed = (L, W, wall, roof) => [
-    part(bx(L, 3.4, W), wall, 0, 1.7, 0),
-    part(prismG(W + 1.4, 2.0, L + 1.4), roof, 0, 3.4, 0, 0, ZZ),
-    part(bx(4.2, 2.8, 0.14), 0x3a2a1c, 0, 1.4, W / 2 + 0.05),
-    part(bx(L, 0.3, W + 0.1), 0x6a5a40, 0, 0.15, 0),
-  ];
-  /* a timber derrick for working cargo: a mast, a slanting boom, a platform */
-  const derrick = () => [
-    part(bx(3.4, 0.5, 3.4), 0x6a5236, 0, 0.25, 0),
-    part(cyl(0.26, 0.36, 11, 6), 0x6a4a2a, 0, 5.75, 0),
-    part(bx(15, 0.36, 0.36), 0x5a4630, 5.2, 9.2, 0, 0, 0, 0.5),
-    part(bx(0.1, 9.6, 0.1), 0x222222, 10.4, 7.28, 0) /* the fall, from the boom down to the sling */,
-    part(bx(1.6, 1.0, 1.4), 0xb8a070, 10.4, 2.0, 0) /* the load in its sling */,
-    part(bx(1.4, 1.4, 1.2), 0x7a2a22, -1.4, 1.2, 0),
-  ];
-  const canoe = (c) => [
-    part(bx(6.0, 0.5, 0.75), c, 0, 0.45, 0),
-    part(bx(1.0, 0.5, 0.7), c, 3.2, 0.7, 0, 0, 0, 0.45),
-    part(bx(1.0, 0.5, 0.7), c, -3.2, 0.7, 0, 0, 0, -0.45),
-    part(cyl(0.16, 0.16, 4.6, 6), 0x8a6a44, 0, 0.3, 2.0, 0, 0, ZZ),
-    part(bx(0.1, 0.1, 1.7), 0x6a4a2a, 1.3, 0.55, 1.2),
-    part(bx(0.1, 0.1, 1.7), 0x6a4a2a, -1.3, 0.55, 1.2),
-  ];
   const stack = (r) => {
     const P = [];
     for (let i = 0; i < 6; i++) P.push(part(cyl(0.45, 0.45, 0.9, 8), i % 2 ? 0x5b3a2a : 0x3a4a5a, (i % 3) * 1.0 - 1, 0.45, (i >> 1) * 1.0 - 0.5));
@@ -892,22 +868,6 @@ const SITES = [],
     for (let i = 0; i < 4; i++) P.push(part(bx(0.9, 0.5, 0.6), 0xb8a070, -3 + (i % 2) * 1.0, 0.3 + (i >> 1) * 0.5, 0.4 * (i >> 1)));
     return P;
   };
-  /* a moored schooner: black hull, white deckhouse, two masts and furled gaff sails (alongside the jetty, +x forward) */
-  const schooner = () => [
-    part(bx(14, 2.6, 5.2), 0x23313c, 0, 0.4, 0),
-    part(bx(6, 2.6, 3.4), 0x23313c, 9.5, 0.4, 0, 0, 0, 0),
-    part(bx(4, 2.4, 4.4), 0x23313c, -8.6, 0.4, 0),
-    part(bx(7, 0.2, 5.4), 0x6a5236, 0, 1.75, 0),
-    part(bx(4.6, 1.7, 3.2), 0xe8e4d8, -3.5, 2.7, 0),
-    part(bx(4.8, 0.2, 3.4), 0x8a2a22, -3.5, 3.6, 0),
-    part(cyl(0.16, 0.22, 12, 6), 0x6a4a2a, 3.2, 7.4, 0),
-    part(cyl(0.14, 0.2, 10.5, 6), 0x6a4a2a, -7.0, 6.6, 0),
-    part(bx(7, 0.16, 0.16), 0x6a4a2a, 0.6, 4.6, 0),
-    part(bx(6, 0.16, 0.16), 0x6a4a2a, -9.5, 4.2, 0),
-    part(bx(6.6, 0.2, 0.5), 0xd8d2bc, 0.6, 5.2, 0),
-    part(bx(5.6, 0.2, 0.5), 0xd8d2bc, -9.2, 4.8, 0),
-    part(cyl(0.1, 0.12, 7, 5), 0x6a4a2a, 14, 2.9, 0, 0, 0, -1.1),
-  ];
   /* ----- the harbour ----- */
   /* the colonial harbour in frame F. full: a whole new port (yard, wharf, jetty, sheds, village). The home port keeps its own quay, buildings and targets and is dressed only. */
   const harbour = (F, full, seed) => {
@@ -940,10 +900,9 @@ const SITES = [],
       S.acc.add(J, L0);
       use(-135, 135, 36, 70);
       /* four long sheds along the back of the yard (timber walls, rusty and grey iron) */
-      const roofs = [0x8e9494, 0x9b4a35, 0x8e9494, 0xa05a3a];
       FR = F;
       for (let i = 0; i < 4; i++) {
-        target(shed(34, 15, 0xa8946a, roofs[i]), 'warehouse', 40, 17, -140 + i * 62, -62, YF); /* under the Hinomaru, so a target */
+        target(MODELS.get('jp-godown', 34, 15), 'warehouse', 40, 17, -140 + i * 62, -62, YF); /* a timber godown (the waterfront piece), under the Hinomaru, so a target */
         use(-160 + i * 62, -120 + i * 62, -75, -48);
       }
       FR = SITE;
@@ -957,8 +916,9 @@ const SITES = [],
       use(140, 185, -40, 5);
       FR = F;
       for (const u of [-50, 50]) {
-        const [ex, ez] = F.w(u, 52);
-        target(derrick(), 'crane', 30, 7, u, 52, YS, wy - H(ex, ez));
+        /* hand-cranked timber A-frame derricks at the wharf's edge, leaning out over the water */
+        const [ex, ez] = F.w(u, 61);
+        target(MODELS.get('jp-aframe-derrick'), 'crane', 30, 7, u, 61, YS, wy - H(ex, ez));
       }
       FR = SITE;
       for (let i = 0; i < 6; i++) S.at(stack(), -100 + i * 38, 22 + (i % 2) * 4, YA + i, pad);
@@ -969,10 +929,10 @@ const SITES = [],
         S.at(PB.hut(0, 0, 0, 5 + (i % 3) * 0.5, 4 + (i % 2) * 0.5).P, u, d, r() * 6.28);
         use(u - 5, u + 5, d - 5, d + 5);
       }
-      /* canoes drawn up above the tide line and a schooner alongside the jetty */
+      /* outrigger canoes drawn up above the tide line */
       const cc2 = [0x7a5a38, 0x3a6a78, 0x8a3a2a, 0x6a6a3a, 0x7a5a38];
-      for (let i = 0; i < 5; i++) S.at(canoe(cc2[i]), -150 + i * 12, 34, YA + (r() - 0.5) * 0.4, pad + 0.2);
-      for (let i = 0; i < 4; i++) S.at(canoe(cc2[i]), 70 + i * 12, 34, YA + (r() - 0.5) * 0.4, pad + 0.2);
+      for (let i = 0; i < 5; i++) S.at(MODELS.get('pac-canoe', cc2[i]), -150 + i * 12, 34, YA + (r() - 0.5) * 0.4, pad + 0.12);
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('pac-canoe', cc2[i]), 70 + i * 12, 34, YA + (r() - 0.5) * 0.4, pad + 0.12);
     } else {
       /* the home port: huts and palms beyond its own buildings, canoes on the beach, a timber derrick pair stays as the cranes */
       use(-135, 135, -100, 70);
@@ -985,7 +945,7 @@ const SITES = [],
       }
       S.at(FLG.pole('jp', 11, 2.7, 0, 0, 0, 0), 150, -60, YA);
       const cc2 = [0x7a5a38, 0x3a6a78, 0x8a3a2a, 0x6a6a3a];
-      for (let i = 0; i < 4; i++) S.at(canoe(cc2[i]), -170 + i * 9, 24 + (i % 2) * 5, YA + (r() - 0.5) * 0.4, null);
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('pac-canoe', cc2[i]), -170 + i * 9, 24 + (i % 2) * 5, YA + (r() - 0.5) * 0.4, null);
     }
     /* the coast battery: two 12 cm/45 guns either side of the harbour (THE COAST BATTERIES) */
     COAST.port(F, r, taken, use);

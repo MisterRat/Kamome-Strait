@@ -308,104 +308,89 @@ const WORLD = (() => {
       return g;
     };
     const Z = Math.PI / 2;
-    const house = (x, z, yaw, w, d, wall, roof) => {
-      /* the front (door) faces +z of the group, turned by yaw about (x, z) */
-      const P = [
-        part(bx(w, 6.5, d), wall, 0, 0.75, 0),
-        part(prismG(w + 1, 2.8, d + 1), roof, 0, 4, 0),
-        part(bx(1, 2.2, 1), 0x7a5a48, w * 0.25, 5.4, 0),
-        part(bx(1.1, 2.1, 0.12), 0x4a3426, 0, 1.05, d / 2 + 0.05),
-        part(bx(1.3, 1.2, 0.12), 0x4a6a80, -w * 0.28, 2.1, d / 2 + 0.05),
-        part(bx(1.3, 1.2, 0.12), 0x4a6a80, w * 0.28, 2.1, d / 2 + 0.05),
-      ];
-      return { P, T: xf(x, 0, z, yaw) };
-    };
-    const cow = (x, z, yaw, coat) => {
-      const P = [
-        part(bx(0.9, 1.0, 2.0), coat, 0, 1.1, 0),
-        part(bx(0.5, 0.5, 0.65), coat, 0, 1.45, 1.25),
-        part(bx(0.7, 0.12, 0.12), 0x2b2b2b, 0, 1.75, 1.2),
-        part(bx(0.22, 0.65, 0.22), 0x3a2a22, -0.3, 0.33, 0.8),
-        part(bx(0.22, 0.65, 0.22), 0x3a2a22, 0.3, 0.33, 0.8),
-        part(bx(0.22, 0.65, 0.22), 0x3a2a22, -0.3, 0.33, -0.8),
-        part(bx(0.22, 0.65, 0.22), 0x3a2a22, 0.3, 0.33, -0.8),
-      ];
-      return { P, T: xf(x, 0, z, yaw) };
-    };
-    const sheep = (x, z, yaw) => {
-      const P = [
-        part(bx(0.8, 0.7, 1.1), 0xeeeae0, 0, 0.75, 0),
-        part(bx(0.34, 0.36, 0.4), 0x2b2b2b, 0, 0.9, 0.7),
-        part(bx(0.12, 0.45, 0.12), 0x2b2b2b, -0.25, 0.22, 0.35),
-        part(bx(0.12, 0.45, 0.12), 0x2b2b2b, 0.25, 0.22, 0.35),
-        part(bx(0.12, 0.45, 0.12), 0x2b2b2b, -0.25, 0.22, -0.35),
-        part(bx(0.12, 0.45, 0.12), 0x2b2b2b, 0.25, 0.22, -0.35),
-      ];
-      return { P, T: xf(x, 0, z, yaw) };
-    };
-    const tractor = (x, z, yaw) => {
-      const g = 0x2f7a35,
-        k = 0x1a1a1a;
-      const P = [
-        part(bx(1.4, 1.1, 2.4), g, 0, 1.2, 0),
-        part(bx(1.0, 0.8, 1.3), g, 0, 1.0, 1.7),
-        part(bx(1.3, 1.5, 1.3), g, 0, 2.35, -0.55),
-        part(bx(1.34, 0.9, 1.1), 0x9ab0c0, 0, 2.45, -0.55),
-        part(cyl(0.95, 0.95, 0.55, 14), k, -1.0, 0.95, -0.7, 0, 0, Z),
-        part(cyl(0.95, 0.95, 0.55, 14), k, 1.0, 0.95, -0.7, 0, 0, Z),
-        part(cyl(0.55, 0.55, 0.35, 12), k, -0.85, 0.55, 1.7, 0, 0, Z),
-        part(cyl(0.55, 0.55, 0.35, 12), k, 0.85, 0.55, 1.7, 0, 0, Z),
-        part(cyl(0.08, 0.08, 1.2, 6), 0x444444, 0.35, 2.1, 1.9),
-      ];
-      return { P, T: xf(x, 0, z, yaw) };
-    };
     /* ---- WWII South Pacific: a plantation (copra and gardens) and native villages of thatched huts on posts; no European farms ---- */
     const post = (x, z, h, c) => part(cyl(0.2, 0.2, h, 6), c || 0x5a4630, x, h / 2, z);
-    /* a village hut: woven walls on posts, steep thatched roof, a door; (x, z) turned by yaw */
+    /* a village hut: a stilt house of the islands, woven walls on a floor of split palm on six posts, a steep thatched roof with a
+       dark ridge pole and crossed gable horns, a window, a door and a pole ladder up to it; (x, z) turned by yaw */
     const hut = (x, z, yaw, w, d) => {
-      const P = [
-        post(-w / 2 + 0.3, -d / 2 + 0.3, 1.3),
-        post(w / 2 - 0.3, -d / 2 + 0.3, 1.3),
-        post(-w / 2 + 0.3, d / 2 - 0.3, 1.3),
-        post(w / 2 - 0.3, d / 2 - 0.3, 1.3),
-        part(bx(w, 0.16, d), 0x7a6240, 0, 1.3, 0),
-        part(bx(w - 0.3, 2.0, d - 0.3), 0xb8a070, 0, 2.37, 0) /* walls, standing on the floor */,
-        part(prismG(w + 1.6, 2.9, d + 1.6), 0xa38c46, 0, 3.36, 0) /* roof, on the walls */,
-        part(bx(0.9, 1.5, 0.1), 0x3a2a1c, 0, 2.2, d / 2 - 0.1),
-        part(bx(0.5, 0.65, 0.5), 0x6a5236, 0, 0.325, d / 2 + 0.25) /* a log step up to the floor, from the ground */,
-        part(bx(0.5, 1.0, 0.4), 0x6a5236, 0, 0.5, d / 2 - 0.05),
-      ];
+      const fl = 1.3,
+        wt = fl + 2.05,
+        THATCH = 0xa38c46,
+        P = [];
+      for (const px of [-w / 2 + 0.3, w / 2 - 0.3]) for (const pz of [-d / 2 + 0.3, 0, d / 2 - 0.3]) P.push(post(px, pz, fl + 0.02));
+      P.push(part(bx(w, 0.16, d), 0x7a6240, 0, fl, 0)); /* the floor */
+      P.push(part(bx(w - 0.3, 2.0, d - 0.3), 0xb8a070, 0, fl + 1.07, 0) /* woven walls, standing on the floor */, part(bx(w - 0.2, 0.12, d - 0.2), 0x8a7048, 0, wt - 0.03, 0) /* the wall plate */);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(cyl(0.09, 0.09, 2.1, 5), 0x5a4630, sx * (w / 2 - 0.2), fl + 1.05, sz * (d / 2 - 0.2))); /* corner poles */
+      P.push(part(prismG(w + 1.6, 2.9, d + 1.6), THATCH, 0, wt - 0.06, 0)); /* the thatch, on the wall plate */
+      for (const s2 of [-1, 1]) P.push(part(bx(0.2, 0.22, d + 1.6), 0x8a7238, s2 * (w + 1.4) / 2, wt + 0.04, 0, 0, 0, s2 * -0.9)); /* the thatch's thick eave edges */
+      const ry = wt - 0.06 + 2.9;
+      P.push(part(cyl(0.1, 0.1, d + 2.0, 5), 0x4a3a28, 0, ry, 0, Z, 0, 0)); /* ridge pole */
+      for (const zr of [-(d + 1.6) / 2, (d + 1.6) / 2]) P.push(GX.rod([-0.55, ry - 0.55, zr], [0.45, ry + 0.75, zr], 0.05, 0x4a3a28, 0.04, 4), GX.rod([0.55, ry - 0.55, zr], [-0.45, ry + 0.75, zr], 0.05, 0x4a3a28, 0.04, 4)); /* crossed gable horns */
+      P.push(part(bx(0.9, 1.6, 0.1), 0x3a2a1c, 0, fl + 0.88, d / 2 - 0.1) /* door */, part(bx(0.04, 0.6, 0.8), 0x2a2018, w / 2 - 0.15, fl + 1.3, 0) /* window, in the wall face */);
+      /* the pole ladder from the ground to the door sill */
+      for (const lx of [-0.28, 0.28]) P.push(GX.rod([lx, 0, d / 2 + 0.75], [lx, fl + 0.06, d / 2 - 0.02], 0.045, 0x6a5236, 0.04, 4));
+      for (let k = 1; k <= 3; k++) {
+        const t = k / 4;
+        P.push(part(bx(0.62, 0.05, 0.05), 0x6a5236, 0, (fl + 0.06) * t, d / 2 + 0.75 - 0.77 * t));
+      }
       return { P, T: xf(x, 0, z, yaw) };
     };
-    /* the planter's house: whitewashed, raised on posts, a verandah and a hipped roof of corrugated iron */
+    /* the planter's house: whitewashed walls raised on posts, a verandah all round with its posts and rail, shuttered windows, a
+       hipped roof of corrugated iron over house and verandah, steps up to the door */
     const bungalow = (x, z, yaw, w, d) => {
-      const P = [];
-      for (const px of [-w / 2 + 0.3, 0, w / 2 - 0.3]) for (const pz of [-d / 2 + 0.3, d / 2 - 0.3]) P.push(post(px, pz, 2.2, 0x6a5a46));
-      P.push(
-        part(bx(w + 2, 0.22, d + 2.4), 0x7a6a50, 0, 2.2, 0),
-        part(bx(w, 2.8, d), 0xe6e0c8, 0, 3.7, 0),
-        part(prismG(w + 3, 3.0, d + 3.2), 0x9ea4a4, 0, 5.0, 0),
-        part(bx(1.2, 2.0, 0.12), 0x3a2a1c, 0, 3.4, d / 2 + 0.05),
-        part(bx(1.3, 1.1, 0.12), 0x4a6a80, -w * 0.3, 3.7, d / 2 + 0.05),
-        part(bx(1.3, 1.1, 0.12), 0x4a6a80, w * 0.3, 3.7, d / 2 + 0.05),
-      );
+      const P = [],
+        fl = 2.2,
+        wt = 5.1,
+        ow = (w + 2) / 2,
+        od = (d + 2.4) / 2,
+        ex = ow + 0.4,
+        ez = od + 0.4,
+        run = ez,
+        pitch = 0.45,
+        ey = wt - pitch * (ez - d / 2) /* the eaves, so the roof meets the walls' top */;
+      for (const px of [-w / 2 + 0.3, 0, w / 2 - 0.3]) for (const pz of [-d / 2 + 0.3, d / 2 - 0.3]) P.push(post(px, pz, fl, 0x6a5a46));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(post(sx * (ow - 0.15), sz * (od - 0.15), fl, 0x6a5a46));
+      P.push(part(bx(w + 2, 0.22, d + 2.4), 0x7a6a50, 0, fl, 0)); /* the verandah floor */
+      P.push(part(bx(w, wt - 0.025 - (fl + 0.09), d), 0xe6e0c8, 0, (wt - 0.025 + fl + 0.09) / 2, 0)); /* the walls, their top 2.5 cm under the roof (no flicker) */
+      P.push(GX.hipRoof(-ex, ex, -ez, ez, ey, pitch * Math.min(ex, run), 0x9ea4a4));
+      /* verandah posts from the floor to the eaves, and the rail between them */
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(bx(0.14, ey - fl, 0.14), 0xe6e0c8, sx * (ow - 0.15), (ey + fl) / 2, sz * (od - 0.15)));
+      for (const px of [-ow / 2, ow / 2]) for (const sz of [-1, 1]) P.push(part(bx(0.14, ey - fl, 0.14), 0xe6e0c8, px, (ey + fl) / 2, sz * (od - 0.15)));
+      const rl = ow - 0.15 - 0.9; /* the front and back rails: a run either side of the steps' gap */
+      for (const sz of [-1, 1]) for (const sx of [-1, 1]) P.push(part(bx(rl, 0.07, 0.07), 0xe6e0c8, sx * (0.9 + rl / 2), fl + 0.95, sz * (od - 0.15)));
+      for (const sx of [-1, 1]) P.push(part(bx(0.07, 0.07, 2 * od - 0.3), 0xe6e0c8, sx * (ow - 0.15), fl + 0.95, 0));
+      /* the door and four shuttered windows on the front, two on each end */
+      P.push(part(bx(1.2, 2.0, 0.12), 0x3a2a1c, 0, fl + 1.11, d / 2 + 0.05));
+      const win = (wx, wz, ry) => {
+        const c = Math.cos(ry),
+          sn = Math.sin(ry);
+        P.push(part(bx(1.2, 1.1, 0.1), 0x2a3640, wx, fl + 1.6, wz, 0, ry));
+        for (const k of [-1, 1]) P.push(part(bx(0.6, 1.1, 0.1), 0x3f6a4a, wx + c * k * 0.92, fl + 1.6, wz - sn * k * 0.92, 0, ry)); /* shutters, folded back flat on the wall */
+      };
+      for (const wx of [-w * 0.3, w * 0.3]) win(wx, d / 2 + 0.04, 0), win(wx, -d / 2 - 0.04, Math.PI);
+      for (const wz of [-d * 0.22, d * 0.22]) win(w / 2 + 0.04, wz, Math.PI / 2), win(-w / 2 - 0.04, wz, -Math.PI / 2);
       /* the verandah steps, from the ground up to the floor (2.2 m) */
-      for (let k = 0; k < 3; k++) P.push(part(bx(1.6, 2.1 - k * 0.7, 0.6), 0x6a5236, 0, (2.1 - k * 0.7) / 2, d / 2 + 1.2 + 0.3 + k * 0.6));
+      for (let k = 0; k < 3; k++) P.push(part(bx(1.6, 2.1 - k * 0.7, 0.6), 0x6a5236, 0, (2.1 - k * 0.7) / 2, od + 0.3 + k * 0.6));
       return { P, T: xf(x, 0, z, yaw) };
     };
+    /* a village pig: a round body on four legs, head and snout, ears, a curly tail (head toward +z) */
     const pig = (x, z, yaw, c) => {
-      const P = [
-        part(bx(0.85, 0.6, 1.4), c, 0, 0.7, 0),
-        part(bx(0.5, 0.5, 0.55), c, 0, 0.75, 0.85),
-        part(bx(0.14, 0.45, 0.14), 0x4a3a34, -0.28, 0.22, 0.4),
-        part(bx(0.14, 0.45, 0.14), 0x4a3a34, 0.28, 0.22, 0.4),
-        part(bx(0.14, 0.45, 0.14), 0x4a3a34, -0.28, 0.22, -0.4),
-        part(bx(0.14, 0.45, 0.14), 0x4a3a34, 0.28, 0.22, -0.4),
-      ];
+      const P = [part(sph(8), c, 0, 0.62, 0, 0, 0, 0, 0.42, 0.36, 0.68), part(sph(8), c, 0, 0.68, 0.78, 0, 0, 0, 0.24, 0.24, 0.26), part(cyl(0.1, 0.1, 0.12, 8), 0xc98a8a, 0, 0.64, 1.06, Z, 0, 0)];
+      for (const s of [-1, 1]) P.push(part(bx(0.1, 0.14, 0.04), c, s * 0.13, 0.9, 0.76, -0.4, 0, s * 0.4));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(cyl(0.06, 0.055, 0.46, 5), 0x4a3a34, sx * 0.22, 0.23, sz * 0.42));
+      P.push(GX.rod([0, 0.7, -0.66], [0, 0.8, -0.8], 0.025, c, 0.02, 4));
       return { P, T: xf(x, 0, z, yaw) };
     };
+    /* a hen: body, head with comb and beak, tail feathers, two legs (facing +z) */
     const hen = (x, z, yaw) => {
-      const P = [part(bx(0.34, 0.36, 0.5), 0xf0ece0, 0, 0.38, 0), part(bx(0.18, 0.3, 0.18), 0xb83a2a, 0, 0.62, 0.28), part(bx(0.06, 0.21, 0.06), 0xc9a227, 0, 0.105, 0)]; /* body on its legs */
+      const P = [
+        part(sph(8), 0xf0ece0, 0, 0.32, 0, 0, 0, 0, 0.16, 0.15, 0.22),
+        part(sph(6), 0xf0ece0, 0, 0.48, 0.17, 0, 0, 0, 0.085, 0.085, 0.085),
+        part(bx(0.02, 0.06, 0.08), 0xb83a2a, 0, 0.57, 0.17),
+        part(new THREE.ConeGeometry(0.025, 0.07, 5), 0xc9a227, 0, 0.48, 0.27, Z, 0, 0),
+        part(bx(0.04, 0.16, 0.12), 0xe0dcd0, 0, 0.42, -0.2, -0.5, 0, 0),
+      ];
+      for (const s of [-1, 1]) P.push(part(cyl(0.015, 0.015, 0.21, 4), 0xc9a227, s * 0.05, 0.105, 0));
       return { P, T: xf(x, 0, z, yaw) };
     };
     const handcart = (x, z, yaw) => {
@@ -414,8 +399,8 @@ const WORLD = (() => {
         part(bx(2.2, 0.45, 1.2), 0x7a5a38, 0, 1.05, 0),
         part(bx(2.2, 0.35, 0.1), 0x6a4a2a, 0, 1.4, 0.55),
         part(bx(2.2, 0.35, 0.1), 0x6a4a2a, 0, 1.4, -0.55),
-        part(cyl(0.5, 0.5, 0.12, 12), k, 0, 0.5, 0.7, Z, 0, 0),
-        part(cyl(0.5, 0.5, 0.12, 12), k, 0, 0.5, -0.7, Z, 0, 0),
+        ...GX.tyre(0, 0.5, 0.7, 0.5, 0.12, 0x4a3a28, 0x6a5236, 16) /* iron-shod wooden wheels */,
+        ...GX.tyre(0, 0.5, -0.7, 0.5, 0.12, 0x4a3a28, 0x6a5236, 16),
         part(cyl(0.05, 0.05, 1.52, 6), 0x3a3a34, 0, 0.5, 0, Z, 0, 0) /* the axle, through both wheels */,
         part(bx(0.3, 0.34, 0.9), 0x5a4630, 0, 0.67, 0) /* the cart's bed on its axle */,
         part(bx(1.8, 0.08, 0.08), 0x5a4630, -2.0, 1.0, 0),
@@ -435,9 +420,9 @@ const WORLD = (() => {
         P.push(
           part(bx(17.4, 0.22, 9.2), 0x7a6240, 0, 0.9, 0),
           part(prismG(11.4, 3.4, 19.6), 0x8e9494, 0, 4, 0, 0, Z),
-          part(bx(3.4, 0.6, 2.4), 0xd8c690, -5.5, 1.3, 0.6),
-          part(bx(2.6, 0.5, 2.0), 0xc9b47a, 1.0, 1.25, -1.2),
-          part(bx(3.0, 0.55, 2.2), 0xd8c690, 6.2, 1.28, 1.4),
+          part(sph(8), 0xd8c690, -5.5, 1.01, 0.6, 0, 0, 0, 1.7, 0.5, 1.2) /* heaps of split coconut drying on the floor */,
+          part(sph(8), 0xc9b47a, 1.0, 1.01, -1.2, 0, 0, 0, 1.3, 0.42, 1.0),
+          part(sph(8), 0xd8c690, 6.2, 1.01, 1.4, 0, 0, 0, 1.5, 0.46, 1.1),
         );
         A.add(P, xf(17, 0, -8, 0));
       }
@@ -497,15 +482,18 @@ const WORLD = (() => {
       }
       A.add(
         [
-          part(bx(6.4, 3.6, 11.4), 0xf0ece0, 0, 1.4, 0),
-          part(prismG(7.6, 2.6, 12.4), 0x8e9494, 0, 3.2, 0),
-          part(bx(1.4, 2.3, 0.12), 0x4a3426, 0, 1.15, 5.75),
+          part(bx(6.8, 0.4, 11.8), 0x9a9488, 0, 0.2, 0) /* the coral-block plinth */,
+          part(bx(6.4, 2.8, 11.4), 0xf0ece0, 0, 1.8, 0) /* whitewashed walls */,
+          part(prismG(7.6, 2.6, 12.4), 0x8e9494, 0, 3.2, 0) /* the iron roof */,
+          part(bx(1.4, 2.3, 0.12), 0x4a3426, 0, 1.55, 5.75),
+          part(bx(2.4, 0.2, 1.2), 0x9a9488, 0, 0.1, 6.4) /* the step */,
+          ...[-3.4, -1.1, 1.2, 3.5].flatMap((z) => [part(bx(0.08, 1.3, 0.7), 0x3a4a5a, 3.22, 2.1, z), part(bx(0.08, 1.3, 0.7), 0x3a4a5a, -3.22, 2.1, z)]) /* side windows */,
+          part(bx(0.12, 1.0, 0.12), 0x6a5236, 0, 6.2, 5.6), part(bx(0.6, 0.12, 0.12), 0x6a5236, 0, 6.4, 5.6) /* the cross over the door gable */,
           part(bx(0.3, 4.6, 0.3), 0x5a4630, -1.1, 2.3, -8.2),
           part(bx(0.3, 4.6, 0.3), 0x5a4630, 1.1, 2.3, -8.2),
           part(bx(2.7, 0.3, 0.3), 0x5a4630, 0, 4.5, -8.2),
           part(cyl(0, 0.55, 0.9, 8), 0x8a6a2a, 0, 3.9, -8.2) /* the bell, hung from the beam */,
-          part(bx(0.15, 1.2, 0.15), 0xf0ece0, 0, 6.2, 0),
-          part(bx(0.7, 0.15, 0.15), 0xf0ece0, 0, 6.5, 0),
+
         ],
         xf(0, 0, -64, 0),
       );

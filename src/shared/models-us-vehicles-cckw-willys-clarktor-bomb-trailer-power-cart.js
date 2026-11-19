@@ -112,7 +112,7 @@
       P.push(...W(1.0, 0.36, s * 0.62, 0.36, 0.2, TYRE, OD2, 10), ...W(-1.04, 0.36, s * 0.62, 0.36, 0.2, TYRE, OD2, 10));
       P.push(lamp(1.6, 0.86, s * 0.42), GX.star(-1.1, 0.8, s * 0.64, 0.15, s > 0 ? 0 : Math.PI));
     }
-    P.push(part(cyl(0.34, 0.34, 0.18, 10), TYRE, -1.69, 0.75, -0.25, 0, 0, Z), part(cyl(0.19, 0.19, 0.2, 8), OD2, -1.69, 0.75, -0.25, 0, 0, Z)); /* spare on the back */
+    P.push(...GX.tyre(-1.69, 0.75, -0.25, 0.34, 0.18, TYRE, OD2, 18, 'x')); /* spare on the back */
     return P;
   }, { L: 3.36, W: 1.57, H: 1.77, name: 'Willys MB jeep' });
   /* Clark Clarktor 6 aircraft tug: 2.54 x 1.32 x 1.42 m; tiny 4-wheel, dual rear tyres, open seat over the rear axle; chrome yellow */

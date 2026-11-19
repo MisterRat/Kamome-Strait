@@ -4,10 +4,6 @@ const VM = (() => {
     { cyl, bx, part } = GX,
     sph = () => GX.sph(10),
     cache = {}; /* one geometry per model type, shared by every vehicle/building of that type */
-  const wheel = (x, z, r, w) => [
-    part(cyl(r, r, w, 12), 0x151515, x, r, z, Z),
-    part(cyl(r * 0.5, r * 0.5, w + 0.02, 10), 0x6a6e70, x, r, z, Z),
-  ];
   const lights = (x, y, w, c) => [-1, 1].map((s) => part(sph(), c || 0xf2e9b8, x, y, s * w, 0, 0, 0, 0.09, 0.09, 0.09));
   const olive = 0x56603f,
     tan = 0x8b8667,
@@ -48,128 +44,168 @@ const VM = (() => {
   const win = (P, x, y, z, ry, w, h) => {
     P.push(part(bx(w + 0.24, h + 0.24, 0.1), 0xe4e0d4, x, y, z, 0, ry), part(bx(w, h, 0.14), 0x20303c, x, y, z, 0, ry));
   };
+  /* ---- the Japanese base buildings, 1945 (docs/research_1945_bases.md, "Airfields" and "Naval bases"): dispersed timber buildings
+     on concrete piers under corrugated-iron roofs, earth-covered concrete bunkers and magazines, timber-framed hangars with sliding
+     doors, buried concrete fuel cisterns with drums under palm-frond netting; mottled dark green and brown. Each stands on y = 0
+     inside the target's footprint (x = width, z = length), front toward +z. ---- */
+  const MOT = [0x5d6247, 0x3f4a32, 0x6a5440] /* the godowns' mottle */;
+  const hipRoof = GX.hipRoof;
   const hq = () => {
+    /* the headquarters: a single-storey timber building (15.6 x 9.4 m) on concrete piers, a 2.3 m veranda along the front, a hipped
+       corrugated-iron roof with deep eaves; radio mast, flagstaff with the ensign, a sandbagged entrance */
     const P = [],
-      W = 16,
-      D = 12,
-      c = 0xa89b84;
-    P.push(part(bx(W + 0.1, 0.7, D + 0.1), 0x6d6558, 0, 0.35, 0), part(bx(W, 5, D), c, 0, 2.5, 0));
-    gable(P, W, D, 5, 3, c, 0x6b4a3a, 0.6);
-    P.push(part(bx(1.1, 3.2, 1.1), 0x8a4b3a, 4.2, 7.6, -2.5), part(bx(1.4, 0.2, 1.4), 0x4a4a4a, 4.2, 9.2, -2.5));
-    for (const s of [-1, 1])
-      for (let i = 0; i < 5; i++) {
-        win(P, -6 + i * 3, 3.0, s * (D / 2 + 0.05), s > 0 ? 0 : Math.PI, 1.1, 1.4);
-        if (s > 0 && i !== 2) win(P, -6 + i * 3, 1.0, s * (D / 2 + 0.05), 0, 1.1, 0.8);
-      }
-    P.push(
-      part(bx(1.8, 2.5, 0.16), 0x3a2f26, 0, 1.35, D / 2 + 0.1),
-      part(bx(3.4, 0.3, 1.3), 0x7a7468, 0, 0.15, D / 2 + 0.8),
-      part(bx(3.2, 0.14, 1.8), 0x4a5a3a, 0, 3.2, D / 2 + 0.8, 0.25),
-      part(bx(0.12, 3, 0.12), 0x4a4a4a, -1.5, 1.6, D / 2 + 1.6),
-      part(bx(0.12, 3, 0.12), 0x4a4a4a, 1.5, 1.6, D / 2 + 1.6),
-    );
-    P.push(
-      part(cyl(0.07, 0.07, 9, 6), 0xcfcfcf, 7.2, 4.5, D / 2 + 2.5),
-      ...FLG.at('jn', 2.1, 7.27, 8.95, D / 2 + 2.5, 0), /* the Rising Sun over the HQ */
-      part(cyl(0.06, 0.06, 7, 6), 0x3a3d40, -5.5, 8.4, -1),
-      part(bx(2, 0.08, 0.08), 0x3a3d40, -5.5, 10.5, -1),
-      part(bx(1.6, 0.08, 0.08), 0x3a3d40, -5.5, 9.8, -1),
-      part(bx(1.6, 1.3, 1.2), 0x56603f, -W / 2 - 1.1, 0.65, 0),
-      part(bx(0.5, 0.5, 0.4), 0x2b2d2f, -W / 2 - 1.1, 1.5, 0.3),
-    );
-    sandbags(P, -3.5, D / 2 + 3.3, 5, 0, 3);
-    sandbags(P, 3.5, D / 2 + 3.3, 5, 0, 3);
+      W = 15.6,
+      z0 = -5.8,
+      z1 = 3.6,
+      fl = 0.9 /* the floor */,
+      wt = 3.98 /* the walls' top */,
+      WALL = 0x8a7a5c,
+      TRIM = 0x5a4632,
+      ROOF = 0x5a5248;
+    for (let x = -7.5; x <= 7.6; x += 2.5) for (const z of [-5.5, -2.5, 0.5, 3.4, 5.7]) P.push(part(bx(0.35, 0.74, 0.35), 0x8f8a80, x, 0.37, z)); /* concrete piers */
+    P.push(part(bx(16, 0.2, 12), 0x6b5a42, 0, fl - 0.1, 0)); /* the floor, over the piers */
+    P.push(part(bx(W, wt - fl + 0.02, z1 - z0), WALL, 0, (wt + fl) / 2 - 0.01, (z0 + z1) / 2)); /* the walls */
+    for (const z of [z1 + 0.01, z0 - 0.01]) for (let k = 0; k < 6; k++) P.push(part(bx(W + 0.02, 0.05, 0.03), TRIM, 0, fl + 0.35 + k * 0.5, z)); /* weatherboard laps */
+    /* windows with open wooden shutters: five on the front and back, three on each end */
+    const win = (x, z, ry) => {
+      const c = Math.cos(ry),
+        sn = Math.sin(ry);
+      P.push(part(bx(1.3, 1.4, 0.06), TRIM, x, 2.5, z, 0, ry), part(bx(1.1, 1.2, 0.08), 0x1f2a30, x, 2.5, z, 0, ry));
+      for (const d of [-1, 1]) P.push(part(bx(0.6, 1.3, 0.04), 0x4a5a3a, x + c * d * 0.97, 2.5, z - sn * d * 0.97, 0, ry)); /* shutters, folded back on the wall */
+    };
+    for (const x of [-6, -3, 3, 6]) win(x, z1 + 0.03, 0), win(x, z0 - 0.03, Math.PI);
+    win(0, z0 - 0.03, Math.PI);
+    for (const z of [-3.6, -1.1, 1.4]) win(W / 2 + 0.03, z, Math.PI / 2), win(-W / 2 - 0.03, z, -Math.PI / 2);
+    P.push(part(bx(1.7, 2.3, 0.08), 0x3a2f26, 0, fl + 1.15, z1 + 0.04), part(bx(0.04, 2.3, 0.1), TRIM, 0, fl + 1.15, z1 + 0.06)); /* the double door */
+    /* the veranda: posts on the floor's edge up to the eave beam, a hand rail either side of the steps, the infill over the front wall */
+    const zv = 5.85;
+    for (const x of [-7.8, -4.7, -1.4, 1.4, 4.7, 7.8]) P.push(part(bx(0.18, 3.0, 0.18), TRIM, x, fl + 1.5 - 0.02, zv));
+    P.push(part(bx(16, 0.18, 0.2), TRIM, 0, fl + 3.0, zv)); /* the eave beam on the posts */
+    for (const s of [-1, 1]) P.push(part(bx(6.5, 0.08, 0.08), TRIM, s * 4.6, fl + 0.9, zv), part(bx(0.06, 0.9, 0.06), TRIM, s * 3.0, fl + 0.45, zv));
+    {
+      /* the infill from the front wall's top up to the roof over the veranda, cut to the hip line */
+      const ry0 = (x) => 3.6 + 0.36 * Math.min(6.6 - z1, 8.8 - Math.abs(x)) + 0.02;
+      P.push(GX.ext([[-W / 2, wt - 0.04], [W / 2, wt - 0.04], [W / 2, ry0(W / 2)], [5.8, ry0(5.8)], [-5.8, ry0(-5.8)], [-W / 2, ry0(-W / 2)]], 0.1, WALL, z1));
+    }
+    for (let k = 0; k < 3; k++) {
+      const t = fl - 0.18 - k * 0.27;
+      P.push(part(bx(2.2, t, 0.34), 0x8f8a80, 0, t / 2, 6.15 + k * 0.32)); /* concrete steps down from the veranda, each a block on the ground */
+    }
+    /* the roof: eaves at 3.6 m, 1 m over the walls, ridge 2.4 m up; a ridge cap and fascia boards */
+    const ex0 = -8.8,
+      ex1 = 8.8,
+      ez0 = -6.8,
+      ez1 = 6.6,
+      ey = 3.6,
+      rise = 2.41;
+    P.push(hipRoof(ex0, ex1, ez0, ez1, ey, rise, ROOF));
+    P.push(part(bx(4.4, 0.16, 0.24), 0x3c3832, 0, ey + rise + 0.02, (ez0 + ez1) / 2));
+    for (const z of [ez0, ez1]) P.push(part(bx(17.6, 0.12, 0.05), TRIM, 0, ey - 0.03, z));
+    for (const x of [ex0, ex1]) P.push(part(bx(0.05, 0.12, 13.4), TRIM, x, ey - 0.03, (ez0 + ez1) / 2));
+    /* radio mast behind the building, with its yards and guys to ground anchors; the flagstaff and ensign in front */
+    P.push(part(cyl(0.07, 0.1, 10, 6), 0x3a3d40, -5.5, 5, -8.6), part(bx(2.2, 0.08, 0.08), 0x3a3d40, -5.5, 9.4, -8.6), part(bx(1.6, 0.08, 0.08), 0x3a3d40, -5.5, 8.6, -8.6));
+    for (const [dx, dz] of [[-3, -2], [3, -2], [0, 3]]) P.push(GX.rod([-5.5, 8.0, -8.6], [-5.5 + dx, 0.05, -8.6 + dz], 0.012, 0x2a2a28, 0.012, 4), part(bx(0.25, 0.2, 0.25), 0x8f8a80, -5.5 + dx, 0.1, -8.6 + dz));
+    P.push(part(cyl(0.06, 0.08, 9, 6), 0xcfcfcf, 6.8, 4.5, 8.8), ...FLG.at('jn', 2.1, 6.87, 8.95, 8.8, 0));
+    /* the entrance: sandbag blast walls either side of the path, the unit's signboard on its post */
+    sandbags(P, -2.9, 8.2, 4, 0, 3);
+    sandbags(P, 2.9, 8.2, 4, 0, 3);
+    P.push(part(bx(0.14, 2.2, 0.14), TRIM, 1.6, 1.1, 7.0), part(bx(0.36, 1.5, 0.05), 0xd8cfb4, 1.6, 1.5, 7.09));
     return P;
   };
   const bunker = () => {
+    /* an earth-covered concrete command bunker: a turfed coral mound 14 m across and 3 m high over the concrete box, the concrete
+       portal standing out of its face with a steel door and an embrasure, vent pipes and a periscope housing on top, palm fronds */
     const P = [],
-      g = 0x56603f;
-    P.push(part(bx(10, 2.6, 10), 0x6d7266, 0, 1.3, 0));
-    const fr = cyl(9.9, 4.6, 3.4, 4);
-    fr.rotateY(Math.PI / 4);
-    P.push(part(fr, 0x5a5f43, 0, 1.7, 0));
-    P.push(
-      part(bx(6.4, 2.8, 2.2), 0x7a7f72, 0, 1.4, 5.2),
-      part(bx(6.8, 0.3, 2.4), 0x666b5f, 0, 2.9, 5.2),
-      part(bx(2.2, 2.1, 0.3), 0x33362f, -1.0, 1.1, 6.35),
-      part(bx(2.5, 0.16, 0.4), 0x555a50, -1.0, 2.25, 6.35),
-      part(bx(3.0, 0.55, 0.34), 0x0c0d0b, 1.7, 1.9, 6.35),
-      part(bx(3.3, 0.12, 0.5), 0x555a50, 1.7, 2.2, 6.35),
-      part(bx(2.2, 2.2, 0.08), 0x7a7f72, -1.0, 1.1, 6.4),
-      part(bx(5.2, 0.06, 4.6), 0x4d5a3a, 0, 3.7, 1, 0.28),
-      part(cyl(0.2, 0.2, 0.9, 8), 0x555a50, -2.5, 3.9, -1),
-      part(cyl(0.2, 0.2, 0.9, 8), 0x555a50, 2.8, 3.7, -2),
-      part(bx(0.4, 0.3, 0.4), 0x555a50, 0, 3.55, -3.4),
-      part(cyl(0.025, 0.025, 3, 5), 0x2b2d2f, 3, 5, -3),
-    );
-    sandbags(P, -3.4, 7.4, 3, 0, 2);
-    sandbags(P, 3.8, 7.4, 3, 0, 2);
-    P.push(part(bx(1.1, 0.7, 1.0), 0x6a5a3c, 0, 0.35, 8.7), part(bx(1.1, 0.7, 1.0), 0x7a6a48, 1.4, 0.35, 9));
+      CON = 0x8a8c84,
+      prof = [[7, 0], [6.6, 0.55], [5.8, 1.55], [4.8, 2.45], [3.6, 2.95], [1.8, 3.12], [0, 3.15]],
+      mh = (r) => {
+        for (let i = 0; i < prof.length - 1; i++)
+          if (r >= prof[i + 1][0]) return prof[i][1] + ((prof[i + 1][1] - prof[i][1]) * (prof[i][0] - r)) / (prof[i][0] - prof[i + 1][0]);
+        return 3.15;
+      };
+    const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(Math.max(0.001, r), y)), 18);
+    P.push({ ...part(g, 0x7d7a52, 0, 0, 0) });
+    /* the portal: wing walls and a roof slab running back into the mound, the front face with a door and the gun slit */
+    P.push(part(bx(6.2, 0.5, 3.3), CON, 0, 2.4, 5.35) /* roof slab */, part(bx(0.55, 2.65, 3.3), CON, -2.83, 1.32, 5.35), part(bx(0.55, 2.65, 3.3), CON, 2.83, 1.32, 5.35));
+    P.push(part(bx(6.2, 2.15, 0.4), CON, 0, 1.075, 6.8)); /* the front wall between them */
+    P.push(part(bx(1.3, 2.0, 0.08), 0x33362f, -1.4, 1.0, 7.03), part(bx(1.5, 0.12, 0.2), CON, -1.4, 2.06, 7.05)); /* steel door and its lintel */
+    P.push(part(bx(2.2, 0.36, 0.06), 0x0c0d0b, 1.4, 1.65, 7.02), part(bx(2.6, 0.12, 0.45), CON, 1.4, 1.95, 7.2)); /* the embrasure and its hood */
+    /* on top: two vent pipes with caps, the periscope housing, an aerial; palm fronds laid over the crown */
+    for (const [x, z] of [[-1.6, -0.8], [1.9, -1.6]]) P.push(part(cyl(0.15, 0.15, 1.0, 8), 0x555a50, x, mh(Math.hypot(x, z)) + 0.35, z), part(cyl(0.3, 0.3, 0.1, 8), 0x555a50, x, mh(Math.hypot(x, z)) + 0.88, z));
+    P.push(part(bx(0.6, 0.5, 0.6), CON, 0.2, 3.3, 1.2), part(cyl(0.025, 0.025, 3, 5), 0x2b2d2f, -0.6, 4.6, -2.2));
+    for (const [x, z, a] of [[-0.8, 0.4, 0.3], [1.2, -0.6, 1.9], [0.1, -2.2, 0.9], [-2.0, -1.8, 2.6], [2.4, 1.0, 1.2]]) P.push(part(bx(2.4, 0.05, 0.55), 0x4d6b32, x, mh(Math.hypot(x, z)) + 0.02, z, 0, a));
+    /* sandbag blast walls in front of the door and the slit, ammunition boxes */
+    sandbags(P, -2.6, 8.4, 3, 0, 2);
+    sandbags(P, 2.6, 8.4, 3, 0, 2);
+    P.push(part(bx(1.1, 0.7, 1.0), 0x6a5a3c, -4.6, 0.35, 7.6), part(bx(1.1, 0.7, 1.0), 0x7a6a48, -4.3, 1.05, 7.7));
+    GX.camo(P.slice(0, 1), [0x7d7a52], [0x7d7a52, 0x5f6a3e, 0x9a8c62], 2.2, 1.7);
     return P;
   };
   const hangar = () => {
+    /* a timber-framed hangar (18 x 30 m) clad in corrugated iron, mottled; a low gable roof on king-post trusses, the open front with
+       four sliding doors run back to either side on their top rail, high strip windows, a lean-to workshop on the starboard side */
     const P = [],
       W = 18,
       D = 30,
-      c = 0x7d8088,
-      rb = 0x5e6268;
-    P.push(part(bx(W + 0.1, 0.5, D + 0.1), 0x5a5d60, 0, 0.25, 0), part(bx(W, 4.2, D), c, 0, 2.1, 0));
-    const ar = new THREE.CylinderGeometry(W / 2, W / 2, D, 20, 1, false, Math.PI / 2, Math.PI)
-      .rotateX(Math.PI / 2)
-      .scale(1, 0.42, 1);
-    P.push(part(ar, 0x6f747a, 0, 4.2, 0));
-    for (let i = 0; i < 7; i++) {
-      const t = new THREE.TorusGeometry(W / 2 + 0.05, 0.14, 5, 20, Math.PI).scale(1, 0.42, 1);
-      P.push(part(t, rb, 0, 4.2, -D / 2 + 0.3 + (i * (D - 0.6)) / 6));
-    }
-    P.push(
-      part(bx(11, 3.9, 0.3), 0x2e3236, 0, 2.2, D / 2 + 0.12),
-      part(bx(11.6, 0.3, 0.45), rb, 0, 4.25, D / 2 + 0.2),
-      part(bx(0.3, 4.2, 0.45), rb, -5.8, 2.1, D / 2 + 0.2),
-      part(bx(0.3, 4.2, 0.45), rb, 5.8, 2.1, D / 2 + 0.2),
-      part(bx(5.4, 3.8, 0.22), 0x8a8f94, -3.0, 2.0, D / 2 + 0.35),
-      part(bx(0.1, 3.8, 0.26), 0x4a4e52, -0.3, 2.0, D / 2 + 0.36),
-    );
-    for (const s of [-1, 1])
-      for (let i = 0; i < 5; i++) P.push(part(bx(0.12, 0.6, 1.5), 0x1e2a33, s * (W / 2 + 0.02), 3.7, -10 + i * 5));
-    P.push(
-      part(bx(5, 3, 12), 0x6d7076, W / 2 + 2.4, 1.5, 2),
-      part(bx(5.6, 0.18, 12.6), 0x4a4d52, W / 2 + 2.4, 3.2, 2, 0, 0, -0.08),
-      part(bx(1.4, 2.2, 0.14), 0x33362f, W / 2 + 2.4, 1.1, 8.1),
-      part(bx(0.7, 0.5, 1.2), 0x4a4d52, 0, 6.6, -4),
-      part(bx(0.7, 0.5, 1.2), 0x4a4d52, 0, 6.6, 6),
-      part(cyl(0.3, 0.3, 0.9, 8), 0x8b4a2b, -W / 2 - 0.7, 0.45, 10),
-      part(cyl(0.3, 0.3, 0.9, 8), 0x56603f, -W / 2 - 0.7, 0.45, 10.8),
-      crate(-W / 2 - 1.0, 0, -8, 1.2, 0x7a5f35),
-    );
+      fy = 0.2 /* slab top */,
+      wy = 5.6 /* wall top */,
+      ey = 5.4,
+      ry = 7.85,
+      SKIN = 0x5d6247,
+      TIM = 0x5a4632;
+    P.push(part(bx(W + 0.4, 0.2, D + 0.4), 0x8a8a84, 0, 0.1, 0)); /* the concrete floor */
+    for (const s of [-1, 1]) P.push(part(bx(0.2, wy - fy, D), SKIN, s * 9, (wy + fy) / 2, 0)); /* the side walls */
+    P.push(part(bx(W, wy - fy, 0.2), SKIN, 0, (wy + fy) / 2, -D / 2)); /* the back wall */
+    P.push(part(prism(W, ry - wy + 0.1, 0.2), SKIN, 0, wy - 0.05, -D / 2)); /* its gable */
+    /* the roof: two corrugated panels from the eaves (0.6 m over the walls) to the ridge, a ridge cap */
+    const a = Math.atan2(ry - ey, 9.6),
+      pl = Math.hypot(9.6, ry - ey);
+    for (const s of [-1, 1]) P.push(part(bx(pl, 0.12, D + 1.0), 0x4e4a40, s * 4.8, (ey + ry) / 2 + 0.06, 0.3, 0, 0, -s * a));
+    P.push(part(bx(0.5, 0.2, D + 1.0), 0x3c3832, 0, ry + 0.1, 0.3));
+    /* the trusses: tie beams wall to wall, king posts to the ridge, the front one carrying the door header and the front gable */
+    for (const z of [-9, -3, 3, 9, D / 2 - 0.2]) P.push(part(bx(W, 0.22, 0.22), TIM, 0, wy - 0.1, z), part(bx(0.2, ry - wy + 0.1, 0.2), TIM, 0, (ry + wy) / 2, z));
+    P.push(part(prism(W, ry - wy + 0.1, 0.15), SKIN, 0, wy - 0.05, D / 2 - 0.2)); /* the front gable over the opening */
+    P.push(part(bx(W, 0.6, 0.4), TIM, 0, 5.3, D / 2) /* door header */, part(bx(0.5, 5.4, 0.5), TIM, -8.85, 2.9, D / 2), part(bx(0.5, 5.4, 0.5), TIM, 8.85, 2.9, D / 2));
+    P.push(part(bx(19, 0.15, 0.15), 0x2a2a28, 0, 5.0, D / 2 + 0.25)); /* the sliding doors' top rail */
+    for (const s of [-1, 1]) for (const k of [0, 1]) P.push(part(bx(4.0, 4.75, 0.1), k ? 0x6a5440 : SKIN, s * 6.9, fy + 2.375, D / 2 + 0.25 + k * 0.1), part(bx(4.0, 0.12, 0.12), TIM, s * 6.9, 2.6, D / 2 + 0.31 + k * 0.1)); /* four door leaves, two stacked each side, and their braces */
+    for (const s of [-1, 1]) for (let i = 0; i < 5; i++) P.push(part(bx(0.06, 0.6, 1.6), 0x1e2a33, s * 9.11, 4.4, -11 + i * 5.5)); /* strip windows */
+    /* the lean-to workshop on the starboard side, its shed roof falling away from the hangar wall */
+    P.push(part(bx(4.2, 3.2, 10), SKIN, 11.2, fy + 1.4, 3), part(bx(4.4, 0.2, 10.4), 0x8a8a84, 11.2, 0.1, 3));
+    P.push(part(bx(4.8, 0.12, 10.6), 0x4e4a40, 11.3, 3.28, 3, 0, 0, -0.135), part(bx(1.3, 2.2, 0.08), 0x33362f, 12.0, fy + 1.1, 8.03));
+    /* inside: a work bench at the back, drums and a crate by the door */
+    P.push(part(bx(6, 0.9, 1.0), TIM, -3, fy + 0.45, -D / 2 + 0.7), part(cyl(0.3, 0.3, 0.88, 8), 0x8b4a2b, 13.9, 0.44, 9.5), part(cyl(0.3, 0.3, 0.88, 8), 0x56603f, 13.9, 0.44, 10.2), crate(-10.0, 0, 9, 1.2, 0x7a5f35));
+    GX.camo(P, [SKIN], MOT, 3.0, 4.2);
     return P;
   };
   const fuel = () => {
+    /* a buried concrete fuel cistern (7 m across) banked with earth, only its rim and shallow domed roof showing, a manhole, the vent
+       and the filling pipe down to a valve stand; beside it 200 l drums stacked under palm-frond netting on four posts */
     const P = [],
-      R = 4.5;
-    P.push(part(cyl(R + 0.2, R + 0.2, 0.5, 24), 0x4a4d52, 0, 0.25, 0), part(cyl(R, R, 7.4, 24), 0xb8bcc0, 0, 4.2, 0));
-    const dm = new THREE.SphereGeometry(1, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-    P.push(
-      part(dm, 0xaab0b5, 0, 7.9, 0, 0, 0, 0, R, 1.15, R),
-      part(cyl(0.5, 0.5, 0.6, 10), 0x7d8186, 0, 9.1, 0),
-      part(cyl(0.9, 0.9, 0.2, 10), 0x6d7176, 1.8, 8.8, 1.2),
-    );
-    for (const y of [2.1, 3.9, 5.7, 7.5]) P.push(part(cyl(R + 0.06, R + 0.06, 0.16, 24), 0x7d8186, 0, y, 0));
-    P.push(part(cyl(R + 0.07, R + 0.07, 0.9, 24), 0xb22a24, 0, 6.2, 0));
-    P.push(
-      part(bx(0.12, 8.6, 0.12), 0x3a3d40, R + 0.15, 4.3, -0.4),
-      part(bx(0.12, 8.6, 0.12), 0x3a3d40, R + 0.15, 4.3, 0.4),
-    );
-    for (let i = 0; i < 17; i++) P.push(part(bx(0.12, 0.06, 0.8), 0x3a3d40, R + 0.15, 0.5 + i * 0.5, 0));
-    P.push(
-      part(cyl(0.3, 0.3, 3.2, 8), 0x3a3d40, R + 1.4, 0.9, -1.6, 0, 0, Z),
-      part(cyl(0.28, 0.28, 0.2, 8), 0xb22a24, R + 2.4, 1.3, -1.6) /* the valve wheel, on the pipe */,
-      part(cyl(0.18, 0.18, 3, 8), 0x3a3d40, R + 1.4, 0.5, -1.6, Z, 0, 0),
-      part(bx(0.7, 0.7, 0.7), 0x56603f, R + 3.1, 0.35, -1.6),
-    );
-    for (let i = 0; i < 4; i++) P.push(part(bx(0.3, 2.4, 0.04), 0x7a5c45, -2.8 + i * 1.9, 3.6, R + 0.04));
-    const bund = new THREE.CylinderGeometry(8.2, 8.8, 0.9, 28, 1, true);
-    P.push(part(bund, 0x6a6350, 0, 0.45, 0));
+      R = 3.5,
+      CON = 0x8f8f86;
+    P.push(part(cyl(R, R, 1.7, 22), CON, 0, 0.85, 0)); /* the cistern wall, standing out of the ground */
+    const dm = new THREE.SphereGeometry(1, 22, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+    P.push(part(dm, 0x9a9a90, 0, 1.68, 0, 0, 0, 0, R, 0.55, R)); /* the domed roof */
+    const bank = new THREE.LatheGeometry([[4.6, 0], [4.2, 0.6], [3.75, 1.15], [3.45, 1.25]].map(([r, y]) => new THREE.Vector2(r, y)), 22);
+    P.push(part(bank, 0x7d7a52, 0, 0, 0)); /* the earth banked against it */
+    P.push(part(cyl(0.42, 0.45, 0.2, 10), 0x55564f, 0.6, 2.2, 0.4) /* manhole */, part(cyl(0.08, 0.08, 1.0, 6), 0x3a3d40, -1.2, 2.5, -0.8), part(cyl(0.14, 0.14, 0.12, 6), 0x3a3d40, -1.2, 3.0, -0.8) /* vent and cap */);
+    /* the filling pipe: up from the roof, over the bank, down to the valve stand */
+    const pr = 0.09,
+      PC = 0x3a3d40,
+      A = [2.6, 1.95, -1.8],
+      B = [2.6, 2.5, -1.8],
+      C = [5.4, 2.5, -1.8],
+      E = [5.4, 0.3, -1.8];
+    P.push(GX.rod(A, B, pr, PC, pr, 6), GX.rod(B, C, pr, PC, pr, 6), GX.rod(C, E, pr, PC, pr, 6), part(bx(0.5, 0.6, 0.5), 0x56603f, 5.4, 0.3, -1.8));
+    P.push(part(new THREE.TorusGeometry(0.22, 0.03, 4, 10), 0xb22a24, 5.4, 1.2, -1.66), part(cyl(0.03, 0.03, 0.14, 4), PC, 5.4, 1.2, -1.75, Z, 0, 0)); /* the valve wheel on its spindle */
+    /* the drum dump: two rows of three, two lying on top, under a frond net on posts */
+    const cols = [0x56603f, 0x8b4a2b, 0x3b5675];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) P.push(part(cyl(0.29, 0.29, 0.88, 10), cols[(i + j) % 3], 5.0 + j * 0.62, 0.44, 0.6 + i * 0.62));
+    for (let i = 0; i < 2; i++) P.push(part(cyl(0.29, 0.29, 0.88, 10), cols[i], 5.31, 1.17, 0.91 + i * 0.62, Z, 0, 0));
+    for (const [x, z] of [[4.4, 0.0], [6.6, 0.0], [4.4, 2.4], [6.6, 2.4]]) P.push(part(cyl(0.06, 0.06, 2.2, 5), 0x5a4632, x, 1.1, z));
+    P.push(part(bx(2.5, 0.05, 2.7), 0x4d6b32, 5.5, 2.22, 1.2));
+    for (let k = 0; k < 5; k++) P.push(part(bx(2.7, 0.04, 0.35), 0x5d7a3a, 5.5, 2.27, 0.1 + k * 0.55, 0, 0.15 * (k % 2 ? 1 : -1)));
+    GX.camo([P[2]], [0x7d7a52], [0x7d7a52, 0x5f6a3e, 0x9a8c62], 2.0, 2.3);
     return P;
   };
   const BSET = { warehouse: 1, hq: 1, bunker: 1, hangar: 1, fuel: 1 };

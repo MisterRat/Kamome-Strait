@@ -14,7 +14,8 @@ const MODELS = (() => {
   };
 })();
 (() => {
-  const { part } = GX;
+  const { part } = GX,
+    Z = Math.PI / 2;
   /* a side profile (x along the length, y up), extruded across the width (z), centred on z = zc */
   GX.ext = (pts, w, hex, zc, o) => {
     const sh = new THREE.Shape();
@@ -119,10 +120,8 @@ const MODELS = (() => {
     return { g: GX.bx(l, h, w), hex, m };
   };
   /* a road wheel or tyre with a painted hub, axis across (z) */
-  GX.wheel = (x, y, z, r, w, tyre, hub, n) => [
-    part(GX.cyl(r, r, w, n || 12), tyre || 0x1c1c1c, x, y, z, Math.PI / 2),
-    part(GX.cyl(r * 0.55, r * 0.55, w + 0.02, 8), hub, x, y, z, Math.PI / 2),
-  ];
+  /* a wheel with its axle along z: the round tyre (GX.tyre) */
+  GX.wheel = (x, y, z, r, w, tyre, hub, n) => GX.tyre(x, y, z, r, w, tyre || 0x1c1c1c, hub, 16);
   /* a white five-pointed star decal (US), flat, facing +z unless turned */
   GX.star = (x, y, z, r, ry, rx, hex) => {
     const sh = new THREE.Shape();
@@ -132,6 +131,55 @@ const MODELS = (() => {
       i ? sh.lineTo(Math.cos(a) * q, Math.sin(a) * q) : sh.moveTo(Math.cos(a) * q, Math.sin(a) * q);
     }
     return part(new THREE.ShapeGeometry(sh), hex || 0xe8e8e2, x, y, z, rx || 0, ry || 0, 0);
+  };
+  /* a hipped roof: eaves at y0 round the rectangle x0..x1, z0..z1, the ridge along the longer side at y0 + rise (one surface, draw
+     double-sided); rise defaults to a 35 % pitch. Its height over any (x, z): GX.hipY(...same, x, z) */
+  GX.hipRoof = (x0, x1, z0, z1, y0, rise, hex) => {
+    const alongX = x1 - x0 >= z1 - z0,
+      run = (alongX ? z1 - z0 : x1 - x0) / 2,
+      r = rise == null ? run * 0.7 : rise,
+      xc = (x0 + x1) / 2,
+      zc = (z0 + z1) / 2,
+      h = Math.max(0.05, (alongX ? x1 - x0 : z1 - z0) / 2 - run),
+      R = alongX ? [[xc - h, y0 + r, zc], [xc + h, y0 + r, zc]] : [[xc, y0 + r, zc - h], [xc, y0 + r, zc + h]],
+      v = [[x0, y0, z1], [x1, y0, z1], [x1, y0, z0], [x0, y0, z0]],
+      T = alongX
+        ? [[v[0], v[1], R[1]], [v[0], R[1], R[0]], [v[2], v[3], R[0]], [v[2], R[0], R[1]], [v[1], v[2], R[1]], [v[3], v[0], R[0]]]
+        : [[v[1], v[2], R[0]], [v[1], R[0], R[1]], [v[3], v[0], R[1]], [v[3], R[1], R[0]], [v[0], v[1], R[1]], [v[2], v[3], R[0]]],
+      pos = [];
+    for (const t of T) for (const p of t) pos.push(...p);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    return part(g, hex, 0, 0, 0);
+  };
+  /* a round tyre on its wheel: the tyre a lathe of a rounded section (tread, shoulders, sidewalls) n segments round, the rim and hub a
+     cylinder inside it with a hub cap; centre (x, y, z), radius r, width w, the axle along z (axis 'z', vehicles' default) or x.
+     Shared by every wheeled model so all wheels are round and alike. Returns parts. */
+  const TYRES = {};
+  GX.tyre = (x, y, z, r, w, tyre, hub, n, axis) => {
+    n = n || 16;
+    const key = [r, w, n].join(':');
+    if (!TYRES[key]) {
+      /* the section: sidewall, rounded shoulder (one chamfer), tread, shoulder, sidewall: six points, 5 bands round */
+      const ri = r * 0.64,
+        rr = Math.min(w * 0.3, (r - ri) * 0.35);
+      TYRES[key] = new THREE.LatheGeometry(
+        [[ri, w * 0.46], [r - rr, w / 2], [r, w / 2 - rr], [r, -w / 2 + rr], [r - rr, -w / 2], [ri, -w * 0.46]].map(([a, b]) => new THREE.Vector2(a, b)),
+        n,
+      );
+    }
+    const rx = axis === 'x' ? 0 : Z,
+      rz = axis === 'x' ? -Z : 0;
+    const dk = 'd' + key;
+    if (!TYRES[dk]) TYRES[dk] = new THREE.CircleGeometry(r * 0.67, Math.max(8, n - 4));
+    const d = w * 0.43,
+      P = [part(TYRES[key], tyre, x, y, z, rx, 0, rz)];
+    /* the rim: a disc each side closing the tyre's bead (outward facing), and the hub through the middle */
+    for (const s of [-1, 1])
+      P.push(axis === 'x' ? part(TYRES[dk], hub, x + s * d, y, z, 0, s * Z, 0) : part(TYRES[dk], hub, x, y, z + s * d, 0, s > 0 ? 0 : Math.PI, 0));
+    P.push(part(GX.cyl(r * 0.24, r * 0.28, w * 0.98, 6), hub, x, y, z, rx, 0, rz));
+    return P;
   };
   /* a flat disc decal (a circle in a ring, roundels, the Hinomaru), facing +z unless turned */
   GX.disc = (x, y, z, r, hex, ry, rx) => part(new THREE.CircleGeometry(r, 16), hex, x, y, z, rx || 0, ry || 0, 0);

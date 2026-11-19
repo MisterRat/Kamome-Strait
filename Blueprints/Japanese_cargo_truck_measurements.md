@@ -1,6 +1,6 @@
 # Japanese army cargo truck (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.68 build by `tools/blueprint.py` (2026-11-18). Model box: 5.40 m long, 1.90 m wide, 2.25 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 5.40 m long, 1.90 m wide, 2.25 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Isuzu Type 94 six-wheeled truck (cargo truck)
 

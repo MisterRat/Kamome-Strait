@@ -90,7 +90,7 @@
   }, { name: 'Decauville 600 mm track' });
   MODELS.add('jp-rail-cart', (loaded) => {
     const P = [part(bx(1.8, 0.12, 1.0), 0x5a4632, 0, 0.45, 0)];
-    for (const x of [-0.6, 0.6]) for (const s of [-1, 1]) P.push(part(cyl(0.16, 0.16, 0.05, 8), DK, x, 0.27, s * 0.3, Z));
+    for (const x of [-0.6, 0.6]) for (const s of [-1, 1]) P.push(part(cyl(0.16, 0.16, 0.05, 14), DK, x, 0.27, s * 0.3, Z)); /* flanged steel wheels */
     if (loaded !== false) for (let k = 0; k < 3; k++) P.push(part(cyl(0.29, 0.29, 0.88, 8), [0x4d5a3a, 0x7a4a2a, 0x4d5a3a][k], -0.6 + k * 0.6, 0.95, 0));
     return P;
   }, { name: 'Decauville hand cart' });
@@ -119,6 +119,34 @@
     P.push(...GX.both(q));
     return P;
   }, { name: 'drum dump under palm-frond netting' });
+  /* a Pacific outrigger canoe (the islanders' dugout, drawn up on the beach): a 6 m dugout hull with raised, pointed ends, open inside,
+     an outrigger float 1.7 m off its port side on two booms with forked stanchions, a paddle laid across; keel and float on y = 0 */
+  MODELS.add('pac-canoe', (c) => {
+    const L = 6,
+      H = c || 0x7a5a38,
+      P = GX.loft({
+        L, X0: -L / 2, N: 11,
+        sect: (t) => {
+          const e = Math.abs(t - 0.5) * 2,
+            b = 0.3 * Math.sqrt(Math.max(0.02, 1 - e ** 2.4)),
+            y = 0.62 + 0.28 * e ** 3;
+          return [[0.06 * e ** 2, 0], [0.12 + 0.1 * e ** 2, b * 0.8], [y, b]];
+        },
+        paint: (y, k) => (k === 0 ? 0x4a3a28 : H),
+        deck: null,
+        transom: null,
+      });
+    P.push(...P.splice(0).flatMap((q) => GX.both(q))); /* a dugout: seen from inside too */
+    P.push(part(bx(4.6, 0.04, 0.42), 0x3a2c1e, 0, 0.3, 0)); /* the bilge boards inside */
+    const fz = -1.75;
+    P.push(part(GX.cyl(0.13, 0.13, 4.0, 8), 0x8a7050, 0, 0.13, fz, 0, 0, Z), part(GX.sph(6), 0x8a7050, 2.0, 0.13, fz, 0, 0, 0, 0.3, 0.13, 0.13), part(GX.sph(6), 0x8a7050, -2.0, 0.13, fz, 0, 0, 0, 0.3, 0.13, 0.13)); /* the float, pointed ends */
+    for (const x of [-1.1, 1.1]) {
+      P.push(GX.rod([x, 0.66, 0.25], [x, 0.66, fz - 0.05], 0.045, 0x6a5236, 0.045, 5)); /* the boom, lashed across the gunwales */
+      P.push(GX.rod([x - 0.02, 0.66, fz], [x - 0.12, 0.2, fz], 0.03, 0x6a5236, 0.03, 4), GX.rod([x + 0.02, 0.66, fz], [x + 0.12, 0.2, fz], 0.03, 0x6a5236, 0.03, 4)); /* the forked stanchions, from the boom down to the float */
+    }
+    P.push(GX.rod([-0.4, 0.69, -0.35], [1.0, 0.69, 0.3], 0.025, 0x8a6a44, 0.025, 4), part(bx(0.5, 0.02, 0.16), 0x8a6a44, 1.2, 0.69, 0.39, 0, 0.43, 0)); /* a paddle across the gunwales */
+    return P;
+  }, { L: 6, W: 2.2, name: 'Pacific outrigger canoe' });
   /* godown: a low gable-roofed timber warehouse with deep eaves, mottled dark green and brown, on a stone plinth; W x D footprint,
      the long side along x, the doors on +z */
   MODELS.add('jp-godown', (W, D) => {

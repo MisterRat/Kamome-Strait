@@ -1,6 +1,6 @@
 # US cargo truck (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.68 build by `tools/blueprint.py` (2026-11-18). Model box: 6.51 m long, 2.24 m wide, 2.80 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 6.51 m long, 2.24 m wide, 2.80 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** GMC CCKW 353 2½-ton 6x6 cargo truck
 
