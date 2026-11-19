@@ -169,11 +169,11 @@ const MODELS = (() => {
     n = n || 16;
     const key = [r, w, n].join(':');
     if (!TYRES[key]) {
-      /* the section: sidewall, rounded shoulder (one chamfer), tread, shoulder, sidewall: six points, 5 bands round */
+      /* the section, bottom to top so the lathe faces outward: sidewall, rounded shoulder (one chamfer), tread, shoulder, sidewall: six points, 5 bands round */
       const ri = r * 0.64,
         rr = Math.min(w * 0.3, (r - ri) * 0.35);
       TYRES[key] = new THREE.LatheGeometry(
-        [[ri, w * 0.46], [r - rr, w / 2], [r, w / 2 - rr], [r, -w / 2 + rr], [r - rr, -w / 2], [ri, -w * 0.46]].map(([a, b]) => new THREE.Vector2(a, b)),
+        [[ri, -w * 0.46], [r - rr, -w / 2], [r, -w / 2 + rr], [r, w / 2 - rr], [r - rr, w / 2], [ri, w * 0.46]].map(([a, b]) => new THREE.Vector2(a, b)),
         n,
       );
     }
