@@ -293,7 +293,7 @@ function mkT(type, x, z, ry, kind) {
       new THREE.MeshLambertMaterial(det ? { vertexColors: true, side: VM.isB(type) ? 2 : 0 } : { color: sp.c }),
     );
   /* on the drawn ground: a building on the lowest of its footprint, a vehicle tilted along the slope (its nose is local +z) */
-  const gA = GROUNDAT(x, z, s[0], s[2], ry, !VM.isB(type) && !sp.cyl, null, s[1]);
+  const gA = GROUNDAT(x, z, s[0], s[2], ry, !VM.isB(type) && !sp.cyl, SURF, s[1]); /* on the topmost surface (SURF) */
   m.position.set(x, gA.y + s[1] / 2, z);
   m.rotation.set(gA.rx, ry, gA.rz, 'YXZ');
   scene.add(m);
@@ -342,6 +342,7 @@ function mkT(type, x, z, ry, kind) {
     kind: kind || 'st',
     gnd,
   };
+  e.y0 = m.position.y; /* where it was set down (on its surface, tilted): a reset puts it back here */
   T.push(e);
   return e;
 }
@@ -405,7 +406,7 @@ function killT(t) {
   t.dead = true;
   killed++;
   t.m.scale.y = 0.3;
-  t.m.position.y = H(t.c.x, t.c.z) + t.s1 * 0.15;
+  t.m.position.y = t.type === 'ship' || t.y0 === undefined ? H(t.c.x, t.c.z) + t.s1 * 0.15 : t.y0 - t.s1 * 0.35; /* squashed onto the surface it stood on */
   if (t.type === 'ship') t.m.rotation.z = (t.c.x % 2 > 1 ? 1 : -1) * 0.2; /* a ship settles by the side as it burns */
   if (t.lit) t.lit.visible = false; /* the lights go out */
   t.m.traverse((o) => {

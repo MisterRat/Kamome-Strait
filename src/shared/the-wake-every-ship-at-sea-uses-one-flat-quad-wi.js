@@ -116,7 +116,7 @@ let WSOCK = null;
      Clarktor, C-10 starter carts by the fighters) */
   {
     const acc = new GX.Acc(),
-      at = (P, x, z, yaw) => acc.add(P, GX.xf(x, Math.max(0, H(x, z)), z, yaw || 0));
+      at = (P, x, z, yaw) => acc.add(P, GX.xf(x, Math.max(0, GX.standY(P, x, z, yaw)), z, yaw || 0)) /* on the apron, pad or ground (SURF) */;
     for (let k = 0; k < 3; k++) at(MODELS.get('us-butler-hangar'), -178 - 24.39, 150 + k * 70, 0);
     at(MODELS.get('us-control-tower'), -95, -120, 0);
     at(MODELS.get('us-quonset', 'std'), -80, -120, Math.PI / 2);

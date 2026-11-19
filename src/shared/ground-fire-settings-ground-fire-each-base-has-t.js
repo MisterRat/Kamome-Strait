@@ -155,7 +155,7 @@ AA.load();
     return new THREE.Mesh(g, MAT.clone()); /* one material per mesh: killT darkens and restores each mesh's own colour */
   };
   const addT = (grp, type, hp, r) => {
-    const e = { m: grp, lit: null, c: grp.position, r, hp, hp0: hp, type, dead: false, s1: 3, col: 0x4a5035, kind: 'aa' };
+    const e = { m: grp, lit: null, c: grp.position, r, hp, hp0: hp, type, dead: false, s1: 3, col: 0x4a5035, kind: 'aa', y0: grp.position.y };
     T.push(e);
     return e;
   };
@@ -163,7 +163,7 @@ AA.load();
     const x = cx + rx,
       z = cz + rz,
       grp = new THREE.Group();
-    grp.position.set(x, H(x, z) + 1.5, z);
+    grp.position.set(x, SURF(x, z) + 1.5, z);
     grp.add(mk(GEOM.pit));
     const tur = new THREE.Group();
     tur.position.set(0, 1.25 + G0, 0);
@@ -178,14 +178,14 @@ AA.load();
     const t = addT(grp, 'aa25', 40, 4.5);
     AA.gun.push({
       t, grp, tur, bar, x, z, nr: 0, bias: new V(0, 0, 0), yaw: yaw0, pit: 0.5, acq: 0, mag: 30, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0),
-      piv: new V(x, H(x, z) + 1.5 + 0.4 + 0, z),
+      piv: new V(x, SURF(x, z) + 1.5 + 0.4 + 0, z),
     });
   };
   const lamp = (cx, cz, rx, rz, home, fr) => {
     const x = cx + rx,
       z = cz + rz,
       grp = new THREE.Group();
-    grp.position.set(x, H(x, z) + 1.5, z);
+    grp.position.set(x, SURF(x, z) + 1.5, z);
     grp.add(mk(GEOM.lb));
     const head = new THREE.Group();
     head.position.set(0, 2.1 + G0, 0);
@@ -224,7 +224,7 @@ AA.load();
     const t = fr ? { dead: false } : addT(grp, 'sl150', 16, 3);
     AA.lamp.push({
       fr: !!fr, t, grp, head, pit, lens, beam, glow, spl, ct: Math.random() * 0.15, cloudAxis: Infinity, occ: false, x, z, home, yaw: home, el: 0.8, wy: home, we: 0.8, mode: 'search', lost: 0, cue: 0, lit: false, on: false,
-      p: new V(x, H(x, z) + 1.5 + 0.6, z),
+      p: new V(x, SURF(x, z) + 1.5 + 0.6, z),
     });
   };
 
@@ -273,7 +273,7 @@ AA.load();
   GEOM.b37 = bar37();
   const fgun = (x, z, yaw0) => {
     const grp = new THREE.Group();
-    grp.position.set(x, H(x, z) + 1.5, z);
+    grp.position.set(x, SURF(x, z) + 1.5, z);
     grp.add(mk(GEOM.p37));
     const tur = new THREE.Group();
     tur.position.set(0, 1.1 + G0, 0);

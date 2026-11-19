@@ -27,11 +27,11 @@ const SITES = [],
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const gb = m.geometry.boundingBox,
-        gA = type === 'ship' || yOff ? null : GROUNDAT(x, z, gb.max.x - gb.min.x, gb.max.z - gb.min.z, ry, false); /* on the lowest of its footprint */
+        gA = type === 'ship' || yOff ? null : GROUNDAT(x, z, gb.max.x - gb.min.x, gb.max.z - gb.min.z, ry, false, SURF); /* on the lowest of the surfaces (apron, yard, ground) under its footprint */
       m.position.set(x, type === 'ship' ? SEA.WL + k0 + s1 / 2 : (gA ? gA.y : H(x, z)) + s1 / 2 + (yOff || 0), z);
       m.rotation.y = ry;
       scene.add(m);
-      const e = { m, lit: null, c: m.position, r, hp, hp0: hp, type, dead: false, s1, k0, col: 0x555555, kind: 'st' };
+      const e = { m, lit: null, c: m.position, r, hp, hp0: hp, type, dead: false, s1, k0, col: 0x555555, kind: 'st', y0: m.position.y };
       T.push(e);
       if (FR === SITE) SITES.push(e); /* the far sites keep their own lists */
       return e;
@@ -890,7 +890,7 @@ const SITES = [],
   /* a perimeter fence (wire on posts) with a guard tower at each corner and at the given u along each long side; in the current frame FR */
   const fenceRect = (U0, U1, D0, D1, mids) => {
     const acc = new GX.Acc();
-    const put = (P, x, z, yaw, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, 1));
+    const put = (P, x, z, yaw, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? GX.standY(P, x, z, yaw) : y0, z, yaw, 1));
     const edge = (u0, d0, u1, d1) => {
       const L = Math.hypot(u1 - u0, d1 - d0),
         n = Math.round(L / 6);
@@ -959,7 +959,7 @@ const SITES = [],
        wheel contacts there (the mesh's base goes at the terrain height under its centre, plus yOff) */
     const ry = FR.ryS + (rnd() - 0.5) * 0.25,
       [x0, z0] = FR.w(u, DR - 100),
-      top = Math.max(...KI84.CONTACT.map(([cx, cz]) => HMESH(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry)) + 0.3));
+      top = Math.max(...KI84.CONTACT.map(([cx, cz]) => SURF(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry)))) /* the apron's top (SURF) under each wheel */;
     target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01);
   }
   /* the ground crew at work on the line (IJAAF khaki-tan coveralls, field caps) and a tractor to tow the fighters: one static mesh */
@@ -967,7 +967,7 @@ const SITES = [],
     const acc = new GX.Acc(),
       at = (P, u, d, yaw) => {
         const [x, z] = FR.w(u, d);
-        acc.add(P, GX.xf(x, HMESH(x, z) + 0.3, z, FR.ryS + yaw));
+        acc.add(P, GX.xf(x, GX.standY(P, x, z, FR.ryS + yaw), z, FR.ryS + yaw)); /* on the apron (SURF) */
       };
     [[1, 'work', 3.2, 2.2, Math.PI], [1, 'stand', 6, -2.5, 2.2], [4, 'kneel', 2.5, -3.6, 0.4], [4, 'work', 3.4, 2.4, Math.PI], [7, 'stand', -4, 3, -1.2], [7, 'walk', 8, 6, 0.8]].forEach(([i, pose, du, dd, yaw], k) =>
       at(MODELS.get('crew', 'ja', pose, k), -250 + i * 62 + du, DR - 100 + dd, yaw),
@@ -1066,7 +1066,7 @@ const SITES = [],
       at(P, u, d, yaw, y, k) {
         const [x, z] = F.w(u, d);
         if (home && nearRoad(x, z, 12)) return;
-        acc.add(P, GX.xf(x, y == null ? H(x, z) : y, z, yaw, k));
+        acc.add(P, GX.xf(x, y == null ? GX.standY(P, x, z, yaw) : y, z, yaw, k));
       },
       flush() {
         const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }));

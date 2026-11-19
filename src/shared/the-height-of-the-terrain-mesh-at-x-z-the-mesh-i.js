@@ -69,24 +69,62 @@ const SURF = (() => {
   let L = null;
   const C = new Map(),
     rc = new THREE.Raycaster(),
+    _l = rc.layers.enableAll() /* a far site's meshes are kept off the camera's layer while it is far away: they still count */,
     o = new THREE.Vector3(),
     dn = new THREE.Vector3(0, -1, 0),
     hit = [];
+  /* is m a surface: a decal (polygon offset) or a thin flat plate laid over the ground, or one marked userData.surface? Hidden ones count
+     too (a far site's apron is hidden while it is far away, and what stands on it is placed then) */
+  const isSurf = (m) => {
+    if (!m.isMesh || m.isInstancedMesh) return false;
+    const mt = m.material;
+    if (!mt || Array.isArray(mt) || mt.transparent || mt.type === 'ShaderMaterial') return false;
+    const g = m.geometry;
+    /* measured afresh: a draped apron's vertices are moved after it is made, and a stale bounding sphere hides it from the ray */
+    g.computeBoundingBox();
+    g.computeBoundingSphere();
+    m.updateMatrixWorld(true);
+    const b = g.boundingBox.clone().applyMatrix4(m.matrixWorld),
+      sx = b.max.x - b.min.x,
+      sz = b.max.z - b.min.z;
+    if (sx > 50000) return false; /* the open-sea plane */
+    return !!(m.userData.surface || (mt.polygonOffset && Math.max(sx, sz) > 4) || (b.max.y - b.min.y < 0.6 && Math.max(sx, sz) > 6));
+  };
+  /* the world is built a piece at a time (into groups as well as the scene) and things are placed on it as it goes: every object added
+     anywhere is noted (Object3D.add), and before a look the new ones that now hang in the scene are checked for surfaces (the cache is
+     cleared if there are any); taken out of the scene, a surface no longer counts */
+  const NEW = [];
+  {
+    const add0 = THREE.Object3D.prototype.add;
+    THREE.Object3D.prototype.add = function (...a) {
+      for (const o of a) if (o && (o.isMesh || (o.children && o.children.length) || o.isGroup)) NEW.push(o);
+      if (NEW.length > 20000) NEW.splice(0, 10000);
+      return add0.apply(this, a);
+    };
+  }
+  const inScene = (o) => {
+    while (o.parent) o = o.parent;
+    return o === scene;
+  };
   const gather = () => {
     L = [];
-    scene.updateMatrixWorld(true);
-    scene.traverse((m) => {
-      if (!m.isMesh || m.isInstancedMesh || !m.visible) return;
-      const mt = m.material;
-      if (!mt || Array.isArray(mt) || mt.transparent || mt.type === 'ShaderMaterial') return;
-      const g = m.geometry;
-      if (!g.boundingBox) g.computeBoundingBox();
-      const b = g.boundingBox.clone().applyMatrix4(m.matrixWorld),
-        sx = b.max.x - b.min.x,
-        sz = b.max.z - b.min.z;
-      if (sx > 50000) return; /* the open-sea plane */
-      if (m.userData.surface || (mt.polygonOffset && Math.max(sx, sz) > 4) || (b.max.y - b.min.y < 0.6 && Math.max(sx, sz) > 6)) L.push(m);
-    });
+    NEW.length = 0;
+    scene.traverse((m) => isSurf(m) && L.push(m));
+  };
+  const sync = () => {
+    if (!NEW.length) return;
+    let added = false;
+    const keep = [];
+    for (const o of NEW) {
+      if (!inScene(o)) {
+        if (!o.parent) keep.push(o); /* not hung anywhere yet: look again later */
+        continue;
+      }
+      o.traverse((m) => isSurf(m) && !L.includes(m) && (L.push(m), (added = true)));
+    }
+    NEW.length = 0;
+    NEW.push(...keep.slice(-5000));
+    if (added) C.clear();
   };
   const f = (x, z) => {
     const h0 = H(x, z);
@@ -94,6 +132,7 @@ const SURF = (() => {
     const k = Math.round(x) * 1000003 + Math.round(z);
     /* the cache keeps how far the surface lies above the ground in each 1 m cell, not a height: on a slope a height would be wrong
        by up to half a metre's rise elsewhere in the cell */
+    if (L) sync();
     const c = C.get(k);
     if (c !== undefined) return h0 + c;
     let h;
@@ -102,6 +141,7 @@ const SURF = (() => {
     rc.far = 7;
     hit.length = 0;
     rc.intersectObjects(L, false, hit);
+    for (let i = hit.length - 1; i >= 0; i--) if (!inScene(hit[i].object)) hit.splice(i, 1); /* taken away since */
     h = h0;
     for (const q of hit) if (q.point.y > h0 - 0.4) h = Math.max(h, q.point.y);
     C.set(k, h - h0);
@@ -120,7 +160,21 @@ const SURF = (() => {
       t.m.rotation.set(gA.rx, g.ry, gA.rz, 'YXZ');
       t.m.updateMatrix();
       t.m.updateMatrixWorld(true);
+      t.y0 = t.m.position.y;
     }
+    /* the ground-fire guns and searchlights (groups whose origin is 1.5 m above their floor): onto any pad laid after them */
+    if (typeof AA !== 'undefined')
+      for (const g of AA.gun.concat(AA.lamp)) {
+        if (g.ship || !g.grp || !g.grp.parent) continue;
+        const P = g.grp.position,
+          dy = f(P.x, P.z) + 1.5 - P.y;
+        if (Math.abs(dy) < 0.005) continue;
+        P.y += dy;
+        if (g.piv) g.piv.y += dy;
+        if (g.p) g.p.y += dy;
+        if (g.t && g.t.m === g.grp) g.t.y0 = P.y;
+        g.grp.updateMatrixWorld(true);
+      }
   };
   return f;
 })();

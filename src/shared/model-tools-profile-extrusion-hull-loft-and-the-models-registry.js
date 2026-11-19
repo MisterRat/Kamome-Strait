@@ -155,6 +155,38 @@ const MODELS = (() => {
   };
   /* a transform for a run of fence (or rail, or wall) from ground point A to ground point B: at their middle, turned to run along A->B,
      and sheared so its bottom follows the ground's slope while its posts and panels stay upright */
+  /* a list of parts' footprint in its own frame: [width along x, depth along z] (for setting it down on the ground) */
+  GX.foot = (P) => {
+    /* only what reaches down to its base counts: the points within 0.3 m of its lowest (a leaning palm's foot, not its crown; a hut's
+       posts, not its eaves); [width along x, depth along z, centre x, centre z] in its own frame */
+    const v = new THREE.Vector3(),
+      pts = [];
+    let y0 = Infinity;
+    for (const p of P) {
+      const a = p.g.attributes.position,
+        m = p.m || new THREE.Matrix4();
+      for (let i = 0; i < a.count; i++) {
+        v.fromBufferAttribute(a, i).applyMatrix4(m);
+        pts.push(v.x, v.y, v.z);
+        y0 = Math.min(y0, v.y);
+      }
+    }
+    let x0 = Infinity,
+      x1 = -Infinity,
+      z0 = Infinity,
+      z1 = -Infinity;
+    for (let i = 0; i < pts.length; i += 3)
+      if (pts[i + 1] < y0 + 0.3) (x0 = Math.min(x0, pts[i])), (x1 = Math.max(x1, pts[i])), (z0 = Math.min(z0, pts[i + 2])), (z1 = Math.max(z1, pts[i + 2]));
+    return x0 === Infinity ? [0, 0, 0, 0] : [x1 - x0, z1 - z0, (x0 + x1) / 2, (z0 + z1) / 2];
+  };
+  /* where a list of parts stands at (x, z) turned by yaw: the lowest of the topmost surfaces (SURF: apron, pad, yard, else the ground)
+     under its footprint, so no corner floats; a building's far side goes into a slope as its foundations would */
+  GX.standY = (P, x, z, yaw) => {
+    const [w, d, cx, cz] = GX.foot(P),
+      c = Math.cos(yaw || 0),
+      sn = Math.sin(yaw || 0);
+    return GROUNDAT(x + c * cx + sn * cz, z - sn * cx + c * cz, w, d, yaw || 0, false, SURF).y;
+  };
   GX.xfRun = (ax, ay, az, bx, by, bz) => {
     const L = Math.hypot(bx - ax, bz - az) || 1,
       yaw = Math.atan2(-(bz - az), bx - ax),

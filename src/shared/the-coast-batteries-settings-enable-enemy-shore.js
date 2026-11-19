@@ -98,7 +98,7 @@ const COAST = {
   const G = { pit: new GX.Acc().add(pit()).geometry(), mount: new GX.Acc().add(mount()).geometry(), barrel: new GX.Acc().add(barrel()).geometry() };
   /* one gun at (x, z) on the shore, facing the sea along yaw (world: 0 = +x... as GX.xf) */
   COAST.add = (x, z, yaw) => {
-    const y = H(x, z),
+    const y = SURF(x, z),
       grp = new THREE.Group();
     grp.position.set(x, y, z);
     grp.rotation.y = yaw;
@@ -111,7 +111,7 @@ const COAST = {
     tur.add(bar);
     grp.add(tur);
     scene.add(grp);
-    const t = { m: grp, lit: null, c: grp.position, r: 3.2, hp: 40, hp0: 40, type: 'coast12', dead: false, s1: 2, col: 0x6e7477, kind: 'aa' };
+    const t = { m: grp, lit: null, c: grp.position, r: 3.2, hp: 40, hp0: 40, type: 'coast12', dead: false, s1: 2, col: 0x6e7477, kind: 'aa', y0: grp.position.y };
     T.push(t);
     const g = { grp, tur, bar, t, p: new THREE.Vector3(x, y + 1.62 + 1.06 * 0, z), yaw: 0, el: 0.05, cd: Math.random() * 6, er: 0, ed: 0, n: 0, rec: 0, home: yaw, smoke: 0 };
     g.p.y = y + 1.62;

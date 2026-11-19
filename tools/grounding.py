@@ -46,15 +46,15 @@ JS = r"""(TOL) => {
   const G = new Map(), tris = [];
   const cell = (x, z) => ((Math.floor(x / C) + 50000) * 100003 + (Math.floor(z / C) + 50000));
   const a = new V(), b = new V(), c = new V(), u = new V(), w = new V(), M = new M4(), MI = new M4();
-  const addTri = (A, B, Cc) => {
+  const addTri = (A, B, Cc, gnd) => {
     u.subVectors(B, A); w.subVectors(Cc, A); const n = new V().crossVectors(u, w); const L = n.length(); if (L < 1e-9) return;
     if (Math.abs(n.y) / L < 0.25) return; /* steep: a wall, not something to stand on */
-    const t = tris.length; tris.push([A.x, A.y, A.z, B.x, B.y, B.z, Cc.x, Cc.y, Cc.z]);
+    const t = tris.length; OWNR.push(CUR); tris.push([A.x, A.y, A.z, B.x, B.y, B.z, Cc.x, Cc.y, Cc.z, gnd ? 1 : 0]);
     const x0 = Math.floor(Math.min(A.x, B.x, Cc.x) / C), x1 = Math.floor(Math.max(A.x, B.x, Cc.x) / C), z0 = Math.floor(Math.min(A.z, B.z, Cc.z) / C), z1 = Math.floor(Math.max(A.z, B.z, Cc.z) / C);
     if ((x1 - x0 + 1) * (z1 - z0 + 1) > 200000) return;
     for (let i = x0; i <= x1; i++) for (let j = z0; j <= z1; j++) { const k = (i + 50000) * 100003 + (j + 50000); if (!NEED.has(k)) continue; let l = G.get(k); if (!l) G.set(k, (l = [])); l.push(t); }
   };
-  const meshes = [];
+  const meshes = [], OWNR = []; let CUR = null;
   scene.traverse((o) => { if ((o.isMesh || o.isInstancedMesh) && !skipMesh(o)) meshes.push(o); });
   let nT = 0;
   const NEED = new Set(), PEND = [];
@@ -64,18 +64,25 @@ JS = r"""(TOL) => {
     const idx = g.index ? g.index.array : null, nt = (idx ? idx.length : p.count) / 3;
     const mats = o.isInstancedMesh ? Array.from({ length: Math.min(o.count, 4000) }, (_, i) => { const m = new M4(); o.getMatrixAt(i, m); return new M4().multiplyMatrices(o.matrixWorld, m); }) : [o.matrixWorld];
     if (o.isInstancedMesh) continue; /* trees and palms are objects, not ground */
+    /* is this mesh GROUND (terrain, a slab, an apron, a yard, a decal laid over the ground), as SURF counts it, or an object (whose top
+       is still somewhere to stand, a deck or a quay, but not a surface that a thing beside it must sit on top of)? */
+    if (!g.boundingBox) g.computeBoundingBox();
+    const gb = g.boundingBox.clone().applyMatrix4(o.matrixWorld), gsx = gb.max.x - gb.min.x, gsz = gb.max.z - gb.min.z, gsy = gb.max.y - gb.min.y;
+    CUR = o;
+    const gnd = !!(o.userData.surface || (o.material.polygonOffset && Math.max(gsx, gsz) > 4) || (gsy < 0.6 && Math.max(gsx, gsz) > 6) || (Math.max(gsx, gsz) > 2000));
     for (const mw of mats)
       for (let t = 0; t < nt; t++) {
         const i0 = idx ? idx[3 * t] : 3 * t, i1 = idx ? idx[3 * t + 1] : 3 * t + 1, i2 = idx ? idx[3 * t + 2] : 3 * t + 2;
         a.fromBufferAttribute(p, i0).applyMatrix4(mw); b.fromBufferAttribute(p, i1).applyMatrix4(mw); c.fromBufferAttribute(p, i2).applyMatrix4(mw);
-        addTri(a.clone(), b.clone(), c.clone()); nT++;
+        addTri(a.clone(), b.clone(), c.clone(), gnd); nT++;
       }
   }
   };
   const key = (x, y, z) => Math.round(x * 50) + ',' + Math.round(y * 50) + ',' + Math.round(z * 50);
   /* surfaces at (x, z): heights of the triangles over that point, skipping the object's own */
   const heights = (x, z, own) => {
-    const l = G.get(cell(x, z)) || [], H = [];
+    const l = G.get(cell(x, z)) || [], H = [], HG = [];
+    H.g = HG;
     for (const t of l) {
       const q = tris[t];
       const d = (q[5] - q[8]) * (q[0] - q[6]) + (q[6] - q[3]) * (q[2] - q[8]);
@@ -83,9 +90,9 @@ JS = r"""(TOL) => {
       const l1 = ((q[5] - q[8]) * (x - q[6]) + (q[6] - q[3]) * (z - q[8])) / d, l2 = ((q[8] - q[2]) * (x - q[6]) + (q[0] - q[6]) * (z - q[8])) / d, l3 = 1 - l1 - l2;
       if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue;
       if (own && own.has(key(q[0], q[1], q[2])) && own.has(key(q[3], q[4], q[5])) && own.has(key(q[6], q[7], q[8]))) continue;
-      H.push(l1 * q[1] + l2 * q[4] + l3 * q[7]);
+      H.push(l1 * q[1] + l2 * q[4] + l3 * q[7]); HG.push(q[9]);
     }
-    if (typeof HMESH === 'function') { const h = HMESH(x, z); if (h > SEA.Y + 0.05) H.push(h); } /* the terrain mesh as drawn (home grid or far chunk), loaded or not */
+    if (typeof HMESH === 'function') { const h = HMESH(x, z); if (h > SEA.Y + 0.05) H.push(h), HG.push(1); } /* the terrain mesh as drawn (home grid or far chunk), loaded or not */
     return H;
   };
   /* objects */
@@ -110,13 +117,21 @@ JS = r"""(TOL) => {
     for (const v of base) {
       const H = heights(v.x, v.z, own);
       if (!H.length) { ds.push(null); continue; }
-      let best = null; for (const h of H) { const d = v.y - h; if (best === null || Math.abs(d) < Math.abs(best)) best = d; }
+      /* it stands on the TOPMOST surface there (a slab, an apron, a deck laid over the ground), not whichever is nearest: a wheel
+         inside the concrete but just above the soil is sunk. Surfaces more than 0.5 m above it (a roof, a wing) are not under it. */
+      let best = null;
+      for (const h of H) { const d = v.y - h; if (best === null || Math.abs(d) < Math.abs(best)) best = d; }
+      const top = H.filter((h, i) => H.g[i] && h <= v.y + 0.5);
+      if (top.length && v.y - Math.max(...top) < -TOL) best = v.y - Math.max(...top); /* inside a slab or apron, above the soil under it */
       ds.push(best);
     }
     const D = ds.filter((d) => d !== null);
     if (!D.length) return objs.push({ name, lo, state: 'nothing under it', d: null, n: base.length, at: [(bb.x0 + bb.x1) / 2, lo, (bb.z0 + bb.z1) / 2], size: [bb.x1 - bb.x0, bb.y1 - lo, bb.z1 - bb.z0] });
     const touch = D.some((d) => Math.abs(d) <= TOL), up = D.every((d) => d > TOL), dn = D.every((d) => d < -TOL);
-    const state = touch ? 'ok' : up ? 'FLOATS' : dn ? 'SUNK' : 'straddles';
+    let bx0 = Infinity, bx1 = -Infinity, bz0 = Infinity, bz1 = -Infinity;
+    for (const v of base) (bx0 = Math.min(bx0, v.x)), (bx1 = Math.max(bx1, v.x)), (bz0 = Math.min(bz0, v.z)), (bz1 = Math.max(bz1, v.z));
+    const planted = Math.max(bx1 - bx0, bz1 - bz0) < 1.2 && D.every((d) => d < TOL && d > -0.35); /* a trunk or a post: rooted in the ground */
+    const state = touch || planted ? 'ok' : up ? 'FLOATS' : dn ? 'SUNK' : 'straddles';
     objs.push({ name, lo, state, d: up ? Math.min(...D) : dn ? Math.max(...D) : Math.min(...D.map(Math.abs)), dmax: Math.max(...D), dmin: Math.min(...D), n: base.length, nd: D.length, at: [(bb.x0 + bb.x1) / 2, lo, (bb.z0 + bb.z1) / 2], size: [bb.x1 - bb.x0, bb.y1 - lo, bb.z1 - bb.z0] });
   };
   const GROUPS = new Map();
@@ -169,6 +184,7 @@ JS = r"""(TOL) => {
   for (const [root, gr] of GROUPS) fromVerts('group ' + (root.name || '') + ' ' + (gr.at ? site(gr.at) : root.uuid.slice(0, 6)), gr.P);
   buildGround();
   for (const f of PEND) f();
+  if (window.__GAT) { const out = []; for (const [x, z] of window.__GAT) { const l = G.get(cell(x, z)) || []; for (const t of l) { const q = tris[t]; const d = (q[5] - q[8]) * (q[0] - q[6]) + (q[6] - q[3]) * (q[2] - q[8]); if (Math.abs(d) < 1e-12) continue; const l1 = ((q[5] - q[8]) * (x - q[6]) + (q[6] - q[3]) * (z - q[8])) / d, l2 = ((q[8] - q[2]) * (x - q[6]) + (q[0] - q[6]) * (z - q[8])) / d, l3 = 1 - l1 - l2; if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue; const o = OWNR[t]; const bb = new THREE.Box3().setFromObject(o); out.push([x, z, +(l1 * q[1] + l2 * q[4] + l3 * q[7]).toFixed(2), q[9], o.geometry.type, o.material.type, o.material.polygonOffset ? 1 : 0, [Math.round(bb.max.x - bb.min.x), +(bb.max.y - bb.min.y).toFixed(2), Math.round(bb.max.z - bb.min.z)], (o.userData.at || '').slice(0, 80)]); } out.push([x, z, 'HMESH', HMESH(x, z)]); } window.__GOUT = out; }
   return { nT, nTri: tris.length, objs };
 }"""
 
@@ -190,7 +206,10 @@ with sync_playwright() as p:
     pg.evaluate("()=>document.getElementById('go').click()")
     pg.wait_for_timeout(9000)
     pg.evaluate("()=>{ if (typeof SITE!=='undefined') SITE.vis=()=>{}; scene.traverse(q=>q.layers.mask=1); }")
+    if '--at' in sys.argv: pg.evaluate('(a)=>{window.__GAT=a}', json.loads(sys.argv[sys.argv.index('--at') + 1]))
     res = pg.evaluate(JS, TOL)
+    if '--at' in sys.argv:
+        for r in pg.evaluate('()=>window.__GOUT'): print('AT', r)
     sea = pg.evaluate("()=>typeof SEA!=='undefined'?SEA.Y:-8")
     b.close()
 
