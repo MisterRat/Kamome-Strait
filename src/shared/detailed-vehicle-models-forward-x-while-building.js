@@ -293,7 +293,7 @@ function mkT(type, x, z, ry, kind) {
       new THREE.MeshLambertMaterial(det ? { vertexColors: true, side: VM.isB(type) ? 2 : 0 } : { color: sp.c }),
     );
   /* on the drawn ground: a building on the lowest of its footprint, a vehicle tilted along the slope (its nose is local +z) */
-  const gA = GROUNDAT(x, z, s[0], s[2], ry, !VM.isB(type) && !sp.cyl);
+  const gA = GROUNDAT(x, z, s[0], s[2], ry, !VM.isB(type) && !sp.cyl, null, s[1]);
   m.position.set(x, gA.y + s[1] / 2, z);
   m.rotation.set(gA.rx, ry, gA.rz, 'YXZ');
   scene.add(m);

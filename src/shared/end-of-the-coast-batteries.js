@@ -543,8 +543,10 @@ const SITES = [],
       const q = SITE.patrol,
         m = e.m;
       if (!e.dead) {
+        const s0 = q.s,
+          o0 = bd.off;
         COLL.steer(bd, dt, 600);
-        q.s = (q.s + q.sp * dt * bd.slow) % per;
+        q.s = (q.s + q.sp * dt * bd.slow + per) % per;
         let s = q.s,
           u,
           d,
@@ -576,11 +578,16 @@ const SITES = [],
           wx = SITE.A.x * du + SITE.S.x * dd,
           wz = SITE.A.z * du + SITE.S.z * dd,
           yt = Math.atan2(-wz, wx),
-          x = xt + Math.sin(yt) * bd.off /* her offset to starboard of her track, while she gives way */,
-          z = zt + Math.cos(yt) * bd.off,
-          yw = yt + bd.dyaw,
+          x_ = xt + Math.sin(yt) * bd.off /* her offset to starboard of her track, while she gives way */,
+          z_ = zt + Math.cos(yt) * bd.off,
+          yw_ = yt + bd.dyaw,
+          held = COLL.intrudes(bd, x_, z_, yw_) /* that would put her into another hull: she holds where she is */,
+          x = held ? bd.x : x_,
+          z = held ? bd.z : z_,
+          yw = held ? bd.yaw : yw_,
           rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
-        Object.assign(bd, { x, z, yaw: yw, v: q.sp * bd.slow });
+        if (held) (q.s = s0), (bd.off = o0), (bd.slow = 0);
+        Object.assign(bd, { x, z, yaw: yw, v: q.sp * Math.abs(bd.slow) });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.matrixAutoUpdate = true; /* the scene is frozen after the build */
         m.position.set(x, y0 + rd.hv, z);
@@ -610,22 +617,129 @@ const SITES = [],
     s -= Ls;
     return [u0 - Math.sin(s / R) * R, d0 + R + Math.cos(s / R) * R, Math.PI + s / R];
   };
+  /* T-14 weapons. The 25 mm single is an AA.gun entry (it fires under the Ground Fire option, at the aircraft or at the ship, as the
+     escort's twin mounts do). The torpedoes: with Ground Fire on and the player's ship (PCE-842) within 3 km, a boat leaves her patrol,
+     runs in at 30 knots on a collision course, drops both fish at about 1,200 m (side-drop cradles: she aims the boat), turns away,
+     and rejoins her track; she re-arms 5 minutes later. A Type 91 runs at 42 knots for 2,000 m just under the surface, its wake showing.
+     A hit on the hull is counted, like the shells, until battle damage comes. */
+  const T14W = (SITE.t14w = { hits: 0, msgT: 0, fired: 0 }),
+    TSP = 21.6,
+    TRUN = 2000;
+  const t14Hot = () => AA.on && typeof shipStruck === 'function' && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
+  const t14Fish = (RUN, x, z, yw) => {
+    const o = new THREE.Object3D();
+    const wk = shipWakeMesh(8 / 78, 0.05);
+    wk.scale.z *= 0.3; /* a straight, narrow bubble track (a ship's wake squeezed sideways: no Kelvin arms) */
+    o.add(wk);
+    o.position.set(x, coastSea(), z);
+    o.rotation.y = yw;
+    scene.add(o);
+    RUN.push({ o, x, z, dx: Math.cos(yw), dz: -Math.sin(yw), r: 0 });
+    T14W.fired++;
+    (T14W.log || (T14W.log = [])).push([Math.round(x), Math.round(z), +yw.toFixed(3), Math.round(pos.x), Math.round(pos.z)]) > 20 && T14W.log.shift(); /* for the tests */
+    if (T14W.msgT <= 0 && Math.hypot(pos.x - x, pos.z - z) < 3000) note('TORPEDO WAKES!'), (T14W.msgT = 10);
+  };
+  const t14Torps = (RUN, dt) => {
+    for (let i = RUN.length - 1; i >= 0; i--) {
+      const t = RUN[i];
+      t.x += t.dx * TSP * dt;
+      t.z += t.dz * TSP * dt;
+      t.r += TSP * dt;
+      t.o.position.set(t.x, coastSea(), t.z);
+      t.o.updateMatrixWorld(true);
+      const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z) /* at her waterline (the hull test's frame starts at the sea) */;
+      let end = t.r > TRUN,
+        boom = false;
+      if (typeof shipStruck === 'function' && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && shipStruck(p)) {
+        boom = end = true;
+        T14W.hits++;
+        note('TORPEDO HIT! (' + T14W.hits + ')');
+      } else if (HR(t.x, t.z) > coastSea() - 1.5) boom = end = true; /* into the shallows: it hits the bottom */
+      if (boom) {
+        const c = p.clone().setY(coastSea());
+        for (let k = 0; k < 6; k++) fxAdd(c.clone().add(new V((Math.random() - 0.5) * 5, 2 + k * 3, (Math.random() - 0.5) * 5)), 0xe9eef0, 4, 14, 2.4, 6, false); /* the water column */
+        SND.boom(c, 8);
+      }
+      if (end) scene.remove(t.o), RUN.splice(i, 1), (T14W.ends || (T14W.ends = [])).push([Math.round(t.r), boom ? (t.r > TRUN ? 'x' : HR(t.x, t.z) > coastSea() - 1.5 ? 'bottom' : 'hit') : 'run out', Math.round(Math.hypot(pos.x - t.x, pos.z - t.z))]) > 20 && T14W.ends.shift();
+    }
+  };
   /* n boats in loose line ahead (gap m apart, staggered 12 m to seaward) round a racetrack at sp m/s; returns the per-frame update */
   const mkT14s = (F, u0, u1, d0, R, n, sp, gap) => {
     const per = 2 * (u1 - u0) + 2 * Math.PI * R,
       B = [],
-      F0 = FR;
+      F0 = FR,
+      MAT = () => new THREE.MeshLambertMaterial({ vertexColors: true }),
+      geo = (P) => new GX.Acc().add(P).geometry(),
+      GP = T14.gunParts(),
+      GT = geo(GP.tur),
+      GB = geo(GP.bar),
+      FISH = [null, geo(T14.torp(-T14.TZ)), geo([...T14.torp(-T14.TZ), ...T14.torp(T14.TZ)])] /* by fish aboard: none, the port one, both */,
+      RUN = [] /* this group's torpedoes running */;
+    (T14W.groups || (T14W.groups = [])).push({ B, RUN });
     FR = F;
     for (let i = 0; i < n; i++) {
-      const e = target(MODELS.get('jp-t14', i % 2), 'ship', 30, 15 * 0.3, u0, d0, F.ryS);
-      e.m.add(shipWakeMesh(15 / 78, -e.k0 - e.s1 / 2 + 0.12) /* a small boat's wake, on the water at her waterline */);
+      const e = target(MODELS.get('jp-t14', i % 2, undefined, true), 'ship', 30, 15 * 0.3, u0, d0, F.ryS),
+        wl = -e.k0 - e.s1 / 2;
+      e.m.add(shipWakeMesh(15 / 78, wl + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
-      B.push({ e, y0: e.m.position.y, wl: -e.k0 - e.s1 / 2, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null, bd: COLL.add({ sea: true, hl: 7.5, r: 1.8, mg: 10, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0, tclr: 6 }), s: 0 });
+      /* the 25 mm on its pedestal, trained aft until it has a target */
+      const tur = new THREE.Group(),
+        bar = new THREE.Group();
+      tur.position.set(T14.GX0, T14.gTop() + wl, 0);
+      tur.add(new THREE.Mesh(GT, MAT()));
+      bar.position.set(0, T14.GBAR, 0);
+      bar.add(new THREE.Mesh(GB, MAT()));
+      tur.add(bar);
+      e.m.add(tur);
+      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: F.ryS - Math.PI / 2, pit: 0.18, acq: 0, mag: 15, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(T14.GX0, T14.gTop() + T14.GBAR + wl, 0) };
+      AA.gun.push(g);
+      /* the two torpedoes in their cradles: one mesh, its shape swapped as they go over the side (one draw call) */
+      const fm = new THREE.Mesh(FISH[2], MAT());
+      fm.position.y = wl;
+      e.m.add(fm);
+      const fish = { n: 2, set(n) { this.n = n; fm.visible = n > 0; if (n) fm.geometry = FISH[n]; } };
+      B.push({ e, g, fish, y0: e.m.position.y, wl, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null, bd: COLL.add({ sea: true, hl: 7.5, r: 1.8, mg: 10, maxOff: 40 /* she stays out of the escort's lane */, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0, tclr: 6 }), s: 0, mode: 'track', mt: 0, rearm: 0, x: 0, z: 0, yw: 0, v: sp });
     }
     FR = F0;
     const s0 = Math.random() * per;
     for (const b of B) b.s = s0 - b.off;
+    const trackXZ = (b, s) => {
+      const [u, d, h] = raceAt(((s % per) + per) % per, u0, u1, d0 + b.dz, R),
+        du = Math.cos(h),
+        dd = Math.sin(h),
+        [x, z] = F.w(u, d),
+        wx = F.A.x * du + F.S.x * dd,
+        wz = F.A.z * du + F.S.z * dd;
+      return [x, z, Math.atan2(-wz, wx)];
+    };
+    const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+    /* water over dmin m deep all along a run from (x, z) on heading yw for L metres (a fish set shallow for small ships runs at about
+       2 m: no reef or shoal to run it aground; the boat herself wants 2 m under her) */
+    const deepRun = (x, z, yw, L, dmin) => {
+      for (let r = 0; r <= L; r += 30) if (HR(x + Math.cos(yw) * r, z - Math.sin(yw) * r) > coastSea() - (dmin || 2)) return false;
+      return true;
+    };
+    /* steer a boat off her track toward heading hw at speed v (she turns about 15 degrees a second), giving way as any ship does */
+    const freeMove = (b, hw, v, dt) => {
+      /* off her track she keeps to deep water (over 3 m for 90 m ahead): the nearest clear heading to the one she wants, else she stops */
+      let ok = false;
+      for (const k of [0, 0.25, -0.25, 0.5, -0.5, 0.8, -0.8, 1.2, -1.2, 1.7, -1.7, 2.3, -2.3, Math.PI])
+        if (deepRun(b.x, b.z, hw + k, 90)) {
+          (hw += k), (ok = true);
+          break;
+        }
+      if (!ok) v = 0;
+      const av = COLL.avoid(b.bd, Math.max(60, v * 12));
+      b.yw += Math.max(-0.26 * dt, Math.min(0.26 * dt, wrap(hw + av.turn - b.yw)));
+      b.v += Math.max(-3 * dt, Math.min(2 * dt, v * av.slow - b.v));
+      const nx = b.x + Math.cos(b.yw) * b.v * dt,
+        nz = b.z - Math.sin(b.yw) * b.v * dt;
+      if (COLL.intrudes(b.bd, nx, nz, b.yw)) b.v = 0; /* she holds rather than go into another hull */
+      else (b.x = nx), (b.z = nz);
+    };
     return (dt) => {
+      const hot = t14Hot();
+      T14W.msgT = Math.max(0, T14W.msgT - dt / 3);
       for (const b of B) {
         const m = b.e.m;
         if (b.e.dead) {
@@ -633,26 +747,88 @@ const SITES = [],
           b.bd.v = 0;
           continue;
         }
-        /* each boat keeps her own place on the track, and gives way (COLL): to her own leader too */
-        COLL.steer(b.bd, dt, 160);
-        b.s = (b.s + sp * dt * b.bd.slow + per) % per;
-        const [u, d, h] = raceAt(b.s, u0, u1, d0 + b.dz, R),
-          du = Math.cos(h),
-          dd = Math.sin(h),
-          [xt, zt] = F.w(u, d),
-          wx = F.A.x * du + F.S.x * dd,
-          wz = F.A.z * du + F.S.z * dd,
-          yt = Math.atan2(-wz, wx),
-          x = xt + Math.sin(yt) * b.bd.off,
-          z = zt + Math.cos(yt) * b.bd.off,
+        let x, z, yw, v;
+        if (b.mode === 'track') {
+          /* each boat keeps her own place on the track, and gives way (COLL): to her own leader too */
+          const s0 = b.s,
+            o0 = b.bd.off;
+          COLL.steer(b.bd, dt, 160);
+          b.s = (b.s + sp * dt * b.bd.slow + per) % per;
+          const [xt, zt, yt] = trackXZ(b, b.s);
+          x = xt + Math.sin(yt) * b.bd.off;
+          z = zt + Math.cos(yt) * b.bd.off;
           yw = yt + b.bd.dyaw;
-        Object.assign(b.bd, { x, z, yaw: yw, v: sp * b.bd.slow });
+          v = sp * Math.abs(b.bd.slow);
+          if (COLL.intrudes(b.bd, x, z, yw)) (b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0); /* she holds */
+          b.rearm = Math.max(0, b.rearm - dt);
+          if (b.rearm <= 0 && b.fish.n < 2) b.fish.set(2); /* back from the base with fresh fish */
+          const R = Math.hypot(pos.x - x, pos.z - z);
+          if (hot && b.fish.n === 2 && R < 3000 && R > 1400 && HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4)
+            Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, aimE: ((Math.random() + Math.random() - 1) * 0.02 * (0.6 + DIFF.spread * 8)) / 1.4 });
+        } else {
+          b.mt += dt;
+          const dx = pos.x - b.x,
+            dz = pos.z - b.z,
+            R = Math.hypot(dx, dz);
+          if (b.mode === 'run') {
+            /* a collision course: where the ship will be when a fish fired now would meet her (|d + v t| = fish speed x t) */
+            const qa = vel.x * vel.x + vel.z * vel.z - TSP * TSP,
+              qb = 2 * (dx * vel.x + dz * vel.z),
+              qd = Math.max(0, qb * qb - 4 * qa * R * R),
+              tt = (-qb - Math.sqrt(qd)) / (2 * qa),
+              lx = dx + vel.x * tt,
+              lz = dz + vel.z * tt,
+              hw = Math.atan2(-lz, lx) + b.aimE /* the skipper's error in the ship's speed and course */;
+            freeMove(b, hw, 15.4, dt);
+            if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin' /* no shot, or too close in: she gives it up */;
+            else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
+              /* both fish over the side, one a second after the other, then hard over away from her */
+              t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012) /* the two spread a little, to bracket her */;
+              b.fish.set(1);
+              b.f2 = 1;
+              b.fy = b.yw /* the course both fish are aimed on: she holds it until the second is away */;
+              b.rearm = 300;
+              Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2) });
+            }
+          } else if (b.mode === 'away') {
+            if (b.f2 > 0 && (b.f2 -= dt) <= 0) t14Fish(RUN, b.x, b.z, b.fy - 0.012), b.fish.set(0); /* the second fish a second later */
+            freeMove(b, b.f2 > 0 ? b.fy : b.aw, 15.4, dt);
+            if (b.mt > 30) b.mode = 'rejoin';
+          } else {
+            /* back to the nearest point of her track, a little ahead of it */
+            let bs = b.s,
+              bd2 = 1e18;
+            for (let s = 0; s < per; s += 20) {
+              const [tx, tz] = trackXZ(b, s),
+                d2 = (tx - b.x) ** 2 + (tz - b.z) ** 2;
+              if (d2 < bd2) (bd2 = d2), (bs = s);
+            }
+            const [tx, tz] = trackXZ(b, bs + 40);
+            freeMove(b, Math.atan2(-(tz - b.z), tx - b.x), 12, dt);
+            if (bd2 < 20 * 20) Object.assign(b, { mode: 'track', s: bs }), Object.assign(b.bd, { off: 0, offT: 0, dyaw: 0 });
+          }
+          x = b.x;
+          z = b.z;
+          yw = b.yw;
+          v = b.v;
+        }
+        Object.assign(b.bd, { x, z, yaw: yw, v });
         RIDE.step(b.ride, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.position.set(x, b.y0 + b.ride.hv, z);
         m.rotation.set(b.ride.ro, yw, b.ride.pi - 0.035 /* bow up: she is on the plane */, 'YXZ');
         m.updateMatrixWorld(true);
-        if (typeof OCEAN !== 'undefined') OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), sp, m.position.y + b.wl, 0);
+        /* the 25 mm rides on her: AA.gun aims in world yaw */
+        const g = b.g;
+        g.tur.rotation.y = g.yaw - yw;
+        g.bar.rotation.x = -g.pit;
+        g.bar.position.z = -0.12 * g.rec;
+        g.piv.copy(g.loc);
+        m.localToWorld(g.piv);
+        g.x = g.piv.x;
+        g.z = g.piv.z;
+        if (typeof OCEAN !== 'undefined') OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
       }
+      t14Torps(RUN, dt);
     };
   };
   /* is a racetrack (and m metres round it) water deeper than dmin? (h: the seabed function of that map) */
@@ -977,7 +1153,7 @@ const SITES = [],
         target(MODELS.get('jp-aframe-derrick'), 'crane', 30, 7, u, 61, YS, wy - H(ex, ez));
       }
       FR = SITE;
-      for (let i = 0; i < 6; i++) S.at(stack(), -100 + i * 38, 22 + (i % 2) * 4, YA + i, pad);
+      for (let i = 0; i < 6; i++) S.at(stack(), -100 + i * 38, 22 + (i % 2) * 4, YA + i, pad + 0.12); /* on the coral yard */
       /* a village of thatched huts on posts behind the sheds, and the harbour church */
       for (let i = 0; i < 14; i++) {
         const u = -190 + (i % 7) * 30 + (r() - 0.5) * 8,
@@ -1073,8 +1249,10 @@ const SITES = [],
       if (t14) t14(dt);
       const m = e.m;
       if (!e.dead) {
+        const s0 = s,
+          o0 = bd.off;
         COLL.steer(bd, dt, 600);
-        s = (s + 8.5 * dt * bd.slow) % per;
+        s = (s + 8.5 * dt * bd.slow + per) % per;
         let q = s,
           u,
           d,
@@ -1105,11 +1283,16 @@ const SITES = [],
           wx = F.A.x * du + F.S.x * dd,
           wz = F.A.z * du + F.S.z * dd,
           yt = Math.atan2(-wz, wx),
-          x = xt + Math.sin(yt) * bd.off,
-          z = zt + Math.cos(yt) * bd.off,
-          yw = yt + bd.dyaw,
+          x_ = xt + Math.sin(yt) * bd.off,
+          z_ = zt + Math.cos(yt) * bd.off,
+          yw_ = yt + bd.dyaw,
+          held = COLL.intrudes(bd, x_, z_, yw_) /* she holds rather than go into another hull */,
+          x = held ? bd.x : x_,
+          z = held ? bd.z : z_,
+          yw = held ? bd.yaw : yw_,
           rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
-        Object.assign(bd, { x, z, yaw: yw, v: 8.5 * bd.slow });
+        if (held) (s = s0), (bd.off = o0), (bd.slow = 0);
+        Object.assign(bd, { x, z, yaw: yw, v: 8.5 * Math.abs(bd.slow) });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.position.set(x, y0 + rd.hv, z);
         m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');

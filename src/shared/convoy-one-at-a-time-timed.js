@@ -64,7 +64,7 @@ function updConvoy(dt) {
       /* on the road's surface (SURF), tilted along it */
       const yw = Math.atan2(tg.x, tg.z),
         sz = (SP[v.type] && SP[v.type].s) || [2, 2, 5],
-        gA = GROUNDAT(p.x, p.z, sz[0], sz[2], yw, true, SURF);
+        gA = GROUNDAT(p.x, p.z, sz[0], sz[2], yw, true, SURF, v.s1);
       v.m.position.set(p.x, gA.y + v.s1 / 2, p.z);
       v.m.rotation.set(gA.rx, yw, gA.rz, 'YXZ');
     }

@@ -31,7 +31,7 @@ function HMESH(x, z) {
    Returns { y, rx, rz }: y the base height: for a building (tilt false) the lowest of its centre and corners, so no corner hangs in
    the air on a slope (the uphill side stands in the ground, as on a cut platform); for a vehicle (tilt true) the height under its
    middle with rx, rz the pitch and roll that lay it along the slope (Euler order 'YXZ', yaw first) */
-function GROUNDAT(x, z, w, d, yaw, tilt, gf) {
+function GROUNDAT(x, z, w, d, yaw, tilt, gf, h) {
   const G = gf || H,
     c = Math.cos(yaw || 0),
     s = Math.sin(yaw || 0),
@@ -39,11 +39,26 @@ function GROUNDAT(x, z, w, d, yaw, tilt, gf) {
     a = w / 2,
     b = d / 2;
   if (!tilt) return { y: Math.min(G(x, z), at(a, b), at(-a, b), at(a, -b), at(-a, -b)), rx: 0, rz: 0 };
-  const hf = at(0, b * 0.8),
-    hb = at(0, -b * 0.8),
-    hr = at(a * 0.8, 0),
-    hl = at(-a * 0.8, 0);
-  return { y: Math.max(G(x, z), (hf + hb) / 2, (hl + hr) / 2), rx: -Math.atan2(hf - hb, 1.6 * b), rz: Math.atan2(hr - hl, 1.6 * a) };
+  /* the plane through the four wheel points; then the body, turned exactly as it will be drawn (Euler YXZ about its
+     centre, h/2 above the bottom), is lifted until no point of its underside (a 3 x 5 grid over the wheelbase and track) is below the ground */
+  const wa = a * 0.85,
+    wb = b * 0.75 /* where the wheels or tracks touch: inset from the bumpers and the sides */,
+    fr = at(wa, wb),
+    fl = at(-wa, wb),
+    br = at(wa, -wb),
+    bl = at(-wa, -wb),
+    rx = -Math.atan((fr + fl - br - bl) / (4 * wb)),
+    rz = Math.atan((fr + br - fl - bl) / (4 * wa)),
+    hh = (h || 0) / 2,
+    R = GROUNDAT.R || (GROUNDAT.R = { e: new THREE.Euler(), v: new THREE.Vector3() });
+  R.e.set(rx, yaw || 0, rz, 'YXZ');
+  let y = -Infinity;
+  for (const lx of [-wa, 0, wa])
+    for (const lz of [-wb, -wb / 2, 0, wb / 2, wb]) {
+      const v = R.v.set(lx, -hh, lz).applyEuler(R.e);
+      y = Math.max(y, G(x + v.x, z + v.z) - v.y - hh);
+    }
+  return { y, rx, rz };
 }
 /* SURF(x, z): the height of the SURFACE a vehicle or a man stands on: the topmost road, runway, apron, Marston mat, yard, pad or quay
    laid over the ground there, else the drawn ground (H). The surfaces are the meshes drawn over the ground as decals (polygon offset)
@@ -77,8 +92,11 @@ const SURF = (() => {
     const h0 = H(x, z);
     if (h0 <= SEA.PAINT + 0.01) return h0;
     const k = Math.round(x) * 1000003 + Math.round(z);
-    let h = C.get(k);
-    if (h !== undefined) return h;
+    /* the cache keeps how far the surface lies above the ground in each 1 m cell, not a height: on a slope a height would be wrong
+       by up to half a metre's rise elsewhere in the cell */
+    const c = C.get(k);
+    if (c !== undefined) return h0 + c;
+    let h;
     if (!L) gather();
     rc.set(o.set(x, h0 + 6, z), dn);
     rc.far = 7;
@@ -86,7 +104,7 @@ const SURF = (() => {
     rc.intersectObjects(L, false, hit);
     h = h0;
     for (const q of hit) if (q.point.y > h0 - 0.4) h = Math.max(h, q.point.y);
-    C.set(k, h);
+    C.set(k, h - h0);
     return h;
   };
   f.reset = () => ((L = null), C.clear());
@@ -97,7 +115,7 @@ const SURF = (() => {
     f.reset(); /* everything is built now: gather every surface */
     for (const t of T) if (t.gnd && !t.dead) {
       const g = t.gnd,
-        gA = GROUNDAT(t.m.position.x, t.m.position.z, g.w, g.d, g.ry, g.tilt, f);
+        gA = GROUNDAT(t.m.position.x, t.m.position.z, g.w, g.d, g.ry, g.tilt, f, g.h);
       t.m.position.y = gA.y + g.h / 2;
       t.m.rotation.set(gA.rx, g.ry, gA.rz, 'YXZ');
       t.m.updateMatrix();

@@ -7,7 +7,7 @@
      comes within r + b.r + b.mg (b's margin) of b's track line; { d: metres from b's bow to it, lat: how far it lies to b's
      starboard (m), o, head: it is coming straight at b } or null.
    COLL.steer(b, dt, L): the answer for a body on a fixed track (a patrol's racetrack, a route): it keeps b.off, the metres it stands to
-     starboard of its track, and b.slow (0..1, a factor on its speed). Blocked: it moves its offset out to a clear lane (to port of
+     starboard of its track, and b.slow (0..1, a factor on its speed; below 0 while a smaller vessel backs off astern out of a stand-off). Blocked: it moves its offset out to a clear lane (to port of
      anything to starboard and the other way; head-on, both to starboard, as at sea) at a gentle sideways speed, and slows, then
      stops, if the way stays shut close ahead; clear for a while: it eases back onto its track. b.dyaw is the small heading change
      its sideways drift makes (add it to the heading). Returns b.
@@ -101,6 +101,52 @@ const COLL = (() => {
     }
     return false;
   };
+  /* the last word: the clearance between b's outline moved fwd metres ahead and every other body's (the same circles look() uses);
+     blocked if that would bring them within 3 m and closer than they are now. Whatever the look-ahead decided, b does not go on into
+     another hull: it stops (and still sidesteps, as abeam() allows) */
+  const circles = (o, fwd) => {
+    const n = Math.max(1, Math.round(o.hl / Math.max(o.r * 1.5, 1))),
+      c = Math.cos(o.yaw),
+      s = -Math.sin(o.yaw),
+      P = [];
+    for (let i = -n; i <= n; i++) {
+      const t = (o.hl * i) / n + fwd;
+      P.push(o.x + c * t, o.z + s * t);
+    }
+    return P;
+  };
+  const gap = (A, ra, Bp, rb) => {
+    let m = Infinity;
+    for (let i = 0; i < A.length; i += 2) for (let j = 0; j < Bp.length; j += 2) m = Math.min(m, Math.hypot(A[i] - Bp[j], A[i + 1] - Bp[j + 1]));
+    return m - ra - rb;
+  };
+  const blocked = (b, fwd) => {
+    const A0 = circles(b, 0),
+      A1 = circles(b, fwd);
+    for (const o of B) {
+      if (o === b || o === b.self || o.on === false || !!o.sea !== !!b.sea) continue;
+      if (Math.abs(o.x - b.x) > b.hl + o.hl + fwd + 10 || Math.abs(o.z - b.z) > b.hl + o.hl + fwd + 10) continue;
+      fresh(o);
+      const Op = circles(o, 0),
+        g1 = gap(A1, b.r, Op, o.r);
+      if (g1 < 3 && g1 < gap(A0, b.r, Op, o.r) - 0.01) return true;
+    }
+    return false;
+  };
+  /* would b, moved to (x, z, yaw), lie within 2 m of another hull, and closer to it than b lies now? (a mover then holds where it is) */
+  const intrudes = (b, x, z, yaw) => {
+    const A0 = circles(b, 0),
+      A1 = circles({ x, z, yaw, hl: b.hl, r: b.r }, 0);
+    for (const o of B) {
+      if (o === b || o === b.self || o.on === false || !!o.sea !== !!b.sea) continue;
+      if (Math.abs(o.x - x) > b.hl + o.hl + 10 || Math.abs(o.z - z) > b.hl + o.hl + 10) continue;
+      fresh(o);
+      const Op = circles(o, 0),
+        g1 = gap(A1, b.r, Op, o.r);
+      if (g1 < 2 && g1 < gap(A0, b.r, Op, o.r) - 0.001) return true;
+    }
+    return false;
+  };
   const steer = (b, dt, L) => {
     const q = look(b, L),
       v = Math.max(0.5, b.v || 0),
@@ -119,6 +165,11 @@ const COLL = (() => {
     const stop = b.stopD == null ? b.hl + 15 : b.stopD;
     const want = q && q.lo < q.need && q.hi > -q.need ? Math.max(0, Math.min(1, (q.d - stop) / (stop * 2 + 30))) : 1;
     b.slow += (want - b.slow) * Math.min(1, dt * 2);
+    if (b.slow > 0 && blocked(b, Math.max(1, v * 2))) b.slow = 0;
+    /* a stand-off: stopped for 6 s with a bigger ship close by, the smaller backs off astern for a while (b.slow < 0) to let her by */
+    b.stk = b.slow <= 0.01 ? (b.stk || 0) + dt : 0;
+    if (b.stk > 6 && !(b.back > 0) && B.some((o) => o !== b && !!o.sea === !!b.sea && !o.fixed && o.on !== false && o.hl > b.hl && Math.hypot(o.x - b.x, o.z - b.z) < b.hl + o.hl + 30)) b.back = 12;
+    if (b.back > 0) (b.back -= dt), (b.slow = -0.35), (b.stk = 0);
     return b;
   };
   const avoid = (b, L) => {
@@ -128,13 +179,15 @@ const COLL = (() => {
       return { turn: 0, slow: 1, q };
     }
     const s = side(b, q, L),
-      gap = Math.abs(shift(q, s)),
-      turn = -s * Math.min(0.9, Math.atan2(gap, Math.max(q.d, b.hl) + 5)),
-      stop = b.stopD == null ? b.hl + 8 + q.o.r : b.stopD;
-    return { turn, slow: Math.max(0, Math.min(1, (q.d - stop) / (stop * 2 + 20))), q };
+      gp = Math.abs(shift(q, s)),
+      turn = -s * Math.min(0.9, Math.atan2(gp, Math.max(q.d, b.hl) + 5)),
+      stop = b.stopD == null ? b.hl + 8 + q.o.r : b.stopD,
+      slow = Math.max(0, Math.min(1, (q.d - stop) / (stop * 2 + 20)));
+    return { turn, slow: slow > 0 && blocked(b, Math.max(1, Math.max(0.5, b.v || 0) * 2)) ? 0 : slow, q };
   };
   return {
     B,
+    intrudes,
     add: (b) => (B.push(b), b),
     remove: (b) => {
       const i = B.indexOf(b);

@@ -5,7 +5,8 @@
    side-drop cradles along the deck edges abaft the cockpit; one Type 96 25 mm single on the after deck; four depth charges on stern
    rails; the ensign on a staff at the transom. Paint: dark grey (v 0) or mottled green (v 1), red anti-fouling below the chine.
    Model frame as every boat: bow +x, starboard +z, waterline y = 0, origin amidships (transom at x = -7.5).
-   MODELS.get('jp-t14', v, crew) -> parts; T14.deckY(x) is the deck height at x (for anything placed on her later). */
+   MODELS.get('jp-t14', v, crew, live) -> parts (live: without the torpedoes and the 25 mm's moving parts, which T14.torp(z) and
+   T14.gunParts() give separately); T14.deckY(x) is the deck height at x (for anything placed on her later). */
 const T14 = (() => {
   const L = 15.0,
     X0 = -L / 2,
@@ -34,7 +35,52 @@ const T14 = (() => {
     P.forEach((q) => (q.m = M.clone().multiply(q.m || new THREE.Matrix4())));
     return P;
   };
-  function build(v, crew) {
+  /* one 45 cm Type 91 torpedo (5.27 m x 0.45 m) as it lies in its cradle on side z, noses forward (model frame) */
+  const TZ = 1.22,
+    TR = 0.225,
+    TXN = 0.1,
+    TY = () => yd(T(-2.5)) + 0.42;
+  const torp = (z) => {
+    const { part, bx, cyl, sph } = GX,
+      Z = Math.PI / 2,
+      tr = TR,
+      xN = TXN,
+      ty = TY();
+    return [
+      part(sph(8), 0x5e5a4a, xN - 0.32, ty, z, 0, 0, 0, 0.32, tr, tr) /* the warhead's nose */,
+      part(cyl(tr, tr, 3.9, 10), TORP, xN - 2.27, ty, z, 0, 0, Z) /* the body */,
+      part(cyl(tr + 0.004, tr + 0.004, 0.03, 10), DK, xN - 1.1, ty, z, 0, 0, Z) /* the warhead joint */,
+      part(cyl(tr, 0.08, 0.8, 10), TORP, xN - 4.62, ty, z, 0, 0, -Z) /* the afterbody, tapering aft */,
+      part(bx(0.36, 0.5, 0.012), TORP, xN - 5.0, ty, z),
+      part(bx(0.36, 0.012, 0.5), TORP, xN - 5.0, ty, z) /* the tail fins */,
+      part(cyl(0.03, 0.03, 0.2, 6), DK, xN - 5.12, ty, z, 0, 0, Z),
+      part(bx(0.03, 0.26, 0.05), 0x8a7a50, xN - 5.22, ty, z, 0.6, 0, 0) /* shaft and screw */,
+    ];
+  };
+  /* the Type 96 25 mm single's moving parts for a live boat, in the frame the ground fire (AA.gun) turns: +z along the barrel at
+     train 0 and elevation 0. tur turns on the pedestal (its origin on the pedestal top, model (GX0, gTop())); bar elevates about the
+     trunnions, GBAR above that */
+  const GX0 = -5.55,
+    gTop = () => yd(T(GX0)) + 0.72,
+    GBAR = 0.38;
+  const gunParts = () => {
+    const { part, bx, cyl } = GX,
+      Z = Math.PI / 2,
+      tor = () => new THREE.TorusGeometry(0.1, 0.02, 4, 8);
+    const tur = [part(bx(0.4, 0.3, 0.45), GUN, 0, 0.15, 0) /* the carriage */];
+    for (const k of [-1, 1]) tur.push(part(bx(0.06, 0.22, 0.12), GUN, k * 0.1, GBAR, 0)); /* trunnion arms */
+    tur.push(part(tor(), DK, 0.22, 0.15, 0, 0, Z, 0), part(tor(), DK, -0.22, 0.15, 0, 0, Z, 0)); /* training and elevating hand-wheels */
+    const bar = [
+      part(bx(0.16, 0.2, 0.9), GUN, 0, 0.04, 0) /* the receiver */,
+      part(cyl(0.035, 0.04, 1.5, 8), GUN, 0, 0.04, 1.18, Z, 0, 0) /* the barrel */,
+      part(cyl(0.055, 0.055, 0.18, 8), DK, 0, 0.04, 1.95, Z, 0, 0) /* flash hider */,
+      part(bx(0.12, 0.25, 0.3), 0x4d4a3e, 0, 0.24, 0) /* the 15-round magazine on top */,
+      part(bx(0.5, 0.06, 0.06), GUN, -0.25, -0.01, 0.3),
+      part(bx(0.08, 0.12, 0.3), DK, -0.47, 0, 0.35) /* the shoulder rest */,
+    ];
+    return { tur, bar };
+  };
+  function build(v, crew, live) {
     const { part, bx, cyl, sph } = GX,
       Z = Math.PI / 2,
       SIDE = v === 1 ? GREEN : GREY,
@@ -113,11 +159,7 @@ const T14 = (() => {
       ty = deckY(-2.5) + 0.42;
     for (const s of [-1, 1]) {
       const z = s * tz;
-      P.push(part(sph(8), 0x5e5a4a, xN - 0.32, ty, z, 0, 0, 0, 0.32, tr, tr)); /* the warhead's nose */
-      P.push(part(cyl(tr, tr, 3.9, 10), TORP, xN - 2.27, ty, z, 0, 0, Z) /* the body */, part(cyl(tr + 0.004, tr + 0.004, 0.03, 10), DK, xN - 1.1, ty, z, 0, 0, Z) /* the warhead joint */);
-      P.push(part(cyl(tr, 0.08, 0.8, 10), TORP, xN - 4.62, ty, z, 0, 0, -Z)); /* the afterbody, tapering aft */
-      P.push(part(bx(0.36, 0.5, 0.012), TORP, xN - 5.0, ty, z), part(bx(0.36, 0.012, 0.5), TORP, xN - 5.0, ty, z)); /* the tail fins */
-      P.push(part(cyl(0.03, 0.03, 0.2, 6), DK, xN - 5.12, ty, z, 0, 0, Z), part(bx(0.03, 0.26, 0.05), 0x8a7a50, xN - 5.22, ty, z, 0.6, 0, 0)); /* shaft and screw */
+      if (!live) P.push(...torp(z)); /* a live boat carries hers as separate meshes, which drop when she fires */
       for (const xc of [-3.9, -1.05]) {
         const d = deckY(xc);
         P.push(part(bx(0.14, 0.08, 0.72), DK, xc, d + 0.02, z) /* the cradle's base on the deck */);
@@ -137,13 +179,16 @@ const T14 = (() => {
         py = top + 0.42,
         dir = [-Math.cos(e), Math.sin(e)],
         up = [Math.sin(e), Math.cos(e)];
-      P.push(part(cyl(0.16, 0.24, 0.75, 8), GUN, xg, d + 0.345, 0) /* the pedestal, bolted through the deck */, part(bx(0.45, 0.3, 0.4), GUN, xg, top + 0.15, 0) /* the carriage */);
+      P.push(part(cyl(0.16, 0.24, 0.75, 8), GUN, xg, d + 0.345, 0)); /* the pedestal, bolted through the deck */
+      if (!live) P.push(part(bx(0.45, 0.3, 0.4), GUN, xg, top + 0.15, 0)); /* the carriage */
+      if (!live) {
       for (const k of [-1, 1]) P.push(part(bx(0.12, 0.22, 0.06), GUN, xg, top + 0.38, k * 0.1)); /* trunnion arms */
       P.push(part(bx(0.9, 0.2, 0.16), GUN, px, py, 0, 0, 0, -e)); /* the receiver */
       P.push(part(cyl(0.035, 0.04, 1.5, 8), GUN, px + dir[0] * 1.18, py + dir[1] * 1.18, 0, 0, 0, Z - e) /* the barrel */, part(cyl(0.055, 0.055, 0.18, 8), DK, px + dir[0] * 1.95, py + dir[1] * 1.95, 0, 0, 0, Z - e) /* flash hider */);
       P.push(part(bx(0.3, 0.25, 0.12), 0x4d4a3e, px + up[0] * 0.2, py + up[1] * 0.2, 0, 0, 0, -e)); /* the 15-round magazine on top */
       P.push(part(new THREE.TorusGeometry(0.1, 0.02, 4, 8), DK, xg, top + 0.15, 0.22), part(new THREE.TorusGeometry(0.1, 0.02, 4, 8), DK, xg, top + 0.15, -0.22)); /* training and elevating hand-wheels */
       P.push(part(bx(0.06, 0.06, 0.5), GUN, px + 0.3, py - 0.05, 0.25, 0, 0, -e), part(bx(0.3, 0.12, 0.08), DK, px + 0.35, py - 0.04, 0.47)); /* the shoulder rest */
+      }
     }
     /* four Type 95 depth charges on stern rails, two a side, rolling aft over the transom */
     for (const s of [-1, 1]) {
@@ -169,5 +214,5 @@ const T14 = (() => {
     return P;
   }
   MODELS.add('jp-t14', build, { L, W: 3.6, D: 0.72, name: 'Type T-14 motor torpedo boat (Gyoraitei)' });
-  return { L, W: 3.6, D: 0.72, deckY, halfB };
+  return { L, W: 3.6, D: 0.72, deckY, halfB, torp, TZ, gunParts, GX0, gTop, GBAR };
 })();
