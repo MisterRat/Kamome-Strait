@@ -64,7 +64,7 @@
   /* the moving ones: each is its own small mesh; AFLD.update() drives them along their routes */
   /* the USAAF ground crew (MODELS 'crew', the ground crews piece): herringbone twill in olive drab or light sage, A-3 caps */
   const CREWV = { 0x6f7a8a: 0, 0x8b7d5a: 1, 0xa89b84: 2 },
-    crew = (shirt, pose) => MODELS.get('crew', 'us', pose || 'walk', CREWV[shirt] || 0);
+    crew = (shirt, pose) => (pose || 'walk') === 'walk' ? CREW_RIG('us', CREWV[shirt] || 0) : MODELS.get('crew', 'us', pose, CREWV[shirt] || 0) /* a walker is jointed, and walks */;
   /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
      goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
   AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {

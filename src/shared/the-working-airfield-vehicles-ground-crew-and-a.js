@@ -3,16 +3,14 @@ const AFLD = {
   a: [],
   /* opt: { stops: seconds to stand at each waypoint, hose: [x, z offset] } - a truck that stops beside each aircraft and runs a fuel hose out to it */
   add(P, pts, sp, wait, kind, opt) {
-    const a = new GX.Acc();
-    a.add(P, GX.xf(0, 0, 0, 0));
-    const m = new THREE.Mesh(a.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+    /* a jointed walker (CREW_RIG) brings its own group; anything else is baked into one mesh */
+    const m = P.rig ? P.root : new THREE.Mesh(new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
     const y0 = (opt && opt.y) || 0.12; /* height of the ground it stands on (the island airfield is higher) */
     m.position.set(pts[0][0], y0, pts[0][1]);
     scene.add(m);
-    const o = { y0, m, pts, sp, wait, kind, i: 1, dir: 1, w: wait * Math.random(), v: 0, yaw: 0, x: pts[0][0], z: pts[0][1], init: false, opt, at: 0 };
+    const o = { y0, m, pts, sp, wait, kind, i: 1, dir: 1, w: wait * Math.random(), v: 0, yaw: 0, x: pts[0][0], z: pts[0][1], init: false, opt, at: 0, rig: P.rig ? P : null, walked: 0 };
     /* her outline for the others to keep clear of (COLL), and her place in the queue (the earlier added goes first) */
-    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
-    const bb = m.geometry.boundingBox;
+    const bb = new THREE.Box3().setFromObject(m);
     Object.assign(o, { hl: Math.max(0.3, (bb.max.x - bb.min.x) / 2), r: Math.max(0.3, (bb.max.z - bb.min.z) / 2), sea: false, mg: kind === 'walk' ? 0.4 : 1.5, prio: this.a.length + 1 });
     COLL.add(o);
     if (opt && opt.hose) {
@@ -26,12 +24,10 @@ const AFLD = {
      taxis out to a run-up spot for a test before coming back. cfg: path (run-up spot first, hangar stand last), door, spot, stand heading */
   addRepair(PP, MP, cfg) {
     const mk = (P, x, z) => {
-      const a = new GX.Acc();
-      a.add(P, GX.xf(0, 0, 0, 0));
-      const m = new THREE.Mesh(a.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+      const m = P.rig ? P.root : new THREE.Mesh(new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
       m.position.set(x, 0.12, z);
       scene.add(m);
-      return { m, ctl: true, init: false, v: 0, yaw: 0, x, z, pts: [[x, z]] };
+      return { m, ctl: true, init: false, v: 0, yaw: 0, x, z, pts: [[x, z]], rig: P.rig ? P : null, walked: 0 };
     };
     const P0 = cfg.path[0],
       pl = mk(PP, P0[0], P0[1]),
@@ -58,7 +54,8 @@ const AFLD = {
     const st = Math.min(d, o.v * dt);
     o.x += (dx / d) * st;
     o.z += (dz / d) * st;
-    o.m.position.set(o.x, (o.opt && o.opt.y ? o.opt.y : SURF(o.x, o.z)) + (walk ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z); /* on the surface there: apron, taxiway, grass */
+    o.m.position.set(o.x, (o.opt && o.opt.y ? o.opt.y : SURF(o.x, o.z)) + (walk && !o.rig ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z); /* on the surface there: apron, taxiway, grass */
+    if (o.rig) o.rig.step((o.walked += st), o.v), (o.mvd = true);
     o.m.rotation.y = o.yaw;
     return false;
   },
@@ -245,10 +242,17 @@ const AFLD = {
         if (o.hull) OCEAN.place(o.hull, o.x, o.z, Math.cos(o.yaw), -Math.sin(o.yaw), o.v, o.m.position.y, 0);
         continue;
       }
-      o.m.position.set(o.x, (o.opt && o.opt.y ? o.y0 : SURF(o.x, o.z)) + (o.kind === 'walk' ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);
+      o.m.position.set(o.x, (o.opt && o.opt.y ? o.y0 : SURF(o.x, o.z)) + (o.kind === 'walk' && !o.rig ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);
+      if (o.rig) o.rig.step((o.walked += o.v * dt), o.v); /* legs and arms in step with the ground it covers */
       o.m.rotation.y = o.yaw;
     }
     this.repair(dt);
+    /* the mechanic, when the script has him stand: he eases to attention */
+    const mn = this.rp && this.rp.man;
+    if (mn && mn.rig) {
+      if (!mn.mvd) mn.rig.step(mn.walked, 0);
+      mn.mvd = false;
+    }
   },
 };
 let _afT = 0;

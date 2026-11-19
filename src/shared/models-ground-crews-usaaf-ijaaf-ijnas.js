@@ -19,6 +19,32 @@
       a = Math.atan2(x1 - x0, y1 - y0);
     return part(cyl(r1, r0, l, 6), c, (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, -a);
   };
+  /* the torso (with belt and the navy singlet) or the neck and head with the cap, for a figure whose hips are at hip */
+  const upper = (P, S, c, sk, hip, which) => {
+    if (which === 'torso') {
+    /* torso, belt, shoulders */
+    const ty = hip + 0.3;
+    P.push(part(bx(0.22, 0.58, 0.36), c.top, 0, ty, 0), part(bx(0.23, 0.06, 0.37), S === 'jn' ? 0x5d6d7e : 0x3a3428, 0, hip + 0.03, 0));
+    if (S === 'jn' && c.band) P.push(part(bx(0.16, 0.3, 0.26), c.top, 0, ty + 0.12, 0)); /* the singlet: bare shoulders and arms */
+      return;
+    }
+    /* neck and head */
+    const hy = hip + 0.78;
+    P.push(part(cyl(0.05, 0.05, 0.1, 6), sk, 0, hip + 0.64, 0), part(sph(8), sk, 0.01, hy, 0, 0, 0, 0, 0.1, 0.12, 0.1));
+    if (S === 'us') {
+      /* A-3 mechanic's cap: soft crown, the visor flipped up */
+      P.push(part(sph(8), c.cap, 0, hy + 0.06, 0, 0, 0, 0, 0.11, 0.07, 0.11), part(bx(0.02, 0.07, 0.15), c.cap, 0.1, hy + 0.12, 0, 0, 0, 0.3));
+    } else if (S === 'ja') {
+      /* field cap with its short visor and the neck flaps */
+      P.push(
+        part(cyl(0.1, 0.11, 0.09, 8), c.cap, 0, hy + 0.08, 0),
+        part(bx(0.07, 0.015, 0.14), c.cap, 0.11, hy + 0.04, 0),
+        part(bx(0.02, 0.14, 0.2), 0xb0a27a, -0.1, hy - 0.02, 0),
+        part(bx(0.012, 0.018, 0.018), 0xd9b92a, 0.105, hy + 0.09, 0) /* the yellow star */,
+      );
+    } else if (c.band) P.push(part(cyl(0.104, 0.104, 0.035, 8), c.band, 0, hy + 0.04, 0)) /* white headband */;
+    else P.push(part(cyl(0.1, 0.11, 0.08, 8), c.cap, 0, hy + 0.08, 0), part(bx(0.07, 0.015, 0.14), c.cap, 0.11, hy + 0.05, 0));
+  };
   MODELS.add('crew', (side, pose, v) => {
     const S = side || 'us',
       c = U[S][(v || 0) % U[S].length],
@@ -40,10 +66,7 @@
       const bx0 = kn ? (s < 0 ? 0.42 : -0.5) : fx;
       P.push(part(bx(0.26, 0.1, 0.11), c.boots, bx0 + 0.06, 0.05, z));
     }
-    /* torso, belt, shoulders */
-    const ty = hip + 0.3;
-    P.push(part(bx(0.22, 0.58, 0.36), c.top, 0, ty, 0), part(bx(0.23, 0.06, 0.37), S === 'jn' ? 0x5d6d7e : 0x3a3428, 0, hip + 0.03, 0));
-    if (S === 'jn' && c.band) P.push(part(bx(0.16, 0.3, 0.26), c.top, 0, ty + 0.12, 0)); /* the singlet: bare shoulders and arms */
+    upper(P, S, c, sk, hip, 'torso');
     const arm = S === 'jn' && c.band ? sk : c.top;
     /* arms */
     for (const s of [-1, 1]) {
@@ -54,22 +77,83 @@
       else P.push(limb(0, sh, 0.03, sh - 0.3, z, 0.055, 0.045, arm), limb(0.03, sh - 0.3, 0.1, sh - 0.56, z, 0.045, 0.04, arm === sk ? sk : arm));
       P.push(part(sph(6), sk, p === 'work' ? 0.36 : p === 'walk' ? -s * 0.1 : 0.1, p === 'work' ? sh + 0.58 : sh - 0.6, z, 0, 0, 0, 0.05, 0.05, 0.05));
     }
-    /* neck and head */
-    const hy = hip + 0.78;
-    P.push(part(cyl(0.05, 0.05, 0.1, 6), sk, 0, hip + 0.64, 0), part(sph(8), sk, 0.01, hy, 0, 0, 0, 0, 0.1, 0.12, 0.1));
-    if (S === 'us') {
-      /* A-3 mechanic's cap: soft crown, the visor flipped up */
-      P.push(part(sph(8), c.cap, 0, hy + 0.06, 0, 0, 0, 0, 0.11, 0.07, 0.11), part(bx(0.02, 0.07, 0.15), c.cap, 0.1, hy + 0.12, 0, 0, 0, 0.3));
-    } else if (S === 'ja') {
-      /* field cap with its short visor and the neck flaps */
-      P.push(
-        part(cyl(0.1, 0.11, 0.09, 8), c.cap, 0, hy + 0.08, 0),
-        part(bx(0.07, 0.015, 0.14), c.cap, 0.11, hy + 0.04, 0),
-        part(bx(0.02, 0.14, 0.2), 0xb0a27a, -0.1, hy - 0.02, 0),
-        part(bx(0.012, 0.018, 0.018), 0xd9b92a, 0.105, hy + 0.09, 0) /* the yellow star */,
-      );
-    } else if (c.band) P.push(part(cyl(0.104, 0.104, 0.035, 8), c.band, 0, hy + 0.04, 0)) /* white headband */;
-    else P.push(part(cyl(0.1, 0.11, 0.08, 8), c.cap, 0, hy + 0.08, 0), part(bx(0.07, 0.015, 0.14), c.cap, 0.11, hy + 0.05, 0));
+    upper(P, S, c, sk, hip, 'head');
     return P;
   }, { name: 'ground crew figure' });
+  /* the same figure jointed, for one who walks: CREW_RIG(side, v) -> { root, step(dist, speed) }. Each thigh hangs from its hip, each
+     shin (with its boot) from its knee, each upper arm from its shoulder and each forearm (with the hand) from its elbow; root's origin
+     is on the ground under the hips. step() poses it for the metres walked so far (dist) at the speed it walks now: a stride of
+     1.5 m (two steps), legs swinging about 26 degrees either side at a walk, the knee bending as the leg comes through, the arms swinging
+     against the legs, the boots kept near level at the ankles, and the body rising a little over each step. Standing still, it eases to
+     attention. Eleven small meshes. */
+  window.CREW_RIG = (side, v) => {
+    const S = side || 'us',
+      c = U[S][(v || 0) % U[S].length],
+      sk = SKIN[S],
+      hip = S === 'us' ? 0.82 : 0.78,
+      arm = S === 'jn' && c.band ? sk : c.top,
+      mat = new THREE.MeshLambertMaterial({ vertexColors: true }),
+      mesh = (P) => new THREE.Mesh(new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry(), mat),
+      root = new THREE.Group(),
+      body = new THREE.Group();
+    root.add(body);
+    const B = [];
+    upper(B, S, c, sk, hip, 'torso');
+    upper(B, S, c, sk, hip, 'head');
+    body.add(mesh(B));
+    const th = hip * 0.5 /* thigh length */,
+      sh = hip - th - 0.07 /* shin, to the ankle */,
+      J = { leg: [], knee: [], foot: [], arm: [], elb: [] };
+    for (const s of [-1, 1]) {
+      const z = s * 0.1;
+      /* the leg: thigh from the hip, the shin and boot from the knee */
+      const L = new THREE.Group();
+      L.position.set(0, hip, z);
+      L.add(mesh([limb(0, 0, 0, -th, 0, 0.085, 0.07, c.legs)]));
+      const K = new THREE.Group();
+      K.position.set(0, -th, 0);
+      K.add(mesh([limb(0, 0, 0, -sh, 0, 0.07, 0.055, c.putt || c.legs)]));
+      const F = new THREE.Group(); /* the ankle: the boot stays near level as the leg swings */
+      F.position.set(0, -sh, 0);
+      F.add(mesh([part(bx(0.26, 0.1, 0.11), c.boots, 0.06, -0.02, 0)]));
+      K.add(F);
+      L.add(K);
+      J.foot.push(F);
+      body.add(L);
+      J.leg.push(L), J.knee.push(K);
+      /* the arm: upper arm from the shoulder, forearm and hand from the elbow */
+      const sy = hip + 0.55,
+        A = new THREE.Group();
+      A.position.set(0, sy, s * 0.22);
+      A.add(mesh([limb(0, 0, 0, -0.3, 0, 0.055, 0.045, arm)]));
+      const E = new THREE.Group();
+      E.position.set(0, -0.3, 0);
+      E.add(mesh([limb(0, 0, 0, -0.27, 0, 0.045, 0.04, arm === sk ? sk : arm), part(sph(6), sk, 0, -0.3, 0, 0, 0, 0, 0.05, 0.05, 0.05)]));
+      A.add(E);
+      body.add(A);
+      J.arm.push(A), J.elb.push(E);
+    }
+    let amp = 0;
+    const live = [root, body, ...J.leg, ...J.knee, ...J.foot, ...J.arm, ...J.elb];
+    const step = (dist, speed) => {
+      for (const g of live) g.matrixAutoUpdate = true; /* the scene is frozen after the build: the joints keep moving */
+      /* how hard it strides: 0 standing, 1 at a brisk walk (1.4 m/s) */
+      amp += (Math.min(1, speed / 1.4) - amp) * 0.15;
+      const ph = (dist / 1.5) * Math.PI * 2;
+      for (let k = 0; k < 2; k++) {
+        const sg = k ? -1 : 1,
+          q = Math.sin(ph) * sg /* + : this leg forward */,
+          swing = 0.45 * amp * q;
+        J.leg[k].rotation.z = swing;
+        /* the knee bends as the leg swings through (going forward), straight as it takes the weight */
+        J.knee[k].rotation.z = -amp * (0.08 + 0.55 * Math.max(0, Math.cos(ph) * sg));
+        J.foot[k].rotation.z = -0.85 * (J.leg[k].rotation.z + J.knee[k].rotation.z) + 0.15 * amp * Math.max(0, -q) /* toe off behind */;
+        J.arm[k].rotation.z = -0.35 * amp * q;
+        J.elb[k].rotation.z = 0.12 + 0.2 * amp * Math.max(0, -q);
+      }
+      body.position.y = 0.035 * amp * (Math.abs(Math.cos(ph)) - 1); /* lowest as the feet pass, highest over the straight leg */
+    };
+    step(0, 0);
+    return { rig: true, root, step };
+  };
 })();
