@@ -131,15 +131,20 @@ let WSOCK = null;
   mk(new THREE.CylinderGeometry(0.15, 0.15, 8, 8), lam(0xdddddd), 32, 4, 300); /* windsock */
   WSOCK = mk(new THREE.ConeGeometry(0.65, 3.6, 12, 1, true).rotateZ(-Math.PI / 2), lam(0xff6a00), 34, 8, 300);
   FLG.mesh('us', 12, 3.4, 42, 300, 0, 0); /* the Stars and Stripes at Fletcher Field */
-  const wb = new THREE.SphereGeometry(0.35, 6, 5),
+  /* edge lights: a glass globe on a short stem standing in the ground beside the runway */
+  const wb = new THREE.SphereGeometry(0.2, 8, 6).translate(0, 0.42, 0),
     lights = new THREE.InstancedMesh(wb, new THREE.MeshBasicMaterial({ color: 0xfff2c0 }), 120),
+    stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.05, 0.3, 6).translate(0, 0.15, 0), new THREE.MeshLambertMaterial({ color: 0x3a3c3e }), 120),
     mt = new THREE.Matrix4();
-  let n = 0; /* edge lights */
+  let n = 0;
   for (let z = RW.zS - 10; z > RW.zN + 10 && n < 118; z -= 45)
     for (const x of [-27, 27]) {
-      mt.setPosition(x, 0.4, z);
+      mt.setPosition(x, H(x, z), z);
+      stems.setMatrixAt(n, mt);
       lights.setMatrixAt(n++, mt);
     }
+  stems.count = n;
+  scene.add(stems);
   lights.count = n;
   lights.frustumCulled = false;
   scene.add(lights);

@@ -145,7 +145,11 @@ function HR(x, z) {
   if (sq > 0) r = r * (1 - sq) + SITE.H1 * sq;
   return r;
 }
-const H = (x, z) => Math.max(HR(x, z), SEA.PAINT);
+/* the ground as it is DRAWN: the terrain is a mesh of flat triangles on a 100 m grid, which sits up to a metre and more off the true
+   height HR between its nodes (on crests and in hollows). Everything placed on the ground, and the ground physics, use H, so H is the
+   mesh's height (HMESH, the next piece) once that is ready; until then the true height */
+var HM_OK = false;
+const H = (x, z) => (HM_OK ? HMESH(x, z) : Math.max(HR(x, z), SEA.PAINT));
 const SZ = 26000,
   SEG = 260,
   MMT = document.createElement('canvas');

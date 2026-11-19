@@ -25,7 +25,10 @@ const SITES = [],
       const [m, s1, k0] = asMesh(P),
         [x, z] = FR.w(u, d);
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
-      m.position.set(x, type === 'ship' ? SEA.WL + k0 + s1 / 2 : H(x, z) + s1 / 2 + (yOff || 0), z);
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+      const gb = m.geometry.boundingBox,
+        gA = type === 'ship' || yOff ? null : GROUNDAT(x, z, gb.max.x - gb.min.x, gb.max.z - gb.min.z, ry, false); /* on the lowest of its footprint */
+      m.position.set(x, type === 'ship' ? SEA.WL + k0 + s1 / 2 : (gA ? gA.y : H(x, z)) + s1 / 2 + (yOff || 0), z);
       m.rotation.y = ry;
       scene.add(m);
       const e = { m, lit: null, c: m.position, r, hp, hp0: hp, type, dead: false, s1, k0, col: 0x555555, kind: 'st' };
@@ -202,6 +205,12 @@ const SITES = [],
   const rideAt = (o, dt) => {
     if (o.e && o.e.dead) return;
     const m = o.m;
+    if (!o.cb) {
+      /* her outline for the ships under way to keep clear of (COLL); a shuttle is a mover too */
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+      const bb = m.geometry.boundingBox;
+      o.cb = COLL.add({ sea: true, fixed: !o.sh, hl: (bb.max.x - bb.min.x) / 2, r: (bb.max.z - bb.min.z) / 2, mg: 4, x: m.position.x, z: m.position.z, yaw: o.yaw, v: 0 });
+    }
     if (o.sh) {
       /* a shuttle (a Daihatsu working a ship): alongside her, run in to the T-head, lie there, run back; 4 knots, turning to her course */
       const S = o.sh,
@@ -222,13 +231,28 @@ const SITES = [],
       while (dy > Math.PI) dy -= 2 * Math.PI;
       while (dy < -Math.PI) dy += 2 * Math.PI;
       if (k > 0 && k < 1) o.yaw += dy * Math.min(1, dt * 0.8);
+      /* under way she waits for any boat or ship crossing ahead of her (not for her own berths) */
+      Object.assign(o.cb, { x: m.position.x, z: m.position.z, yaw: o.yaw, v: k > 0 && k < 1 ? 2.1 : 0 });
+      if (k > 0 && k < 1) {
+        const q = COLL.look(o.cb, 45);
+        if (q && !q.o.fixed && q.d < 18) S.ph -= dt; /* hold her place on the run */
+      }
     }
     RIDE.step(o.ride, m.position.x, m.position.z, Math.cos(o.yaw), -Math.sin(o.yaw), dt, 0);
     m.matrixAutoUpdate = true;
     m.position.y = o.y0 + o.ride.hv;
     m.rotation.set(o.ride.ro, o.yaw, o.ride.pi, 'YXZ');
+    /* a small craft keeps the sea out of her well and off her deck (OCEAN hull, cut just under her waterline) */
+    if (o.hull && typeof OCEAN !== 'undefined') OCEAN.place(o.hull.h || (o.hull.h = OCEAN.hull(o.hull.o)), m.position.x, m.position.z, Math.cos(o.yaw), -Math.sin(o.yaw), 0, SEA.WL + o.ride.hv - 0.4, 0);
   };
   SITE.anch = ANCH;
+  {
+    /* the mole and its T-head: no ship under way comes through them (COLL) */
+    const [sx, sz] = SITE.w(0, MOLE.d0 + (MOLE.L - 10) / 2),
+      [tx, tz] = SITE.w(0, MOLE.d0 + MOLE.L - 5);
+    COLL.add({ sea: true, fixed: true, x: sx, z: sz, yaw: Math.atan2(-SITE.S.z, SITE.S.x), hl: (MOLE.L - 10) / 2, r: MOLE.W / 2, v: 0 });
+    COLL.add({ sea: true, fixed: true, x: tx, z: tz, yaw: Math.atan2(-SITE.A.z, SITE.A.x), hl: MOLE.tw / 2, r: 5, v: 0 });
+  }
   SITE.rideAt = rideAt;
   const ship = (parts, len, u, d, hp) => target(parts, 'ship', hp, len * 0.3, u, d, SITE.ryS);
   const hullUp = (P) => P; /* ship models are built with their waterline at y = 0 and the keel below it; target() floats them there */
@@ -245,7 +269,7 @@ const SITES = [],
     m.position.set(x, SEA.WL + k0 + s1 / 2, z);
     m.rotation.y = yaw;
     scene.add(m);
-    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3) };
+    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3), hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } } };
     ANCH.push(o);
     return o;
   };
@@ -463,9 +487,26 @@ const SITES = [],
   }
   {
     /* the patrol: a racetrack along the coast 420 m out, 1.9 km long, with a U-turn at each end */
+    /* laid clear of everything moored and anchored (the ships at anchor, the Ukuru alongside, the craft at the mole): its two legs and
+       its turns keep 100 m from their hulls, stepping out to sea 30 m at a time until they do (COLL handles the traffic) */
+    const clearOf = (u0, u1, d0, R, gap) => {
+      const P = [];
+      for (let u = u0; u <= u1; u += 25) P.push(SITE.w(u, d0), SITE.w(u, d0 + 2 * R));
+      for (let a = 0; a <= Math.PI; a += Math.PI / 8) P.push(SITE.w(u1 + Math.sin(a) * R, d0 + R - Math.cos(a) * R), SITE.w(u0 - Math.sin(a) * R, d0 + R - Math.cos(a) * R));
+      for (const o of ANCH) {
+        const g = o.m.geometry;
+        if (!g.boundingBox) g.computeBoundingBox();
+        const hl = (g.boundingBox.max.x - g.boundingBox.min.x) / 2,
+          c = Math.cos(o.yaw),
+          sn = -Math.sin(o.yaw);
+        for (let t = -hl; t <= hl; t += 10) for (const [x, z] of P) if (Math.hypot(o.m.position.x + c * t - x, o.m.position.z + sn * t - z) < gap) return false;
+      }
+      return true;
+    };
+    let d0 = 420;
+    while (d0 < 900 && !clearOf(-350, 1500, d0, 60, 100)) d0 += 30;
     const u0 = -350,
       u1 = 1500,
-      d0 = 420,
       R = 60,
       Ls = u1 - u0,
       per = 2 * Ls + 2 * Math.PI * R,
@@ -497,11 +538,13 @@ const SITES = [],
     const tmp = new V();
     e.m.matrixAutoUpdate = true;
     SITE.patrol = { e, s: 0, sp: 8.5 };
+    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: SITE.ryS, v: 0 }) /* she gives way (COLL) */;
     SITE.pat = (dt) => {
       const q = SITE.patrol,
         m = e.m;
       if (!e.dead) {
-        q.s = (q.s + q.sp * dt) % per;
+        COLL.steer(bd, dt, 600);
+        q.s = (q.s + q.sp * dt * bd.slow) % per;
         let s = q.s,
           u,
           d,
@@ -529,16 +572,20 @@ const SITES = [],
         /* heading h in the (u,d) plane: 0 = along +u, turning toward +d (out to sea) */
         const du = Math.cos(h),
           dd = Math.sin(h),
-          [x, z] = SITE.w(u, d),
+          [xt, zt] = SITE.w(u, d),
           wx = SITE.A.x * du + SITE.S.x * dd,
           wz = SITE.A.z * du + SITE.S.z * dd,
-          yw = Math.atan2(-wz, wx),
+          yt = Math.atan2(-wz, wx),
+          x = xt + Math.sin(yt) * bd.off /* her offset to starboard of her track, while she gives way */,
+          z = zt + Math.cos(yt) * bd.off,
+          yw = yt + bd.dyaw,
           rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
+        Object.assign(bd, { x, z, yaw: yw, v: q.sp * bd.slow });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.matrixAutoUpdate = true; /* the scene is frozen after the build */
         m.position.set(x, y0 + rd.hv, z);
         m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');
-      }
+      } else bd.v = 0;
       m.updateMatrixWorld(true);
       for (const g of guns) {
         g.tur.matrixAutoUpdate = g.bar.matrixAutoUpdate = true;
@@ -573,25 +620,33 @@ const SITES = [],
       const e = target(MODELS.get('jp-t14', i % 2), 'ship', 30, 15 * 0.3, u0, d0, F.ryS);
       e.m.add(shipWakeMesh(15 / 78, -e.k0 - e.s1 / 2 + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
-      B.push({ e, y0: e.m.position.y, wl: -e.k0 - e.s1 / 2, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null });
+      B.push({ e, y0: e.m.position.y, wl: -e.k0 - e.s1 / 2, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null, bd: COLL.add({ sea: true, hl: 7.5, r: 1.8, mg: 10, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0, tclr: 6 }), s: 0 });
     }
     FR = F0;
-    let s = Math.random() * per;
+    const s0 = Math.random() * per;
+    for (const b of B) b.s = s0 - b.off;
     return (dt) => {
-      s = (s + sp * dt) % per;
       for (const b of B) {
         const m = b.e.m;
         if (b.e.dead) {
           if (b.hull) OCEAN.unhull(b.hull), (b.hull = null);
+          b.bd.v = 0;
           continue;
         }
-        const [u, d, h] = raceAt((s - b.off + per) % per, u0, u1, d0 + b.dz, R),
+        /* each boat keeps her own place on the track, and gives way (COLL): to her own leader too */
+        COLL.steer(b.bd, dt, 160);
+        b.s = (b.s + sp * dt * b.bd.slow + per) % per;
+        const [u, d, h] = raceAt(b.s, u0, u1, d0 + b.dz, R),
           du = Math.cos(h),
           dd = Math.sin(h),
-          [x, z] = F.w(u, d),
+          [xt, zt] = F.w(u, d),
           wx = F.A.x * du + F.S.x * dd,
           wz = F.A.z * du + F.S.z * dd,
-          yw = Math.atan2(-wz, wx);
+          yt = Math.atan2(-wz, wx),
+          x = xt + Math.sin(yt) * b.bd.off,
+          z = zt + Math.cos(yt) * b.bd.off,
+          yw = yt + b.bd.dyaw;
+        Object.assign(b.bd, { x, z, yaw: yw, v: sp * b.bd.slow });
         RIDE.step(b.ride, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.position.set(x, b.y0 + b.ride.hv, z);
         m.rotation.set(b.ride.ro, yw, b.ride.pi - 0.035 /* bow up: she is on the plane */, 'YXZ');
@@ -613,7 +668,7 @@ const SITES = [],
     /* two lie alongside the mole's east face, the second rafted outboard of the first, bows to seaward */
     for (const [k, du] of [[0, MOLE.W / 2 + 2.05], [1, MOLE.W / 2 + 2.05 + 3.7]]) {
       const e = ship(MODELS.get('jp-t14', k), 15, du, MOLE.d0 + 72 - k * 4, 30);
-      ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(6.4, 1.6, 3), e });
+      ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(6.4, 1.6, 3), e, hull: { o: { kind: 't14', cut: 'deck' } } });
     }
     /* and two on patrol inshore of the kaibokan, west of the mole: 18 knots round a 900 m racetrack */
     for (const [u0, u1, d0] of [[-1150, -250, 260], [-900, -250, 300], [250, 1100, 260]])
@@ -643,7 +698,7 @@ const SITES = [],
     onMole(MODELS.get('jp-decauville', MOLE.L - 4), 1.2, MOLE.d0, 0);
     onMole(MODELS.get('jp-rail-cart', true), 1.2, MOLE.d0 + 40, 0);
     onMole(MODELS.get('jp-rail-cart', false), 1.2, MOLE.d0 + MOLE.L - 12, 0);
-    [['work', -6, -4, Z], ['stand', 4, -3, -2], ['walk', -2, -30, Math.PI], ['stand', -9, 1, 0.5]].forEach(([pose, du, dd, yaw], k) =>
+    [['work', -6, -4, Z], ['stand', 4, -3, -2], ['walk', -2, -30, Math.PI], ['stand', -9, -7, 0.5]] /* all four on the T-head's deck (it runs from L - 10 to L) */.forEach(([pose, du, dd, yaw], k) =>
       onMole(MODELS.get('crew', 'jn', pose, k), du, MOLE.d0 + MOLE.L + dd, yaw),
     );
     const [dx, dz] = SITE.w(-30, 62);
@@ -659,7 +714,7 @@ const SITES = [],
   /* a perimeter fence (wire on posts) with a guard tower at each corner and at the given u along each long side; in the current frame FR */
   const fenceRect = (U0, U1, D0, D1, mids) => {
     const acc = new GX.Acc();
-    const put = (P, x, z, yaw, y0) => acc.add(P, GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, 1));
+    const put = (P, x, z, yaw, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, 1));
     const edge = (u0, d0, u1, d1) => {
       const L = Math.hypot(u1 - u0, d1 - d0),
         n = Math.round(L / 6);
@@ -681,6 +736,7 @@ const SITES = [],
           (az + bz) / 2,
           yaw,
           (H(ax, az) + H(bx2, bz)) / 2,
+          GX.xfRun(ax, H(ax, az), az, bx2, H(bx2, bz), bz) /* following the ground from post to post */,
         );
         put([part(bx(0.14, 2.3, 0.14), 0x6b6e70, 0, 1.15, 0), part(bx(0.7, 0.05, 0.05), 0x4a4d4f, 0, 2.3, 0)], ax, az, yaw);
       }
@@ -1012,11 +1068,13 @@ const SITES = [],
     const tU1 = Math.min(u1, u0 + 900),
       t14 = deepOK(F, u0, tU1, d0 - 180, 35, 30, 6, WH) ? mkT14s(F, u0, tU1, d0 - 180, 35, 2, 9.3, 45) : null;
     const P = { e, vis: true, track: { u0, u1, d0, R }, t14 };
+    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }) /* she gives way (COLL) */;
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
       if (!e.dead) {
-        s = (s + 8.5 * dt) % per;
+        COLL.steer(bd, dt, 600);
+        s = (s + 8.5 * dt * bd.slow) % per;
         let q = s,
           u,
           d,
@@ -1043,15 +1101,19 @@ const SITES = [],
         }
         const du = Math.cos(h),
           dd = Math.sin(h),
-          [x, z] = F.w(u, d),
+          [xt, zt] = F.w(u, d),
           wx = F.A.x * du + F.S.x * dd,
           wz = F.A.z * du + F.S.z * dd,
-          yw = Math.atan2(-wz, wx),
+          yt = Math.atan2(-wz, wx),
+          x = xt + Math.sin(yt) * bd.off,
+          z = zt + Math.cos(yt) * bd.off,
+          yw = yt + bd.dyaw,
           rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
+        Object.assign(bd, { x, z, yaw: yw, v: 8.5 * bd.slow });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.position.set(x, y0 + rd.hv, z);
         m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');
-      }
+      } else bd.v = 0;
       m.updateMatrixWorld(true);
       for (const g of guns) {
         g.tur.matrixAutoUpdate = g.bar.matrixAutoUpdate = true;
@@ -1276,6 +1338,7 @@ const SITES = [],
       L += l;
     }
     const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len };
+    c.bd = COLL.add({ sea: true, hl: len / 2, r: len * 0.075, mg: 40, x: p0[0], z: p0[1], yaw: c.yaw, v: 0, maxOff: 250 }); /* she gives way (COLL) */
     CIV.push(c);
     /* her Daihatsu: works between her and the harbour's jetty head while she lies at anchor (1945 practice: deep-draught ships were
        unloaded offshore by barge), and waits at that jetty while she is at sea */
@@ -1297,8 +1360,13 @@ const SITES = [],
       c.m.children[0].visible = false;
       return;
     }
-    const cyc = 2 * (c.L / c.v + c.dock),
-      tt = (t + c.phase) % cyc;
+    const cyc = 2 * (c.L / c.v + c.dock);
+    /* under way she gives way to any ship in her lane (COLL): steps out of it, and holds back her schedule while she is slowed */
+    if (c.bd.v > 0 && dt > 0) {
+      COLL.steer(c.bd, dt, 700);
+      c.phase -= (1 - c.bd.slow) * dt;
+    }
+    const tt = (t + c.phase) % cyc;
     let s,
       back = false,
       moving = true;
@@ -1332,9 +1400,13 @@ const SITES = [],
     while (dy < -Math.PI) dy += 2 * Math.PI;
     c.yaw += dy * Math.min(1, dt * 1.5);
     /* she rides the waves (RIDE): samples 0.43 x her length fore and aft and 0.08 x it each side, a slower roll for the big ones */
-    const cx = a[0] + dx * k,
-      cz = a[1] + dz * k,
+    const yt = back ? Math.atan2(dz, -dx) : Math.atan2(-dz, dx),
+      oo = moving ? c.bd.off || 0 : 0,
+      cx = a[0] + dx * k + Math.sin(yt) * oo /* to starboard of her route while she gives way */,
+      cz = a[1] + dz * k + Math.cos(yt) * oo,
       rd = c.ride || (c.ride = RIDE.make(0.43 * c.len, 0.08 * c.len, c.len < 60 ? 6 : 9));
+    if (!moving) c.bd.off = c.bd.offT = 0;
+    Object.assign(c.bd, { x: cx, z: cz, yaw: c.yaw, v: moving ? c.v * (c.bd.slow == null ? 1 : c.bd.slow) : 0 });
     if (dt > 0) RIDE.step(rd, cx, cz, Math.cos(c.yaw), -Math.sin(c.yaw), dt, 0);
     c.m.position.set(cx, SEA.WL + c.k0 + c.s1 / 2 + rd.hv, cz);
     c.m.rotation.set(rd.ro, c.yaw, rd.pi, 'YXZ');
@@ -1361,6 +1433,7 @@ const SITES = [],
       B.m.position.set(bx, B.y0 + B.ride.hv, bz);
       B.m.rotation.set(B.ride.ro, B.yaw, B.ride.pi, 'YXZ');
       B.m.matrixAutoUpdate = true;
+      if (typeof OCEAN !== 'undefined') OCEAN.place(B.hh || (B.hh = OCEAN.hull({ kind: 'rect', cut: 'deck', hl: 6.8, hw: 1.4 })), bx, bz, Math.cos(B.yaw), -Math.sin(B.yaw), 0, SEA.WL + B.ride.hv - 0.4, 0); /* the sea kept out of her well */
     }
   };
   /* ----- build everything ----- */

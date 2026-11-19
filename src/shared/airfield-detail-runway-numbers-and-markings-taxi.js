@@ -74,7 +74,7 @@
     face: 0,
   });
   /* the jeep is a perimeter patrol: it drives right round the paved area, outside its edge, and keeps going */
-  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true });
+  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true, ground: true }); /* off the pavement: it follows the ground */
   /* the fuel bowser works down the line of fighters, just behind their tails, and stands at each one to fuel it */
   AFLD.add(fuelTruckR(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
   AFLD.add(crew(0x8b7d5a), [[-97, 338], [-97, 372]], 1.4, 5, 'walk');

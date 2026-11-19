@@ -2,7 +2,7 @@
 {
   const acc = new GX.Acc(),
     { part, bx, cyl, sph, Z } = VM;
-  const put = (P, x, z, yaw, k, y0) => acc.add(P, GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, k));
+  const put = (P, x, z, yaw, k, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, k));
   const post = () => [
     part(bx(0.14, 2.3, 0.14), 0x6b6e70, 0, 1.15, 0),
     part(bx(0.7, 0.05, 0.05), 0x4a4d4f, 0, 2.3, 0, 0, 0, 0.0),
@@ -24,10 +24,12 @@
       mz,
       yaw,
       1,
-      (H(x0, z0) + H(x1, z1)) / 2,
+      (SURF(x0, z0) + SURF(x1, z1)) / 2,
+      GX.xfRun(x0, SURF(x0, z0), z0, x1, SURF(x1, z1), z1) /* following the yard's surface from post to post */,
     );
   };
   const fence = (cx, cz, x0, x1, z0, z1) => {
+    SURF.reset(); /* the yards' gravel is laid by now: measure on it */
     const pts = [
       [x0, z0],
       [x1, z0],
@@ -47,7 +49,7 @@
           bz = cz + a[1] + ((b[1] - a[1]) * (i + 1)) / n;
         if (nearRoad((ax + bx2) / 2, (az + bz) / 2, 13) || nearRoad(ax, az, 13) || nearRoad(bx2, bz, 13)) continue;
         fenceSeg(ax, az, bx2, bz);
-        put(post(), ax, az, 0, 1);
+        put(post(), ax, az, 0, 1, SURF(ax, az));
       }
     }
   };

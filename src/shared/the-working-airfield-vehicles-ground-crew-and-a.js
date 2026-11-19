@@ -10,6 +10,11 @@ const AFLD = {
     m.position.set(pts[0][0], y0, pts[0][1]);
     scene.add(m);
     const o = { y0, m, pts, sp, wait, kind, i: 1, dir: 1, w: wait * Math.random(), v: 0, yaw: 0, x: pts[0][0], z: pts[0][1], init: false, opt, at: 0 };
+    /* her outline for the others to keep clear of (COLL), and her place in the queue (the earlier added goes first) */
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    const bb = m.geometry.boundingBox;
+    Object.assign(o, { hl: Math.max(0.3, (bb.max.x - bb.min.x) / 2), r: Math.max(0.3, (bb.max.z - bb.min.z) / 2), sea: false, mg: kind === 'walk' ? 0.4 : 1.5, prio: this.a.length + 1 });
+    COLL.add(o);
     if (opt && opt.hose) {
       o.hs = new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 0.1), new THREE.MeshLambertMaterial({ color: 0x1b1b1a }));
       o.hs.visible = false;
@@ -33,6 +38,8 @@ const AFLD = {
       man = mk(MP, cfg.door[0], cfg.door[1]);
     pl.kind = 'plane';
     man.kind = 'walk';
+    Object.assign(pl, { hl: 4.9, r: 5.6, sea: false, mg: 2, prio: 0 }), Object.assign(man, { hl: 0.3, r: 0.3, sea: false, mg: 0.4, prio: 0 });
+    COLL.add(pl), COLL.add(man);
     man.m.visible = false;
     this.a.push(pl, man);
     this.rp = { pl, man, cfg, ph: 6, t: 3, k: 1 };
@@ -51,7 +58,7 @@ const AFLD = {
     const st = Math.min(d, o.v * dt);
     o.x += (dx / d) * st;
     o.z += (dz / d) * st;
-    o.m.position.set(o.x, 0.12 + (walk ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);
+    o.m.position.set(o.x, (o.opt && o.opt.y ? o.opt.y : SURF(o.x, o.z)) + (walk ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z); /* on the surface there: apron, taxiway, grass */
     o.m.rotation.y = o.yaw;
     return false;
   },
@@ -140,12 +147,17 @@ const AFLD = {
       m.add(wk);
       m.position.set(pts[0][0], yo === undefined ? -6.4 : yo, pts[0][1]);
       scene.add(m);
-      this.a.push({ m, pts, sp, wait: 0, kind: 'ship', y0: yo, i: 1, dir: 1, w: 0, v: sp, yaw: Math.atan2(-uz, ux), x: pts[0][0], z: pts[0][1], init: false, ph: rnd() * 6, L });
+      const o = { m, pts, sp, wait: 0, kind: 'ship', y0: yo, i: 1, dir: 1, w: 0, v: sp, yaw: Math.atan2(-uz, ux), x: pts[0][0], z: pts[0][1], init: false, ph: rnd() * 6, L };
+      /* she gives way to every other ship (COLL): her outline for the others, her margin */
+      Object.assign(o, { hl: L / 2, r: L * 0.12, sea: true, mg: 10 + L * 0.3 });
+      this.a.push(COLL.add(o));
       return true;
     }
     return false;
   },
   update(dt) {
+    COLL.tick(); /* a new frame: every body's position is fetched afresh when it is looked at */
+    SURF.settle(); /* once: every ground target down onto the roads, pads and aprons now that they are all built */
     for (const o of this.a) {
       if (!o.init) {
         o.init = true;
@@ -177,11 +189,12 @@ const AFLD = {
       if (hold) o.w -= dt;
       /* give way to the player's aircraft, on the ground or just above it */
       if (o.kind !== 'ship' && !crashed && pos.y < 20 && Math.hypot(pos.x - o.x, pos.z - o.z) < (o.kind === 'plane' ? 40 : 26)) hold = true;
-      if (d < (o.kind === 'ship' ? 60 : 0.6) && o.opt && o.opt.loop) {
+      const arr = o.kind === 'ship' ? Math.max(60, (1.3 * o.sp) / 0.07) : 0.6; /* a ship turns on a wide circle (0.07 rad/s) */
+      if (d < arr && o.opt && o.opt.loop) {
         o.i = (o.i + 1) % o.pts.length; /* a patrol: round and round */
         continue;
       }
-      if (d < (o.kind === 'ship' ? 60 : 0.6)) {
+      if (d < arr) {
         if (o.opt) o.at = o.i; /* arrived at this waypoint */
         o.i += o.dir;
         if (o.i < 0 || o.i >= o.pts.length) {
@@ -193,15 +206,31 @@ const AFLD = {
       }
       /* turn toward the next point, and only roll forward once roughly lined up */
       let want = Math.atan2(-dz, dx),
-        err = want - o.yaw;
+        av = null;
+      if (o.kind === 'ship') {
+        /* give way (COLL): steer clear of any ship, boat or mooring in her way, slow if she must */
+        av = COLL.avoid(o, Math.max(6 * o.hl, o.v * 45));
+        want += av.turn;
+      } else {
+        /* a vehicle or a man waits while anything is in the way (anything fixed, or anyone ahead of it in the queue) */
+        const q = COLL.look(o, o.v * 3 + 4 + o.hl);
+        if (q && (q.o.fixed || q.o.prio == null || q.o.prio < o.prio) && q.d < o.hl + 3 + q.o.r) hold = true;
+      }
+      let err = want - o.yaw;
       err = Math.atan2(Math.sin(err), Math.cos(err));
       const rate = o.kind === 'ship' ? 0.07 : o.kind === 'walk' ? 4 : o.kind === 'plane' ? 0.7 : 1.4;
       o.yaw += Math.max(-rate * dt, Math.min(rate * dt, err));
-      const go = hold ? 0 : o.kind === 'ship' ? 1 : Math.max(0, 1 - Math.abs(err) / 0.7);
-      o.v += (o.sp * go - o.v) * Math.min(1, 2.5 * dt);
-      const st = Math.min(d, o.v * dt);
-      o.x += (dx / d) * st;
-      o.z += (dz / d) * st;
+      const go = hold ? 0 : o.kind === 'ship' ? av.slow : Math.max(0, 1 - Math.abs(err) / 0.7);
+      o.v += (o.sp * go - o.v) * Math.min(1, (o.kind === 'ship' ? 0.6 : 2.5) * dt);
+      if (o.kind === 'ship') {
+        /* a ship sails where she heads */
+        o.x += Math.cos(o.yaw) * o.v * dt;
+        o.z -= Math.sin(o.yaw) * o.v * dt;
+      } else {
+        const st = Math.min(d, o.v * dt);
+        o.x += (dx / d) * st;
+        o.z += (dz / d) * st;
+      }
       if (o.kind === 'ship') {
         /* she rides the ocean's waves (RIDE): the sample points from her length (0.43 x) and her sides 0.08 x it (0.45 of a beam about 0.18 of her length), roll period by size */
         if (!o.ride) {
@@ -216,7 +245,7 @@ const AFLD = {
         if (o.hull) OCEAN.place(o.hull, o.x, o.z, Math.cos(o.yaw), -Math.sin(o.yaw), o.v, o.m.position.y, 0);
         continue;
       }
-      o.m.position.set(o.x, o.y0 + (o.kind === 'walk' ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);
+      o.m.position.set(o.x, (o.opt && o.opt.y ? o.y0 : SURF(o.x, o.z)) + (o.kind === 'walk' ? Math.abs(Math.sin(this_t(o))) * 0.05 : 0), o.z);
       o.m.rotation.y = o.yaw;
     }
     this.repair(dt);

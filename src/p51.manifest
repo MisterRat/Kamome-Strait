@@ -33,6 +33,7 @@ shared/kamome-field-a-small-island-airfield-about-43-km.js
 shared/the-world-beyond-the-home-map-its-height-wh-x-z.js
 shared/the-far-sites-two-colonial-harbours-two-enemy-ai.js
 shared/the-height-of-the-terrain-mesh-at-x-z-the-mesh-i.js
+shared/collision-avoidance-every-mover-looks-ahead-and-gives-way.js
 shared/patchy-tone-grain-detail-texture-tiles-every-1-k.js
 shared/the-colours-of-the-shore-grass-tan-sand-light-bl.js
 shared/mission-area-gently-rolling-plain-with-a-road-be.js

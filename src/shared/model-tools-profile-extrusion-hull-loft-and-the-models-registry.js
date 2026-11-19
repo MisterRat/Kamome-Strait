@@ -153,6 +153,14 @@ const MODELS = (() => {
     g.computeVertexNormals();
     return part(g, hex, 0, 0, 0);
   };
+  /* a transform for a run of fence (or rail, or wall) from ground point A to ground point B: at their middle, turned to run along A->B,
+     and sheared so its bottom follows the ground's slope while its posts and panels stay upright */
+  GX.xfRun = (ax, ay, az, bx, by, bz) => {
+    const L = Math.hypot(bx - ax, bz - az) || 1,
+      yaw = Math.atan2(-(bz - az), bx - ax),
+      S = new THREE.Matrix4().set(1, 0, 0, 0, (by - ay) / L, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    return new THREE.Matrix4().makeTranslation((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2).multiply(new THREE.Matrix4().makeRotationY(yaw)).multiply(S);
+  };
   /* a round tyre on its wheel: the tyre a lathe of a rounded section (tread, shoulders, sidewalls) n segments round, the rim and hub a
      cylinder inside it with a hub cap; centre (x, y, z), radius r, width w, the axle along z (axis 'z', vehicles' default) or x.
      Shared by every wheeled model so all wheels are round and alike. Returns parts. */

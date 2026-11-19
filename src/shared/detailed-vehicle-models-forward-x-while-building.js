@@ -292,9 +292,12 @@ function mkT(type, x, z, ry, kind) {
           : new THREE.BoxGeometry(s[0], s[1], s[2]),
       new THREE.MeshLambertMaterial(det ? { vertexColors: true, side: VM.isB(type) ? 2 : 0 } : { color: sp.c }),
     );
-  m.position.set(x, H(x, z) + s[1] / 2, z);
-  m.rotation.y = ry;
+  /* on the drawn ground: a building on the lowest of its footprint, a vehicle tilted along the slope (its nose is local +z) */
+  const gA = GROUNDAT(x, z, s[0], s[2], ry, !VM.isB(type) && !sp.cyl);
+  m.position.set(x, gA.y + s[1] / 2, z);
+  m.rotation.set(gA.rx, ry, gA.rz, 'YXZ');
   scene.add(m);
+  const gnd = sp.cyl ? null : { w: s[0], d: s[2], h: s[1], ry, tilt: !VM.isB(type) } /* SURF.settle puts it on any road, pad or apron laid there */;
   if (sp.roof && !det) {
     const rf = new THREE.Mesh(
       new THREE.BoxGeometry(s[0] + 0.7, 0.6, s[2] + 0.7),
@@ -337,6 +340,7 @@ function mkT(type, x, z, ry, kind) {
     s1: s[1],
     col: sp.c,
     kind: kind || 'st',
+    gnd,
   };
   T.push(e);
   return e;

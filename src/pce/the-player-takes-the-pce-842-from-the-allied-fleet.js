@@ -3,6 +3,7 @@
 HOOKS.claimShip.push((kind, num, o) => {
   if (kind !== 'pce' || num !== '842' || SHIPM.mesh) return false;
   AFLD.a.splice(AFLD.a.indexOf(o), 1);
+  COLL.remove(o); /* she is the player's ship now: COLL knows her as that */
   o.m.add(PCEM.buildInterior()); /* the stations' rooms */
   SHIPM.mesh = o.m;
   SHIPM.wake = o.m.children[0];

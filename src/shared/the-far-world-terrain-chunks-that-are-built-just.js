@@ -1795,6 +1795,38 @@ nearRoads(h.x, h.z);
     }
     W.setItemQ(it);
   }
+  /* the levelled platforms round the farmsteads and hamlets touching chunk c, [x, z, R0, R1, h] each (the same list the chunk's build
+     makes, a little at a time), and the height of the ground with them (WHP in the build) */
+  const chunkPL = (c) => {
+    if (c.pl) return c.pl;
+    const PL = [],
+      RGN = NET.RG,
+      FCN = NET.FC,
+      mg = 330;
+    for (let a = Math.floor((c.x0 - mg) / RGN); a <= Math.floor((c.x1 + mg) / RGN); a++)
+      for (let b = Math.floor((c.z0 - mg) / RGN); b <= Math.floor((c.z1 + mg) / RGN); b++) {
+        const h = NET.hamlet(a, b);
+        if (h && h.x > c.x0 - mg && h.x < c.x1 + mg && h.z > c.z0 - mg && h.z < c.z1 + mg) PL.push(h.x, h.z, 150, 330, WH(h.x, h.z));
+      }
+    for (let a = Math.floor((c.x0 - mg) / FCN); a <= Math.floor((c.x1 + mg) / FCN); a++)
+      for (let b = Math.floor((c.z0 - mg) / FCN); b <= Math.floor((c.z1 + mg) / FCN); b++) {
+        const f = NET.farm(a, b);
+        if (f && f.x > c.x0 - mg && f.x < c.x1 + mg && f.z > c.z0 - mg && f.z < c.z1 + mg && NET.live(f)) PL.push(f.x, f.z, 110, 260, WH(f.x, f.z));
+      }
+    return (c.pl = PL);
+  };
+  const whp = (PL, x, z) => {
+    let h = WH(x, z);
+    for (let q = 0; q < PL.length; q += 5) {
+      const d = Math.hypot(x - PL[q], z - PL[q + 1]);
+      if (d < PL[q + 3]) {
+        const t = d <= PL[q + 2] ? 0 : (d - PL[q + 2]) / (PL[q + 3] - PL[q + 2]),
+          w = 1 - t * t * (3 - 2 * t);
+        h += (PL[q + 4] - h) * w;
+      }
+    }
+    return h;
+  };
   const W = {
     PB: PBX,
     CH,
@@ -1870,7 +1902,25 @@ nearRoads(h.x, h.z);
         if (z >= AX[k][0] && z < AX[k][1]) ib = k;
       }
       const c = ia >= 0 && ib >= 0 ? CHI.get(ia * 32 + ib) : null;
-      if (!c || c.st !== 2 || !c.it) return Math.max(WH(x, z), SEA.PAINT);
+      if (!c) return Math.max(WH(x, z), SEA.PAINT);
+      if (c.st !== 2 || !c.it) {
+        /* not built yet: the heights its mesh WILL have (the same grid nodes, levelled round its farmsteads and hamlets) */
+        const PL = chunkPL(c),
+          dx = (c.x1 - c.x0) / SEGC,
+          dz = (c.z1 - c.z0) / SEGC,
+          u = (x - c.x0) / dx,
+          v = (z - c.z0) / dz,
+          a = Math.max(0, Math.min(SEGC - 1, Math.floor(u))),
+          b = Math.max(0, Math.min(SEGC - 1, Math.floor(v))),
+          fx = Math.min(1, Math.max(0, u - a)),
+          fz = Math.min(1, Math.max(0, v - b)),
+          hq = (i, j) => Math.max(whp(PL, c.x0 + i * dx, c.z0 + j * dz), SEA.PAINT),
+          ha = hq(a, b),
+          hd = hq(a + 1, b),
+          hb = hq(a, b + 1),
+          hc = hq(a + 1, b + 1);
+        return fx + fz <= 1 ? ha + fx * (hd - ha) + fz * (hb - ha) : hc + (1 - fx) * (hb - hc) + (1 - fz) * (hd - hc);
+      }
       const hs = c.it.hs,
         row = SEGC + 1,
         u = (x - c.x0) / ((c.x1 - c.x0) / SEGC),

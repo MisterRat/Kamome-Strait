@@ -62,7 +62,11 @@
     cc = new THREE.Color();
   items.forEach((a, i) => {
     Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a[2]);
-    M.compose(new THREE.Vector3(a[0], H(a[0], a[1]) - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
+    /* on the lowest ground under it (both ends and the middle), 10 cm in: on a slope no end hangs in the air */
+    const sx = Math.sin(a[2]) * a[3] * 0.48,
+      sz = Math.cos(a[2]) * a[3] * 0.48,
+      gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
+    M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
     hm.setMatrixAt(i, M);
     cc.setRGB(a[6] * 0.9, a[6] + 0.02, a[6] * 0.78);
     hm.setColorAt(i, cc);

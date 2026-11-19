@@ -22,11 +22,11 @@
         deck: null,
         transom: GREY,
       });
-    P.push(part(bx(L * 0.86, 0.08, 3.1), 0x3a3d3f, 0.2, 0.0, 0)); /* the well floor, up to the ramp */
+    P.push(part(bx(L * 0.86, 0.3, 3.1), 0x3a3d3f, 0.2, 0.13, 0)); /* the well floor, up to the ramp: 0.28 m above her waterline (clear of the painted shallows) */
     P.push(part(bx(0.15, 1.5, 3.2), GREY, L / 2 - 0.1, 0.55, 0, 0, 0, 0.12)); /* the bow ramp, up */
     P.push(part(bx(1.8, 2.2, 2.2), GREY, -L / 2 + 1.5, 1.12, 0), part(bx(1.9, 0.08, 2.4), 0x5d5a3e, -L / 2 + 1.5, 2.26, 0)); /* steering position, standing on the well floor */
     P.push(part(cyl(0.05, 0.05, 1.2, 6), DK, -L / 2 + 0.9, 2.88, 0), ...FLG.at('jn', 0.7, -L / 2 + 0.88, 3.43, 0, Math.PI)); /* ensign staff on its roof */
-    for (let k = 0; k < 4; k++) P.push(part(bx(1.1, 0.7, 1.0), 0x7a6648, -2.5 + k * 1.5, 0.39, (k % 2 ? 0.6 : -0.5))); /* cargo, on the floor */
+    for (let k = 0; k < 4; k++) P.push(part(bx(1.1, 0.7, 1.0), 0x7a6648, -2.5 + k * 1.5, 0.63, (k % 2 ? 0.6 : -0.5))); /* cargo, on the floor */
     return P;
   }, { L: 14.88, W: 3.35, D: 0.7, name: 'Daihatsu landing barge' });
   /* a wooden lighter: an unpowered cargo barge, ~12 x 4 m, with a load of crates and drums */

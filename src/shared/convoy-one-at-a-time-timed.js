@@ -61,8 +61,12 @@ function updConvoy(dt) {
       const u = v.s / L,
         p = C.getPointAt(u),
         tg = C.getTangentAt(u);
-      v.m.position.set(p.x, H(p.x, p.z) + 0.12 + v.s1 / 2, p.z);
-      v.m.rotation.y = Math.atan2(tg.x, tg.z);
+      /* on the road's surface (SURF), tilted along it */
+      const yw = Math.atan2(tg.x, tg.z),
+        sz = (SP[v.type] && SP[v.type].s) || [2, 2, 5],
+        gA = GROUNDAT(p.x, p.z, sz[0], sz[2], yw, true, SURF);
+      v.m.position.set(p.x, gA.y + v.s1 / 2, p.z);
+      v.m.rotation.set(gA.rx, yw, gA.rz, 'YXZ');
     }
     if (!CV.q.length && CV.list.every((v) => v.dead)) {
       const k = CV.list.filter((v) => !v.gone).length,
