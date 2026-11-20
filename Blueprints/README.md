@@ -4,8 +4,7 @@ Orthographic drawings of every real-world model in the game (profile, plan and f
 the references. Drawn by `tools/blueprint.py` from the built game; the catalogue of models, with the reference figures and their
 sources, is `tools/blueprints.json`. Redraw after a model changes: `python3 tools/blueprint.py <id>`, then `python3 tools/blueprint_index.py`.
 
-The PCE-842 has her own, more detailed drawings and frame-by-frame check against the PCE-874 plans: `PCE-842_blueprint_profile.png`,
-`PCE-842_blueprint_plan.png`, `PCE-842_measurements.md`.
+The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842_plans_check.md`.
 
 | Model | Represents | Length x width x height (m) | Check | Files |
 |---|---|---|---|---|
@@ -66,7 +65,7 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Village hen | hen (plantation) | 0.60 x 0.32 x 0.60 | no reference yet | `Village_hen_blueprint.png`, `Village_hen_measurements.md` |
 | Plantation handcart | two-wheeled wooden handcart | 4.00 x 1.52 x 1.65 | no reference yet | `Village_handcart_blueprint.png`, `Village_handcart_measurements.md` |
 | USAAF ground crewman, jointed walker (CREW_RIG) | USAAF mechanic, 1945, as he walks (the airfield's walkers and the repair mechanic) | 0.92 x 0.55 x 1.70 | close | `Ground_crewman_walking_blueprint.png`, `Ground_crewman_walking_measurements.md` |
-| Type T-14 motor torpedo boat as she patrols (moving 25 mm, droppable torpedoes) | Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45: the patrol model (MODELS 'jp-t14' with live = true) | 15.67 x 3.67 x 5.43 | match | `Japanese_T-14_torpedo_boat_live_blueprint.png`, `Japanese_T-14_torpedo_boat_live_measurements.md` |
-| USS PCE-842, patrol craft escort (the player's ship) | PCE-842 class patrol craft escort, USN 1943-45 | 56.64 x 12.12 x 23.65 | **check** | `PCE-842_patrol_craft_escort_blueprint.png`, `PCE-842_patrol_craft_escort_measurements.md` |
+| Type T-14 motor torpedo boat in action (25 mm trained and elevated, one torpedo dropped) | Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45: the patrol model (MODELS 'jp-t14' with live = true) | 15.67 x 3.67 x 5.43 | match | `Japanese_T-14_torpedo_boat_live_blueprint.png`, `Japanese_T-14_torpedo_boat_live_measurements.md` |
+| USS PCE-842, patrol craft escort (the player's ship) | PCE-842 class patrol craft escort, USN 1943-45 | 56.64 x 12.12 x 23.65 | match | `PCE-842_blueprint.png`, `PCE-842_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).

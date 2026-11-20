@@ -1208,46 +1208,35 @@
   ],
   "labels": [
    [
-    "pilothouse and signal mast",
-    1.5,
-    4.0,
+    "ensign, depth charges",
+    -7.0,
+    1.6,
     0
    ],
    [
-    "canvas hood",
-    0.2,
-    2.1,
+    "Type 96 25 mm (stowed forward)",
+    -5.0,
+    2.3,
     0
    ],
    [
-    "45 cm torpedo on side-drop cradle",
+    "45 cm torpedo, side-drop cradle",
     -2.5,
     1.4,
     1.2
    ],
    [
-    "Type 96 25 mm",
-    -5.55,
-    2.0,
-    0
-   ],
-   [
-    "depth charges",
-    -6.7,
-    1.2,
-    1.05
-   ],
-   [
-    "ensign staff",
-    -7.35,
-    2.4,
+    "pilothouse, signal mast",
+    1.5,
+    4.0,
     0
    ]
   ],
   "notes": [
    "Wooden hard-chine planing hull with V frames, lofted from 26 stations: dark grey (variant 0) or mottled green (variant 1), red anti-fouling below the chine, a rubbing strake along the sheer.",
    "Pilothouse forward of amidships with a raked three-pane windscreen; the open cockpit abaft it under a canvas hood, with the wheel; a signal mast with yard and masthead lamp on the pilothouse roof.",
-   "Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner."
+   "Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner.",
+   "5.60: the 25 mm is stowed trained forward along the centreline (trained aft its barrel crossed the ensign staff); the gunner stands behind the breech between the depth-charge rails. The gun is built from the same turret and barrel parts the patrol model turns (T14.gunParts)."
   ]
  },
  {
@@ -1487,12 +1476,12 @@
  {
   "id": "jp-t14-live",
   "file": "Japanese_T-14_torpedo_boat_live",
-  "title": "Type T-14 motor torpedo boat as she patrols (moving 25 mm, droppable torpedoes)",
+  "title": "Type T-14 motor torpedo boat in action (25 mm trained and elevated, one torpedo dropped)",
   "fwd": "+x",
   "kind": "ship",
   "wl": "0",
   "game": "pce",
-  "make": "const g = new THREE.Group(); g.add(__bake(MODELS.get('jp-t14', 0, undefined, true))); const GP = T14.gunParts(), tur = new THREE.Group(), bar = new THREE.Group(); tur.position.set(T14.GX0, T14.gTop(), 0); tur.rotation.y = -Math.PI / 2; tur.add(__bake(GP.tur)); bar.position.set(0, T14.GBAR, 0); bar.rotation.x = -0.35; bar.add(__bake(GP.bar)); tur.add(bar); g.add(tur); g.add(__bake([...T14.torp(-T14.TZ), ...T14.torp(T14.TZ)])); g.traverse((o) => o.updateMatrix()); return g;",
+  "make": "const g = new THREE.Group(); g.add(__bake(MODELS.get('jp-t14', 0, undefined, true))); const GP = T14.gunParts(), tur = new THREE.Group(), bar = new THREE.Group(); tur.position.set(T14.GX0, T14.gTop(), 0); tur.rotation.y = Math.PI / 2 + 1.0; tur.add(__bake(GP.tur)); bar.position.set(0, T14.GBAR, 0); bar.rotation.x = -0.6; bar.add(__bake(GP.bar)); tur.add(bar); g.add(tur); g.add(__bake(T14.torp(-T14.TZ))); g.traverse((o) => o.updateMatrix()); return g;",
   "type": "Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45: the patrol model (MODELS 'jp-t14' with live = true)",
   "measure": {
    "Length": "__partsSize(MODELS.get('jp-t14', 0, false, true), [0x4e5457, 0x6e2f27, 0x5c5e57])[0]",
@@ -1512,27 +1501,27 @@
   ],
   "labels": [
    [
-    "25 mm (trains, elevates)",
+    "25 mm trained 57 deg to port, 34 deg up",
     -5.55,
-    2.6,
+    3.0,
     0
    ],
    [
-    "torpedoes (drop)",
+    "port torpedo (starboard one dropped)",
     -2.5,
     1.4,
-    1.2
+    -1.2
    ]
   ],
   "notes": [
-   "The hull is MODELS 'jp-t14' built live (without the torpedoes and the 25 mm's moving parts); T14.gunParts() gives the turret (carriage, trunnion arms, hand-wheels) and the barrel group (receiver, barrel, flash hider, magazine, shoulder rest) in the ground-fire frame (+z along the barrel); T14.torp(z) gives a torpedo in its cradle.",
-   "In the game the gun is an AA.gun entry (Ground Fire option) and the two torpedoes are one mesh whose shape is swapped as they go over the side (both, the port one, none).",
-   "Sizes as jp-t14; assembled, she matches the jp-t14 sheet."
+   "Drawn as in an attack: the 25 mm (an AA.gun entry under the Ground Fire option) trained 57 degrees to port and elevated 34 degrees on its pedestal; the starboard torpedo already over the side (the first to go), the port one still in its cradle.",
+   "The hull is MODELS 'jp-t14' built live (without the torpedoes and the 25 mm's moving parts); T14.gunParts() gives the turret (carriage, trunnion arms, hand-wheels) and the barrel group (receiver, barrel, flash hider, magazine, shoulder rest), turned in the game about the pedestal and the trunnions; T14.torp(z) gives a torpedo in its cradle (in the game the two are one mesh whose shape is swapped as they go: both, the port one, none).",
+   "At rest the gun is stowed trained forward, as on the jp-t14 sheet."
   ]
  },
  {
   "id": "pce842",
-  "file": "PCE-842_patrol_craft_escort",
+  "file": "PCE-842",
   "title": "USS PCE-842, patrol craft escort (the player's ship)",
   "fwd": "+x",
   "kind": "ship",
@@ -1542,18 +1531,23 @@
   "ref": [
    [
     "Length",
-    56.2,
-    "184 ft 6 in (56.24 m) overall, DANFS / NavSource"
+    56.24,
+    "184 ft 6 in overall (published; PCE-874/875 plans, plate 4)"
    ],
    [
-    "Beam",
-    10.1,
-    "33 ft 1 in (10.08 m)"
+    "Beam of the hull",
+    10.08,
+    "33 ft 1 in at the deck edge (the drawn width also takes in the life rafts and gun tubs, 12.1 m)"
+   ],
+   [
+    "Draught to the baseline",
+    2.54,
+    "8 ft 4 in design waterline above the baseline (plate 4); the model's 2.79 m below the still water is to the bottom of her propellers, which reach below the keel"
    ]
   ],
   "notes": [
    "The player's ship in the PCE-842 game (SHIPM), built by the PCE game's own hull code; drawn as she floats (still water marked).",
-   "Width 12.1 m over the life rafts and gun tubs; the hull's own beam is about 10.1 m."
+   "Her hull, structures and weapons were checked frame by frame against the PCE-874/875 Booklet of General Plans: see docs/PCE-842_plans_check.md (length, waterline length, beam, draught and every major item's frame match within about 0.5 m)."
   ]
  }
 ]

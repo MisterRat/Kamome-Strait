@@ -21,8 +21,7 @@ L = ['# Blueprints of the Kamome Strait models', '',
      'Orthographic drawings of every real-world model in the game (profile, plan and front at one scale) and a measurement check against',
      'the references. Drawn by `tools/blueprint.py` from the built game; the catalogue of models, with the reference figures and their',
      'sources, is `tools/blueprints.json`. Redraw after a model changes: `python3 tools/blueprint.py <id>`, then `python3 tools/blueprint_index.py`.', '',
-     'The PCE-842 has her own, more detailed drawings and frame-by-frame check against the PCE-874 plans: `PCE-842_blueprint_profile.png`,',
-     '`PCE-842_blueprint_plan.png`, `PCE-842_measurements.md`.', '',
+     'The PCE-842\'s frame-by-frame check against the PCE-874 plans is in `docs/PCE-842_plans_check.md`.', '',
      '| Model | Represents | Length x width x height (m) | Check | Files |', '|---|---|---|---|---|']
 for e, dims, worst in rows:
     d = ' x '.join(dims) if dims else '-'
