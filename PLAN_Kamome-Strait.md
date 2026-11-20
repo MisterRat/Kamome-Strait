@@ -172,7 +172,7 @@ Notes from step 2:
 - Update the copy in `C:\Code\Arcade` whenever a file is delivered.
 - Push to GitHub only when the user says "push"; never force-push. If a push is rejected, run `git pull --rebase origin main` first.
 - Scenery building and dropping must never be noticeable in play.
-- Testing: test only the section a change touches (targeted checks, page errors `[]`, the relevant calibration script if gunnery or raids changed). Run the full smoke tests about once a week, not per change. A build that is byte-identical to its target needs no game testing at all; the byte compare is the test.
+- Testing: test only the section a change touches (targeted checks, page errors `[]`, the relevant calibration script if gunnery or raids changed). Full smoke tests are on hold (user, 2026-11-20: they take too long; quick tests are encouraged): use quick targeted checks (a page load with no errors, the one check that covers the change, a screenshot, the grounding checker), and run the full suites only when the user asks. A build that is byte-identical to its target needs no game testing at all; the byte compare is the test.
 - When debugging or walking through setup, give one instruction per message and wait for the result.
 - Companion files use the `P-51_Mustang_FS_` prefix (P-51) or the matching prefix for each game.
 - Commit messages end with the Claude co-author and session lines.
