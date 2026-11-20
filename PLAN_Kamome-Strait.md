@@ -93,7 +93,7 @@ Today every change is made inside one huge HTML file per game, so each fix has t
 - Pieces are named after their first comment line. Edit pieces, never `build/`.
 
 
-- Folder: `C:\Code\Arcade\Kamome-Strait`
+- Folder: `C:\Code\Kamome-Strait` (moved from `C:\Code\Arcade\Kamome-Strait` 2026-11-19)
 - Repo: `MisterRat/Kamome-Strait` (created 2026-11-17; private until Kamome Strait is out of alpha (the user's call); `build/` is git-ignored until Kamome Strait has a playable build of its own)
 - Layout: `src/shared/`, `src/p51/`, `src/pce/`, `build.js`, `PLAN_Kamome-Strait.md`, `README.md`, tests, and the built HTML files.
 - The existing P-51 and PCE-842 folders and repos stay as they are until the merge is ready. The rebuilt `P-51_Mustang_FS.html` and `PCE-842.html` live only in Kamome-Strait until the user signs off; then they are copied over to their own folders and repos.
