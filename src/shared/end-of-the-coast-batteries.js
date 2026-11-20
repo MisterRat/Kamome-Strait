@@ -682,7 +682,7 @@ const SITES = [],
         wl = -e.k0 - e.s1 / 2;
       e.m.add(shipWakeMesh(15 / 78, wl + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
-      /* the 25 mm on its pedestal, trained aft until it has a target */
+      /* the 25 mm on its pedestal, stowed trained forward until it has a target */
       const tur = new THREE.Group(),
         bar = new THREE.Group();
       tur.position.set(T14.GX0, T14.gTop() + wl, 0);
@@ -691,7 +691,7 @@ const SITES = [],
       bar.add(new THREE.Mesh(GB, MAT()));
       tur.add(bar);
       e.m.add(tur);
-      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: F.ryS - Math.PI / 2, pit: 0.18, acq: 0, mag: 15, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(T14.GX0, T14.gTop() + T14.GBAR + wl, 0) };
+      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: F.ryS + Math.PI / 2 /* stowed trained forward */, pit: 0.18, acq: 0, mag: 15, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(T14.GX0, T14.gTop() + T14.GBAR + wl, 0) };
       AA.gun.push(g);
       /* the two torpedoes in their cradles: one mesh, its shape swapped as they go over the side (one draw call) */
       const fm = new THREE.Mesh(FISH[2], MAT());
