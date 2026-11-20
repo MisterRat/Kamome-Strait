@@ -1,6 +1,6 @@
 # Type T-14 motor torpedo boat (Gyoraitei): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 15.67 m long, 3.67 m wide, 5.43 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 15.67 m long, 3.67 m wide, 5.43 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45
 
@@ -23,5 +23,6 @@ Results: match within 3%, close within 8%, **check** beyond that. The box takes 
 - Pilothouse forward of amidships with a raked three-pane windscreen; the open cockpit abaft it under a canvas hood, with the wheel; a signal mast with yard and masthead lamp on the pilothouse roof.
 - Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner.
 - 5.60: the 25 mm is stowed trained forward along the centreline (trained aft its barrel crossed the ensign staff); the gunner stands behind the breech between the depth-charge rails. The gun is built from the same turret and barrel parts the patrol model turns (T14.gunParts).
+- In the game (the patrol boats, live): the 25 mm trains and elevates on its pedestal and trunnions (an AA.gun entry under the Ground Fire option), and the two torpedoes are one mesh whose shape is swapped as they go: both, the port one (the starboard drops first), none. The hull is the same; only the gun and torpedoes are separate moving parts (T14.gunParts, T14.torp).
 
 Blueprint: `Japanese_T-14_torpedo_boat_blueprint.png`.

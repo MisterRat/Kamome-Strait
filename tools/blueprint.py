@@ -159,13 +159,16 @@ def sheet(e, r):
         yw = to_py(wl)
         d.line([(px - 20, yw), (px + pr.width + 20, yw)], fill=BLUE, width=max(2, int(2 * K)))
         d.text((px, yw + 4 * K), 'still water (where the game floats her)', font=font(16), fill=BLUE)
-    for lab in e.get('labels', []):
-        t, x, y, z = lab
+    # labels: left to right, each in the lowest row where its box clears the one before it (the same every run)
+    f = font(17)
+    rows = []
+    for t, x, y, z in sorted(e.get('labels', []), key=lambda l: to_px(l[1])):
         X, Y = to_px(x), to_py(y)
-        ty = py + 14 + (hash(t) % 3) * 26
-        d.line([(X, ty + 22), (X, Y)], fill=RED, width=1)
-        f = font(17)
         tw = d.textlength(t, font=f)
+        k = next((i for i, r in enumerate(rows) if r < X - tw / 2 - 12), len(rows))
+        rows[k:k + 1] = [X + tw / 2 + 4]
+        ty = py + 14 + k * 26
+        d.line([(X, ty + 22), (X, Y)], fill=RED, width=1)
         d.rectangle([X - tw / 2 - 4, ty, X + tw / 2 + 4, ty + 22], fill=(255, 245, 245), outline=RED)
         d.text((X - tw / 2, ty + 1), t, font=f, fill=RED)
     yb = py + pr.height + 30 * K

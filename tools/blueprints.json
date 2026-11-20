@@ -762,7 +762,7 @@
   "title": "US fuel bowser (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
-  "type": "GMC CCKW 2\u00bd-ton 6x6 chassis, fuel truck",
+  "type": "GMC CCKW 2½-ton 6x6 chassis, fuel truck",
   "ref": [
    [
     "Length",
@@ -786,7 +786,7 @@
   "title": "US cargo truck (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.cargoTruck());",
-  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck",
+  "type": "GMC CCKW 353 2½-ton 6x6 cargo truck",
   "ref": [
    [
     "Length",
@@ -1236,7 +1236,8 @@
    "Wooden hard-chine planing hull with V frames, lofted from 26 stations: dark grey (variant 0) or mottled green (variant 1), red anti-fouling below the chine, a rubbing strake along the sheer.",
    "Pilothouse forward of amidships with a raked three-pane windscreen; the open cockpit abaft it under a canvas hood, with the wheel; a signal mast with yard and masthead lamp on the pilothouse roof.",
    "Two 45 cm Type 91 torpedoes on side-drop cradles along the deck edges, a Type 96 25 mm single on the after deck, four Type 95 depth charges on stern rails, the ensign at the transom. Crew shown: helmsman and gunner.",
-   "5.60: the 25 mm is stowed trained forward along the centreline (trained aft its barrel crossed the ensign staff); the gunner stands behind the breech between the depth-charge rails. The gun is built from the same turret and barrel parts the patrol model turns (T14.gunParts)."
+   "5.60: the 25 mm is stowed trained forward along the centreline (trained aft its barrel crossed the ensign staff); the gunner stands behind the breech between the depth-charge rails. The gun is built from the same turret and barrel parts the patrol model turns (T14.gunParts).",
+   "In the game (the patrol boats, live): the 25 mm trains and elevates on its pedestal and trunnions (an AA.gun entry under the Ground Fire option), and the two torpedoes are one mesh whose shape is swapped as they go: both, the port one (the starboard drops first), none. The hull is the same; only the gun and torpedoes are separate moving parts (T14.gunParts, T14.torp)."
   ]
  },
  {
@@ -1471,52 +1472,6 @@
    "Drawn mid-stride (a quarter of the way through the cycle: the leading leg forward, the trailing knee bent, arms swung against the legs).",
    "The same torso and head as MODELS 'crew'; thighs, shins and boots, upper arms and forearms are separate meshes hung from their joints (eleven small meshes).",
    "step(dist, speed) poses him from the metres actually walked, so the feet do not skate: legs about 26 degrees either way at a walk, the knee bending as the leg comes through, the boots kept near level with a toe-off behind, the body rising over each step; standing, he eases to attention."
-  ]
- },
- {
-  "id": "jp-t14-live",
-  "file": "Japanese_T-14_torpedo_boat_live",
-  "title": "Type T-14 motor torpedo boat in action (25 mm trained and elevated, one torpedo dropped)",
-  "fwd": "+x",
-  "kind": "ship",
-  "wl": "0",
-  "game": "pce",
-  "make": "const g = new THREE.Group(); g.add(__bake(MODELS.get('jp-t14', 0, undefined, true))); const GP = T14.gunParts(), tur = new THREE.Group(), bar = new THREE.Group(); tur.position.set(T14.GX0, T14.gTop(), 0); tur.rotation.y = Math.PI / 2 + 1.0; tur.add(__bake(GP.tur)); bar.position.set(0, T14.GBAR, 0); bar.rotation.x = -0.6; bar.add(__bake(GP.bar)); tur.add(bar); g.add(tur); g.add(__bake(T14.torp(-T14.TZ))); g.traverse((o) => o.updateMatrix()); return g;",
-  "type": "Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45: the patrol model (MODELS 'jp-t14' with live = true)",
-  "measure": {
-   "Length": "__partsSize(MODELS.get('jp-t14', 0, false, true), [0x4e5457, 0x6e2f27, 0x5c5e57])[0]",
-   "Beam": "__partsSize(MODELS.get('jp-t14', 0, false, true), [0x4e5457, 0x6e2f27, 0x5c5e57])[2]"
-  },
-  "ref": [
-   [
-    "Length",
-    15.0,
-    "15.0 m (as jp-t14)"
-   ],
-   [
-    "Beam",
-    3.6,
-    "3.60 m (as jp-t14)"
-   ]
-  ],
-  "labels": [
-   [
-    "25 mm trained 57 deg to port, 34 deg up",
-    -5.55,
-    3.0,
-    0
-   ],
-   [
-    "port torpedo (starboard one dropped)",
-    -2.5,
-    1.4,
-    -1.2
-   ]
-  ],
-  "notes": [
-   "Drawn as in an attack: the 25 mm (an AA.gun entry under the Ground Fire option) trained 57 degrees to port and elevated 34 degrees on its pedestal; the starboard torpedo already over the side (the first to go), the port one still in its cradle.",
-   "The hull is MODELS 'jp-t14' built live (without the torpedoes and the 25 mm's moving parts); T14.gunParts() gives the turret (carriage, trunnion arms, hand-wheels) and the barrel group (receiver, barrel, flash hider, magazine, shoulder rest), turned in the game about the pedestal and the trunnions; T14.torp(z) gives a torpedo in its cradle (in the game the two are one mesh whose shape is swapped as they go: both, the port one, none).",
-   "At rest the gun is stowed trained forward, as on the jp-t14 sheet."
   ]
  },
  {
