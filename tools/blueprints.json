@@ -1504,5 +1504,62 @@
    "The player's ship in the PCE-842 game (SHIPM), built by the PCE game's own hull code; drawn as she floats (still water marked).",
    "Her hull, structures and weapons were checked frame by frame against the PCE-874/875 Booklet of General Plans: see docs/PCE-842_plans_check.md (length, waterline length, beam, draught and every major item's frame match within about 0.5 m)."
   ]
+ },
+ {
+  "id": "us-fuel-tank",
+  "file": "US_fuel_tank",
+  "title": "1,000-barrel bolted steel fuel tank (US PT-boat base)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-fuel-tank'));",
+  "type": "1,000-barrel bolted steel tank (API 12B), the Seabees' gasoline tank",
+  "ref": [
+   [
+    "Diameter",
+    6.57,
+    "21 ft 6 1/2 in inside diameter, API 12B bolted tank table (usgr.com)"
+   ],
+   [
+    "Shell height",
+    4.9,
+    "16 ft 1 in, two rings of staves, API 12B bolted tank table (usgr.com)"
+   ],
+   [
+    "Capacity",
+    null,
+    "1,000 bbl (42,000 US gal); 'one-thousand-barrel tanks are used for gasoline storage' (Navy Steelworker manual, tpub.com)"
+   ]
+  ],
+  "notes": [
+   "Shell with three bolted seam bands, a low cone roof with its manhole, an access ladder; on a tamped earth grade about a foot wider than the tank.",
+   "Four stand in the PT-boat base's tank farm, piped along the yard and the fuel jetty.",
+   "Shell height is measured from the top of the grade (0.3 m)."
+  ],
+  "measure": {
+   "Diameter": "__partsSize(MODELS.get('us-fuel-tank'),[0xb8bcb4])[0]",
+   "Shell height": "__partsSize(MODELS.get('us-fuel-tank'),[0xb8bcb4])[1] - 0.3"
+  }
+ },
+ {
+  "id": "naval-pier",
+  "file": "Timber_pier",
+  "title": "Timber pier on piles (naval bases)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('naval-pier', 60, 6, null, -2, true));",
+  "type": "timber finger pier on piles, advance-base practice",
+  "ref": [
+   [
+    "Width",
+    6,
+    "game spec: PT-boat finger piers 6 m, the PCE's berth 8 m, the fuel jetty 4 m"
+   ]
+  ],
+  "notes": [
+   "Drawn 60 m long with 6 m piles (in the game each pile is driven into the seabed under it, so lengths vary).",
+   "Plank deck on two rows of piles every 6 m, edge beams, bollards on every second pair, a timber crib abutment under the first 8 m where it meets the shore.",
+   "In the game the deck is a planked texture laid on the frame; here it is drawn as a plain deck."
+  ],
+  "measure": {
+   "Width": "__partsSize(MODELS.get('naval-pier', 60, 6, null, -2, true),[0x8a6e4a])[2]"
+  }
  }
 ]

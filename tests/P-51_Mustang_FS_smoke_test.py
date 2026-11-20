@@ -737,7 +737,22 @@ with sync_playwright() as p:
       o.lanes=SITE.civ.every(c=>{for(let i=0;i<c.pts.length-1;i++){const a=c.pts[i],b=c.pts[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);for(let d=0;d<=L;d+=100){const t=d/L;if(HR(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t)>-8)return false}}return true});
       return o}""")
     check("far sites: 2 harbours, 2 enemy airbases and 2 enemy convoy bases on dead-level pads, nothing of the rural world on them", fsx["kinds"] == "port,port,air,air,conv,conv" and fsx["level"] and fsx["clear"] == 0, str(fsx))
-    check("far sites: each enemy site has two guns and two lights (free flight only), a patrol ship with four mounts, and two civilian ships sail a lane of open deep water", fsx["guns"] == 8 and fsx["lamps"] == 8 and fsx["pat"] == 4 and fsx["shipGuns"] >= 16 and fsx["civ"] == 2 and fsx["lanes"], str(fsx))
+    check("far sites: each enemy site has two guns and two lights (free flight only), a patrol ship with four mounts, and two civilian ships sail a lane of open deep water", fsx["guns"] == 8 and fsx["lamps"] == 8 and fsx["pat"] == 5 and fsx["shipGuns"] >= 16 and fsx["civ"] == 2 and fsx["lanes"], str(fsx))
+    # ---- the naval bases (2026-11-20): the IJN base and the US PT-boat base on their own pads, ships at their piers, the PCE on patrol off the US base
+    nvx = pg.evaluate("""()=>{const [J,U]=FS.nav,o={};
+      o.sites=FS.nav.map(f=>f.navy).join(',');
+      /* each yard is level at 2.5 m above the water, and the sea is open water 150 m off it */
+      o.level=FS.nav.every(f=>[[-60,-60],[0,-20],[60,-100]].every(([u,d])=>{const [x,z]=f.w(u,d);return Math.abs(SURF(x,z)-(f.ph+0.12))<0.3})&&(()=>{const [x,z]=f.w(0,150);return H(x,z)<=SEA.PAINT+0.01})());
+      o.jpGuns=AA.gun.filter(g=>g.site&&!g.ship&&Math.hypot(g.x-J.O.x,g.z-J.O.z)<400).length;
+      o.jpLamps=AA.lamp.filter(l=>l.site&&Math.hypot(l.x-J.O.x,l.z-J.O.z)<400).length;
+      o.jpPatrol=!!SITE.far.find(s=>s.F===J&&s.pat);
+      const near=(F,r)=>SITE.anch.filter(a=>Math.hypot(a.m.position.x-F.O.x,a.m.position.z-F.O.z)<r);
+      o.jpMoored=near(J,250).length;o.usMoored=near(U,250).length;
+      /* moored craft float: each at the sea, over water */
+      o.afloat=[...near(J,250),...near(U,250)].every(a=>Math.abs(a.m.position.y-a.y0)<1.5&&H(a.m.position.x,a.m.position.z)<=SEA.PAINT+0.01);
+      const pce=AFLD.a.find(s=>s.kind==='ship'&&s.L>50&&Math.hypot(s.pts[0][0]-U.O.x,s.pts[0][1]-U.O.z)<4500);
+      o.pceOff=!!pce;return o}""")
+    check("naval bases: IJN base (3 guns, a searchlight, a patrol, 4 craft moored) and US PT-boat base (3 PT boats moored), both on level yards at the water; the PCE-842 patrols off the US base", nvx["sites"] == "jp,us" and nvx["level"] and nvx["jpGuns"] == 3 and nvx["jpLamps"] == 1 and nvx["jpPatrol"] and nvx["jpMoored"] == 4 and nvx["usMoored"] == 3 and nvx["afloat"] and nvx["pceOff"], str(nvx))
     # ---- the routes: dirt roads from each colonial port to its villages, paved roads between enemy bases, bridges only over small gaps
     rtx = pg.evaluate("""()=>{
       const L=WORLD.RT.list(),o={};

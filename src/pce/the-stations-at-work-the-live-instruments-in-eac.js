@@ -59,6 +59,6 @@ function stnInit() {
     STN.ood = new THREE.Mesh(a.geometry(), PCEM.material);
     SHIPM.mesh.add(STN.ood);
   }
-  RADIO.add('CTU 75.4', 'PCE 842 TAKE PATROL STATION ABLE OFF HOME FIELD. REPORT ALL CONTACTS.');
+  RADIO.add('CTU 75.4', 'PCE 842 TAKE PATROL STATION ABLE OFF THE PT BASE. REPORT ALL CONTACTS.');
   for (const id in STN.F) stnDraw(STN.F[id]);
 }

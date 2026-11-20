@@ -68,6 +68,39 @@
   }, { L: 48.77, W: 39.62, H: 11.89, name: 'Butler combat hangar' });
   /* Quonset hut. 'std' Stran-Steel 20 x 48 ft: 6.10 x 14.63 m, 3.15 m high, 13 ribs at 1.22 m; 'elephant' 40 x 100 ft: 12.19 x 30.48 x 6.10 m,
      26 ribs, sliding end doors. Olive drab corrugated steel on a concrete slab; end walls with a double door, two windows and a vent. */
+  /* a 1,000-barrel bolted steel tank, the Seabees' gasoline tank (API 12B: 21 ft 6 1/2 in inside diameter, shell 16 ft 1 in, two rings of
+     staves): the shell with its bolted seam bands, a low cone roof with its manhole, the ladder, on a tamped earth grade a foot wider */
+  MODELS.add('us-fuel-tank', () => {
+    const r = 3.29,
+      h = 4.9,
+      P = [part(cyl(r + 0.15, r + 0.3, 0.3, 20), 0x9a9480, 0, 0.15, 0) /* the grade */, part(cyl(r, r, h, 20), 0xb8bcb4, 0, 0.3 + h / 2, 0)];
+    for (const y of [0.32, 0.3 + h / 2, 0.3 + h - 0.05]) P.push(part(cyl(r + 0.04, r + 0.04, 0.12, 20), 0x9ea29a, 0, y, 0)) /* the bolted seams */;
+    P.push(part(cyl(0.3, r + 0.05, 0.45, 20), 0xa9ada5, 0, 0.3 + h + 0.22, 0), part(cyl(0.35, 0.35, 0.2, 8), 0x7a7e78, 0, 0.3 + h + 0.5, 0)) /* the roof and its manhole */;
+    for (const s of [-0.25, 0.25]) P.push(part(bx(0.05, h + 0.3, 0.05), 0x55585c, r + 0.12, 0.3 + (h + 0.3) / 2, s)) /* the ladder's stiles */;
+    for (let k = 1; k <= 16; k++) P.push(part(bx(0.04, 0.04, 0.5), 0x55585c, r + 0.12, 0.3 + k * 0.3, 0));
+    return P;
+  });
+  /* a timber pier on piles (advance-base practice): L long along +x from its root at x = 0, w wide, the deck top at y = 0. Two rows of
+     piles every 6 m, edge beams, bollards on every second pair, and a timber crib abutment under the first 8 m. pileLo(x, side) gives each
+     pile's foot (y, below the deck; the game drives them into the seabed); the default is 6 m down. deck: the planks as a box (the
+     game lays a textured deck instead) */
+  MODELS.add('naval-pier', (L, w, pileLo, abutLo, deck) => {
+    const P = [],
+      n = Math.max(1, Math.round(L / 6)),
+      lo = pileLo || (() => -6);
+    for (let k = 0; k <= n; k++)
+      for (const s of [-1, 1]) {
+        const x = (L * k) / n,
+          yb = Math.min(-1, lo(x, s));
+        P.push(part(cyl(0.22, 0.25, -yb, 6), 0x4a3a2a, x, yb / 2, s * (w / 2 - 0.3)));
+        if (k % 2 === 0 && k > 0) P.push(part(cyl(0.18, 0.22, 0.7, 6), 0x2a2a28, x, 0.35, s * (w / 2 - 0.5)));
+      }
+    for (const s of [-1, 1]) P.push(part(bx(L, 0.4, 0.35), 0x5a4630, L / 2, -0.2, s * (w / 2 - 0.2)));
+    const ab = Math.min(-1.2, abutLo == null ? -1.2 : abutLo);
+    P.push(part(bx(8, -0.05 - ab, w), 0x5e4a34, 4, (-0.05 + ab) / 2, 0));
+    if (deck) P.push(part(bx(L, 0.1, w), 0x8a6e4a, L / 2, -0.05, 0));
+    return P;
+  });
   MODELS.add('us-quonset', (kind) => {
     const E = kind === 'elephant',
       W = E ? 12.19 : 6.1,

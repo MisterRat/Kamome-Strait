@@ -134,8 +134,8 @@ with sync_playwright() as p:
     check("the ocean surface is in the scene", pg.evaluate("()=>!!OCEAN.mesh.parent&&OCEAN.mesh.material.transparent"))
     mv = pg.evaluate("()=>{const x=SHIPM.pts[0][0],z=SHIPM.pts[0][1];let a=OCEAN.h(x,z,10),mx=0;for(let t=10;t<20;t+=0.5)mx=Math.max(mx,Math.abs(OCEAN.h(x,z,t)-a));return mx}")
     check("the waves move in deep water", mv > 0.2, f"{mv:.2f} m of change in 10 s")
-    # the waves run in over the shallows (crests only, no troughs below the painted floor) and die away at the water's edge (under 0.4 m)
-    sh = pg.evaluate("()=>{let edge=-1,tr=0;for(let r=0;r<20000;r+=2){const x=SHIPM.pts[0][0]+r,z=SHIPM.pts[0][1];const d=OCEAN.depthAt(x,z);if(d>0.05&&d<0.4&&edge<0)edge=Math.abs(OCEAN.h(x,z,3)-OCEAN.Y)+Math.abs(OCEAN.h(x,z,7)-OCEAN.Y);if(d>0.5&&d<15)for(const t of [1,3,5,7])tr=Math.min(tr,OCEAN.h(x,z,t)-OCEAN.Y);}return [edge,tr]}")
+    # the waves run in over the shallows (crests only, no troughs below the painted floor) and die away at the water's edge (under 0.4 m): the nearest shore on any of 16 bearings
+    sh = pg.evaluate("()=>{let edge=-1,tr=0;for(let k=0;k<16&&edge<0;k++)for(let r=0;r<20000;r+=2){const x=SHIPM.pts[0][0]+r*Math.cos(k*0.3927),z=SHIPM.pts[0][1]+r*Math.sin(k*0.3927);const d=OCEAN.depthAt(x,z);if(d>0.05&&d<0.4&&edge<0)edge=Math.abs(OCEAN.h(x,z,3)-OCEAN.Y)+Math.abs(OCEAN.h(x,z,7)-OCEAN.Y);if(d>0.5&&d<15)for(const t of [1,3,5,7])tr=Math.min(tr,OCEAN.h(x,z,t)-OCEAN.Y);}return [edge,tr]}")
     check("the waves die away at the water's edge, and over the shallows they only crest (no trough below the painted floor)", 0 <= sh[0] < 1e-6 and sh[1] >= -1e-6, f"{sh}")
     rd = pg.evaluate("""()=>{reset();let mh=0,mp=0,mr=0;for(let i=0;i<60*30;i++){OCEAN.U.uTime.value=100+i/60;shipStep(1/60);shipPose(1/60);mh=Math.max(mh,Math.abs(SHIPW.hv));mp=Math.max(mp,Math.abs(SHIPW.pi));mr=Math.max(mr,Math.abs(SHIPW.ro));}return [mh,mp*57.3,mr*57.3]}""")
     check("the ship rides the waves (heave, pitch, roll)", 0.05 < rd[0] < 1.5 and 0.1 < rd[1] < 6 and 0.2 < rd[2] < 15, f"heave {rd[0]:.2f} m, pitch {rd[1]:.1f} deg, roll {rd[2]:.1f} deg")
@@ -162,7 +162,7 @@ with sync_playwright() as p:
     check("the player replaces the gun's pointer (his crewman hidden, the others' shown)", pg.evaluate("()=>!gunOf('3in').m.pm.visible&&gunOf('20').m.pm.visible&&gunOf('40').m.pm.visible"))
     sc = pg.evaluate("()=>({fov:cam.fov,ov:$$('gunOv').style.display})")
     check("3\"/50: through the pointer's telescope", abs(sc["fov"] - 10) < 0.01 and sc["ov"] == "block", str(sc))
-    shot(path=str(SHOTS / "PCE-842_gun_3in.png"))
+    if os.environ.get("ALL_SHOTS"): shot(path=str(SHOTS / "PCE-842_gun_3in.png"))  # each sight picture costs ~500 MB under software rendering
     pg.keyboard.press("KeyX"); pg.wait_for_timeout(300)
     check("X looks up from the sight", pg.evaluate("()=>GUN.look&&cam.fov===65&&$$('gunOv').style.display==='none'"))
     pg.keyboard.press("KeyX"); pg.wait_for_timeout(200)
@@ -209,6 +209,7 @@ with sync_playwright() as p:
     al = pg.evaluate("()=>{const g=GUN.cur;g.ft=0;g.al=[8,8];keys.Space=true;for(let i=0;i<4;i++)gunUpdate(0.23);keys.Space=false;return g.al}")
     check("twin 40 mm: the barrels fire in turn from their autoloaders", al[0] < 8 and al[1] < 8 and abs(al[0] - al[1]) <= 1, str(al))
     if os.environ.get("ALL_SHOTS"): shot(path=str(SHOTS / "PCE-842_gun_40mm.png"))  # each sight picture costs ~500 MB under software rendering
+    fresh()  # the gun sights' renderer memory (software rendering): the targets on a new page
     pg.keyboard.press("KeyT"); pg.wait_for_timeout(300)
     pt = pg.evaluate("()=>PT.on&&PT.L.filter(t=>t.kind==='raft').length===5&&PT.L.filter(t=>t.kind==='sleeve').length===2")
     hit = pg.evaluate("()=>{const t=PT.L.find(x=>x.kind==='sleeve');const n=PT.hits.sleeve;ptHit(t.p.clone().add(new THREE.Vector3(-4,0,0)),t.p.clone().add(new THREE.Vector3(4,0,0)),GSPEC['40']);return PT.hits.sleeve===n+1}")
@@ -223,6 +224,7 @@ with sync_playwright() as p:
         rc.set(p,q.sub(p).normalize());return rc.intersectObject(m).length>0})}""")
     check("the transom is closed (rays from astern just under the deck edge hit it)", all(tr), str(tr))
     check("sleeve kill zones: 40 mm 0.23 m off misses in Hardcore, kills in game mode; 20 mm needs two hits; the sleeve is re-streamed", kz == [False, True, True, True], str(kz))
+    pg.keyboard.press("Digit5"); pg.wait_for_timeout(400)  # back on a gun (the targets were checked on a fresh page, at the bridge)
     wv = pg.evaluate("()=>{$$('wvMode').value='guns';$$('wvMode').onchange();for(let i=0;i<200;i++)shipPose(0.05);const a=SHIPW.k;$$('wvMode').value='on';$$('wvMode').onchange();return a}")
     check("Wave motion 'off at the guns' holds her level while on a gun", wv < 0.01, f"k={wv:.3f}")
     hc = pg.evaluate("()=>{{const c=$$('hcOn');c.checked=true;c.onchange({target:c});}const t0=SHIP.tel;keys.KeyW=true;shipStep(0.5);keys.KeyW=false;const a=SHIP.tel===t0;$$('wvMode').value='off';$$('wvMode').onchange();for(let i=0;i<100;i++)shipPose(0.05);const b=SHIPW.k>0.99;$$('wvMode').value='on';$$('wvMode').onchange();{const c=$$('hcOn');c.checked=false;c.onchange({target:c});}keys.KeyW=true;shipStep(0.5);keys.KeyW=false;return [a,b,SHIP.tel>t0]}")

@@ -111,7 +111,7 @@ const AFLD = {
     }
   },
   /* a ship on a straight run of open water, found by searching rings around the airfield (deterministic) */
-  addShip(P, L, r0, r1, sp, seed, yo, wy) {
+  addShip(P, L, r0, r1, sp, seed, yo, wy, c) {
     let k = seed * 7919 + 13;
     const rnd = () => ((k = (k * 16807) % 2147483647) / 2147483647),
       deep = (x, z) => HR(x, z) < -12;
@@ -119,8 +119,8 @@ const AFLD = {
       const a = rnd() * 6.2832,
         r = r0 + rnd() * (r1 - r0),
         d = rnd() * 3.1416,
-        cx = Math.cos(a) * r,
-        cz = 300 + Math.sin(a) * r,
+        cx = (c ? c[0] : 0) + Math.cos(a) * r,
+        cz = (c ? c[1] : 300) + Math.sin(a) * r /* round the airfield, or round a given centre (c: [x, z]) */,
         len = 1600 + rnd() * 1400,
         ux = Math.cos(d),
         uz = Math.sin(d);

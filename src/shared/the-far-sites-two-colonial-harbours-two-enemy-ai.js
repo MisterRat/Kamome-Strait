@@ -28,6 +28,13 @@ const FS = (() => {
     mk('cv1', 'conv', 1472, 26239, 3.534, -300),
     mk('cv2', 'conv', -19632, -19023, 6.087, -300),
   ];
+  /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
+     PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
+     are cut into WH (far) and HR (home) like the colonial ports'. */
+  const nav = [mk('navjp', 'naval', 2025, 19175, -Math.PI / 2), mk('navus', 'naval', 1675, 10925, Math.PI / 2)] /* O on the waterline (the sea is at -8) */;
+  /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */
+  Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
+  Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   const ssl = (a, b, x) => {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);
@@ -39,11 +46,20 @@ const FS = (() => {
       const t = Math.max(Math.max(0, Math.abs(u) - 200) / 220, Math.max(0, -150 - d) / 220, Math.max(0, d - 52) / 60);
       return 1 - ssl(0, 1, t);
     }
+    if (s.kind === 'naval') {
+      const t = Math.max(Math.max(0, Math.abs(u) - s.pu) / s.pb, Math.max(0, s.pi - d) / s.pb, Math.max(0, d - s.po) / s.pbo);
+      return 1 - ssl(0, 1, t);
+    }
     if (s.kind === 'air') return 1 - ssl(0, 230, Math.hypot(Math.max(0, Math.abs(u) - 780), Math.max(0, -1110 - d, d + 520)));
     return 1 - ssl(0, 120, Math.hypot(Math.max(0, Math.abs(u) - 200), Math.max(0, Math.abs(d) - 150)));
   };
   /* inside the pad (plus a margin m), where nothing of the rural world may be built */
   const near = (x, z, m) => {
+    for (const s of nav) {
+      if (Math.abs(x - s.O.x) > s.R + 700 || Math.abs(z - s.O.z) > s.R + 700) continue;
+      const [u, d] = s.uv(x, z);
+      if (Math.abs(u) < s.pu + 40 + m && d > s.pi - 40 - m && d < 260 + m) return true; /* the yard, and the piers out to sea */
+    }
     for (const s of list) {
       if (Math.abs(x - s.O.x) > s.R + 700 || Math.abs(z - s.O.z) > s.R + 700) continue;
       const [u, d] = s.uv(x, z);
@@ -51,7 +67,7 @@ const FS = (() => {
     }
     return false;
   };
-  return { list, wt, near, ssl, PORT_H: 1.4 };
+  return { list, nav, wt, near, ssl, PORT_H: 1.4 };
 })();
 function WH0(x, z) {
   const ed = Math.max(Math.abs(x), Math.abs(z));
@@ -106,6 +122,11 @@ function WH(x, z) {
     const w = FS.wt(s, x, z);
     if (w > 0) h += (s.H - h) * w;
   }
+  for (const s of FS.nav) {
+    if (Math.abs(x - s.O.x) > s.R + 900 || Math.abs(z - s.O.z) > s.R + 900) continue;
+    const w = FS.wt(s, x, z);
+    if (w > 0) h += (s.ph - h) * w;
+  }
   return h;
 }
 function HR(x, z) {
@@ -143,6 +164,13 @@ function HR(x, z) {
   if (sp > 0) r = r * (1 - sp) + SITE.H0 * sp;
   const sq = SITE.pad2(x, z);
   if (sq > 0) r = r * (1 - sq) + SITE.H1 * sq;
+  if (Math.max(Math.abs(x), Math.abs(z)) <= 14500)
+    for (const s of FS.nav) {
+      /* a naval base on the home map: its pad cut into the home ground (beyond, WH has it already) */
+      if (Math.abs(x - s.O.x) > s.R + 900 || Math.abs(z - s.O.z) > s.R + 900) continue;
+      const w = FS.wt(s, x, z);
+      if (w > 0) r += (s.ph - r) * w;
+    }
   return r;
 }
 /* the ground as it is DRAWN: the terrain is a mesh of flat triangles on a 100 m grid, which sits up to a metre and more off the true

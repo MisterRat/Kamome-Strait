@@ -1654,6 +1654,207 @@ const SITES = [],
       mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
     }
   }
+  /* ----- THE NAVAL BASES (user's sites, 2026-11-20): the IJN base on the north tip of the long island and the US Navy PT-boat base on the
+     south shore of the big island (FS.nav). Built in each site's own frame (u along the coast, d seaward) on its levelled coral pad. ----- */
+  /* a craft moored or at anchor in frame F: rides the waves where she lies (ANCH, rideAt), the sea kept out of her (OCEAN hull) */
+  const mooredF = (F, P, u, d, yaw, len, beam) => {
+    const [m, s1, k0] = asMesh(P),
+      [x, z] = F.w(u, d);
+    m.position.set(x, SEA.WL + k0 + s1 / 2, z);
+    m.rotation.y = yaw;
+    scene.add(m);
+    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3), hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } } };
+    ANCH.push(o);
+    return o;
+  };
+  /* a timber pier on piles from d0 out to d1, w wide, centred on u: plank deck, two rows of piles every 6 m, edge beams, bollards (COLL keeps ships off it) */
+  const bedF = (F) => (Math.max(Math.abs(F.O.x), Math.abs(F.O.z)) > 13000 ? WH : HR) /* the seabed itself (H stops at the painted water) */;
+  const pierF = (F, S, u, d0, d1, w, wy) => {
+    flat(F, u - w / 2, u + w / 2, d0, d1, wy, PLANK, Math.max(1, w / 4), (d1 - d0) / 5, 3);
+    const bed = bedF(F),
+      L = d1 - d0,
+      at = (x, s) => bed(...F.w(u + s * (w / 2 - 0.3), d0 + x)) - 1.2 - wy /* each pile driven into the bed */;
+    let ab = 0;
+    for (const dd of [0, 4, 8]) for (const s of [-1, 0, 1]) ab = Math.min(ab, bed(...F.w(u + (s * w) / 2, d0 + dd)) - wy);
+    const [ox, oz] = F.w(u, d0);
+    S.acc.add(MODELS.get('naval-pier', L, w, at, ab - 0.6, false), GX.xf(ox, wy, oz, F.ryS));
+    const [cx, cz] = F.w(u, (d0 + d1) / 2);
+    COLL.add({ sea: true, fixed: true, x: cx, z: cz, yaw: F.ryS, hl: L / 2, r: w / 2, v: 0 });
+  };
+  /* a yard surface in frame F at height y, on a 10 m grid that rides up over the drawn ground wherever that stands higher (the 100 m
+     terrain triangles cross the pad's edges), so nothing on it is ever buried */
+  const flatD = (F, u0, u1, d0, d1, y, tex, tu) => {
+    const nu = Math.ceil((u1 - u0) / 10),
+      nd = Math.ceil((d1 - d0) / 10),
+      pos = [],
+      uv = [],
+      idx = [];
+    for (let j = 0; j <= nd; j++)
+      for (let i = 0; i <= nu; i++) {
+        const u = u0 + ((u1 - u0) * i) / nu,
+          d = d0 + ((d1 - d0) * j) / nd,
+          [x, z] = F.w(u, d);
+        pos.push(x, Math.max(y, H(x, z) + 0.12), z);
+        uv.push((u - u0) / tu, (d - d0) / tu);
+      }
+    for (let j = 0; j < nd; j++)
+      for (let i = 0; i < nu; i++) {
+        const a = j * (nu + 1) + i;
+        idx.push(a, a + 1, a + nu + 2, a, a + nu + 2, a + nu + 1);
+      }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    if (g.attributes.normal.getY(0) < 0) for (let k = 0; k < idx.length; k += 3) [idx[k + 1], idx[k + 2]] = [idx[k + 2], idx[k + 1]];
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex, side: 2, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    m.userData.surface = true;
+    scene.add(m);
+    return m;
+  };
+  const naval = (F) => {
+    const r = rng(F.navy === 'jp' ? 4242 : 4343),
+      S = siteAcc(F),
+      YS = F.ryS,
+      YA = F.ryA,
+      YF = F.ryA + Math.PI,
+      pad = F.ph,
+      gy = pad + 0.12;
+    const rects = [];
+    const taken = (u, d, m) => rects.some((q) => u > q[0] - m && u < q[1] + m && d > q[2] - m && d < q[3] + m);
+    const use = (u0, u1, d0, d1) => rects.push([u0, u1, d0, d1]);
+    let pat = null;
+    if (F.navy === 'jp') {
+      /* the IJN base: a coral yard, a coral-block mole with a T-head out to 5 m of water, godowns, the HQ under the Rising Sun,
+         fuel, drums, derricks at the mole's root; T-14s and small craft moored; 25 mm guns, a searchlight and the coast battery */
+      flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
+      const ML = 150,
+        MW = 8,
+        MT = 26,
+        Md0 = -2;
+      {
+        const g = new GX.Acc().add(MODELS.get('jp-mole', ML, MW, 2.2, MT, -6), null).geometry(),
+          m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })),
+          [x, z] = F.w(0, Md0);
+        m.position.set(x, SEA.WL, z);
+        m.rotation.y = YS;
+        scene.add(m);
+        const [sx, sz] = F.w(0, Md0 + (ML - 10) / 2),
+          [tx, tz] = F.w(0, Md0 + ML - 5);
+        COLL.add({ sea: true, fixed: true, x: sx, z: sz, yaw: YS, hl: (ML - 10) / 2, r: MW / 2, v: 0 });
+        COLL.add({ sea: true, fixed: true, x: tx, z: tz, yaw: YA, hl: MT / 2, r: 5, v: 0 });
+      }
+      use(-MT / 2 - 4, MT / 2 + 4, 0, 30);
+      FR = F;
+      for (const u of [-14, 14]) target(MODELS.get('jp-aframe-derrick'), 'crane', 30, 7, u, -2, YS); /* on the yard's edge at the mole's root */
+      for (let i = 0; i < 3; i++) {
+        target(MODELS.get('jp-godown', 30, 14), 'warehouse', 40, 16, -110 + i * 42, -55, YF);
+        use(-126 + i * 42, -94 + i * 42, -64, -46);
+      }
+      bld('hq', 85, -120, YA);
+      use(70, 100, -135, -105);
+      for (const u of [95, 120]) bld('fuel', u, -45, 0);
+      use(85, 130, -55, -35);
+      FR = SITE;
+      /* barracks: two long timber huts at the back of the yard */
+      for (const u of [-90, -40]) {
+        S.at(MODELS.get('jp-godown', 26, 9), u, -150, YA);
+        use(u - 14, u + 14, -156, -144);
+      }
+      S.at(MODELS.get('jp-drum-dump', 7, 4), -120, -110, YA, gy);
+      S.at(MODELS.get('jp-drum-dump', 6, 3), -75, -105, YA + 0.2, gy);
+      use(-130, -65, -118, -98);
+      for (let i = 0; i < 5; i++) S.at(stack(r), -40 + i * 16, -12 + (i % 2) * 6, YA + i, gy);
+      use(-48, 30, -16, -2);
+      S.at(FLG.pole('jn', 12, 3.0, 0, 0, 0, 0), 60, -110, YA); /* the Rising Sun over the HQ */
+      /* moored: two Type T-14s alongside the mole, a Daihatsu and a lighter at the T-head */
+      const sideU = MW / 2 + 1.9;
+      mooredF(F, MODELS.get('jp-t14'), -sideU, Md0 + 85, YS, 15, 3.6);
+      mooredF(F, MODELS.get('jp-t14'), sideU, Md0 + 110, YS + Math.PI, 15, 3.6);
+      mooredF(F, MODELS.get('jp-daihatsu'), -MT / 2 - 2.2, Md0 + ML - 4, YS + Math.PI, 14.9, 3.35);
+      mooredF(F, MODELS.get('jp-lighter'), MT / 2 + 2.6, Md0 + ML - 6, YS, 12, 4);
+      /* guns and light */
+      farGun(F, -125, -10, YS);
+      farGun(F, 125, -15, YS);
+      farGun(F, 0, -175, YS);
+      farLamp(F, 135, 8, YS);
+      use(-132, -118, -17, -3);
+      use(118, 142, -22, 15);
+      COAST.port(F, r, taken, use);
+      pat = mkPatrol(F);
+    } else {
+      /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
+         a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
+      flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
+      const wy = pad + 0.6;
+      for (const u of [-75, -25]) pierF(F, S, u, F.po - 4, 140, 6, wy) /* out past where the 100 m home mesh meets the water */;
+      pierF(F, S, 75, F.po - 4, 150, 8, wy) /* the PCE's berth (56 m alongside its outer end) */;
+      pierF(F, S, 135, F.po - 4, 55, 4, wy) /* the fuel jetty */;
+      use(-80, -20, 0, 130);
+      use(70, 140, 0, 110);
+      /* PT boats alongside the finger piers, bows out */
+      const pt = (num, u, d) => {
+        const g = PTB.build(num);
+        g.userData.spray.visible = false;
+        const [x, z] = F.w(u, d);
+        g.position.set(x, SEA.WL, z);
+        g.rotation.y = YS;
+        scene.add(g);
+        const o = { m: g, y0: SEA.WL, yaw: YS, ride: RIDE.make(0.43 * 24.4, 0.45 * 6.3, 3), hull: { o: { kind: 'rect', cut: 'deck', hl: 11.2, hw: 2.6 } } };
+        o.cb = COLL.add({ sea: true, fixed: true, hl: 12.2, r: 3.2, mg: 4, x, z, yaw: YS, v: 0 });
+        ANCH.push(o);
+      };
+      pt('107', -75 - 3 - 3.3, 95);
+      pt('108', -75 + 3 + 3.3, 122);
+      pt('110', -25 - 3 - 3.3, 108);
+      /* the fuel line along the jetty, and the tank farm behind it (four 1,000-barrel tanks) */
+      {
+        const d0 = F.po - 4,
+          P = [
+            part(cyl(0.18, 0.18, d0 + 50, 6), 0x5a5a52, (d0 - 50) / 2, gy + 0.18, 135 + 1.4, 0, 0, Z) /* on the yard, from the tank farm */,
+            part(cyl(0.18, 0.18, wy - gy, 6), 0x5a5a52, d0, (wy + gy) / 2 + 0.18, 135 + 1.4) /* up onto the jetty */,
+            part(cyl(0.18, 0.18, 52 - d0, 6), 0x5a5a52, (52 + d0) / 2, wy + 0.18, 135 + 1.4, 0, 0, Z) /* along the jetty deck to its head */,
+          ];
+        const [ox, oz] = F.w(0, 0);
+        S.acc.add(P, GX.xf(ox, 0, oz, YS));
+      }
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-fuel-tank'), 112 + i * 11, -55, YA + Math.PI / 2, gy) /* four 1,000-barrel gasoline tanks, ladders to the jetty side */;
+      use(105, 160, -65, -45);
+      /* Quonset huts: two rows (quarters, mess, stores); the boat shop is an Elephant hut */
+      for (let i = 0; i < 4; i++)
+        for (const d of [-70, -110]) {
+          const u = -130 + i * 26;
+          S.at(MODELS.get('us-quonset', 'std'), u, d, YA, gy);
+          use(u - 8, u + 8, d - 8, d + 8);
+        }
+      S.at(MODELS.get('us-quonset', 'elephant'), 10, -60, YS, gy);
+      use(-8, 28, -80, -40);
+      /* the flag, a jeep and two trucks */
+      S.at(FLG.pole('us', 12, 2.8, 0, 0, 0, 0), 40, -20, YA);
+      S.at(M.jeep(), 55, -35, YA + 0.3);
+      S.at(M.cargoTruck(), -40, -30, YA - 0.1);
+      S.at(M.fuelTruck(0x6b7350), 100, -30, YS);
+      use(30, 110, -45, -12);
+      use(-50, -30, -38, -22);
+    }
+    /* palms over the rest of the yard and round it */
+    for (let i = 0, k = 0; i < 40 && k < 400; k++) {
+      const u = (r() - 0.5) * (2 * F.pu + 80),
+        d = F.pi - 30 + r() * (F.po - F.pi + 20);
+      if (taken(u, d, 7)) continue;
+      const [x, z] = F.w(u, d);
+      if (H(x, z) < SEA.Y + 1.5) continue; /* not in the water or on the bank */
+      i++;
+      S.at(palm(8 + r() * 5, r()), u, d, r() * 6.28);
+    }
+    S.flush();
+    return pat;
+  };
+  for (const F of FS.nav) farBuild(F, () => naval(F));
   SITE.far = FARS;
   SITE.SEA = LANES; /* the sea-lane finder */
   SITE.civ = CIV;

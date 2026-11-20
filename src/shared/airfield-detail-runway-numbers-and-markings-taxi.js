@@ -342,11 +342,11 @@
   const FLEET = [
     ['pt', '105', 24.4, 1500, 3800, 14, 1],
     ['pce', '843', 56.2, 2500, 6500, 6.5, 2],
-    ['pce', '842', 56.2, 2000, 5000, 7.5, 3] /* the US Navy PCE off the home airfield */,
+    ['pce', '842', 56.2, 300, 1800, 7.5, 3, FS.nav[1].w(0, 1700)] /* the US Navy PCE: based at the PT-boat base, on patrol off it (the PCE game's player starts here) */,
     ['pt', '106', 24.4, 3000, 5500, 13, 4],
   ];
-  for (const [kind, num, L, r0, r1, sp, seed] of FLEET) {
-    if (!AFLD.addShip([], L, r0, r1, sp, seed, SEA.WL, kind === 'pt' ? 0.4 : 0.6)) continue; /* waterline at the sea plane */
+  for (const [kind, num, L, r0, r1, sp, seed, c] of FLEET) {
+    if (!AFLD.addShip([], L, r0, r1, sp, seed, SEA.WL, kind === 'pt' ? 0.4 : 0.6, c)) continue; /* waterline at the sea plane */
     const o = AFLD.a[AFLD.a.length - 1];
     if (kind === 'pce') {
       o.m.geometry.dispose();
