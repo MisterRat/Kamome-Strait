@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>PCE-842 Patrol Craft Escort</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PCE-842 Patrol Craft Escort</title>
 <meta name="apple-mobile-web-app-title" content="PCE-842">
 <script>
 /* PWA: only when served over http(s) (e.g. GitHub Pages); a plain file or the artifact viewer is unaffected */
@@ -544,6 +544,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
      - Test with P-51_Mustang_FS_smoke_test.py (boots the game offline, checks for errors, draw-call budget, every mission mode, cockpit panel).
    ===================================================================================================================== */
 
+/* $$(id): the page's elements by id, looked up once and remembered */
 const _el = {},
   $$ = (id) => _el[id] || (_el[id] = document.getElementById(id));
 /* Error handling: nothing in this file is allowed to fail silently.
@@ -551,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.82';
+const VERSION = '0.83';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -655,6 +656,7 @@ const HOOKS = {
 const SIMS = {
   list: [],
   cur: null,
+  pick: null /* a page carrying several simulators names the one to play (Kamome Strait); else the first registered */,
   DEF: {
     id: '',
     name: '',
@@ -735,10 +737,12 @@ const SIMS = {
     if (o) return Object.assign(o, r);
     const s = Object.assign({}, SIMS.DEF, { bind: [], act: {}, uiAct: {} }, r);
     SIMS.list.push(s);
-    if (!SIMS.cur) SIMS.cur = s;
+    if (!SIMS.cur || r.id === SIMS.pick) SIMS.cur = s;
     return s;
   },
   get: (id) => SIMS.list.find((x) => x.id === id),
+  /* is this simulator the one being played? (a simulator's own load steps that only make sense for the one played) */
+  on: (id) => !!SIMS.cur && SIMS.cur.id === id,
   use(id) {
     const s = SIMS.get(id);
     if (s) {
@@ -917,7 +921,7 @@ const SEA = {
 /* PCE-842: the player takes the PCE-842 from the shared allied fleet (she is placed exactly where the P-51 game patrols her, then
    handed over: no longer an AI ship), with the stations' interiors added. */
 HOOKS.claimShip.push((kind, num, o) => {
-  if (kind !== 'pce' || num !== '842' || SHIPM.mesh) return false;
+  if (kind !== 'pce' || num !== '842' || SHIPM.mesh || !SIMS.on('pce')) return false; /* not played: she stays in the fleet */
   AFLD.a.splice(AFLD.a.indexOf(o), 1);
   COLL.remove(o); /* she is the player's ship now: COLL knows her as that */
   o.m.add(PCEM.buildInterior()); /* the stations' rooms */
@@ -18325,6 +18329,7 @@ function reset() {
   try {
     roamExit(true);
   } catch (e) {}
+  for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
   SIMS.cur.resetBegin() /* its own weapons and systems */;
   killed = 0;
   paused = false;
@@ -20544,7 +20549,7 @@ function helpBox() {
   $$('hkBody').innerHTML = mk(false);
   $$('hpBody').innerHTML = mk(true);
 }
-buildHelp();
+if (SIMS.on('pce')) buildHelp();
 /* held keys: kb('rudL') is 1 while any key bound to rudL is down */
 const kb = (id) => (BI[id].kb.some((c) => keys[c]) ? 1 : 0);
 /* Picks the controller to use. Windows can list several devices (virtual pads from Steam, vJoy and so on) and the

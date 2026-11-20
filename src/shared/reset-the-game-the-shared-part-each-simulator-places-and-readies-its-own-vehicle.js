@@ -3,6 +3,7 @@ function reset() {
   try {
     roamExit(true);
   } catch (e) {}
+  for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
   SIMS.cur.resetBegin() /* its own weapons and systems */;
   killed = 0;
   paused = false;

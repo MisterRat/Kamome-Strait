@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>P-51 Mustang Flight Simulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>P-51 Mustang Flight Simulator</title>
 <meta name="apple-mobile-web-app-title" content="P-51">
 <script>
 /* PWA: only when served over http(s) (e.g. GitHub Pages); a plain file or the artifact viewer is unaffected */
@@ -583,6 +583,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
      - Test with P-51_Mustang_FS_smoke_test.py (boots the game offline, checks for errors, draw-call budget, every mission mode, cockpit panel).
    ===================================================================================================================== */
 
+/* $$(id): the page's elements by id, looked up once and remembered */
 const _el = {},
   $$ = (id) => _el[id] || (_el[id] = document.getElementById(id));
 /* Error handling: nothing in this file is allowed to fail silently.
@@ -590,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.64';
+const VERSION = '5.65';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -694,6 +695,7 @@ const HOOKS = {
 const SIMS = {
   list: [],
   cur: null,
+  pick: null /* a page carrying several simulators names the one to play (Kamome Strait); else the first registered */,
   DEF: {
     id: '',
     name: '',
@@ -774,10 +776,12 @@ const SIMS = {
     if (o) return Object.assign(o, r);
     const s = Object.assign({}, SIMS.DEF, { bind: [], act: {}, uiAct: {} }, r);
     SIMS.list.push(s);
-    if (!SIMS.cur) SIMS.cur = s;
+    if (!SIMS.cur || r.id === SIMS.pick) SIMS.cur = s;
     return s;
   },
   get: (id) => SIMS.list.find((x) => x.id === id),
+  /* is this simulator the one being played? (a simulator's own load steps that only make sense for the one played) */
+  on: (id) => !!SIMS.cur && SIMS.cur.id === id,
   use(id) {
     const s = SIMS.get(id);
     if (s) {
@@ -25883,6 +25887,7 @@ function reset() {
   try {
     roamExit(true);
   } catch (e) {}
+  for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
   SIMS.cur.resetBegin() /* its own weapons and systems */;
   killed = 0;
   paused = false;
@@ -28117,7 +28122,7 @@ function buildHelp() {
   };
   SIMS.cur.helpBody(box);
 }
-buildHelp(); /* the P-51 builds its help as it loads (the PCE once her controls box exists) */
+if (SIMS.on('p51')) buildHelp(); /* the P-51 builds its help as it loads (the PCE once her controls box exists) */
 /* held keys: kb('rudL') is 1 while any key bound to rudL is down */
 const kb = (id) => (BI[id].kb.some((c) => keys[c]) ? 1 : 0);
 /* Picks the controller to use. Windows can list several devices (virtual pads from Steam, vJoy and so on) and the

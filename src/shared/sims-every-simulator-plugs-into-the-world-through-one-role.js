@@ -52,6 +52,7 @@
 const SIMS = {
   list: [],
   cur: null,
+  pick: null /* a page carrying several simulators names the one to play (Kamome Strait); else the first registered */,
   DEF: {
     id: '',
     name: '',
@@ -132,10 +133,12 @@ const SIMS = {
     if (o) return Object.assign(o, r);
     const s = Object.assign({}, SIMS.DEF, { bind: [], act: {}, uiAct: {} }, r);
     SIMS.list.push(s);
-    if (!SIMS.cur) SIMS.cur = s;
+    if (!SIMS.cur || r.id === SIMS.pick) SIMS.cur = s;
     return s;
   },
   get: (id) => SIMS.list.find((x) => x.id === id),
+  /* is this simulator the one being played? (a simulator's own load steps that only make sense for the one played) */
+  on: (id) => !!SIMS.cur && SIMS.cur.id === id,
   use(id) {
     const s = SIMS.get(id);
     if (s) {

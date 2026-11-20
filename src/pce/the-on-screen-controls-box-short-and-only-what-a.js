@@ -44,4 +44,4 @@ function helpBox() {
   $$('hkBody').innerHTML = mk(false);
   $$('hpBody').innerHTML = mk(true);
 }
-buildHelp();
+if (SIMS.on('pce')) buildHelp();

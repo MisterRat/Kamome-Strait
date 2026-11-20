@@ -41,5 +41,3 @@
      - Test with P-51_Mustang_FS_smoke_test.py (boots the game offline, checks for errors, draw-call budget, every mission mode, cockpit panel).
    ===================================================================================================================== */
 
-const _el = {},
-  $$ = (id) => _el[id] || (_el[id] = document.getElementById(id));
