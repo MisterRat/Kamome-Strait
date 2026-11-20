@@ -6,6 +6,48 @@ SIMS.add({
   label: 'PCE-842',
   fileTag: 'PCE842',
   word: 'Ship',
+  orbitMin: 25,
+  hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
+  /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
+     button held also lays it as the mouse is dragged */
+  mouseDown: (e) => {
+    if (!(camMode == 1 && GUN.cur)) return false;
+    if (e.button === 2) {
+      GUN.drag = true;
+      GUN.d0 = [e.clientX, e.clientY];
+      GUN.dd = [0, 0];
+    } else if (e.button === 0) GUN.rmb = true;
+    if (document.pointerLockElement !== cv) gunLock(true);
+    orbDrag = false;
+    e.preventDefault();
+    return true;
+  },
+  mouseUp: () => {
+    GUN.rmb = false;
+    GUN.drag = false;
+  },
+  /* at a gun the mouse moves the gun (no button needed; the pointer is captured while on station), finer through the telescope;
+     looking up from the sight (X) it turns the head */
+  mouseMove: (e) => {
+    if (!(camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started)) return false;
+    if (GUN.look) {
+      viewYaw += e.movementX * 0.0045;
+      viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
+    } else if (GUN.drag || document.pointerLockElement === cv) {
+      /* finer through the telescope (scaled by the field of view); hold ` for six times bigger moves, as in Roam */
+      const k = ((0.0025 * cam.fov) / 65) * (keys.Backquote ? 6 : 1);
+      gunLay(-e.movementX * k, -e.movementY * k);
+    }
+    return true;
+  },
+  /* at a gun the wheel sets the range: 100 yd a notch */
+  wheel: (e) => {
+    if (!(camMode == 1 && GUN.cur)) return false;
+    e.preventDefault();
+    gunRange(e.deltaY < 0 ? 91.44 : -91.44);
+    return true;
+  },
+  lookScale: () => (STN.bino ? 7.1 / 65 : 1) /* 7 x 50 binoculars */,
   afloat: true,
   struck: (p) => shipStruck(p),
   orbitDist: 85,

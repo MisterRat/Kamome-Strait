@@ -680,6 +680,12 @@ const HOOKS = {
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
+     mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
+     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts
+     hcKeys             its Hardcore options (FM.use(key)); the switch takes them all; hcChanged() after the player changes them
+     uiItems            its on-screen boxes for the display options [{ id, label, sel, g, sc }]; uiSet(id, on), uiInit() for a box with
+                        behaviour of its own (the P-51's flight path guide)
    A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
 const SIMS = {
   list: [],
@@ -737,6 +743,19 @@ const SIMS = {
     r3: () => {},
     touchUI: () => {},
     bail: () => {},
+    hcKeys: [],
+    hcChanged: () => {},
+    voices: () => {},
+    mouseDown: () => false,
+    mouseUp: () => {},
+    mouseMove: () => false,
+    wheel: () => false,
+    dragLook: () => false,
+    lookScale: () => 1,
+    orbitMin: 4,
+    uiItems: [],
+    uiSet: () => {},
+    uiInit: () => {},
   },
   add(r) {
     const o = SIMS.get(r.id);
@@ -772,6 +791,13 @@ SIMS.add({
   docsTab: 'about',
   canBail: true,
   bail: () => bailOut(),
+  /* hanging in the parachute, a drag looks around */
+  dragLook: (e) => {
+    if (!BL.on) return false;
+    BL.yaw += e.movementX * 0.0045;
+    BL.pitch = Math.max(-1.53, Math.min(1.53, BL.pitch - e.movementY * 0.0045));
+    return true;
+  },
   showSelf: (on) => (plane.visible = on),
   padMenu: true,
   touchUI: () => {
@@ -923,6 +949,27 @@ const SEA = {
   WL: -8.15 /* a ship's design waterline, as she is placed (her hull sits a little into the still water) */,
   PLANE: -11.8 /* the open-sea plane out to 60 km: under the ocean's troughs and below a ship's keel */,
 };
+/* the P-51's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
+SIMS.add({
+  id: 'p51',
+  hcKeys: [
+  'torque',
+  'spin',
+  'alt',
+  'heat',
+  'fuel',
+  'wep',
+  'perf',
+  'gload',
+  'wind',
+  'turb',
+  'wet',
+  'ice',
+  'ops',
+  'pwr',
+  'trim',
+],
+});
 /* HARDCORE SIMULATION MODE (off by default: the sim is fun first). A master switch plus six separate options, all saved:
    torque    engine torque + P-factor + propwash over the tail
    spin      wing drop and spins at the stall (snap rolls can spin)
@@ -940,42 +987,11 @@ const SEA = {
    pwr       engine power limits: war emergency power for 5 minutes, and no more than 3240 rpm in a dive
    trim      working trim tabs: elevator, rudder and aileron trim set the speed the aircraft holds hands-off (keyboard and controller only)
    FM.use(name) is true only when the master switch AND that option are on. */
-const HC_KEYS = [
-  'torque',
-  'spin',
-  'alt',
-  'heat',
-  'fuel',
-  'wep',
-  'perf',
-  'gload',
-  'wind',
-  'turb',
-  'wet',
-  'ice',
-  'ops',
-  'pwr',
-  'trim',
-];
+/* the Hardcore options are the union of every registered simulator's (each role's hcKeys); each is on by default */
+const HC_KEYS = [...new Set(SIMS.list.flatMap((x) => x.hcKeys))];
 const FM = {
   on: false,
-  opt: {
-    torque: true,
-    spin: true,
-    alt: true,
-    heat: true,
-    fuel: true,
-    wep: true,
-    perf: true,
-    gload: true,
-    wind: true,
-    turb: true,
-    wet: true,
-    ice: true,
-    ops: true,
-    pwr: true,
-    trim: true,
-  },
+  opt: Object.fromEntries(HC_KEYS.map((k) => [k, true])),
   lim: { pos: 7, neg: -3.5 } /* current structural limits in G (weight and speed dependent) */,
   over: 0 /* load / limit when over the limit, else 0 */,
   str: 0 /* airframe damage from overstress, 0..1; repaired on the ground */,
@@ -1171,6 +1187,8 @@ const SND = {
     this.wg = gain(0);
     this.wo.connect(this.wg);
     this.wg.connect(m);
+    /* each simulator's own voices (the PCE's machinery and the sea): its role's voices(SND, helpers) */
+    for (const x of SIMS.list) x.voices(this, { osc, filt, gain, noise, m });
   },
   /* one-shot helpers */
   burst(f0, f1, dur, vol, q, type, delay) {
@@ -27073,9 +27091,10 @@ if (
   }, 2500);
 }
 tcUI();
-/* ---------- display options: choose what is on screen (pause menu); swipe instrument boxes away on a touch screen ---------- */
-const UI = {
-  items: [
+/* the P-51's on-screen boxes for the display options (the shared UI piece shows, hides and remembers them) */
+SIMS.add({
+  id: 'p51',
+  uiItems: [
     { id: 'hud', label: 'Flight readout', sel: '#hud', g: 'Instruments' },
     { id: 'cmp', label: 'Compass strip', sel: '#cmp', g: 'Instruments' },
     { id: 'mm', label: 'Minimap (O)', sel: '#mm', g: 'Instruments' },
@@ -27101,6 +27120,21 @@ const UI = {
       sc: 'mob',
     },
   ],
+  uiSet: (id, v) => {
+    if (id === 'guide') guide.on = v;
+  },
+  uiInit: () => {
+    if (UI.hid.guide) guide.on = false;
+  },
+});
+/* ---------- display options: choose what is on screen (pause menu); swipe instrument boxes away on a touch screen. The boxes are
+   the current simulator's (its role's uiItems); this piece shows, hides and remembers them ---------- */
+const UI = {
+  /* the current simulator's boxes (its role's uiItems) */
+  get items() {
+    return SIMS.cur.uiItems;
+  },
+
   hid: {},
   hint: false,
   load() {
@@ -27119,13 +27153,14 @@ const UI = {
       else delete this.hid[id];
     } else this.hid[id] = 1;
     document.body.classList.toggle('hide-' + id, !v);
-    if (id === 'guide') guide.on = v;
+    SIMS.cur.uiSet(id, v);
     this.save();
   },
   toggle(id) {
     this.set(id, !this.vis(id));
   },
   applies(i) {
+    if (i.sc === 'none') return false; /* a box this simulator's page has but does not use */
     return MOB ? i.sc !== 'desk' : i.sc !== 'mob';
   },
 };
@@ -27147,12 +27182,13 @@ if (MOB && !UI.hid._mob) {
           .join(',') + '{display:none!important}',
     )
     .join('\n');
+  st.textContent += '\n' + UI.items.filter((i) => i.sc === 'none' && i.sel).map((i) => i.sel + '{display:none!important}').join('\n');
   document.head.appendChild(st);
   UI.items.forEach((i) => {
     if (UI.hid[i.id]) document.body.classList.add('hide-' + i.id);
   });
-  if (UI.hid.guide) guide.on = false;
 }
+SIMS.cur.uiInit();
 /* ---- pause menu ---- */
 let pmOpen = false,
   pmPrev = false,
@@ -27292,12 +27328,14 @@ $$('hcOn').onchange = (e) => {
   FM.on = e.target.checked;
   FM.save();
   hcSync();
+  SIMS.cur.hcChanged();
   note('HARDCORE SIMULATION: ' + (FM.on ? 'ON' : 'OFF'));
 };
 document.querySelectorAll('#hcList input').forEach((i) => {
   i.onchange = () => {
     FM.opt[i.dataset.hc] = i.checked;
     FM.save();
+    SIMS.cur.hcChanged();
   };
 });
 hcSync();
@@ -27321,6 +27359,7 @@ $$('dmgOn').onchange = (e) => {
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
+/* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {
   AA.on = e.target.checked;
@@ -27330,7 +27369,7 @@ $$('aaOn').onchange = (e) => {
 };
 $$('pmBail').onclick = () => {
   pauseMenu(false);
-  bailOut();
+  SIMS.cur.bail();
 };
 $$('sndOn').checked = SND.on;
 $$('sndVol').value = Math.round(SND.vol * 100);
@@ -27665,7 +27704,7 @@ function orbReset() {
    (hold ` = six times bigger steps; there is no wheel zoom). It shares its position and angles with PHOTO. */
 const ROAM = { on: false, fov0: 65 };
 function roamEnter() {
-  if (ROAM.on || PHOTO.on || !started || BL.on || RPL.on) return;
+  if (ROAM.on || PHOTO.on || !started || SIMS.cur.busy() || RPL.on) return;
   ROAM.on = true;
   ROAM.fov0 = cam.fov;
   camMode = 0;
@@ -27712,11 +27751,13 @@ cv.addEventListener('mousedown', (e) => {
   }
   if (docsOpen || UI.editing || (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)) return;
   orbDrag = true;
+  if (SIMS.cur.mouseDown(e)) return; /* the simulator's own use of the mouse (the PCE's gun) */
   if (camMode != 1) orbitOn = true;
   e.preventDefault();
 });
 addEventListener('mouseup', () => {
   orbDrag = false;
+  SIMS.cur.mouseUp();
   PHOTO.drag = false;
 });
 addEventListener('mousemove', (e) => {
@@ -27744,14 +27785,16 @@ addEventListener('mousemove', (e) => {
     }
     return;
   }
+  if (SIMS.cur.mouseMove(e)) return;
   if (!orbDrag || docsOpen) return;
-  if (BL.on) {
-    BL.yaw += e.movementX * 0.0045;
-    BL.pitch = Math.max(-1.53, Math.min(1.53, BL.pitch - e.movementY * 0.0045));
+  if (SIMS.cur.dragLook(e)) {
+    /* a camera of the simulator's own took the drag (the P-51's parachute descent) */
   } else if (camMode == 1) {
-    viewYaw += e.movementX * 0.0045;
-    viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
-  } /* cockpit: free look */
+    /* first person: free look (slower through binoculars, SIMS.cur.lookScale) */
+    const k = 0.0045 * SIMS.cur.lookScale();
+    viewYaw += e.movementX * k;
+    viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * k));
+  }
   else {
     orbYaw -= e.movementX * 0.006;
     orbEl = Math.max(-1.45, Math.min(1.45, orbEl + e.movementY * 0.006));
@@ -27774,10 +27817,11 @@ cv.addEventListener(
       }
       return;
     }
+    if (!docsOpen && SIMS.cur.wheel(e)) return;
     if (docsOpen || camMode == 1) return;
     e.preventDefault();
     orbitOn = true;
-    orbDist = Math.max(4, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
+    orbDist = Math.max(SIMS.cur.orbitMin, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
   },
   { passive: false },
 );

@@ -50,27 +50,13 @@ cv.addEventListener('mousedown', (e) => {
   }
   if (docsOpen || UI.editing || (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)) return;
   orbDrag = true;
-  if (camMode == 1 && GUN.cur) {
-    /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
-       button held also lays it as the mouse is dragged */
-    if (e.button === 2) {
-      GUN.drag = true;
-      GUN.d0 = [e.clientX, e.clientY];
-      GUN.dd = [0, 0];
-    }
-    else if (e.button === 0) GUN.rmb = true;
-    if (document.pointerLockElement !== cv) gunLock(true);
-    orbDrag = false;
-    e.preventDefault();
-    return;
-  }
+  if (SIMS.cur.mouseDown(e)) return; /* the simulator's own use of the mouse (the PCE's gun) */
   if (camMode != 1) orbitOn = true;
   e.preventDefault();
 });
 addEventListener('mouseup', () => {
   orbDrag = false;
-  GUN.rmb = false;
-  GUN.drag = false;
+  SIMS.cur.mouseUp();
   PHOTO.drag = false;
 });
 addEventListener('mousemove', (e) => {
@@ -98,31 +84,16 @@ addEventListener('mousemove', (e) => {
     }
     return;
   }
-  if (camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started) {
-    /* at a gun: the mouse moves the gun (no button needed; the pointer is captured while on station), finer through the telescope;
-       looking up from the sight (X) it turns the head */
-    if (GUN.look) {
-      viewYaw += e.movementX * 0.0045;
-      viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
-    } else if (GUN.drag || document.pointerLockElement === cv) {
-      /* finer through the telescope (scaled by the field of view); hold ` for six times bigger moves, as in Roam */
-      const k = ((0.0025 * cam.fov) / 65) * (keys.Backquote ? 6 : 1);
-      gunLay(-e.movementX * k, -e.movementY * k);
-    }
-    return;
-  }
+  if (SIMS.cur.mouseMove(e)) return;
   if (!orbDrag || docsOpen) return;
-  if (BL.on) {
-    BL.yaw += e.movementX * 0.0045;
-    BL.pitch = Math.max(-1.53, Math.min(1.53, BL.pitch - e.movementY * 0.0045));
+  if (SIMS.cur.dragLook(e)) {
+    /* a camera of the simulator's own took the drag (the P-51's parachute descent) */
   } else if (camMode == 1) {
-    const k = STN.bino ? 0.0045 * (7.1 / 65) : 0.0045;
+    /* first person: free look (slower through binoculars, SIMS.cur.lookScale) */
+    const k = 0.0045 * SIMS.cur.lookScale();
     viewYaw += e.movementX * k;
     viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * k));
-    return;
-    viewYaw += e.movementX * 0.0045;
-    viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
-  } /* cockpit: free look */
+  }
   else {
     orbYaw -= e.movementX * 0.006;
     orbEl = Math.max(-1.45, Math.min(1.45, orbEl + e.movementY * 0.006));
@@ -145,15 +116,11 @@ cv.addEventListener(
       }
       return;
     }
-    if (!docsOpen && camMode == 1 && GUN.cur) {
-      e.preventDefault();
-      gunRange(e.deltaY < 0 ? 91.44 : -91.44); /* 100 yd a notch */
-      return;
-    }
+    if (!docsOpen && SIMS.cur.wheel(e)) return;
     if (docsOpen || camMode == 1) return;
     e.preventDefault();
     orbitOn = true;
-    orbDist = Math.max(25, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
+    orbDist = Math.max(SIMS.cur.orbitMin, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
   },
   { passive: false },
 );

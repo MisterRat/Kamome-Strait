@@ -11,14 +11,14 @@ $$('hcOn').onchange = (e) => {
   FM.on = e.target.checked;
   FM.save();
   hcSync();
-  if (typeof modeSync === 'function') modeSync();
+  SIMS.cur.hcChanged();
   note('HARDCORE SIMULATION: ' + (FM.on ? 'ON' : 'OFF'));
 };
 document.querySelectorAll('#hcList input').forEach((i) => {
   i.onchange = () => {
     FM.opt[i.dataset.hc] = i.checked;
     FM.save();
-    if (typeof modeSync === 'function') modeSync();
+    SIMS.cur.hcChanged();
   };
 });
 hcSync();

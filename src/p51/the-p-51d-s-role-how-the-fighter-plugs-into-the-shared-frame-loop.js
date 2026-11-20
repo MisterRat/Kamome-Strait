@@ -10,6 +10,13 @@ SIMS.add({
   docsTab: 'about',
   canBail: true,
   bail: () => bailOut(),
+  /* hanging in the parachute, a drag looks around */
+  dragLook: (e) => {
+    if (!BL.on) return false;
+    BL.yaw += e.movementX * 0.0045;
+    BL.pitch = Math.max(-1.53, Math.min(1.53, BL.pitch - e.movementY * 0.0045));
+    return true;
+  },
   showSelf: (on) => (plane.visible = on),
   padMenu: true,
   touchUI: () => {

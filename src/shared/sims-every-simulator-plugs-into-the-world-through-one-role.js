@@ -38,6 +38,12 @@
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
+     mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
+     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts
+     hcKeys             its Hardcore options (FM.use(key)); the switch takes them all; hcChanged() after the player changes them
+     uiItems            its on-screen boxes for the display options [{ id, label, sel, g, sc }]; uiSet(id, on), uiInit() for a box with
+                        behaviour of its own (the P-51's flight path guide)
    A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
 const SIMS = {
   list: [],
@@ -95,6 +101,19 @@ const SIMS = {
     r3: () => {},
     touchUI: () => {},
     bail: () => {},
+    hcKeys: [],
+    hcChanged: () => {},
+    voices: () => {},
+    mouseDown: () => false,
+    mouseUp: () => {},
+    mouseMove: () => false,
+    wheel: () => false,
+    dragLook: () => false,
+    lookScale: () => 1,
+    orbitMin: 4,
+    uiItems: [],
+    uiSet: () => {},
+    uiInit: () => {},
   },
   add(r) {
     const o = SIMS.get(r.id);

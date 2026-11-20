@@ -641,6 +641,12 @@ const HOOKS = {
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
+     mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
+     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts
+     hcKeys             its Hardcore options (FM.use(key)); the switch takes them all; hcChanged() after the player changes them
+     uiItems            its on-screen boxes for the display options [{ id, label, sel, g, sc }]; uiSet(id, on), uiInit() for a box with
+                        behaviour of its own (the P-51's flight path guide)
    A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
 const SIMS = {
   list: [],
@@ -698,6 +704,19 @@ const SIMS = {
     r3: () => {},
     touchUI: () => {},
     bail: () => {},
+    hcKeys: [],
+    hcChanged: () => {},
+    voices: () => {},
+    mouseDown: () => false,
+    mouseUp: () => {},
+    mouseMove: () => false,
+    wheel: () => false,
+    dragLook: () => false,
+    lookScale: () => 1,
+    orbitMin: 4,
+    uiItems: [],
+    uiSet: () => {},
+    uiInit: () => {},
   },
   add(r) {
     const o = SIMS.get(r.id);
@@ -729,6 +748,48 @@ SIMS.add({
   label: 'PCE-842',
   fileTag: 'PCE842',
   word: 'Ship',
+  orbitMin: 25,
+  hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
+  /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
+     button held also lays it as the mouse is dragged */
+  mouseDown: (e) => {
+    if (!(camMode == 1 && GUN.cur)) return false;
+    if (e.button === 2) {
+      GUN.drag = true;
+      GUN.d0 = [e.clientX, e.clientY];
+      GUN.dd = [0, 0];
+    } else if (e.button === 0) GUN.rmb = true;
+    if (document.pointerLockElement !== cv) gunLock(true);
+    orbDrag = false;
+    e.preventDefault();
+    return true;
+  },
+  mouseUp: () => {
+    GUN.rmb = false;
+    GUN.drag = false;
+  },
+  /* at a gun the mouse moves the gun (no button needed; the pointer is captured while on station), finer through the telescope;
+     looking up from the sight (X) it turns the head */
+  mouseMove: (e) => {
+    if (!(camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started)) return false;
+    if (GUN.look) {
+      viewYaw += e.movementX * 0.0045;
+      viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
+    } else if (GUN.drag || document.pointerLockElement === cv) {
+      /* finer through the telescope (scaled by the field of view); hold ` for six times bigger moves, as in Roam */
+      const k = ((0.0025 * cam.fov) / 65) * (keys.Backquote ? 6 : 1);
+      gunLay(-e.movementX * k, -e.movementY * k);
+    }
+    return true;
+  },
+  /* at a gun the wheel sets the range: 100 yd a notch */
+  wheel: (e) => {
+    if (!(camMode == 1 && GUN.cur)) return false;
+    e.preventDefault();
+    gunRange(e.deltaY < 0 ? 91.44 : -91.44);
+    return true;
+  },
+  lookScale: () => (STN.bino ? 7.1 / 65 : 1) /* 7 x 50 binoculars */,
   afloat: true,
   struck: (p) => shipStruck(p),
   orbitDist: 85,
@@ -925,24 +986,10 @@ const TPW = { p: new THREE.Vector2() /* model x, z */, at: 3, bob: 0, ob: [] },
   ASW = { who: 'tp' /* who the attack is for: the torpedoman's run (6) or the sonar test (3) */, ph: 'idle', t: 0, O: [], f: {}, run: 0, tel: 0, hold: 0, depth: 100, best: 1e9, hh: 0, un: 0, bad: false, msg: '', deb: '', debT: 0 };
 /* Wave motion setting (saved): 'on', 'guns' (off while the player is at a gun) or 'off' */
 const WAVE = { mode: ['on', 'guns', 'off'].includes(store.get('wave', 'on')) ? store.get('wave', 'on') : 'on' };
-/* HARDCORE SIMULATION MODE (off by default: the sim is fun first). A master switch plus six separate options, all saved:
-   torque    engine torque + P-factor + propwash over the tail
-   spin      wing drop and spins at the stall (snap rolls can spin)
-   alt       air density, supercharger power, service ceiling, indicated airspeed, Mach redline
-   heat      engine overheating from long full-throttle running
-   fuel      fuel burn, weight change, fuselage-tank centre of gravity
-   wep       the top 10% of throttle is war emergency power
-   gload     structural load limits: +8 / -4 G (less when heavy or fast); overstress bends the airframe, far too much breaks the wing
-   perf      real-aircraft performance: extra drag so top speed, cruise, climb and glide match the P-51D (~610 km/h at sea level, glide ratio ~14)
-   wind      the weather's wind and gusts: crosswind and headwind on take-off and landing, drift in the air
-   turb      turbulence: bumps and rolls in rough weather and low down in strong wind
-   wet       wet runway in rain: weaker brakes, weaker steering, hydroplaning at speed
-   ice       airframe icing in cloud below freezing: less lift, more drag, less thrust
-   ops       the real flap settings (10 to 50 degrees) and speed limits, and a landing gear speed limit (170 mph)
-   pwr       engine power limits: war emergency power for 5 minutes, and no more than 3240 rpm in a dive
-   trim      working trim tabs: elevator, rudder and aileron trim set the speed the aircraft holds hands-off (keyboard and controller only)
-   FM.use(name) is true only when the master switch AND that option are on. */
-const HC_KEYS = [
+/* the PCE-842's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
+SIMS.add({
+  id: 'pce',
+  hcKeys: [
   /* PCE-842: the ship's own Hardcore parts (the Hardcore tab) */
   'eng',
   'sea',
@@ -971,37 +1018,30 @@ const HC_KEYS = [
   'ops',
   'pwr',
   'trim',
-];
+],
+});
+/* HARDCORE SIMULATION MODE (off by default: the sim is fun first). A master switch plus six separate options, all saved:
+   torque    engine torque + P-factor + propwash over the tail
+   spin      wing drop and spins at the stall (snap rolls can spin)
+   alt       air density, supercharger power, service ceiling, indicated airspeed, Mach redline
+   heat      engine overheating from long full-throttle running
+   fuel      fuel burn, weight change, fuselage-tank centre of gravity
+   wep       the top 10% of throttle is war emergency power
+   gload     structural load limits: +8 / -4 G (less when heavy or fast); overstress bends the airframe, far too much breaks the wing
+   perf      real-aircraft performance: extra drag so top speed, cruise, climb and glide match the P-51D (~610 km/h at sea level, glide ratio ~14)
+   wind      the weather's wind and gusts: crosswind and headwind on take-off and landing, drift in the air
+   turb      turbulence: bumps and rolls in rough weather and low down in strong wind
+   wet       wet runway in rain: weaker brakes, weaker steering, hydroplaning at speed
+   ice       airframe icing in cloud below freezing: less lift, more drag, less thrust
+   ops       the real flap settings (10 to 50 degrees) and speed limits, and a landing gear speed limit (170 mph)
+   pwr       engine power limits: war emergency power for 5 minutes, and no more than 3240 rpm in a dive
+   trim      working trim tabs: elevator, rudder and aileron trim set the speed the aircraft holds hands-off (keyboard and controller only)
+   FM.use(name) is true only when the master switch AND that option are on. */
+/* the Hardcore options are the union of every registered simulator's (each role's hcKeys); each is on by default */
+const HC_KEYS = [...new Set(SIMS.list.flatMap((x) => x.hcKeys))];
 const FM = {
   on: false,
-  opt: {
-    eng: true,
-    sea: true,
-    range: true,
-    rings: true,
-    aa: true,
-    reload: true,
-    smoke: true,
-    walk: true,
-    orders: true,
-    dmg: true,
-    comms: true,
-    torque: true,
-    spin: true,
-    alt: true,
-    heat: true,
-    fuel: true,
-    wep: true,
-    perf: true,
-    gload: true,
-    wind: true,
-    turb: true,
-    wet: true,
-    ice: true,
-    ops: true,
-    pwr: true,
-    trim: true,
-  },
+  opt: Object.fromEntries(HC_KEYS.map((k) => [k, true])),
   lim: { pos: 7, neg: -3.5 } /* current structural limits in G (weight and speed dependent) */,
   over: 0 /* load / limit when over the limit, else 0 */,
   str: 0 /* airframe damage from overstress, 0..1; repaired on the ground */,
@@ -1072,6 +1112,64 @@ function trimUpd(dt, ep, rp, ap) {
   TRIM.r = cl(TRIM.r + rp * k);
   TRIM.a = cl(TRIM.a + ap * k);
 }
+/* the PCE's machinery and sea voices, built into the shared sound (SND) by its role's voices hook */
+SIMS.add({
+  id: 'pce',
+  voices: (S, { osc, filt, gain, noise, m }) => {
+    /* THE PCE'S MACHINERY AND THE SEA (audioUpd sets them): two GM 12-278A two-stroke diesels, port and starboard, each a V-12 firing
+       12 times a revolution (a sawtooth at the firing rate, a square an octave down for the throb, a lumpiness at the revolution
+       rate), their Roots blowers' whine, the exhaust's low rumble, the propellers' beat in the water aft, the wash along the hull
+       (swelling slowly with the sea) and the wind over the deck (the old wind voice) */
+    const D = { eng: [] };
+    for (let k = 0; k < 2; k++) {
+      const v = {
+        o: osc('sawtooth', 60),
+        q: osc('square', 30),
+        lf: osc('sine', 5),
+        wh: osc('triangle', 500),
+        f: filt('lowpass', 500, 0.8),
+        amp: gain(0),
+        lfG: gain(0.25),
+        whG: gain(0),
+      };
+      const mx = gain(0.5),
+        qG = gain(0.6),
+        body = gain(1);
+      v.o.connect(mx);
+      v.q.connect(qG);
+      qG.connect(mx);
+      mx.connect(v.f);
+      v.f.connect(body);
+      v.lf.connect(v.lfG);
+      v.lfG.connect(body.gain);
+      body.connect(v.amp);
+      v.amp.connect(m);
+      v.wh.connect(v.whG);
+      v.whG.connect(m);
+      D.eng.push(v);
+    }
+    D.ex = { f: filt('lowpass', 160, 0.7), g: gain(0) };
+    noise().connect(D.ex.f);
+    D.ex.f.connect(D.ex.g);
+    D.ex.g.connect(m);
+    D.pr = { f: filt('lowpass', 110, 0.8), g: gain(0), mod: gain(0), lfo: osc('square', 10), body: gain(0.5) };
+    noise().connect(D.pr.f);
+    D.pr.f.connect(D.pr.body);
+    D.pr.lfo.connect(D.pr.mod);
+    D.pr.mod.connect(D.pr.body.gain);
+    D.pr.body.connect(D.pr.g);
+    D.pr.g.connect(m);
+    D.wa = { f: filt('bandpass', 700, 0.5), f2: filt('lowpass', 2500, 0.5), g: gain(0), sw: gain(1), lfo: osc('sine', 0.13), lfoG: gain(0.35) };
+    noise().connect(D.wa.f);
+    D.wa.f.connect(D.wa.f2);
+    D.wa.f2.connect(D.wa.sw);
+    D.wa.lfo.connect(D.wa.lfoG);
+    D.wa.lfoG.connect(D.wa.sw.gain);
+    D.wa.sw.connect(D.wa.g);
+    D.wa.g.connect(m);
+    S.d = D;
+  },
+});
 /* ---------- sound: everything is synthesised with the Web Audio API (no files). SND holds the settings and the sounds:
    continuous voices (engine, wind, tyres, guns, warning tone) are set every frame by audioUpd(); one-shot effects are
    methods (boom, rocket, bomb, hit, gear, flaps, touch, beep). Settings (saved): sound on/off and volume. ---------- */
@@ -1197,58 +1295,8 @@ const SND = {
     this.wg = gain(0);
     this.wo.connect(this.wg);
     this.wg.connect(m);
-    /* THE PCE'S MACHINERY AND THE SEA (audioUpd sets them): two GM 12-278A two-stroke diesels, port and starboard, each a V-12 firing
-       12 times a revolution (a sawtooth at the firing rate, a square an octave down for the throb, a lumpiness at the revolution
-       rate), their Roots blowers' whine, the exhaust's low rumble, the propellers' beat in the water aft, the wash along the hull
-       (swelling slowly with the sea) and the wind over the deck (the old wind voice) */
-    const D = { eng: [] };
-    for (let k = 0; k < 2; k++) {
-      const v = {
-        o: osc('sawtooth', 60),
-        q: osc('square', 30),
-        lf: osc('sine', 5),
-        wh: osc('triangle', 500),
-        f: filt('lowpass', 500, 0.8),
-        amp: gain(0),
-        lfG: gain(0.25),
-        whG: gain(0),
-      };
-      const mx = gain(0.5),
-        qG = gain(0.6),
-        body = gain(1);
-      v.o.connect(mx);
-      v.q.connect(qG);
-      qG.connect(mx);
-      mx.connect(v.f);
-      v.f.connect(body);
-      v.lf.connect(v.lfG);
-      v.lfG.connect(body.gain);
-      body.connect(v.amp);
-      v.amp.connect(m);
-      v.wh.connect(v.whG);
-      v.whG.connect(m);
-      D.eng.push(v);
-    }
-    D.ex = { f: filt('lowpass', 160, 0.7), g: gain(0) };
-    noise().connect(D.ex.f);
-    D.ex.f.connect(D.ex.g);
-    D.ex.g.connect(m);
-    D.pr = { f: filt('lowpass', 110, 0.8), g: gain(0), mod: gain(0), lfo: osc('square', 10), body: gain(0.5) };
-    noise().connect(D.pr.f);
-    D.pr.f.connect(D.pr.body);
-    D.pr.lfo.connect(D.pr.mod);
-    D.pr.mod.connect(D.pr.body.gain);
-    D.pr.body.connect(D.pr.g);
-    D.pr.g.connect(m);
-    D.wa = { f: filt('bandpass', 700, 0.5), f2: filt('lowpass', 2500, 0.5), g: gain(0), sw: gain(1), lfo: osc('sine', 0.13), lfoG: gain(0.35) };
-    noise().connect(D.wa.f);
-    D.wa.f.connect(D.wa.f2);
-    D.wa.f2.connect(D.wa.sw);
-    D.wa.lfo.connect(D.wa.lfoG);
-    D.wa.lfoG.connect(D.wa.sw.gain);
-    D.wa.sw.connect(D.wa.g);
-    D.wa.g.connect(m);
-    this.d = D;
+    /* each simulator's own voices (the PCE's machinery and the sea): its role's voices(SND, helpers) */
+    for (const x of SIMS.list) x.voices(this, { osc, filt, gain, noise, m });
   },
   /* one-shot helpers */
   burst(f0, f1, dur, vol, q, type, delay) {
@@ -19474,9 +19522,10 @@ if (
   }, 2500);
 }
 tcUI();
-/* ---------- display options: choose what is on screen (pause menu); swipe instrument boxes away on a touch screen ---------- */
-const UI = {
-  items: [
+/* the PCE-842's on-screen boxes for the display options (the shared UI piece shows, hides and remembers them) */
+SIMS.add({
+  id: 'pce',
+  uiItems: [
     { id: 'hud', label: 'Ship readout', sel: '#hud', g: 'Instruments' },
     { id: 'cmp', label: 'Compass strip', sel: '#cmp', g: 'Instruments' },
     { id: 'mm', label: 'Minimap (O)', sel: '#mm', g: 'Instruments' },
@@ -19502,6 +19551,15 @@ const UI = {
       sc: 'mob',
     },
   ],
+});
+/* ---------- display options: choose what is on screen (pause menu); swipe instrument boxes away on a touch screen. The boxes are
+   the current simulator's (its role's uiItems); this piece shows, hides and remembers them ---------- */
+const UI = {
+  /* the current simulator's boxes (its role's uiItems) */
+  get items() {
+    return SIMS.cur.uiItems;
+  },
+
   hid: {},
   hint: false,
   load() {
@@ -19520,13 +19578,14 @@ const UI = {
       else delete this.hid[id];
     } else this.hid[id] = 1;
     document.body.classList.toggle('hide-' + id, !v);
+    SIMS.cur.uiSet(id, v);
     this.save();
   },
   toggle(id) {
     this.set(id, !this.vis(id));
   },
   applies(i) {
-    if (i.sc === 'none') return false; /* the P-51's boxes the ship does not use (artificial horizon, ADF, coach, bandit and sight aids) */
+    if (i.sc === 'none') return false; /* a box this simulator's page has but does not use */
     return MOB ? i.sc !== 'desk' : i.sc !== 'mob';
   },
 };
@@ -19554,6 +19613,7 @@ if (MOB && !UI.hid._mob) {
     if (UI.hid[i.id]) document.body.classList.add('hide-' + i.id);
   });
 }
+SIMS.cur.uiInit();
 /* ---- pause menu ---- */
 let pmOpen = false,
   pmPrev = false,
@@ -19694,14 +19754,14 @@ $$('hcOn').onchange = (e) => {
   FM.on = e.target.checked;
   FM.save();
   hcSync();
-  if (typeof modeSync === 'function') modeSync();
+  SIMS.cur.hcChanged();
   note('HARDCORE SIMULATION: ' + (FM.on ? 'ON' : 'OFF'));
 };
 document.querySelectorAll('#hcList input').forEach((i) => {
   i.onchange = () => {
     FM.opt[i.dataset.hc] = i.checked;
     FM.save();
-    if (typeof modeSync === 'function') modeSync();
+    SIMS.cur.hcChanged();
   };
 });
 hcSync();
@@ -19754,6 +19814,7 @@ $$('enMode').onchange = (e) => {
   note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
 };
 enemySync();
+/* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {
   AA.on = e.target.checked;
@@ -20112,27 +20173,13 @@ cv.addEventListener('mousedown', (e) => {
   }
   if (docsOpen || UI.editing || (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)) return;
   orbDrag = true;
-  if (camMode == 1 && GUN.cur) {
-    /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
-       button held also lays it as the mouse is dragged */
-    if (e.button === 2) {
-      GUN.drag = true;
-      GUN.d0 = [e.clientX, e.clientY];
-      GUN.dd = [0, 0];
-    }
-    else if (e.button === 0) GUN.rmb = true;
-    if (document.pointerLockElement !== cv) gunLock(true);
-    orbDrag = false;
-    e.preventDefault();
-    return;
-  }
+  if (SIMS.cur.mouseDown(e)) return; /* the simulator's own use of the mouse (the PCE's gun) */
   if (camMode != 1) orbitOn = true;
   e.preventDefault();
 });
 addEventListener('mouseup', () => {
   orbDrag = false;
-  GUN.rmb = false;
-  GUN.drag = false;
+  SIMS.cur.mouseUp();
   PHOTO.drag = false;
 });
 addEventListener('mousemove', (e) => {
@@ -20160,31 +20207,16 @@ addEventListener('mousemove', (e) => {
     }
     return;
   }
-  if (camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started) {
-    /* at a gun: the mouse moves the gun (no button needed; the pointer is captured while on station), finer through the telescope;
-       looking up from the sight (X) it turns the head */
-    if (GUN.look) {
-      viewYaw += e.movementX * 0.0045;
-      viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
-    } else if (GUN.drag || document.pointerLockElement === cv) {
-      /* finer through the telescope (scaled by the field of view); hold ` for six times bigger moves, as in Roam */
-      const k = ((0.0025 * cam.fov) / 65) * (keys.Backquote ? 6 : 1);
-      gunLay(-e.movementX * k, -e.movementY * k);
-    }
-    return;
-  }
+  if (SIMS.cur.mouseMove(e)) return;
   if (!orbDrag || docsOpen) return;
-  if (BL.on) {
-    BL.yaw += e.movementX * 0.0045;
-    BL.pitch = Math.max(-1.53, Math.min(1.53, BL.pitch - e.movementY * 0.0045));
+  if (SIMS.cur.dragLook(e)) {
+    /* a camera of the simulator's own took the drag (the P-51's parachute descent) */
   } else if (camMode == 1) {
-    const k = STN.bino ? 0.0045 * (7.1 / 65) : 0.0045;
+    /* first person: free look (slower through binoculars, SIMS.cur.lookScale) */
+    const k = 0.0045 * SIMS.cur.lookScale();
     viewYaw += e.movementX * k;
     viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * k));
-    return;
-    viewYaw += e.movementX * 0.0045;
-    viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
-  } /* cockpit: free look */
+  }
   else {
     orbYaw -= e.movementX * 0.006;
     orbEl = Math.max(-1.45, Math.min(1.45, orbEl + e.movementY * 0.006));
@@ -20207,15 +20239,11 @@ cv.addEventListener(
       }
       return;
     }
-    if (!docsOpen && camMode == 1 && GUN.cur) {
-      e.preventDefault();
-      gunRange(e.deltaY < 0 ? 91.44 : -91.44); /* 100 yd a notch */
-      return;
-    }
+    if (!docsOpen && SIMS.cur.wheel(e)) return;
     if (docsOpen || camMode == 1) return;
     e.preventDefault();
     orbitOn = true;
-    orbDist = Math.max(25, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
+    orbDist = Math.max(SIMS.cur.orbitMin, Math.min(900, orbDist * Math.exp(e.deltaY * 0.0015)));
   },
   { passive: false },
 );
