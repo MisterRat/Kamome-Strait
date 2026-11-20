@@ -31,6 +31,13 @@ SHOTS = HTML.parent / "tests"
 DRAW_CALL_BUDGET = 750
 results, errors, external = [], [], []
 
+def shot(path):
+    """a screenshot for the record: slow under software rendering, so a long timeout, and a missed one is reported, not fatal"""
+    try:
+        pg.screenshot(path=path, timeout=180000)
+    except Exception as e:
+        print("NOTE  screenshot skipped:", path, str(e).split(chr(10))[0])
+
 def check(name, ok, detail=""):
     results.append(ok)
     print(("PASS  " if ok else "FAIL  ") + name + (f"  ({detail})" if detail else ""))
@@ -47,10 +54,24 @@ with sync_playwright() as p:
     pg.goto(HTML.as_uri())
     pg.wait_for_timeout(4000)
 
+    def fresh():
+        """a new page on the same game, started, at the bridge: under software rendering every visit to a gun sight leaves hundreds of MB
+        in the renderer (the original 0.51 does the same), so the long run would be killed for memory; the old page is closed first"""
+        global pg
+        pg.close()
+        pg = b.new_page(viewport={"width": 960, "height": 540})
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.on("console", lambda m: errors.append("console: " + m.text) if m.type == "error" else None)
+        pg.route("**/*", lambda r: r.continue_() if r.request.url.startswith(("file:", "data:", "blob:")) else (external.append(r.request.url), r.abort()))
+        pg.goto(HTML.as_uri())
+        pg.wait_for_timeout(4000)
+        pg.evaluate("()=>{$$('go').click()}"); pg.wait_for_timeout(1500)
+        pg.keyboard.press("KeyC"); pg.wait_for_timeout(500)
+
     check("loads with no script errors", not errors, "; ".join(errors[:3]))
     check("no external requests (fully offline)", not external, ", ".join(external[:3]))
     check("three.js r128 is inlined", pg.evaluate("()=>typeof THREE!=='undefined'&&THREE.REVISION==='128'"))
-    check("version label is 0.23", pg.evaluate("()=>VERSION==='0.23'&&document.querySelector('.verTag').textContent.includes('0.23')"))
+    check("version label is shown (major.minor)", pg.evaluate("()=>/^\\d+\\.\\d+$/.test(VERSION)&&document.querySelector('.verTag').textContent.includes(VERSION)"), pg.evaluate("()=>VERSION"))
     check("title is PCE-842", "PCE-842" in pg.title(), pg.title())
 
     check("the player's ship model is in place", pg.evaluate("()=>!!SHIPM.mesh&&!!SHIPM.pts"))
@@ -68,7 +89,7 @@ with sync_playwright() as p:
     check(f"draw calls within budget ({DRAW_CALL_BUDGET})", calls <= DRAW_CALL_BUDGET, f"{calls} calls")
     check("the P-51 is hidden", pg.evaluate("()=>plane.visible===false"))
     SHOTS.mkdir(exist_ok=True)
-    pg.screenshot(path=str(SHOTS / "PCE-842_chase.png"))
+    shot(path=str(SHOTS / "PCE-842_chase.png"))
 
     # drive the physics directly (fast and independent of the frame rate): ring up flank speed
     pg.evaluate("()=>{keys.KeyW=true}")
@@ -100,20 +121,21 @@ with sync_playwright() as p:
 
     # cameras: back to the start, under way, chase then bridge
     pg.evaluate("()=>{reset();SHIP.tel=0.6;SHIP.u=6}"); pg.wait_for_timeout(2500)
-    pg.screenshot(path=str(SHOTS / "PCE-842_chase_underway.png"))
+    shot(path=str(SHOTS / "PCE-842_chase_underway.png"))
     pg.keyboard.press("KeyC"); pg.wait_for_timeout(1500)
     check("C switches to the bridge", pg.evaluate("()=>camMode===1"))
     eye = pg.evaluate("()=>cam.position.y-SHIPM.Y")
     check("open-bridge eye is about 11.8 m above the water", 10.8 < eye < 12.9, f"{eye:.1f} m")
-    pg.screenshot(path=str(SHOTS / "PCE-842_bridge.png"))
+    shot(path=str(SHOTS / "PCE-842_bridge.png"))
     pg.keyboard.press("KeyC"); pg.wait_for_timeout(500)
     check("C switches back to the chase camera", pg.evaluate("()=>camMode===0"))
 
     check("the ocean surface is in the scene", pg.evaluate("()=>!!OCEAN.mesh.parent&&OCEAN.mesh.material.transparent"))
     mv = pg.evaluate("()=>{const x=SHIPM.pts[0][0],z=SHIPM.pts[0][1];let a=OCEAN.h(x,z,10),mx=0;for(let t=10;t<20;t+=0.5)mx=Math.max(mx,Math.abs(OCEAN.h(x,z,t)-a));return mx}")
     check("the waves move in deep water", mv > 0.2, f"{mv:.2f} m of change in 10 s")
-    sh = pg.evaluate("()=>{for(let r=0;r<20000;r+=20){const x=SHIPM.pts[0][0]+r,z=SHIPM.pts[0][1];const d=OCEAN.depthAt(x,z);if(d>0.5&&d<5)return Math.abs(OCEAN.h(x,z,3)-OCEAN.Y)+Math.abs(OCEAN.h(x,z,7)-OCEAN.Y);}return -1}")
-    check("the waves die away in shallow water", 0 <= sh < 1e-6, f"{sh}")
+    # the waves run in over the shallows (crests only, no troughs below the painted floor) and die away at the water's edge (under 0.4 m)
+    sh = pg.evaluate("()=>{let edge=-1,tr=0;for(let r=0;r<20000;r+=2){const x=SHIPM.pts[0][0]+r,z=SHIPM.pts[0][1];const d=OCEAN.depthAt(x,z);if(d>0.05&&d<0.4&&edge<0)edge=Math.abs(OCEAN.h(x,z,3)-OCEAN.Y)+Math.abs(OCEAN.h(x,z,7)-OCEAN.Y);if(d>0.5&&d<15)for(const t of [1,3,5,7])tr=Math.min(tr,OCEAN.h(x,z,t)-OCEAN.Y);}return [edge,tr]}")
+    check("the waves die away at the water's edge, and over the shallows they only crest (no trough below the painted floor)", 0 <= sh[0] < 1e-6 and sh[1] >= -1e-6, f"{sh}")
     rd = pg.evaluate("""()=>{reset();let mh=0,mp=0,mr=0;for(let i=0;i<60*30;i++){OCEAN.U.uTime.value=100+i/60;shipStep(1/60);shipPose(1/60);mh=Math.max(mh,Math.abs(SHIPW.hv));mp=Math.max(mp,Math.abs(SHIPW.pi));mr=Math.max(mr,Math.abs(SHIPW.ro));}return [mh,mp*57.3,mr*57.3]}""")
     check("the ship rides the waves (heave, pitch, roll)", 0.05 < rd[0] < 1.5 and 0.1 < rd[1] < 6 and 0.2 < rd[2] < 15, f"heave {rd[0]:.2f} m, pitch {rd[1]:.1f} deg, roll {rd[2]:.1f} deg")
     dims = pg.evaluate("()=>{const g=SHIPM.mesh.geometry;g.computeBoundingBox();const b=g.boundingBox;return [b.max.x-b.min.x,PCEM.hb(45,PCEM.top(45)-1e-3)*2]}")
@@ -127,6 +149,7 @@ with sync_playwright() as p:
     pg.keyboard.press("Digit5"); pg.wait_for_timeout(200); pg.keyboard.press("Digit5"); pg.wait_for_timeout(200)
     check("pressing a station key again steps to its second view", pg.evaluate("()=>SHIP.stn===5&&SHIP.sub===1"))
     # ---- the gunner ----
+    fresh()
     check("the three player guns are moving parts", pg.evaluate("()=>GUN.M.map(g=>g.id).sort().join()==='20,3in,40'&&GUN.M.every(g=>g.m.tr.parent===g.m.o&&g.m.el.parent===g.m.tr)"))
     pg.keyboard.press("Digit1"); pg.wait_for_timeout(200)
     cyc = []
@@ -138,7 +161,7 @@ with sync_playwright() as p:
     check("the player replaces the gun's pointer (his crewman hidden, the others' shown)", pg.evaluate("()=>!gunOf('3in').m.pm.visible&&gunOf('20').m.pm.visible&&gunOf('40').m.pm.visible"))
     sc = pg.evaluate("()=>({fov:cam.fov,ov:$$('gunOv').style.display})")
     check("3\"/50: through the pointer's telescope", abs(sc["fov"] - 10) < 0.01 and sc["ov"] == "block", str(sc))
-    pg.screenshot(path=str(SHOTS / "PCE-842_gun_3in.png"))
+    shot(path=str(SHOTS / "PCE-842_gun_3in.png"))
     pg.keyboard.press("KeyX"); pg.wait_for_timeout(300)
     check("X looks up from the sight", pg.evaluate("()=>GUN.look&&cam.fov===65&&$$('gunOv').style.display==='none'"))
     pg.keyboard.press("KeyX"); pg.wait_for_timeout(200)
@@ -148,6 +171,9 @@ with sync_playwright() as p:
     pg.keyboard.down("Backquote"); pg.mouse.down(button="right"); pg.mouse.move(460, 270, steps=2); pg.mouse.up(button="right"); pg.keyboard.up("Backquote")
     d2 = pg.evaluate("()=>gunOf('3in').trT") - a0[0] - d1
     check("3\"/50: the mouse lays it like the other guns, and ` makes the moves six times bigger", d1 > 0 and abs(d2 / d1 - 6) < 0.3, f"{d1:.5f} {d2:.5f}")
+    # start from a mid elevation: under headless pointer capture the synthetic moves above can come through as one big jump that pins
+    # the gun at its top limit (the original 0.51 captures the pointer the same way), and a drag upward could not then be seen
+    pg.evaluate("()=>{const g=gunOf('3in');g.elT=g.el=0.4;}")
     a0 = pg.evaluate("()=>[gunOf('3in').trT,gunOf('3in').elT,SHIP.rud,SHIP.tel]")
     pg.mouse.move(430, 240); pg.mouse.down(button="right"); pg.mouse.move(380, 210, steps=4); pg.wait_for_timeout(200); pg.mouse.up(button="right"); pg.wait_for_timeout(200)
     a1 = pg.evaluate("()=>[gunOf('3in').trT,gunOf('3in').elT]")
@@ -171,7 +197,7 @@ with sync_playwright() as p:
     r0 = pg.evaluate("()=>GUN.cur.rnd")
     pg.keyboard.down("Space"); pg.wait_for_timeout(1500)
     tr = pg.evaluate("()=>GUN.geo.drawRange.count")
-    pg.screenshot(path=str(SHOTS / "PCE-842_gun_20mm.png"))
+    shot(path=str(SHOTS / "PCE-842_gun_20mm.png"))
     pg.keyboard.up("Space")
     r1 = pg.evaluate("()=>GUN.cur.rnd")
     check("20 mm: fires from its 60-round drum, with tracer", r1 < r0 and tr > 0, f"{r0} -> {r1} rounds, {tr // 2} tracers")
@@ -181,7 +207,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const g=GUN.cur;g.elT=0.1;g.trT=g.tr+0.4;}"); pg.wait_for_timeout(600)
     al = pg.evaluate("()=>{const g=GUN.cur;g.ft=0;g.al=[8,8];keys.Space=true;for(let i=0;i<4;i++)gunUpdate(0.23);keys.Space=false;return g.al}")
     check("twin 40 mm: the barrels fire in turn from their autoloaders", al[0] < 8 and al[1] < 8 and abs(al[0] - al[1]) <= 1, str(al))
-    pg.screenshot(path=str(SHOTS / "PCE-842_gun_40mm.png"))
+    shot(path=str(SHOTS / "PCE-842_gun_40mm.png"))
     pg.keyboard.press("KeyT"); pg.wait_for_timeout(300)
     pt = pg.evaluate("()=>PT.on&&PT.L.filter(t=>t.kind==='raft').length===5&&PT.L.filter(t=>t.kind==='sleeve').length===2")
     hit = pg.evaluate("()=>{const t=PT.L.find(x=>x.kind==='sleeve');const n=PT.hits.sleeve;ptHit(t.p.clone().add(new THREE.Vector3(-4,0,0)),t.p.clone().add(new THREE.Vector3(4,0,0)),GSPEC['40']);return PT.hits.sleeve===n+1}")
@@ -198,7 +224,7 @@ with sync_playwright() as p:
     check("sleeve kill zones: 40 mm 0.23 m off misses in Hardcore, kills in game mode; 20 mm needs two hits; the sleeve is re-streamed", kz == [False, True, True, True], str(kz))
     wv = pg.evaluate("()=>{$$('wvMode').value='guns';$$('wvMode').onchange();for(let i=0;i<200;i++)shipPose(0.05);const a=SHIPW.k;$$('wvMode').value='on';$$('wvMode').onchange();return a}")
     check("Wave motion 'off at the guns' holds her level while on a gun", wv < 0.01, f"k={wv:.3f}")
-    hc = pg.evaluate("()=>{$$('gmMode').value='hard';$$('gmMode').onchange();const t0=SHIP.tel;keys.KeyW=true;shipStep(0.5);keys.KeyW=false;const a=SHIP.tel===t0;$$('wvMode').value='off';$$('wvMode').onchange();for(let i=0;i<100;i++)shipPose(0.05);const b=SHIPW.k>0.99;$$('wvMode').value='on';$$('wvMode').onchange();$$('gmMode').value='game';$$('gmMode').onchange();keys.KeyW=true;shipStep(0.5);keys.KeyW=false;return [a,b,SHIP.tel>t0]}")
+    hc = pg.evaluate("()=>{{const c=$$('hcOn');c.checked=true;c.onchange({target:c});}const t0=SHIP.tel;keys.KeyW=true;shipStep(0.5);keys.KeyW=false;const a=SHIP.tel===t0;$$('wvMode').value='off';$$('wvMode').onchange();for(let i=0;i<100;i++)shipPose(0.05);const b=SHIPW.k>0.99;$$('wvMode').value='on';$$('wvMode').onchange();{const c=$$('hcOn');c.checked=false;c.onchange({target:c});}keys.KeyW=true;shipStep(0.5);keys.KeyW=false;return [a,b,SHIP.tel>t0]}")
     sc = pg.evaluate("()=>{const g=gunOf('3in');GUN.B.length=0;gunFire(g,0);GUN.B.forEach(b=>b.own=true);SCAM.want=true;scamStart();const a=SCAM.on;let n=0;while(GUN.B.length&&n<3000){gunUpdate(0.02);n++}return a&&$$('scOn').checked!==undefined}")
     check("shell cam: starts on the player's shells in flight (Settings option)", sc)
     ap = pg.evaluate("""()=>{ptToggle();const s=PT.L.find(t=>t.kind==='sleeve'&&t.gun==='40');ptUpdate(0.01);const g=gunOf('40');GUN.B.length=0;
@@ -220,6 +246,7 @@ with sync_playwright() as p:
     check("Settings has the sight-rings option (game mode aim rings at the guns)", pg.evaluate("()=>UI.items.some(i=>i.id==='gring'&&UI.applies(i))&&typeof gunRings==='function'"))
     check("Hardcore: no engines from a gun, wave motion always on; game mode: engines from any station", all(hc), str(hc))
     # ---- the other stations at work ----
+    fresh()
     check("live instruments are on the ship (radar, sonar, radio, gauges, telegraphs, compass, depth-charge board)",
           pg.evaluate("()=>['radar','sonarRec','sonarBrg','radio','eTel','eg0','qmTelP','qmCompass','qmRudder','oodGyro','dcBoard'].every(k=>STN.F[k]&&STN.F[k].m.parent===SHIPM.mesh)"))
     devs = pg.evaluate("()=>PCEM.STN[3].map(v=>v.dev).join()")
@@ -246,7 +273,7 @@ with sync_playwright() as p:
          if(ASW.deb)break;}
        const d=ASW.deb,held=ASW.ph==='done'&&!PT.on;for(let k=0;k<5;k++)aswStep(0.05,true);const still=ASW.ph==='done'&&ASW.deb===d;
        SHIP.stn=1;aswStep(0.05,true);const gone=ASW.ph==='idle'&&!ASW.deb;paused=was;return [d,held&&still&&gone]}""")
-    check("an attack run: the OOD cons, orders the Hedgehog and the pattern, debriefs; targets off, the score held until he leaves", run and "ORDERS 5/5 ON TIME" in (run[0] or "") and "DEPTH RIGHT" in (run[0] or "") and run[1], str(run))
+    check("an attack run: the OOD cons, orders the Hedgehog and the pattern (every order on time, however many the run needs), debriefs; targets off, the score held until he leaves", run and __import__("re").search(r"ORDERS (\d+)/\1 ON TIME", run[0] or "") and "DEPTH RIGHT" in (run[0] or "") and run[1], str(run))
     wh = pg.evaluate("()=>{const r=SHIP.rud;SHIP.rud=0.5;stnUpdate(0.01);const a=STN.wheel.rotation.x;SHIP.rud=r;return a}")
     check("quartermaster: the wheel turns with the helm", abs(wh - 0.5 * 3.14159 * 3) < 0.01, f"{wh:.2f} rad")
     pg.keyboard.press("KeyC"); pg.wait_for_timeout(300)
@@ -255,19 +282,22 @@ with sync_playwright() as p:
     pg.keyboard.press("Digit2"); pg.wait_for_timeout(1200)
     er = pg.evaluate("()=>({y:cam.position.y-pos.y})")
     check("engine room eye is below the waterline (not pushed up to the sea)", er["y"] < 0.5, f"{er['y']:.2f} m relative to the waterline")
-    pg.screenshot(path=str(SHOTS / "PCE-842_engine_room.png"))
+    shot(path=str(SHOTS / "PCE-842_engine_room.png"))
     pg.keyboard.press("Digit1"); pg.wait_for_timeout(200)
     pg.keyboard.press("KeyP"); pg.wait_for_timeout(400)
     vis = pg.evaluate("()=>[...document.querySelectorAll('#pmTabs button')].filter(b=>b.offsetParent!==null).map(b=>b.textContent)")
-    check("pause menu shows only the ship's pages (Settings, Controls)", vis == ["Settings", "Controls"], ", ".join(vis))
+    check("pause menu shows the ship's pages (Settings, Missions, About, Controls, Operations, Hardcore)", vis == ["Settings", "Missions", "About", "Controls", "Operations", "Hardcore"], ", ".join(vis))
     pg.evaluate("()=>pmSetTab('ctl')"); pg.wait_for_timeout(300)
     ctl = pg.evaluate("()=>$$('pmPaneC').innerText")
     check("no artificial horizon, and the controls box is short", pg.evaluate("()=>getComputedStyle($$('hz')).display==='none'&&$$('hkBody').innerText.split('\\n').length<=6"))
     check("Controls page describes the ship", "Rudder" in ctl and "Engines" in ctl and "Flaps" not in ctl)
-    pg.screenshot(path=str(SHOTS / "PCE-842_controls.png"))
+    shot(path=str(SHOTS / "PCE-842_controls.png"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
-    pg.keyboard.press("KeyM"); pg.keyboard.press("KeyJ"); pg.keyboard.press("KeyJ"); pg.keyboard.press("KeyB"); pg.wait_for_timeout(300)
-    check("P-51 keys (missions, bail out, bandit) do nothing", pg.evaluate("()=>!BL.on&&!EN.length&&!pmOpen"))
+    pg.keyboard.press("KeyJ"); pg.keyboard.press("KeyJ"); pg.keyboard.press("KeyB"); pg.wait_for_timeout(300)
+    check("P-51 keys (bail out, bandit) do nothing", pg.evaluate("()=>!BL.on&&!EN.length&&!pmOpen"))
+    pg.keyboard.press("KeyM"); pg.wait_for_timeout(300)
+    check("M opens the ship's Missions page", pg.evaluate("()=>pmOpen"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     keys_ = pg.evaluate("()=>Object.keys(localStorage)")
     check("settings use PCE-842's own keys (never the P-51's)", not any(k.startswith("p51") for k in keys_), ", ".join(keys_[:6]))
     check("no script errors while sailing", not errors, "; ".join(errors[:3]))

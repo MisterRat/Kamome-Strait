@@ -142,7 +142,7 @@ with sync_playwright() as p:
     slider("tsGain", 200); slider("tsYaw", 0); box("tsInv", True); box("tsInvR", True)
     cfg = pg.evaluate("()=>[TC.cfg.gain,TC.cfg.yaw,TC.cfg.invP,TC.cfg.invR]")
     check("tilt sliders and invert boxes change the settings", cfg == [2, 0, True, True], str(cfg))
-    saved = pg.evaluate("()=>store.get('p51tc',{})")
+    saved = pg.evaluate("()=>store.get('tc',{})")  # the store adds the game's own prefix (GAME.key: p51tc in the stand-alone P-51)
     check("tilt settings are saved", saved.get("gain") == 2 and saved.get("invP") is True, str(saved))
     slider("tsGain", 100); slider("tsYaw", 100); box("tsInv", False); box("tsInvR", False)
 
@@ -637,7 +637,7 @@ with sync_playwright() as p:
       const sh=AFLD.a.filter(o=>o.kind==='ship'); const sea=sh.every(o=>HR(o.x,o.z)<-8);
       for(let i=0;i<60*400;i++) AFLD.update(1/60); const sea2=sh.every(o=>HR(o.x,o.z)<-8);
       return [mv.length, moved, sh.length, sea, sea2]}""")
-    check("working airfield: the taxiing fighter, vehicles and crew all move about, and three ships stay on open water", wk[0] >= 7 and wk[1] == wk[0] and wk[2] == 3 and wk[3] and wk[4], str(wk))
+    check("working airfield: the taxiing fighter, vehicles and crew all move about, and the allied fleet (PT-105, PCE-843, PCE-842, PT-106) stays on open water", wk[0] >= 7 and wk[1] == wk[0] and wk[2] == 4 and wk[3] and wk[4], str(wk))
     # ---- the cloud deck ----
     dk = pg.evaluate("""()=>{ WX.setWx('clear'); const off=!DECK.on; WX.setWx('overcast'); updWX(0.1); const on=DECK.on&&DECK.base===1700; const spr=CLOUDS.every(c=>!c.userData.wx);
       let sx=0,sz=0; for(let i=0;i<400;i++){ if(DECK.cover(i*97-19000,i*53-9000)){sx=i*97-19000;sz=i*53-9000;break} }
@@ -688,7 +688,8 @@ with sync_playwright() as p:
     rd = pg.evaluate("""()=>{ const q=SITE.w(40,5), q2=SITE.w(40,-105), d=(p,x,z)=>Math.hypot(p.x-x,p.z-z); const a=RP2[0], e=RP2[RP2.length-1], c=RP3[0], f=RP3[RP3.length-1];
       const land=[...RP2,...RP3].every(p=>HR(p.x,p.z)>1); const far=[...RP2,...RP3].every(p=>Math.hypot(p.x,p.z-300)>2500);
       let pad=0; for(let u=-700;u<=700;u+=100)for(let k=-1000;k<=-560;k+=110){const [x,z]=SITE.w(u,k);pad=Math.max(pad,Math.abs(HR(x,z)-SITE.H0))}
-      return [d(a,q[0],q[1]), d(e,DEPOT[0],DEPOT[1]), d(c,BASE[0],BASE[1]), d(f,q2[0],q2[1]), land, far, pad, SITES.some(t=>t.type==='tower'), nearRoad(RSPUR[4].x,RSPUR[4].z,5), SITES.filter(t=>{ if(t.type==='ship') return false; t.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(t.m).expandByScalar(4); return [...RP2,...RP3,...RSPUR].some(p=>p.x>bb.min.x&&p.x<bb.max.x&&p.z>bb.min.z&&p.z<bb.max.z) }).length]}""")
+      return [d(a,q[0],q[1]), Math.min(d(e,DEPOT[0],DEPOT[1]), RP.reduce((m,p)=>Math.min(m,Math.hypot(p.x-e.x,p.z-e.z)),1e9)), d(c,BASE[0],BASE[1]), d(f,q2[0],q2[1]), land, far, pad, SITES.some(t=>t.type==='tower'), nearRoad(RSPUR[4].x,RSPUR[4].z,5), SITES.filter(t=>{ if(t.type==='ship') return false; t.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(t.m).expandByScalar(4); return [...RP2,...RP3,...RSPUR].some(p=>p.x>bb.min.x&&p.x<bb.max.x&&p.z>bb.min.z&&p.z<bb.max.z) }).length]}""")
+    # the port road reaches the depot by joining the convoy road (which starts at the depot gate): its end is on that road, or at the depot
     check("enemy roads: port to airbase gate to the depot, and the second base back to the port, all on dry land, none near your airfield; the airbase pad is level; the tower and gate spur exist, and no road runs through a building",
           rd[0] < 30 and rd[1] < 110 and rd[2] < 110 and rd[3] < 30 and rd[4] and rd[5] and rd[6] < 0.2 and rd[7] and rd[8] and rd[9] == 0, str(rd))
     fz = pg.evaluate("""()=>{ let m=1e9; for(const L of [RP,RP2,RP3]) for(const p of L){ const dx=p.x-SITE.O.x, dz=p.z-SITE.O.z, u=dx*SITE.A.x+dz*SITE.A.z, d=dx*SITE.S.x+dz*SITE.S.z; const e=Math.hypot(Math.max(0,Math.abs(u)-650,0), Math.max(0,-1060-d,d+670)); if(Math.abs(u)<650&&d>-1060&&d<-670) return -1; m=Math.min(m,Math.hypot(Math.max(0,Math.abs(u)-650),Math.max(0,-1060-d,d+670))) } return m }""")
@@ -722,9 +723,10 @@ with sync_playwright() as p:
     fsx = pg.evaluate("""()=>{
       const o={};
       o.kinds=FS.list.map(f=>f.kind).join(',');
-      /* every pad is dead level over its working area (the terrain function, so collision, mesh and scenery agree) */
+      /* every pad is dead level over its working area: the terrain function, and the drawn top surface everything stands on (SURF: the
+         yard slab over the 100 m terrain mesh, which may slope beneath it toward the water) */
       o.level=FS.list.every(f=>{WH(f.O.x,f.O.z);const q=f.kind==='air'?[[-500,-800],[0,-750],[500,-800]]:f.kind==='port'?[[-100,-80],[0,-20],[100,-60]]:[[-100,-60],[0,0],[100,60]];
-        return q.every(([u,d])=>{const [x,z]=f.w(u,d);return Math.abs(WH(x,z)-f.H)<0.01&&Math.abs(H(x,z)-f.H)<0.01})});
+        return q.every(([u,d])=>{const [x,z]=f.w(u,d);return Math.abs(WH(x,z)-f.H)<0.01&&SURF(x,z)-f.H>-0.01&&SURF(x,z)-f.H<0.35})});
       /* no farm, hamlet or tree-free exclusion broken: nothing of the rural world on a pad */
       o.clear=(()=>{const N=WORLD.NET;let bad=0;for(const f of FS.list)for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const x=f.O.x+a*1200,z=f.O.z+b*1200;const fm=N.farm(Math.floor(x/N.FC),Math.floor(z/N.FC));if(fm&&FS.near(fm.x,fm.z,0))bad++;const hm=N.hamlet(Math.floor(x/N.RG),Math.floor(z/N.RG));if(hm&&FS.near(hm.x,hm.z,0))bad++}return bad})();
       o.far=SITE.far.length;o.pat=SITE.far.filter(s=>s.pat).length;o.civ=SITE.civ.length;
