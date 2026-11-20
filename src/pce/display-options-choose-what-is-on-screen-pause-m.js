@@ -11,7 +11,6 @@ const UI = {
     { id: 'help', label: 'Controls help (H)', sel: '#help', g: 'Instruments' },
     { id: 'gring', label: 'Sight rings at the guns: where to aim (game mode)', sel: '#gunRing', g: 'Aids' },
     { id: 'bandit', label: 'Bandit marker and lead ring', sel: '#bd,#bdt,#lead', g: 'Aids', sc: 'none' },
-    { id: 'guide', label: 'Flight path guide in trainers (L); ADF radio compass on/off in free flight (L)', g: 'Aids', sc: 'none' },
     { id: 'cross', label: 'Guns', sel: '#cross', g: 'Sight rings', sc: 'none' },
     { id: 'rkring', label: 'Rockets', sel: '#rkip', g: 'Sight rings', sc: 'none' },
     { id: 'bmring', label: 'Bombs', sel: '#ccip', g: 'Sight rings', sc: 'none' },
@@ -45,7 +44,6 @@ const UI = {
       else delete this.hid[id];
     } else this.hid[id] = 1;
     document.body.classList.toggle('hide-' + id, !v);
-    if (id === 'guide') guide.on = v;
     this.save();
   },
   toggle(id) {
@@ -79,5 +77,4 @@ if (MOB && !UI.hid._mob) {
   UI.items.forEach((i) => {
     if (UI.hid[i.id]) document.body.classList.add('hide-' + i.id);
   });
-  if (UI.hid.guide) guide.on = false;
 }

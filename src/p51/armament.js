@@ -1,16 +1,4 @@
 /* ---------- armament ---------- */
-const glowTex = (() => {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d'),
-    gr = g.createRadialGradient(32, 32, 1, 32, 32, 32);
-  gr.addColorStop(0, 'rgba(255,255,255,1)');
-  gr.addColorStop(0.35, 'rgba(255,255,255,.7)');
-  gr.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = gr;
-  g.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
-})();
 const gunLoc = [],
   AMMO0 = [380, 270, 270, 380, 270, 270];
 let ammo = AMMO0.slice();
@@ -67,8 +55,7 @@ const flashS = gunLoc.map((l) => {
 const rkMesh = [],
   ORD = [2, 5, 1, 4, 0, 3];
 let rkN = 0,
-  bmN = 0,
-  killed = 0;
+  bmN = 0;
 [-1, 1].forEach((sd) =>
   [3.7, 4.1, 4.5].forEach((x) =>
     rkMesh.push(
@@ -97,7 +84,6 @@ const bmMesh = [];
 const B = [],
   RK = [],
   BM = [],
-  FX = [],
   MAXB = 500,
   bpos = new Float32Array(MAXB * 6),
   bgeo = new THREE.BufferGeometry();

@@ -99,7 +99,7 @@ function pollPad() {
     if (!DM.bailHold) DM.bailHold = performance.now();
     else if (performance.now() - DM.bailHold > 1500) {
       DM.bailHold = 0;
-      bailOut();
+      SIMS.cur.bail();
     }
   } else DM.bailHold = 0;
   pad.thr = mod ? 0 : (bp(PB.thrUp) ? 1 : 0) - (bp(PB.thrDn) ? 1 : 0); /* d-pad up/down: throttle */
@@ -107,8 +107,8 @@ function pollPad() {
   pad.brake = bp(PB.brake); /* trigger guns, button brakes */
   pad.lx = dzf(a[0], 0.1);
   pad.ly = dzf(a[1], 0.1); /* left stick: look */
-  if (e(PB.rocket)) fireRocket();
-  if (e(PB.bomb)) dropBomb();
+  if (e(PB.rocket)) SIMS.cur.act.rocket && SIMS.cur.act.rocket();
+  if (e(PB.bomb)) SIMS.cur.act.bomb && SIMS.cur.act.bomb();
   if (e(PB.camera)) {
     if (ROAM.on) roamExit();
     else if (orbitOn) orbReset();

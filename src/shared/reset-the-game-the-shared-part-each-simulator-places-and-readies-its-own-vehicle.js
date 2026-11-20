@@ -3,7 +3,8 @@ function reset() {
   try {
     roamExit(true);
   } catch (e) {}
-  resetWeapons();
+  SIMS.cur.resetBegin() /* its own weapons and systems */;
+  killed = 0;
   paused = false;
   invT = 0;
   blk = 0;
@@ -19,10 +20,10 @@ function reset() {
   s = { p: 0, r: 0, y: 0 };
   trimGround();
   crashed = false;
-  bailReset();
   SIMS.cur.ready() /* gear, which model shows, where the chase camera starts */;
   $$('msg').style.display = 'none';
-  trainerReset();
-  PP.ix = 0;
-  if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
+  convoyClear(); /* the world's enemy convoy back to its start */
+  CV.st = 'idle';
+  CV.tm = 8;
+  SIMS.cur.resetEnd() /* its missions and trainers */;
 }

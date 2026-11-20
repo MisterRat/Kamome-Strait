@@ -17,7 +17,7 @@ function pmBuild() {
       '<label><input type="checkbox" data-id="' +
       i.id +
       '" ' +
-      ((i.id === 'guide' ? guide.on : UI.vis(i.id)) ? 'checked' : '') +
+      (UI.vis(i.id) ? 'checked' : '') +
       '> ' +
       (MOB ? i.label.replace(/ \([A-Z]\)$/, '') : i.label) +
       '</label>';

@@ -28,5 +28,3 @@ function mergeGroup(g) {
     g.add(new THREE.Mesh(geo, m));
   });
 }
-let noseArtApply = null,
-  noseTally = null;

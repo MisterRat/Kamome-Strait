@@ -193,33 +193,14 @@ const COLL = (() => {
       const i = B.indexOf(b);
       if (i >= 0) B.splice(i, 1);
     },
-    /* once a frame; the player's own ship and the practice targets (the towing PT boat, the sled) join the first time they exist:
+    /* once a frame; a simulator's own bodies (HOOKS.collJoin: the PCE's ship, her practice targets) join the first time they exist:
        the others keep clear of them (they do not steer for them) */
     tick() {
       frame++;
-      try {
-        if (!this.pl && typeof SHIPM !== 'undefined' && SHIPM.mesh) {
-          const m = SHIPM.mesh,
-            b = { sea: true, hl: 28.1, r: 5.2, mg: 6, x: m.position.x, z: m.position.z, yaw: m.rotation.y, v: 0 };
-          b.get = () => {
-            const nx = m.position.x,
-              nz = m.position.z;
-            b.v = b.px == null ? 0 : Math.hypot(nx - b.px, nz - b.pz) * 60;
-            (b.px = nx), (b.pz = nz), (b.x = nx), (b.z = nz), (b.yaw = m.rotation.y);
-          };
-          this.pl = this.add(b);
-        }
-      } catch (e) {}
-      try {
-        if (typeof PT !== 'undefined' && PT.L)
-          for (const t of PT.L)
-            if (!t.cb && t.m && (t.kind === 'ptboat' || t.kind === 'sled')) {
-              const big = t.kind === 'ptboat',
-                b = { sea: true, hl: big ? 12.2 : 4.2, r: big ? 3.2 : 1.5, mg: 4, x: 0, z: 0, yaw: 0, v: 0 };
-              b.get = () => ((b.x = t.m.position.x), (b.z = t.m.position.z), (b.yaw = t.m.rotation.y), (b.v = t.v && t.v.length ? t.v.length() : 0));
-              t.cb = this.add(b);
-            }
-      } catch (e) {}
+      for (const fn of HOOKS.collJoin)
+        try {
+          fn(this);
+        } catch (e) {}
     },
     look,
     steer,

@@ -19,6 +19,7 @@
      chase(dt, cp, cu, T) the chase camera: ease cp (position) and cu (up) toward the sim's chase spot, set T (where it looks)
      orbitLift          metres above pos that the orbit camera looks at
      view(dt, fov)      after the vehicle's cameras: the field of view and sight overlays
+     replay(dt)         while a replay is on (RPL.on): play it and set its camera
      overCam(dt)        a camera of its own that takes over (the P-51's parachute descent); busy() true while it does
      below()            may the eye go below the ground or the water (a ship's engine room)
      near()             the camera's near plane in first person
@@ -26,14 +27,17 @@
      hudEarly(dt), hud(dt), hudLate(dt)   its screen: before the shared clouds/world/weather updates, after them, after the minimap
      preRender()        last changes before the frame is drawn (the PCE's sealed engine room)
    and, outside the frame loop:
+     resetBegin()       first thing in a reset: its own weapons and systems back to the start
      spawn()            put the vehicle at its start (position, attitude) when the game is reset
      ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
+     resetEnd()         last thing in a reset: its missions and trainers
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
+     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
-     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does)
+     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
    A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
 const SIMS = {
   list: [],
@@ -62,6 +66,7 @@ const SIMS = {
     },
     orbitLift: 0,
     view: () => {},
+    replay: () => {},
     overCam: () => {},
     busy: () => false,
     below: () => false,
@@ -71,10 +76,14 @@ const SIMS = {
     hud: () => {},
     hudLate: () => {},
     preRender: () => {},
+    resetBegin: () => {},
     spawn: () => {},
     ready: () => {},
+    resetEnd: () => {},
     aimY: () => pos.y,
     hit: () => false,
+    afloat: false,
+    struck: () => false,
     label: '',
     fileTag: '',
     word: 'Vehicle',
@@ -84,6 +93,8 @@ const SIMS = {
     showSelf: () => {},
     padMenu: false,
     r3: () => {},
+    touchUI: () => {},
+    bail: () => {},
   },
   add(r) {
     const o = SIMS.get(r.id);

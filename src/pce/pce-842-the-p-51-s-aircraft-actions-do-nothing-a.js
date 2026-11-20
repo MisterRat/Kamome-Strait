@@ -15,7 +15,6 @@ SIMS.add({ id: 'pce', uiAct: {
     mmZ = Math.max(0, Math.min(MMR.length - 1, mmZ - 1));
     mmT = 0;
   },
-  bail: () => bailPress(),
   photo: () => photoToggle(),
   mute: () => {
     SND.setOn(!SND.on);
@@ -26,15 +25,6 @@ SIMS.add({ id: 'pce', uiAct: {
     QL.mode = QMODES[(QMODES.indexOf(QL.mode) + 1) % QMODES.length];
     applyQuality();
     note('GRAPHICS: ' + QL.mode.toUpperCase());
-  },
-  guide: () => {
-    if (trn.mode === 'free') {
-      UI.toggle('adf');
-      note(UI.vis('adf') ? 'ADF RADIO COMPASS ON' : 'ADF RADIO COMPASS OFF');
-    } else {
-      UI.set('guide', !guide.on);
-      note(guide.on ? 'FLIGHT PATH GUIDE ON' : 'FLIGHT PATH GUIDE OFF');
-    }
   },
 } });
 ['bail', 'guide', 'coach'].forEach((k) => (SIMS.get('pce').uiAct[k] = () => {})); /* PCE-842: no bail-out or path guide */

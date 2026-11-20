@@ -31,7 +31,3 @@ function makeChute(r, c1, c2) {
   g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xdcdcdc })));
   return g;
 }
-const plPilot = makePilot();
-plPilot.position.set(0, 0.07, -0.33);
-plPilot.scale.setScalar(0.95);
-model.add(plPilot);

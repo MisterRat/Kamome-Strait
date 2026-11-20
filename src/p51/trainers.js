@@ -1,5 +1,5 @@
 /* trainers */
-const trn = {
+Object.assign(trn, {
   mode: 'free',
   t: 0,
   done: false,
@@ -17,7 +17,7 @@ const trn = {
   pk: 0,
   spawn: 2,
   res: 0,
-};
+});
 const TRN_NAMES = {
   free: 'FREE FLIGHT',
   takeoff: 'TAKEOFF TRAINER',
@@ -57,10 +57,7 @@ function placeAt(x, y, z, tx, tz, spd) {
 function trainerReset() {
   if (RPL.busy && !RPL.keep) rpSimCancel(); /* a mission change while the pilot is still flying its hidden recording */
   if (RPL.on && !RPL.keep) rpStop();
-  convoyClear();
   guide.cvRe = false;
-  CV.st = 'idle';
-  CV.tm = 8;
   Object.assign(trn, {
     t: 0,
     done: false,
@@ -112,24 +109,6 @@ function trainerReset() {
   else if (AERO[m]) aeroStart(m);
   coachHide();
 }
-const coachEl = $$('coach'),
-  coachT = $$('coachT'),
-  coachS = $$('coachS'),
-  coachH = $$('coachH');
-let coachMin = false;
-function coach(title, text, hint, lvl) {
-  coachEl.style.display = 'block';
-  coachT.textContent = title;
-  const gi = guide.on && guide.info && guide.pts.length > 1 ? guide.info : '';
-  coachS.textContent = coachMin ? gi : text + (gi ? '\n' + gi : '');
-  coachH.textContent = hint || '';
-  coachH.className = lvl || '';
-  coachH.style.display = hint ? 'block' : 'none';
-}
-function coachHide() {
-  coachEl.style.display = 'none';
-}
-const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 function resupply(dt) {
   FM.fuel = 1; /* the trainers keep the tanks full */
   if (ammoTot() < 350) {

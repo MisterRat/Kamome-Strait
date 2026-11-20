@@ -138,10 +138,7 @@ function frame(now) {
     cam.lookAt(R_.orbitLift ? SC.aim.copy(pos).setY(pos.y + R_.orbitLift) : pos);
   }
   R_.view(dt, fovHint);
-  if (RPL.on) {
-    rpUpdate(dt);
-    rpCam();
-  }
+  if (RPL.on) R_.replay(dt);
   R_.overCam(dt);
   if (PHOTO.on) photoCam(dt);
   else if (ROAM.on) {

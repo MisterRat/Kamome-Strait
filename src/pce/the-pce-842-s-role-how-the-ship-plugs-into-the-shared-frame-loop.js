@@ -6,21 +6,19 @@ SIMS.add({
   label: 'PCE-842',
   fileTag: 'PCE842',
   word: 'Ship',
+  afloat: true,
+  struck: (p) => shipStruck(p),
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */
   showSelf: (on) => {
-    plane.visible = false;
     if (SHIPM.mesh) SHIPM.mesh.visible = on;
   },
   look: () => !!(GUN.cur && GUN.look) /* looking up from a gun's sight, the mouse turns the head */,
-  canStep: () => !crashed && !BL.on,
+  canStep: () => !crashed,
   step: (h) => shipStep(h),
   /* the ship on the waves and her stations, guns and practice targets */
   pose: (dt) => {
-    plane.position.copy(pos);
-    plane.quaternion.copy(q);
-    plane.visible = false;
     if (SHIPM.mesh && !PHOTO.on) SHIPM.mesh.visible = true;
     shipPose(dt);
     if (started && !paused) ptUpdate(dt);
@@ -78,7 +76,6 @@ SIMS.add({
   near: () => (GUN.cur && camMode == 1 ? 0.04 /* a gun's sight is close to the eye */ : 0.12),
   hudEarly: () => {
     $$('cross').style.display = 'none';
-    SHD.m.visible = false;
   },
   hud: () => shipHUD(),
   /* the engine room is sealed below the waterline: from in there the camera draws only the ship and the lights (layer 1). Nothing of
@@ -96,9 +93,7 @@ SIMS.add({
   /* the start: on her patrol line, heading along it (shipReset) */
   spawn: () => shipReset(),
   ready: () => {
-    gearOn = false;
     onGround = false;
-    plane.visible = false;
     cp.copy(pos).add(new V(0, 18, 75).applyQuaternion(q));
   },
 });

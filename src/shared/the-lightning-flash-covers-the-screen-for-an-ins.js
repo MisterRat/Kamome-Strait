@@ -150,7 +150,7 @@ Object.assign(WX, {
     AFL.visible = lt > 0.02;
     RWL.material.opacity = lt;
     RWL.visible = lt > 0.02;
-    NAVL.forEach((n) => {
+    HOOKS.nightLights.forEach((n) => {
       n.material.opacity = lt;
       n.visible = lt > 0.02;
     });

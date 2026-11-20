@@ -626,7 +626,7 @@ const SITES = [],
   const T14W = (SITE.t14w = { hits: 0, msgT: 0, fired: 0 }),
     TSP = 21.6,
     TRUN = 2000;
-  const t14Hot = () => AA.on && typeof shipStruck === 'function' && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
+  const t14Hot = () => AA.on && SIMS.cur.afloat && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
   const t14Fish = (RUN, x, z, yw) => {
     const o = new THREE.Object3D();
     const wk = shipWakeMesh(8 / 78, 0.05);
@@ -651,7 +651,7 @@ const SITES = [],
       const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z) /* at her waterline (the hull test's frame starts at the sea) */;
       let end = t.r > TRUN,
         boom = false;
-      if (typeof shipStruck === 'function' && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && shipStruck(p)) {
+      if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
         boom = end = true;
         T14W.hits++;
         note('TORPEDO HIT! (' + T14W.hits + ')');

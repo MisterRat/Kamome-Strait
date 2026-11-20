@@ -1,13 +1,10 @@
 /* what each binding does (the keys and buttons come from the role's bind table) */
 SIMS.add({ id: 'pce', act: {
-  gear: () => toggleGear(),
   camera: () => {
     if (ROAM.on) return roamExit();
     camMode ^= 1;
     if (camMode == 1) orbReset();
   },
-  rocket: () => fireRocket(),
-  bomb: () => dropBomb(),
   brake: () => {
     /* the brake key only brakes on the ground (see the physics); in the air it calls a bandit, and clears it if one is up */
     if (onGround) return;
@@ -39,16 +36,6 @@ SIMS.add({ id: 'pce', act: {
     /* Y: chase camera <-> roam camera */
     if (ROAM.on) roamExit();
     else roamEnter();
-  },
-  flapDn: () => {
-    if (DM.on && DM.hyd) return note('HYDRAULICS - FLAPS JAMMED');
-    flapLvl = Math.min(ANG.length - 1, flapLvl + 1);
-    SND.flaps();
-  },
-  flapUp: () => {
-    if (DM.on && DM.hyd) return note('HYDRAULICS - FLAPS JAMMED');
-    flapLvl = Math.max(0, flapLvl - 1);
-    SND.flaps();
   },
   trimC: () => {
     if (!FM.use('trim')) return note('TRIM WORKS IN HARDCORE MODE ONLY');

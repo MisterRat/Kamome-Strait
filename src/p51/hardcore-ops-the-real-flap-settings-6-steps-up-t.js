@@ -20,4 +20,3 @@ function gmax(v) {
     }
   return 7;
 }
-const PH_DT = 1 / 120; /* longest physics sub-step */

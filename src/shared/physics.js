@@ -12,3 +12,4 @@ function axes() {
   up.set(0, 1, 0).applyQuaternion(q);
   right.set(1, 0, 0).applyQuaternion(q);
 }
+const PH_DT = 1 / 120; /* longest physics sub-step (the frame loop splits each frame into these) */

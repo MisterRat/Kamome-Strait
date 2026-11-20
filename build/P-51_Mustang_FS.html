@@ -590,7 +590,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.62';
+const VERSION = '5.63';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -629,6 +629,16 @@ const HOOKS = {
   /* claimShip(kind, num, o): the allied fleet offers each ship as it is placed (o is its AFLD entry, mesh o.m). A handler that
      returns true takes her as a player's ship: she leaves the AI fleet and gets no AI gun crews. */
   claimShip: [],
+  /* mapDraw(g, lw): draw on the minimap after the world's marks (the canvas context in world metres, lw(px) a line width) */
+  mapDraw: [],
+  /* mapTarget(b): true if building b is the current mission's target (the minimap marks it orange) */
+  mapTarget: [],
+  /* coachInfo(): an extra line for the mission coach box (e.g. the flight path guide's advice), or '' */
+  coachInfo: [],
+  /* nightLights: meshes whose opacity follows the dusk (WX.paint): the vehicles' own navigation lights */
+  nightLights: [],
+  /* collJoin(C): once a frame, add a simulator's own bodies to collision avoidance (C is COLL; C.pl holds the player's own body) */
+  collJoin: [],
 };
 /* SIMS: every simulator plugs into the world through ONE role object, and the shared frame loop (the frame loop piece) knows nothing
    else about it. A new simulator is a folder of its own pieces (src/<id>/, its manifest) that ends with SIMS.add({ id, name, ... }); it
@@ -651,6 +661,7 @@ const HOOKS = {
      chase(dt, cp, cu, T) the chase camera: ease cp (position) and cu (up) toward the sim's chase spot, set T (where it looks)
      orbitLift          metres above pos that the orbit camera looks at
      view(dt, fov)      after the vehicle's cameras: the field of view and sight overlays
+     replay(dt)         while a replay is on (RPL.on): play it and set its camera
      overCam(dt)        a camera of its own that takes over (the P-51's parachute descent); busy() true while it does
      below()            may the eye go below the ground or the water (a ship's engine room)
      near()             the camera's near plane in first person
@@ -658,14 +669,17 @@ const HOOKS = {
      hudEarly(dt), hud(dt), hudLate(dt)   its screen: before the shared clouds/world/weather updates, after them, after the minimap
      preRender()        last changes before the frame is drawn (the PCE's sealed engine room)
    and, outside the frame loop:
+     resetBegin()       first thing in a reset: its own weapons and systems back to the start
      spawn()            put the vehicle at its start (position, attitude) when the game is reset
      ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
+     resetEnd()         last thing in a reset: its missions and trainers
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
+     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
-     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does)
+     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
    A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
 const SIMS = {
   list: [],
@@ -694,6 +708,7 @@ const SIMS = {
     },
     orbitLift: 0,
     view: () => {},
+    replay: () => {},
     overCam: () => {},
     busy: () => false,
     below: () => false,
@@ -703,10 +718,14 @@ const SIMS = {
     hud: () => {},
     hudLate: () => {},
     preRender: () => {},
+    resetBegin: () => {},
     spawn: () => {},
     ready: () => {},
+    resetEnd: () => {},
     aimY: () => pos.y,
     hit: () => false,
+    afloat: false,
+    struck: () => false,
     label: '',
     fileTag: '',
     word: 'Vehicle',
@@ -716,6 +735,8 @@ const SIMS = {
     showSelf: () => {},
     padMenu: false,
     r3: () => {},
+    touchUI: () => {},
+    bail: () => {},
   },
   add(r) {
     const o = SIMS.get(r.id);
@@ -735,6 +756,10 @@ const SIMS = {
     return s;
   },
 };
+/* the mission and replay state every simulator reads: which mission (trn.mode, 'free' for free play), and whether a replay is on.
+   A simulator with missions or a replay of its own adds its fields to these (the P-51's trainers and replay pieces do) */
+const trn = { mode: 'free', t: 0, done: false, sum: '', title: '', step: 0 };
+const RPL = { on: false, busy: false, keep: false, pause: false };
 /* the P-51D's role: how the fighter plugs into the shared frame loop (the role contract is in the SIMS piece). It is registered first,
    right after SIMS: every hook only looks up the game's code when it is called, and the game resets itself while it loads */
 SIMS.add({
@@ -746,8 +771,13 @@ SIMS.add({
   orbitDist: 13.5,
   docsTab: 'about',
   canBail: true,
+  bail: () => bailOut(),
   showSelf: (on) => (plane.visible = on),
   padMenu: true,
+  touchUI: () => {
+    $$('tGear').innerHTML = '<i>' + (gearOn ? '▼' : '▲') + '</i>GEAR ' + (gearOn ? 'DN' : 'UP');
+    $$('tFlU').innerHTML = '<i>▲</i>FLAP ' + FL[flapLvl];
+  },
   r3: () => setDiff((DIFFS.indexOf(DIFF) + 1) % 3) /* the enemy's skill, round the three */,
   canStep: () => !crashed && !BL.on,
   step: (h) => step(h),
@@ -827,6 +857,10 @@ SIMS.add({
     cu.lerp(up, 1 - Math.exp(-3 * dt)).normalize();
     T.copy(fwd).multiplyScalar(18).add(pos);
   },
+  replay: (dt) => {
+    rpUpdate(dt);
+    rpCam();
+  },
   overCam: (dt) => {
     if (BL.on) bailCam(dt);
   },
@@ -860,10 +894,18 @@ SIMS.add({
     pos.set(0, 2, 420);
     q.identity();
   },
+  resetBegin: () => resetWeapons(),
   ready: () => {
+    bailReset();
     gearOn = true;
     model.visible = true;
     cp.copy(pos).add(new V(0, 4, 14));
+  },
+  /* its trainers and the sim pilot's pre-flight of the mission's best path */
+  resetEnd: () => {
+    trainerReset();
+    PP.ix = 0;
+    if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
   },
   /* the world's guns lay on the aircraft; a round within 6.5 m of her strikes (held in the searchlights over 20 s: about twice as hard) */
   aimY: () => pos.y,
@@ -2294,33 +2336,14 @@ const COLL = (() => {
       const i = B.indexOf(b);
       if (i >= 0) B.splice(i, 1);
     },
-    /* once a frame; the player's own ship and the practice targets (the towing PT boat, the sled) join the first time they exist:
+    /* once a frame; a simulator's own bodies (HOOKS.collJoin: the PCE's ship, her practice targets) join the first time they exist:
        the others keep clear of them (they do not steer for them) */
     tick() {
       frame++;
-      try {
-        if (!this.pl && typeof SHIPM !== 'undefined' && SHIPM.mesh) {
-          const m = SHIPM.mesh,
-            b = { sea: true, hl: 28.1, r: 5.2, mg: 6, x: m.position.x, z: m.position.z, yaw: m.rotation.y, v: 0 };
-          b.get = () => {
-            const nx = m.position.x,
-              nz = m.position.z;
-            b.v = b.px == null ? 0 : Math.hypot(nx - b.px, nz - b.pz) * 60;
-            (b.px = nx), (b.pz = nz), (b.x = nx), (b.z = nz), (b.yaw = m.rotation.y);
-          };
-          this.pl = this.add(b);
-        }
-      } catch (e) {}
-      try {
-        if (typeof PT !== 'undefined' && PT.L)
-          for (const t of PT.L)
-            if (!t.cb && t.m && (t.kind === 'ptboat' || t.kind === 'sled')) {
-              const big = t.kind === 'ptboat',
-                b = { sea: true, hl: big ? 12.2 : 4.2, r: big ? 3.2 : 1.5, mg: 4, x: 0, z: 0, yaw: 0, v: 0 };
-              b.get = () => ((b.x = t.m.position.x), (b.z = t.m.position.z), (b.yaw = t.m.rotation.y), (b.v = t.v && t.v.length ? t.v.length() : 0));
-              t.cb = this.add(b);
-            }
-      } catch (e) {}
+      for (const fn of HOOKS.collJoin)
+        try {
+          fn(this);
+        } catch (e) {}
     },
     look,
     steer,
@@ -11114,8 +11137,6 @@ function mergeGroup(g) {
     g.add(new THREE.Mesh(geo, m));
   });
 }
-let noseArtApply = null,
-  noseTally = null;
 /* ---------- P-51 model ---------- */
 const plane = new THREE.Group(),
   model = new THREE.Group();
@@ -11148,6 +11169,9 @@ const add = (g, m, x, y, z, p = model) => {
   p.add(o);
   return o;
 };
+/* the nose art: the insignia piece sets these once the fuselage is built; the nose-art options piece calls them */
+let noseArtApply = null,
+  noseTally = null;
 /* ---------- wing, from the factory three-view: root chord 104 in, tip chord 50 in, 25% chord line at one fuselage station,
    trailing edge broken at the flap/aileron joint, 5 degrees of dihedral. Stations are inches from the spinner tip (1 in = 0.0254 m). */
 const WR = -0.58, /* wing root centre height: its top sits just under the cockpit floor */
@@ -11671,6 +11695,7 @@ function makeChute(r, c1, c2) {
   g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xdcdcdc })));
   return g;
 }
+/* the player's pilot in his seat (the figure is the shared one, makePilot) */
 const plPilot = makePilot();
 plPilot.position.set(0, 0.07, -0.33);
 plPilot.scale.setScalar(0.95);
@@ -14365,7 +14390,8 @@ let invT = 0,
   camMode = 0;
 const cp = new V(),
   cu = new V(0, 1, 0);
-/* ---------- armament ---------- */
+/* the glow sprite texture (muzzle flashes, lights, bursts), the list of live visual effects (effects.js) and the count of targets
+   destroyed: used by every simulator's weapons and the world's */
 const glowTex = (() => {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
@@ -14378,6 +14404,9 @@ const glowTex = (() => {
   g.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
 })();
+const FX = [];
+let killed = 0;
+/* ---------- armament ---------- */
 const gunLoc = [],
   AMMO0 = [380, 270, 270, 380, 270, 270];
 let ammo = AMMO0.slice();
@@ -14434,8 +14463,7 @@ const flashS = gunLoc.map((l) => {
 const rkMesh = [],
   ORD = [2, 5, 1, 4, 0, 3];
 let rkN = 0,
-  bmN = 0,
-  killed = 0;
+  bmN = 0;
 [-1, 1].forEach((sd) =>
   [3.7, 4.1, 4.5].forEach((x) =>
     rkMesh.push(
@@ -14464,7 +14492,6 @@ const bmMesh = [];
 const B = [],
   RK = [],
   BM = [],
-  FX = [],
   MAXB = 500,
   bpos = new Float32Array(MAXB * 6),
   bgeo = new THREE.BufferGeometry();
@@ -15486,6 +15513,7 @@ function updChutists(dt) {
     }
   }
 }
+/* the pilot bails out: the canopy blown, the climb out, the fall and the chute (the P-51's own; floating chutists are shared) */
 function bailOut() {
   if (!SIMS.cur.canBail) return; /* nobody bails out of a ship */
   if (!started || crashed || BL.on) return;
@@ -19796,159 +19824,6 @@ const COAST = {
     }
   };
 }
-/* the guns' ballistics: the same drag law as the PCE's own guns (GSPEC), from the muzzle down to the sea */
-function coastFly(p0, el, yaw, out) {
-  let x = 0,
-    y = p0.y,
-    vx = COAST.MV * Math.cos(el),
-    vy = COAST.MV * Math.sin(el),
-    t = 0;
-  const h = 0.05;
-  while (t < 90) {
-    const v = Math.hypot(vx, vy),
-      k = COAST.K * Math.exp(-Math.max(0, y) / 9145) * v;
-    vx *= 1 - k * h;
-    vy *= 1 - k * h;
-    vy -= 9.81 * h;
-    x += vx * h;
-    y += vy * h;
-    t += h;
-    if (y <= coastSea() + 2 && vy < 0) break;
-  }
-  if (out) (out.r = x), (out.t = t);
-  return x;
-}
-/* the elevation that throws a shell r metres (the lower trajectory), and its time of flight */
-function coastSolve(p0, r, out) {
-  let lo = COAST.EL0,
-    hi = COAST.EL1;
-  const o = {};
-  if (coastFly(p0, hi, 0, o) < r) return null;
-  for (let i = 0; i < 22; i++) {
-    const m = (lo + hi) / 2;
-    if (coastFly(p0, m, 0) < r) lo = m;
-    else hi = m;
-  }
-  coastFly(p0, hi, 0, o);
-  out.el = hi;
-  out.t = o.t;
-  return out;
-}
-const _cg = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
-function coastUpdate(dt) {
-  const on = typeof ENEMY !== 'undefined' && ENEMY.has('shore') && started && !crashed && trn.mode === 'free';
-  COAST.msgT = Math.max(0, COAST.msgT - dt);
-  if (!on && !COAST.S.length) return;
-  const night = WX.lt || 0,
-    tgt = new THREE.Vector3(pos.x, coastSea() + 3, pos.z),
-    sol = {};
-  for (const g of COAST.G) {
-    g.rec = Math.max(0, g.rec - dt * 1.5);
-    g.bar.position.x = -0.45 * g.rec;
-    if (g.t.dead || !on) continue;
-    const R = Math.hypot(pos.x - g.p.x, pos.z - g.p.z);
-    if (R > (night > 0.35 ? 3000 : 14000) || R < 60) {
-      g.n = 0;
-      continue;
-    }
-    if ((g.vt = (g.vt || 0) - dt) <= 0) {
-      g.vt = 1;
-      g.sees = aaSees(g.p, tgt);
-    }
-    if (!g.sees) continue;
-    /* lead her: where she will be when the shell comes down, from her course and speed now (two passes) */
-    let aim = tgt.clone(),
-      ok = true;
-    for (let it = 0; it < 2 && ok; it++) {
-      const r = Math.hypot(aim.x - g.p.x, aim.z - g.p.z);
-      ok = !!coastSolve(g.p, r, sol);
-      if (ok) aim = tgt.clone().addScaledVector(vel, sol.t);
-    }
-    if (!ok) continue;
-    const r = Math.hypot(aim.x - g.p.x, aim.z - g.p.z),
-      wy = Math.atan2(-(aim.z - g.p.z), aim.x - g.p.x) /* GX yaw: 0 = +x, + toward -z */;
-    /* the layers' error, applied to the aim: range (a fraction) and line (radians) */
-    if (!g.n) {
-      g.er = _cg() * 0.07;
-      g.ed = _cg() * 0.012;
-    }
-    coastSolve(g.p, r * (1 + g.er), sol);
-    const want = wy + g.ed - g.home,
-      dy = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw));
-    g.yaw += Math.max(-0.12 * dt, Math.min(0.12 * dt, dy)) /* hand training, about 7 deg a second */;
-    g.el += Math.max(-0.08 * dt, Math.min(0.08 * dt, sol.el - g.el));
-    g.tur.rotation.y = g.yaw;
-    g.bar.rotation.z = g.el;
-    g.cd -= dt;
-    if (g.cd <= 0 && Math.abs(dy) < 0.01 && Math.abs(sol.el - g.el) < 0.004) {
-      g.cd = COAST.RLD * (0.9 + Math.random() * 0.25);
-      g.n++;
-      /* the round: out along the bore, plus the gun's own spread and the layers' (about 2 mils in elevation, 1.5 in line) */
-      const az = g.home + g.yaw + _cg() * 0.0015,
-        e2 = g.el + _cg() * 0.002,
-        dir = new THREE.Vector3(Math.cos(az) * Math.cos(e2), Math.sin(e2), -Math.sin(az) * Math.cos(e2)),
-        mz = g.p.clone().addScaledVector(dir, 4.6);
-      COAST.S.push({ p: mz.clone(), v: dir.multiplyScalar(COAST.MV * (1 + _cg() * 0.0015)), t: 0, g, aimR: r });
-      g.rec = 1;
-      gunFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
-      gunFx(mz, 0x9a9890, 4, 22, 3.5, 0.8, false);
-      const d = mz.distanceTo(cam.position);
-      SND.burst(900, 60, 0.7, Math.min(0.9, 2.2 / (1 + d / 400)), 0.8, 'lowpass', Math.min(8, d / 340));
-      if (COAST.msgT <= 0) {
-        note('SHORE BATTERY FIRING!');
-        RADIO.add('LOOKOUT', 'GUN FLASHES ON THE BEACH, BEARING ' + raidBrg(g.p) + '!');
-        COAST.msgT = 40;
-      }
-    }
-  }
-  /* the shells in flight; each splash is spotted from the battery and the next round corrected */
-  const L = new THREE.Vector3(),
-    a = new THREE.Vector3();
-  for (let i = COAST.S.length - 1; i >= 0; i--) {
-    const s = COAST.S[i];
-    a.copy(s.p);
-    const v = s.v.length(),
-      k = COAST.K * Math.exp(-Math.max(0, s.p.y) / 9145) * v;
-    s.v.multiplyScalar(1 - k * dt);
-    s.v.y -= 9.81 * dt;
-    s.p.addScaledVector(s.v, dt);
-    s.t += dt;
-    /* the whistle as it comes down near her */
-    if (!s.wh && s.v.y < 0 && s.p.distanceTo(cam.position) < 900) {
-      s.wh = true;
-      SND.tone(1500, 420, 1.4, 0.25, 'sine');
-    }
-    /* through her hull or superstructure on this step? */
-    let hit = false;
-    for (let j = 1; j <= 6 && !hit; j++) {
-      L.copy(a).lerp(s.p, j / 6);
-      hit = shipStruck(L);
-    }
-    const sea = s.p.y <= coastSea(),
-      land = !sea && s.p.y < H(s.p.x, s.p.z);
-    if (!hit && !sea && !land && s.t < 90) continue;
-    const g = s.g;
-    if (hit) {
-      COAST.hits++;
-      gunFx(L, 0xffa040, 6, 16, 0.5, 0, true);
-      gunFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
-      note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');
-      SND.burst(700, 50, 1.2, 1, 0.7);
-    } else if (sea) {
-      gunSplash(s.p, { splash: 1.5 });
-      const md = Math.hypot(s.p.x - pos.x, s.p.z - pos.z);
-      if (md < 40 && COAST.msgT < 30) note('NEAR MISS!');
-    } else gunBurst(s.p, { splash: 1.2, blast: null }, false);
-    /* spotting: the battery sees the splash short / over and left / right, and corrects half the error */
-    if (g && !g.t.dead) {
-      g.er *= 0.45 + Math.random() * 0.2;
-      g.ed *= 0.45 + Math.random() * 0.2;
-      if (Math.abs(g.er) < 0.012) g.er = _cg() * 0.012;
-      if (Math.abs(g.ed) < 0.003) g.ed = _cg() * 0.003; /* the battery's own limit: rangefinding by eye and stadia, hand-cranked laying */
-    }
-    COAST.S.splice(i, 1);
-  }
-}
 /* ===== end of THE COAST BATTERIES ===== */
 const SITES = [],
   SITE_OBJ = [];
@@ -20577,7 +20452,7 @@ const SITES = [],
   const T14W = (SITE.t14w = { hits: 0, msgT: 0, fired: 0 }),
     TSP = 21.6,
     TRUN = 2000;
-  const t14Hot = () => AA.on && typeof shipStruck === 'function' && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
+  const t14Hot = () => AA.on && SIMS.cur.afloat && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
   const t14Fish = (RUN, x, z, yw) => {
     const o = new THREE.Object3D();
     const wk = shipWakeMesh(8 / 78, 0.05);
@@ -20602,7 +20477,7 @@ const SITES = [],
       const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z) /* at her waterline (the hull test's frame starts at the sea) */;
       let end = t.r > TRUN,
         boom = false;
-      if (typeof shipStruck === 'function' && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && shipStruck(p)) {
+      if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
         boom = end = true;
         T14W.hits++;
         note('TORPEDO HIT! (' + T14W.hits + ')');
@@ -22174,8 +22049,27 @@ function updConvoy(dt) {
     }
   }
 }
+/* the mission coach box (a mission's instructions and hints) and the mission clock's format: every simulator's missions use them */
+const coachEl = $$('coach'),
+  coachT = $$('coachT'),
+  coachS = $$('coachS'),
+  coachH = $$('coachH');
+let coachMin = false;
+function coach(title, text, hint, lvl) {
+  coachEl.style.display = 'block';
+  coachT.textContent = title;
+  const gi = HOOKS.coachInfo.map((fn) => fn()).filter(Boolean).join('\n');
+  coachS.textContent = coachMin ? gi : text + (gi ? '\n' + gi : '');
+  coachH.textContent = hint || '';
+  coachH.className = lvl || '';
+  coachH.style.display = hint ? 'block' : 'none';
+}
+function coachHide() {
+  coachEl.style.display = 'none';
+}
+const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 /* trainers */
-const trn = {
+Object.assign(trn, {
   mode: 'free',
   t: 0,
   done: false,
@@ -22193,7 +22087,7 @@ const trn = {
   pk: 0,
   spawn: 2,
   res: 0,
-};
+});
 const TRN_NAMES = {
   free: 'FREE FLIGHT',
   takeoff: 'TAKEOFF TRAINER',
@@ -22233,10 +22127,7 @@ function placeAt(x, y, z, tx, tz, spd) {
 function trainerReset() {
   if (RPL.busy && !RPL.keep) rpSimCancel(); /* a mission change while the pilot is still flying its hidden recording */
   if (RPL.on && !RPL.keep) rpStop();
-  convoyClear();
   guide.cvRe = false;
-  CV.st = 'idle';
-  CV.tm = 8;
   Object.assign(trn, {
     t: 0,
     done: false,
@@ -22288,24 +22179,6 @@ function trainerReset() {
   else if (AERO[m]) aeroStart(m);
   coachHide();
 }
-const coachEl = $$('coach'),
-  coachT = $$('coachT'),
-  coachS = $$('coachS'),
-  coachH = $$('coachH');
-let coachMin = false;
-function coach(title, text, hint, lvl) {
-  coachEl.style.display = 'block';
-  coachT.textContent = title;
-  const gi = guide.on && guide.info && guide.pts.length > 1 ? guide.info : '';
-  coachS.textContent = coachMin ? gi : text + (gi ? '\n' + gi : '');
-  coachH.textContent = hint || '';
-  coachH.className = lvl || '';
-  coachH.style.display = hint ? 'block' : 'none';
-}
-function coachHide() {
-  coachEl.style.display = 'none';
-}
-const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 function resupply(dt) {
   FM.fuel = 1; /* the trainers keep the tanks full */
   if (ammoTot() < 350) {
@@ -23683,7 +23556,7 @@ Object.keys(AERO_DEF).forEach((m) => {
    While a maneuver is flown the trainer records the aircraft ten times a second (and the drone for the yo-yos). On completion the
    best path for the same entry is built from geometry (loop radius for a good G, barrel radius, turn radius, a chord with a dip or climb)
    and both are replayed together, with the biggest gap marked and notes on where to improve. */
-const RPL = { on: false, pause: false, t: 0, spd: 1, view: 0, az: 0, built: false, rec: null, ideal: null, dev: null, tips: [], gap: null, rad: 100, ctr: new V(), dist: 500, T: 0, kP: null, kI: null, kD: null };
+Object.assign(RPL, { on: false, pause: false, t: 0, spd: 1, view: 0, az: 0, built: false, rec: null, ideal: null, dev: null, tips: [], gap: null, rad: 100, ctr: new V(), dist: 500, T: 0, kP: null, kI: null, kD: null });
 const RPV = ['SIDE', 'TOP', 'BEHIND'];
 const rpG = { line: [], dots: [], ghostP: null, ghostI: null, ghostD: null, mark: null, gapL: null, init: false };
 function rpInit() {
@@ -24996,6 +24869,30 @@ function roadDir(s) {
   const l = Math.hypot(x, z) || 1;
   return { x: x / l, z: z / l };
 }
+/* the P-51's flight path guide on the shared screens: its path on the minimap, its target marked, its advice in the coach box (HOOKS) */
+HOOKS.mapTarget.push((b) => guide.tgt === b && trn.mode === 'bomb');
+HOOKS.coachInfo.push(() => (guide.on && guide.info && guide.pts.length > 1 ? guide.info : ''));
+HOOKS.mapDraw.push((g, lw) => {
+    if (guide.on && trn.mode !== 'free' && guide.pts.length > 1) {
+      const P = guide.pts;
+      g.lineWidth = lw(2.2);
+      g.strokeStyle = '#55ff88';
+      g.beginPath();
+      let pf = false;
+      P.forEach((q, i) => {
+        if (q.fin && !pf) {
+          g.stroke();
+          g.strokeStyle = '#ffd24a';
+          g.beginPath();
+          g.moveTo(P[Math.max(0, i - 1)].x, P[Math.max(0, i - 1)].z);
+          pf = true;
+        }
+        if (i) g.lineTo(q.x, q.z);
+        else g.moveTo(q.x, q.z);
+      });
+      g.stroke();
+    }
+});
 /* a released bomb keeps the aircraft's velocity and falls under gravity (no drag): same maths as the bomb in updWeapons */
 function bombImpact() {
   const vy = vel.y,
@@ -25941,7 +25838,8 @@ function reset() {
   try {
     roamExit(true);
   } catch (e) {}
-  resetWeapons();
+  SIMS.cur.resetBegin() /* its own weapons and systems */;
+  killed = 0;
   paused = false;
   invT = 0;
   blk = 0;
@@ -25957,12 +25855,12 @@ function reset() {
   s = { p: 0, r: 0, y: 0 };
   trimGround();
   crashed = false;
-  bailReset();
   SIMS.cur.ready() /* gear, which model shows, where the chase camera starts */;
   $$('msg').style.display = 'none';
-  trainerReset();
-  PP.ix = 0;
-  if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
+  convoyClear(); /* the world's enemy convoy back to its start */
+  CV.st = 'idle';
+  CV.tm = 8;
+  SIMS.cur.resetEnd() /* its missions and trainers */;
 }
 /* ---------- minimap ---------- */
 const mmC = $$('mmc'),
@@ -26321,7 +26219,7 @@ function drawMinimap() {
   sq(DEPOT[0], DEPOT[1], 6, '#3ad0ff');
   sq(BASE[0], BASE[1], 6, '#3ad0ff');
   BLD.forEach((b) =>
-    sq(b.c.x, b.c.z, 4, b.dead ? '#555' : guide.tgt === b && trn.mode === 'bomb' ? '#ff9a2e' : '#ffc94a'),
+    sq(b.c.x, b.c.z, 4, b.dead ? '#555' : HOOKS.mapTarget.some((fn) => fn(b)) ? '#ff9a2e' : '#ffc94a'),
   );
   if (trn.mode === 'free')
     T.forEach((q) => {
@@ -26336,25 +26234,7 @@ function drawMinimap() {
       g.fill();
     }
   });
-  if (guide.on && trn.mode !== 'free' && guide.pts.length > 1) {
-    const P = guide.pts;
-    g.lineWidth = lw(2.2);
-    g.strokeStyle = '#55ff88';
-    g.beginPath();
-    let pf = false;
-    P.forEach((q, i) => {
-      if (q.fin && !pf) {
-        g.stroke();
-        g.strokeStyle = '#ffd24a';
-        g.beginPath();
-        g.moveTo(P[Math.max(0, i - 1)].x, P[Math.max(0, i - 1)].z);
-        pf = true;
-      }
-      if (i) g.lineTo(q.x, q.z);
-      else g.moveTo(q.x, q.z);
-    });
-    g.stroke();
-  }
+  for (const fn of HOOKS.mapDraw) fn(g, lw);
   EN.forEach((e) => {
     if (e.dying) return;
     g.save();
@@ -27172,8 +27052,7 @@ function updTouchUI() {
   tuT = n;
   $$('tThrF').style.height = $$('tThrH').style.bottom = thr * 100 + '%';
   $$('tThrL').textContent = 'THR ' + Math.round(thr * 100) + '%';
-  $$('tGear').innerHTML = '<i>' + (gearOn ? '▼' : '▲') + '</i>GEAR ' + (gearOn ? 'DN' : 'UP');
-  $$('tFlU').innerHTML = '<i>▲</i>FLAP ' + FL[flapLvl];
+  SIMS.cur.touchUI() /* its own touch buttons' labels */;
   $$('tTd').style.transform = 'translate(' + TC.oR * 13 + 'px,' + TC.oP * 13 + 'px)';
 }
 
@@ -27917,6 +27796,7 @@ const dzf = (v, d = 0.14) => {
   const n = Math.max(0, (Math.abs(v) - d) / (1 - d));
   return Math.sign(v) * (0.35 * n + 0.65 * n * n);
 };
+/* the gear lever: up or down, refused when overspeed (Hardcore) or the hydraulics are shot */
 function toggleGear() {
   const was = gearOn;
   if (DM.on && DM.hyd && gearOn && !onGround) return note('HYDRAULICS - GEAR WILL NOT RETRACT');
@@ -28261,7 +28141,7 @@ function pollPad() {
     if (!DM.bailHold) DM.bailHold = performance.now();
     else if (performance.now() - DM.bailHold > 1500) {
       DM.bailHold = 0;
-      bailOut();
+      SIMS.cur.bail();
     }
   } else DM.bailHold = 0;
   pad.thr = mod ? 0 : (bp(PB.thrUp) ? 1 : 0) - (bp(PB.thrDn) ? 1 : 0); /* d-pad up/down: throttle */
@@ -28269,8 +28149,8 @@ function pollPad() {
   pad.brake = bp(PB.brake); /* trigger guns, button brakes */
   pad.lx = dzf(a[0], 0.1);
   pad.ly = dzf(a[1], 0.1); /* left stick: look */
-  if (e(PB.rocket)) fireRocket();
-  if (e(PB.bomb)) dropBomb();
+  if (e(PB.rocket)) SIMS.cur.act.rocket && SIMS.cur.act.rocket();
+  if (e(PB.bomb)) SIMS.cur.act.bomb && SIMS.cur.act.bomb();
   if (e(PB.camera)) {
     if (ROAM.on) roamExit();
     else if (orbitOn) orbReset();
@@ -28573,6 +28453,7 @@ function axes() {
   up.set(0, 1, 0).applyQuaternion(q);
   right.set(1, 0, 0).applyQuaternion(q);
 }
+const PH_DT = 1 / 120; /* longest physics sub-step (the frame loop splits each frame into these) */
 /* ---- P-51D manual data: accelerated-stall G envelope (SL-10k ft, 9000 lb), flap settings & speed limits ---- */
 const GT = [
     [0, 0],
@@ -28614,7 +28495,6 @@ function gmax(v) {
     }
   return 7;
 }
-const PH_DT = 1 / 120; /* longest physics sub-step */
 /* scratch objects reused every step / frame so the hot paths allocate nothing (read them only within the same function) */
 const SC = {
   ld: new THREE.Vector3(),
@@ -29212,6 +29092,7 @@ function drawCompass(hdg) {
   if (eb) mkC(hdg, eb.p, '#ff4fd8', 'B');
   if (best) mkC(hdg, best.c, '#ff3b30', 'T');
 }
+/* the P-51's HUD text: speed, stall, altitude, heading, weapons */
 let hudT = 0;
 function updHUD() {
   const nowH = performance.now();
@@ -29435,6 +29316,7 @@ const NAVL = [
   model.add(sp);
   return sp;
 });
+HOOKS.nightLights.push(...NAVL); /* they fade in with the dusk (WX.paint) */
 /* rain: streaks that fall relative to the plane's own motion */
 const RAIN = (() => {
   const N = 1400,
@@ -29606,7 +29488,7 @@ Object.assign(WX, {
     AFL.visible = lt > 0.02;
     RWL.material.opacity = lt;
     RWL.visible = lt > 0.02;
-    NAVL.forEach((n) => {
+    HOOKS.nightLights.forEach((n) => {
       n.material.opacity = lt;
       n.visible = lt > 0.02;
     });
@@ -30206,7 +30088,7 @@ function photoExit() {
   $$('ph').style.display = 'none';
   document.body.classList.remove('phHide');
   $$('phGridV').style.display = 'none';
-  plane.visible = true;
+  SIMS.cur.showSelf(true);
   cam.fov = PHOTO.fov0;
   cam.updateProjectionMatrix();
   const w = PHOTO.wx0;
@@ -30669,10 +30551,7 @@ function frame(now) {
     cam.lookAt(R_.orbitLift ? SC.aim.copy(pos).setY(pos.y + R_.orbitLift) : pos);
   }
   R_.view(dt, fovHint);
-  if (RPL.on) {
-    rpUpdate(dt);
-    rpCam();
-  }
+  if (RPL.on) R_.replay(dt);
   R_.overCam(dt);
   if (PHOTO.on) photoCam(dt);
   else if (ROAM.on) {

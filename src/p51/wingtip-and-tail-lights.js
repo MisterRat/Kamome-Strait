@@ -21,3 +21,4 @@ const NAVL = [
   model.add(sp);
   return sp;
 });
+HOOKS.nightLights.push(...NAVL); /* they fade in with the dusk (WX.paint) */

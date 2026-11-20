@@ -31,8 +31,7 @@ function updTouchUI() {
   tuT = n;
   $$('tThrF').style.height = $$('tThrH').style.bottom = thr * 100 + '%';
   $$('tThrL').textContent = 'THR ' + Math.round(thr * 100) + '%';
-  $$('tGear').innerHTML = '<i>' + (gearOn ? '▼' : '▲') + '</i>GEAR ' + (gearOn ? 'DN' : 'UP');
-  $$('tFlU').innerHTML = '<i>▲</i>FLAP ' + FL[flapLvl];
+  SIMS.cur.touchUI() /* its own touch buttons' labels */;
   $$('tTd').style.transform = 'translate(' + TC.oR * 13 + 'px,' + TC.oP * 13 + 'px)';
 }
 

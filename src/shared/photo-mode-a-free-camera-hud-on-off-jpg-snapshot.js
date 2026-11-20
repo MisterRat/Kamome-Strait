@@ -126,7 +126,7 @@ function photoExit() {
   $$('ph').style.display = 'none';
   document.body.classList.remove('phHide');
   $$('phGridV').style.display = 'none';
-  plane.visible = true;
+  SIMS.cur.showSelf(true);
   cam.fov = PHOTO.fov0;
   cam.updateProjectionMatrix();
   const w = PHOTO.wx0;

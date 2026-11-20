@@ -9,8 +9,13 @@ SIMS.add({
   orbitDist: 13.5,
   docsTab: 'about',
   canBail: true,
+  bail: () => bailOut(),
   showSelf: (on) => (plane.visible = on),
   padMenu: true,
+  touchUI: () => {
+    $$('tGear').innerHTML = '<i>' + (gearOn ? '▼' : '▲') + '</i>GEAR ' + (gearOn ? 'DN' : 'UP');
+    $$('tFlU').innerHTML = '<i>▲</i>FLAP ' + FL[flapLvl];
+  },
   r3: () => setDiff((DIFFS.indexOf(DIFF) + 1) % 3) /* the enemy's skill, round the three */,
   canStep: () => !crashed && !BL.on,
   step: (h) => step(h),
@@ -90,6 +95,10 @@ SIMS.add({
     cu.lerp(up, 1 - Math.exp(-3 * dt)).normalize();
     T.copy(fwd).multiplyScalar(18).add(pos);
   },
+  replay: (dt) => {
+    rpUpdate(dt);
+    rpCam();
+  },
   overCam: (dt) => {
     if (BL.on) bailCam(dt);
   },
@@ -123,10 +132,18 @@ SIMS.add({
     pos.set(0, 2, 420);
     q.identity();
   },
+  resetBegin: () => resetWeapons(),
   ready: () => {
+    bailReset();
     gearOn = true;
     model.visible = true;
     cp.copy(pos).add(new V(0, 4, 14));
+  },
+  /* its trainers and the sim pilot's pre-flight of the mission's best path */
+  resetEnd: () => {
+    trainerReset();
+    PP.ix = 0;
+    if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
   },
   /* the world's guns lay on the aircraft; a round within 6.5 m of her strikes (held in the searchlights over 20 s: about twice as hard) */
   aimY: () => pos.y,

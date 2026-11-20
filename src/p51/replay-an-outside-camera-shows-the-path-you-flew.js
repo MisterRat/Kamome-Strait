@@ -2,7 +2,7 @@
    While a maneuver is flown the trainer records the aircraft ten times a second (and the drone for the yo-yos). On completion the
    best path for the same entry is built from geometry (loop radius for a good G, barrel radius, turn radius, a chord with a dip or climb)
    and both are replayed together, with the biggest gap marked and notes on where to improve. */
-const RPL = { on: false, pause: false, t: 0, spd: 1, view: 0, az: 0, built: false, rec: null, ideal: null, dev: null, tips: [], gap: null, rad: 100, ctr: new V(), dist: 500, T: 0, kP: null, kI: null, kD: null };
+Object.assign(RPL, { on: false, pause: false, t: 0, spd: 1, view: 0, az: 0, built: false, rec: null, ideal: null, dev: null, tips: [], gap: null, rad: 100, ctr: new V(), dist: 500, T: 0, kP: null, kI: null, kD: null });
 const RPV = ['SIDE', 'TOP', 'BEHIND'];
 const rpG = { line: [], dots: [], ghostP: null, ghostI: null, ghostD: null, mark: null, gapL: null, init: false };
 function rpInit() {

@@ -30,3 +30,6 @@ const add = (g, m, x, y, z, p = model) => {
   p.add(o);
   return o;
 };
+/* the nose art: the insignia piece sets these once the fuselage is built; the nose-art options piece calls them */
+let noseArtApply = null,
+  noseTally = null;

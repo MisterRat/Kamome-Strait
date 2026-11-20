@@ -36,7 +36,7 @@ $$('aaOn').onchange = (e) => {
 };
 $$('pmBail').onclick = () => {
   pauseMenu(false);
-  bailOut();
+  SIMS.cur.bail();
 };
 $$('sndOn').checked = SND.on;
 $$('sndVol').value = Math.round(SND.vol * 100);

@@ -3,7 +3,7 @@
    (hold ` = six times bigger steps; there is no wheel zoom). It shares its position and angles with PHOTO. */
 const ROAM = { on: false, fov0: 65 };
 function roamEnter() {
-  if (ROAM.on || PHOTO.on || !started || BL.on || RPL.on) return;
+  if (ROAM.on || PHOTO.on || !started || SIMS.cur.busy() || RPL.on) return;
   ROAM.on = true;
   ROAM.fov0 = cam.fov;
   camMode = 0;
