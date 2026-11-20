@@ -1,6 +1,6 @@
 # Quonset hut, Stran-Steel 20 x 48 ft (US airfields): game model measured against the references
 
-Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 15.63 m long, 6.90 m wide, 3.21 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 15.63 m long, 6.90 m wide, 3.21 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Stran-Steel Quonset hut, 20 x 48 ft
 

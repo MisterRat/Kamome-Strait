@@ -1,6 +1,6 @@
 # Nakajima Ki-84-Ia Hayate (bandit and raider): game model measured against the references
 
-Measured from the PCE-842 0.61 build by `tools/blueprint.py` (2026-11-18). Model box: 9.92 m long, 11.27 m wide, 3.58 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.92 m long, 11.27 m wide, 3.58 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Nakajima Ki-84-Ia Hayate ("Frank")
 

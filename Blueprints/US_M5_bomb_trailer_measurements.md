@@ -1,6 +1,6 @@
 # M5 bomb trailer with two 500 lb bombs (Fletcher Field): game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 3.60 m long, 1.52 m wide, 1.14 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 3.60 m long, 1.52 m wide, 1.14 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** M5 2-ton bomb trailer
 

@@ -1,6 +1,6 @@
 # PT-105, 80 ft Elco motor torpedo boat: game model measured against the references
 
-Measured from the PCE-842 0.76 build by `tools/blueprint.py` (2026-11-19). Model box: 25.55 m long, 6.74 m wide, 8.64 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 25.55 m long, 6.74 m wide, 8.64 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108
 

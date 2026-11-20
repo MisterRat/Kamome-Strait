@@ -1,13 +1,13 @@
 # Japanese army cargo truck (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 5.40 m long, 1.90 m wide, 2.25 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 5.40 m long, 1.97 m wide, 2.31 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Isuzu Type 94 six-wheeled truck (cargo truck)
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
 | Length | 5.40 m (17 ft 9 in) | 5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References) | 5.40 m | +0.00 m (0%) | match |
-| Width | 1.90 m (6 ft 3 in) | 5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References) | 1.90 m | -0.00 m (0%) | match |
+| Width | 1.90 m (6 ft 3 in) | 5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References) | 1.97 m | +0.07 m (3%) | close |
 | Height | 2.25 m (7 ft 5 in) | 5.40 x 1.90 x 2.25 m, vehicle research spec sheet (References) | 2.25 m | +0.00 m (0%) | match |
 
 Results: match within 3%, close within 8%, **check** beyond that. The box takes in everything drawn: guns, aerials, flags, rigging and figures. Hull-only or body-only sizes can be smaller, so check a **check** result against the drawing before rebuilding anything.

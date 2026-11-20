@@ -1,6 +1,6 @@
 # Pacific outrigger canoe: game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 6.00 m long, 2.45 m wide, 0.90 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 6.00 m long, 2.45 m wide, 0.90 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** islanders' dugout outrigger canoe
 

@@ -1,6 +1,6 @@
 # Butler combat hangar (US airfields): game model measured against the references
 
-Measured from the PCE-842 0.64 build by `tools/blueprint.py` (2026-11-18). Model box: 54.97 m long, 41.62 m wide, 12.29 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 54.97 m long, 41.62 m wide, 12.29 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Butler steel-arch combat hangar, 130 x 160 ft
 

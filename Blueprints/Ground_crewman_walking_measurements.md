@@ -1,6 +1,6 @@
 # USAAF ground crewman, jointed walker (CREW_RIG): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 0.92 m long, 0.55 m wide, 1.70 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 0.92 m long, 0.55 m wide, 1.70 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** USAAF mechanic, 1945, as he walks (the airfield's walkers and the repair mechanic)
 

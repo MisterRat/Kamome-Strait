@@ -1,6 +1,6 @@
 # 12 cm/45 3rd Year Type gun in its coast emplacement: game model measured against the references
 
-Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 9.20 m long, 9.20 m wide, 3.47 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.20 m long, 9.20 m wide, 3.47 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** 12 cm/45 3rd Year Type naval gun on a coast-defence pedestal
 

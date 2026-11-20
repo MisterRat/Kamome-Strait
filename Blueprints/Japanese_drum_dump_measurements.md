@@ -1,6 +1,6 @@
 # Fuel drums under palm-frond netting (home port): game model measured against the references
 
-Measured from the PCE-842 0.65 build by `tools/blueprint.py` (2026-11-18). Model box: 6.94 m long, 5.08 m wide, 2.40 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 6.94 m long, 5.08 m wide, 2.40 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** 200-litre drums under camouflage netting
 

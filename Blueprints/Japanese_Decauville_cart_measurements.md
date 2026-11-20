@@ -1,6 +1,6 @@
 # Decauville hand cart on 600 mm track (home port): game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 6.90 m long, 1.00 m wide, 1.39 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 6.90 m long, 1.00 m wide, 1.39 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** 600 mm Decauville track and hand-pushed cart
 

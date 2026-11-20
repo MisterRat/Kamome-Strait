@@ -1,6 +1,6 @@
 # Japanese aircraft tractor (Japanese airbases): game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 3.40 m long, 1.60 m wide, 1.64 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 3.40 m long, 1.60 m wide, 1.64 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN)
 

@@ -1,6 +1,6 @@
 # Japanese timber-framed hangar: game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 31.00 m long, 24.80 m wide, 8.05 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 31.00 m long, 24.80 m wide, 8.05 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** IJA/IJN island hangar, corrugated iron on a timber frame
 

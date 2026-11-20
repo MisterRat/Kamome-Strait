@@ -1,6 +1,6 @@
 # Timber godown (Japanese ports and bases): game model measured against the references
 
-Measured from the PCE-842 0.65 build by `tools/blueprint.py` (2026-11-18). Model box: 26.40 m long, 16.56 m wide, 7.58 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 26.40 m long, 16.56 m wide, 7.58 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** low gable-roofed timber warehouse, mottled camouflage
 

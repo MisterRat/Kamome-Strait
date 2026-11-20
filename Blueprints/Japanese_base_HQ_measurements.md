@@ -1,6 +1,6 @@
 # Japanese base headquarters (timber, on piers): game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 19.61 m long, 17.80 m wide, 10.00 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 19.61 m long, 17.80 m wide, 10.00 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** IJA/IJN island headquarters building, 1945
 

@@ -1,6 +1,6 @@
 # Japanese earth-covered concrete bunker: game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 15.65 m long, 13.79 m wide, 6.10 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 15.65 m long, 13.79 m wide, 6.10 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** earth-covered concrete command bunker / magazine
 

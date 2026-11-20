@@ -1,6 +1,6 @@
 # Japanese navy dock hand (home port): game model measured against the references
 
-Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 0.30 m long, 0.55 m wide, 1.68 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 0.30 m long, 0.55 m wide, 1.68 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** IJNAS / naval base working rig, 1945: blue-grey trousers, white singlet, white headband
 

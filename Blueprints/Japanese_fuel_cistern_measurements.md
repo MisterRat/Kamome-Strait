@@ -1,6 +1,6 @@
 # Japanese buried fuel cistern and drum dump: game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 9.20 m long, 11.41 m wide, 3.06 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.20 m long, 11.41 m wide, 3.06 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** buried concrete fuel cistern with 200 l drums
 

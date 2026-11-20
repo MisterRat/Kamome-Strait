@@ -1,6 +1,6 @@
 # Village pig: game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 1.93 m long, 0.84 m wide, 0.99 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 1.93 m long, 0.84 m wide, 0.99 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** pig (plantation pen)
 

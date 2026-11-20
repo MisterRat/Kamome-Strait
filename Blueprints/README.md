@@ -12,12 +12,12 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | P-51D Mustang, parked (home airfield) | North American P-51D Mustang (simplified airfield model) | 9.69 x 11.28 x 3.98 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
 | Nakajima Ki-84-Ia Hayate (bandit and raider) | Nakajima Ki-84-Ia Hayate ("Frank") | 9.92 x 11.27 x 3.58 | match | `Ki-84_blueprint.png`, `Ki-84_measurements.md` |
 | Nakajima Ki-84-Ia Hayate, parked | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.76 x 11.27 x 3.81 | **check** | `Ki-84_parked_blueprint.png`, `Ki-84_parked_measurements.md` |
-| Target-towing aircraft: P-51D (gunnery practice) | North American P-51D Mustang (simplified airfield model, gear up) | 9.83 x 11.28 x 2.86 | match | `Target-tug_aircraft_blueprint.png`, `Target-tug_aircraft_measurements.md` |
+| Target-towing aircraft: P-51D (gunnery practice) | North American P-51D Mustang (simplified airfield model, gear up) | 9.84 x 11.28 x 3.41 | match | `Target-tug_aircraft_blueprint.png`, `Target-tug_aircraft_measurements.md` |
 | PT-105, 80 ft Elco motor torpedo boat | Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108 | 25.55 x 6.74 x 8.64 | close | `PT-105_blueprint.png`, `PT-105_measurements.md` |
 | Target sled (towed by PT-108) | Gunnery target sled (generic) | 11.70 x 3.50 x 5.73 | no reference yet | `Target_sled_blueprint.png`, `Target_sled_measurements.md` |
 | Battle-practice target raft | Battle-practice target raft with screen (generic) | 12.00 x 5.00 x 8.40 | no reference yet | `Target_raft_blueprint.png`, `Target_raft_measurements.md` |
 | Towed target sleeve | Towed aerial target sleeve (generic) | 9.00 x 1.40 x 1.40 | no reference yet | `Target_sleeve_blueprint.png`, `Target_sleeve_measurements.md` |
-| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.28 x 11.81 x 23.74 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
+| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.29 x 11.82 x 23.79 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
 | Daihatsu landing barge (Japanese harbours) | Daihatsu (Type A) landing barge | 14.94 x 3.35 x 4.18 | match | `Japanese_Daihatsu_barge_blueprint.png`, `Japanese_Daihatsu_barge_measurements.md` |
 | Wooden lighter (Japanese harbours) | wooden cargo lighter (unpowered barge) | 12.00 x 4.20 x 2.40 | close | `Japanese_lighter_blueprint.png`, `Japanese_lighter_measurements.md` |
 | Timber A-frame derrick (home port T-head) | hand-cranked timber A-frame derrick (shear legs) | 11.66 x 4.87 x 11.20 | match | `Japanese_A-frame_derrick_blueprint.png`, `Japanese_A-frame_derrick_measurements.md` |
@@ -33,12 +33,12 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | 12 cm/45 3rd Year Type gun in its coast emplacement | 12 cm/45 3rd Year Type naval gun on a coast-defence pedestal | 9.20 x 9.20 x 3.47 | close | `12cm-45_coast_gun_blueprint.png`, `12cm-45_coast_gun_measurements.md` |
 | Type 96 25 mm twin AA gun in its emplacement | Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit | 9.80 x 9.80 x 3.14 | no reference yet | `Type96_25mm_twin_blueprint.png`, `Type96_25mm_twin_measurements.md` |
 | 150 cm searchlight in its emplacement | 150 cm searchlight (Type 96 class) | 7.00 x 7.00 x 3.20 | no reference yet | `150cm_searchlight_blueprint.png`, `150cm_searchlight_measurements.md` |
-| Japanese army cargo truck (enemy target) | Isuzu Type 94 six-wheeled truck (cargo truck) | 5.40 x 1.90 x 2.25 | match | `Japanese_cargo_truck_blueprint.png`, `Japanese_cargo_truck_measurements.md` |
+| Japanese army cargo truck (enemy target) | Isuzu Type 94 six-wheeled truck (cargo truck) | 5.40 x 1.97 x 2.31 | close | `Japanese_cargo_truck_blueprint.png`, `Japanese_cargo_truck_measurements.md` |
 | Japanese army supply truck, covered (enemy target) | Isuzu Type 94 six-wheeled truck (covered supply truck) | 5.40 x 1.94 x 2.42 | match | `Japanese_supply_truck_blueprint.png`, `Japanese_supply_truck_measurements.md` |
 | Japanese army tanker truck (enemy target) | Isuzu Type 94 six-wheeled truck (tanker truck) | 5.40 x 1.90 x 2.30 | match | `Japanese_tanker_truck_blueprint.png`, `Japanese_tanker_truck_measurements.md` |
-| Japanese army light car (enemy target) | Kurogane Type 95 scout car | 3.38 x 1.52 x 1.68 | match | `Japanese_scout_car_blueprint.png`, `Japanese_scout_car_measurements.md` |
-| Japanese army half-track (enemy target) | Isuzu Type 98 Ko-Hi half-track prime mover | 4.65 x 1.90 x 2.15 | match | `Japanese_halftrack_blueprint.png`, `Japanese_halftrack_measurements.md` |
-| Japanese army tank (enemy target) | Type 95 Ha-Go light tank | 4.30 x 2.07 x 2.28 | match | `Japanese_tank_blueprint.png`, `Japanese_tank_measurements.md` |
+| Japanese army light car (enemy target) | Kurogane Type 95 scout car | 3.50 x 1.55 x 1.95 | close | `Japanese_scout_car_blueprint.png`, `Japanese_scout_car_measurements.md` |
+| Japanese army half-track (enemy target) | Isuzu Type 98 Ko-Hi half-track prime mover | 4.65 x 2.23 x 2.43 | **check** | `Japanese_halftrack_blueprint.png`, `Japanese_halftrack_measurements.md` |
+| Japanese army tank (enemy target) | Type 95 Ha-Go light tank | 4.34 x 2.10 x 2.38 | match | `Japanese_tank_blueprint.png`, `Japanese_tank_measurements.md` |
 | US fuel bowser (home airfield) | GMC CCKW 2½-ton 6x6 chassis, fuel truck | 6.60 x 2.24 x 2.83 | match | `US_fuel_truck_blueprint.png`, `US_fuel_truck_measurements.md` |
 | US cargo truck (home airfield) | GMC CCKW 353 2½-ton 6x6 cargo truck | 6.51 x 2.24 x 2.80 | match | `US_cargo_truck_blueprint.png`, `US_cargo_truck_measurements.md` |
 | US jeep (home airfield) | Willys MB / Ford GPW jeep | 3.36 x 1.57 x 1.77 | match | `US_jeep_blueprint.png`, `US_jeep_measurements.md` |

@@ -1,6 +1,6 @@
 # US freighter (kept for later): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 134.60 m long, 17.30 m wide, 30.20 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 134.60 m long, 17.30 m wide, 30.20 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Liberty ship EC2-S-C1, kept for later
 

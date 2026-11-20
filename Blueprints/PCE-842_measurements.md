@@ -1,10 +1,10 @@
 # USS PCE-842, patrol craft escort (the player's ship): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 56.64 m long, 12.12 m wide, 23.65 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 56.64 m long, 12.12 m wide, 23.65 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** PCE-842 class patrol craft escort, USN 1943-45
 
-**Where she floats in the game:** the still water is 20.87 m below her highest point and 2.77 m above her keel (her draught in the game).
+**Where she floats in the game:** the still water is 20.87 m below her highest point and 2.78 m above her keel (her draught in the game).
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|

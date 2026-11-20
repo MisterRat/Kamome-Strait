@@ -1,6 +1,6 @@
 # Japanese airfield control tower (Japanese airbases): game model measured against the references
 
-Measured from the PCE-842 0.67 build by `tools/blueprint.py` (2026-11-18). Model box: 9.07 m long, 8.08 m wide, 13.15 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.07 m long, 8.08 m wide, 13.15 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** low reinforced-concrete bunker tower, two storeys
 

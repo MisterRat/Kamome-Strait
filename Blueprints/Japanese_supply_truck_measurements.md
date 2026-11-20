@@ -1,6 +1,6 @@
 # Japanese army supply truck, covered (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 5.40 m long, 1.94 m wide, 2.42 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 5.40 m long, 1.94 m wide, 2.42 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Isuzu Type 94 six-wheeled truck (covered supply truck)
 

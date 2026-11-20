@@ -1,6 +1,6 @@
 # Wooden lighter (Japanese harbours): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 12.00 m long, 4.20 m wide, 2.40 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 12.00 m long, 4.20 m wide, 2.40 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** wooden cargo lighter (unpowered barge)
 

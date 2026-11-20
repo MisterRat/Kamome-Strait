@@ -1,6 +1,6 @@
 # Plantation handcart: game model measured against the references
 
-Measured from the PCE-842 0.70 build by `tools/blueprint.py` (2026-11-19). Model box: 4.00 m long, 1.52 m wide, 1.65 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 4.00 m long, 1.52 m wide, 1.65 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** two-wheeled wooden handcart
 
