@@ -215,7 +215,7 @@ const SITES = [],
       /* a shuttle (a Daihatsu working a ship): alongside her, run in to the T-head, lie there, run back; 4 knots, turning to her course */
       const S = o.sh,
         L = Math.hypot(S.b[0] - S.a[0], S.b[1] - S.a[1]),
-        run = L / 2.1,
+        run = L / (S.v || 2.1) /* her speed: a Daihatsu's 4 knots unless given */,
         cyc = 2 * (run + S.wait),
         t = (performance.now() / 1000 + S.ph) % cyc;
       let k, back;
@@ -231,8 +231,9 @@ const SITES = [],
       while (dy > Math.PI) dy -= 2 * Math.PI;
       while (dy < -Math.PI) dy += 2 * Math.PI;
       if (k > 0 && k < 1) o.yaw += dy * Math.min(1, dt * 0.8);
+      if (o.wk) o.wk.visible = k > 0 && k < 1; /* her wake only while she is under way */
       /* under way she waits for any boat or ship crossing ahead of her (not for her own berths) */
-      Object.assign(o.cb, { x: m.position.x, z: m.position.z, yaw: o.yaw, v: k > 0 && k < 1 ? 2.1 : 0 });
+      Object.assign(o.cb, { x: m.position.x, z: m.position.z, yaw: o.yaw, v: k > 0 && k < 1 ? S.v || 2.1 : 0 });
       if (k > 0 && k < 1) {
         const q = COLL.look(o.cb, 45);
         if (q && !q.o.fixed && q.d < 18) S.ph -= dt; /* hold her place on the run */
@@ -1680,6 +1681,7 @@ const SITES = [],
     S.acc.add(MODELS.get('naval-pier', L, w, at, ab - 0.6, false), GX.xf(ox, wy, oz, F.ryS));
     const [cx, cz] = F.w(u, (d0 + d1) / 2);
     COLL.add({ sea: true, fixed: true, x: cx, z: cz, yaw: F.ryS, hl: L / 2, r: w / 2, v: 0 });
+    SURF.wet(F.w(u - w / 2, d0), F.w(u + w / 2, d1)) /* the crews walk out on its deck */;
   };
   /* a yard surface in frame F at height y, on a 10 m grid that rides up over the drawn ground wherever that stands higher (the 100 m
      terrain triangles cross the pad's edges), so nothing on it is ever buried */
@@ -1742,7 +1744,10 @@ const SITES = [],
           [x, z] = F.w(0, Md0);
         m.position.set(x, SEA.WL, z);
         m.rotation.y = YS;
+        m.userData.surface = true; /* the crews walk on it (SURF) */
         scene.add(m);
+        SURF.wet(F.w(-MW / 2, Md0), F.w(MW / 2, Md0 + ML - 12));
+        SURF.wet(F.w(-MT / 2, Md0 + ML - 12), F.w(MT / 2, Md0 + ML + 2));
         const [sx, sz] = F.w(0, Md0 + (ML - 10) / 2),
           [tx, tz] = F.w(0, Md0 + ML - 5);
         COLL.add({ sea: true, fixed: true, x: sx, z: sz, yaw: YS, hl: (ML - 10) / 2, r: MW / 2, v: 0 });
@@ -1768,14 +1773,23 @@ const SITES = [],
       S.at(MODELS.get('jp-drum-dump', 7, 4), -120, -110, YA, gy);
       S.at(MODELS.get('jp-drum-dump', 6, 3), -75, -105, YA + 0.2, gy);
       use(-130, -65, -118, -98);
-      for (let i = 0; i < 5; i++) S.at(stack(r), -40 + i * 16, -12 + (i % 2) * 6, YA + i, gy);
-      use(-48, 30, -16, -2);
+      for (let i = 0; i < 5; i++) S.at(stack(r), -105 + i * 12, -20 + (i % 2) * 6, YA + i, gy);
+      use(-112, -50, -26, -8);
       S.at(FLG.pole('jn', 12, 3.0, 0, 0, 0, 0), 60, -110, YA); /* the Rising Sun over the HQ */
       /* moored: two Type T-14s alongside the mole, a Daihatsu and a lighter at the T-head */
       const sideU = MW / 2 + 1.9;
       mooredF(F, MODELS.get('jp-t14'), -sideU, Md0 + 85, YS, 15, 3.6);
       mooredF(F, MODELS.get('jp-t14'), sideU, Md0 + 110, YS + Math.PI, 15, 3.6);
-      mooredF(F, MODELS.get('jp-daihatsu'), -MT / 2 - 2.2, Md0 + ML - 4, YS + Math.PI, 14.9, 3.35);
+      /* a freighter at anchor in deep water off the mole (outer-island practice), her cargo run in to the T-head by the Daihatsu */
+      {
+        const dA = anchorD(F, 60, 137, 7.8, 250, WH);
+        FR = F;
+        const e = target(M.freighter('jp'), 'ship', 150, 137 * 0.3, 60, dA, YS);
+        FR = SITE;
+        ANCH.push({ m: e.m, y0: e.m.position.y, yaw: YS, ride: RIDE.make(0.43 * 137, 0.45 * 18.2, 9), e });
+        const o = mooredF(F, MODELS.get('jp-daihatsu'), 60 - 9.1 - 2.4, dA - 20, YS, 14.9, 3.35);
+        o.sh = { a: F.w(60 - 9.1 - 2.4, dA - 20), b: F.w(-MT / 2 - 2.2, Md0 + ML - 4), wait: 60, ph: 20 };
+      }
       mooredF(F, MODELS.get('jp-lighter'), MT / 2 + 2.6, Md0 + ML - 6, YS, 12, 4);
       /* guns and light */
       farGun(F, -125, -10, YS);
@@ -1786,6 +1800,14 @@ const SITES = [],
       use(118, 142, -22, 15);
       COAST.port(F, r, taken, use);
       pat = mkPatrol(F);
+      /* the base at work: navy hands walking between the godowns, the HQ, the barracks and out along the mole; a Type 94 truck on the yard */
+      const walkJ = (v, path, sp, wait) => AFLD.add(CREW_RIG('jn', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
+      walkJ(0, [[0, -30], [0, 140]], 1.3, 12);
+      walkJ(1, [[85, -100], [30, -40], [16, -10]], 1.4, 8);
+      walkJ(0, [[-68, -38], [-14, -10], [0, -2], [0, 60]], 1.2, 10);
+      walkJ(1, [[-90, -138], [-30, -80], [40, -80]], 1.4, 7);
+      walkJ(1, [[110, -30], [60, -25]], 1.2, 14);
+      AFLD.add(MODELS.get('jp-type94-cargo'), [F.w(-110, -36), F.w(60, -36)], 5, 25, 'veh');
     } else {
       /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
          a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
@@ -1810,7 +1832,25 @@ const SITES = [],
       };
       pt('107', -75 - 3 - 3.3, 95);
       pt('108', -75 + 3 + 3.3, 122);
-      pt('110', -25 - 3 - 3.3, 108);
+      {
+        /* PT-110 goes out on patrol and comes back: out from her berth to 900 m off at 10 knots, an hour's worth of waiting compressed */
+        pt('110', -25 - 3 - 3.3, 108);
+        const o = ANCH[ANCH.length - 1];
+        o.cb.fixed = false;
+        o.sh = { a: F.w(-25 - 3 - 3.3, 108), b: F.w(-25 - 3 - 3.3, 900), wait: 150, ph: 40, v: 5.1 };
+        o.wk = shipWakeMesh(24.4 / 78, 0.4) /* the same painted wake as the fleet's PT boats */;
+        o.wk.visible = false;
+        o.m.add(o.wk);
+      }
+      /* the base at work: sailors between the huts, the shop, the tank farm and out on the piers; the jeep on its rounds */
+      const walkU = (v, path, sp, wait) => AFLD.add(CREW_RIG('us', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
+      walkU(0, [[-117, -55], [-75, -2], [-75, 85]], 1.4, 8);
+      walkU(1, [[-25, -30], [-25, 100]], 1.3, 10);
+      walkU(2, [[45, -28], [105, -42]], 1.2, 12);
+      walkU(0, [[-100, -90], [-35, -90], [-10, -40]], 1.4, 6);
+      walkU(1, [[20, -35], [75, 0], [75, 130]], 1.3, 15);
+      walkU(2, [[-140, -90], [-50, -90], [-40, -50]], 1.2, 9);
+      AFLD.add(M.jeep(), [F.w(-145, -15), F.w(140, -15)], 7, 20, 'veh');
       /* the fuel line along the jetty, and the tank farm behind it (four 1,000-barrel tanks) */
       {
         const d0 = F.po - 4,
@@ -1833,9 +1873,9 @@ const SITES = [],
         }
       S.at(MODELS.get('us-quonset', 'elephant'), 10, -60, YS, gy);
       use(-8, 28, -80, -40);
-      /* the flag, a jeep and two trucks */
+      /* the flag and two trucks (the jeep drives) */
       S.at(FLG.pole('us', 12, 2.8, 0, 0, 0, 0), 40, -20, YA);
-      S.at(M.jeep(), 55, -35, YA + 0.3);
+
       S.at(M.cargoTruck(), -40, -30, YA - 0.1);
       S.at(M.fuelTruck(0x6b7350), 100, -30, YS);
       use(30, 110, -45, -12);

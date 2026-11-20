@@ -126,9 +126,15 @@ const SURF = (() => {
     NEW.push(...keep.slice(-5000));
     if (added) C.clear();
   };
+  /* decks over the water (piers, moles): boxes [x0, x1, z0, z1] where a surface stands over the sea; elsewhere at sea there is only the water */
+  const WET = [];
+  const wet = (x, z) => {
+    for (const b of WET) if (x > b[0] && x < b[1] && z > b[2] && z < b[3]) return true;
+    return false;
+  };
   const f = (x, z) => {
     const h0 = H(x, z);
-    if (h0 <= SEA.PAINT + 0.01) return h0;
+    if (h0 <= SEA.PAINT + 0.01 && !wet(x, z)) return h0;
     const k = Math.round(x) * 1000003 + Math.round(z);
     /* the cache keeps how far the surface lies above the ground in each 1 m cell, not a height: on a slope a height would be wrong
        by up to half a metre's rise elsewhere in the cell */
@@ -148,6 +154,13 @@ const SURF = (() => {
     return h;
   };
   f.reset = () => ((L = null), C.clear());
+  /* a deck over the water: its corners (x, z pairs) */
+  f.wet = (...P) => {
+    const xs = P.map((p) => p[0]),
+      zs = P.map((p) => p[1]);
+    WET.push([Math.min(...xs) - 1, Math.max(...xs) + 1, Math.min(...zs) - 1, Math.max(...zs) + 1]);
+    C.clear();
+  };
   let settled = false;
   f.settle = () => {
     if (settled || typeof T === 'undefined') return;
