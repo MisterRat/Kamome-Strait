@@ -11,19 +11,29 @@ const SITES = [],
   const { part, bx, cyl } = GX,
     Z = Math.PI / 2,
     M = AFLD.models,
-    asMesh = (P, lit) => {
+    asMesh = (P, lit, near) => {
       const g = new GX.Acc().add(P, GX.xf(0, 0, 0, 0)).geometry();
       g.computeBoundingBox();
       const b = g.boundingBox,
-        s1 = b.max.y - b.min.y,
-        k0 = b.min.y; /* read before translate(), which recomputes the box in place */
+        s1 = near ? near[1] : b.max.y - b.min.y,
+        k0 = near ? near[2] : b.min.y; /* read before translate(), which recomputes the box in place; a distant form sits as its near one */
       g.translate(0, -k0 - s1 / 2, 0); /* base at the model's own zero, the mesh origin in the middle (as the other targets) */
       g.computeBoundingSphere();
       return [new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })), s1, k0 /* the model's lowest point (a ship: her keel, below her waterline at 0) */];
     },
-    target = (P, type, hp, r, u, d, ry, yOff) => {
-      const [m, s1, k0] = asMesh(P),
+    /* Pfar: the same model's distant form, swapped in beyond FAR_AT (a THREE.LOD the renderer switches by camera distance) */
+    FAR_AT = 1000,
+    target = (P, type, hp, r, u, d, ry, yOff, Pfar) => {
+      const near = asMesh(P),
         [x, z] = FR.w(u, d);
+      let [m, s1, k0] = near;
+      if (Pfar) {
+        const lod = new THREE.LOD();
+        lod.addLevel(m, 0);
+        lod.addLevel(asMesh(Pfar, null, near)[0], FAR_AT);
+        lod.geometry = m.geometry /* the near form's, for the code that measures a target */;
+        m = lod;
+      }
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const gb = m.geometry.boundingBox,
@@ -961,7 +971,7 @@ const SITES = [],
     const ry = FR.ryS + (rnd() - 0.5) * 0.25,
       [x0, z0] = FR.w(u, DR - 100),
       top = Math.max(...KI84.CONTACT.map(([cx, cz]) => SURF(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry)))) /* the apron's top (SURF) under each wheel */;
-    target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01);
+    target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01, M.ki84(bodies[i % 4], Object.assign({ far: true }, o)));
   }
   /* the ground crew at work on the line (IJAAF khaki-tan coveralls, field caps) and a tractor to tow the fighters: one static mesh */
   {

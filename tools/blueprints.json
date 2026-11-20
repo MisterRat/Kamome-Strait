@@ -106,6 +106,35 @@
   ]
  },
  {
+  "id": "ki84-distant",
+  "file": "Ki-84_distant",
+  "title": "Nakajima Ki-84-Ia Hayate, parked: the distant form (beyond 1 km)",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return __bake(KI84.parked({ body: 0x55603a, far: true }));",
+  "type": "Nakajima Ki-84-Ia Hayate (\"Frank\"), parked",
+  "ref": [
+   [
+    "Length",
+    9.92,
+    "9.92 m (migflug.com Ki-84 data, from the Kagero / Japanese figures)"
+   ],
+   [
+    "Span",
+    11.238,
+    "11.238 m (migflug.com)"
+   ],
+   [
+    "Height",
+    3.385,
+    "3.385 m tail down (migflug.com)"
+   ]
+  ],
+  "notes": [
+   "Phase 5's distant form: the same builder as the parked model (KI84.parked) at lower detail: every lofted surface at 35% of its segments, the fittings under 0.3 m left off. Swapped in automatically beyond 1 km."
+  ]
+ },
+ {
   "id": "tow-plane",
   "file": "Target-tug_aircraft",
   "title": "Target-towing aircraft: P-51D (gunnery practice)",

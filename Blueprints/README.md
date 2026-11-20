@@ -12,6 +12,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | P-51D Mustang, parked (home airfield) | North American P-51D Mustang (simplified airfield model) | 9.69 x 11.28 x 3.98 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
 | Nakajima Ki-84-Ia Hayate (bandit and raider) | Nakajima Ki-84-Ia Hayate ("Frank") | 9.92 x 11.27 x 3.58 | match | `Ki-84_blueprint.png`, `Ki-84_measurements.md` |
 | Nakajima Ki-84-Ia Hayate, parked | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.76 x 11.27 x 3.81 | **check** | `Ki-84_parked_blueprint.png`, `Ki-84_parked_measurements.md` |
+| Nakajima Ki-84-Ia Hayate, parked: the distant form (beyond 1 km) | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.73 x 11.24 x 3.81 | **check** | `Ki-84_distant_blueprint.png`, `Ki-84_distant_measurements.md` |
 | Target-towing aircraft: P-51D (gunnery practice) | North American P-51D Mustang (simplified airfield model, gear up) | 9.84 x 11.28 x 3.41 | match | `Target-tug_aircraft_blueprint.png`, `Target-tug_aircraft_measurements.md` |
 | PT-105, 80 ft Elco motor torpedo boat | Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108 | 25.55 x 6.74 x 8.64 | close | `PT-105_blueprint.png`, `PT-105_measurements.md` |
 | Target sled (towed by PT-108) | Gunnery target sled (generic) | 11.70 x 3.50 x 5.73 | no reference yet | `Target_sled_blueprint.png`, `Target_sled_measurements.md` |

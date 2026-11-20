@@ -12,8 +12,14 @@
    KI84.blades(a)  -> the four blades and spinner around the prop hub, for a spinning group placed at KI84.HUB
    KI84.parked(o)  -> the parts sitting on its wheels in the three-point attitude, wheels on y = 0, nose toward +x
    KI84.CONTACT    -> [x, z] of the three wheels' ground contacts in that parked frame
-   KI84.mesh(o)    -> one vertex-coloured mesh of KI84.parts(o) */
+   KI84.mesh(o)    -> one vertex-coloured mesh of KI84.parts(o)
+   o.far true: the distant form (Phase 5): the same builder at lower detail, every lofted surface at FAR_Q of its segments and
+                      the fittings smaller than FAR_MIN metres left off (seen beyond about 1 km) */
 const KI84 = (() => {
+  const FAR_Q = 0.35,
+    FAR_MIN = 0.3;
+  let Q = 1 /* the detail of the surfaces being built: 1, or FAR_Q for the distant form */,
+    FAR = false;
   const { part, Acc } = GX,
     V3 = THREE.Vector3,
     S0 = 2.9 /* centre of gravity, metres behind the spinner tip */,
@@ -58,6 +64,8 @@ const KI84 = (() => {
     },
     /* a surface over a nu x nv grid of points f(i, j) */
     grid = (nu, nv, f, out) => {
+      nu = Math.max(2, Math.round(nu * Q));
+      nv = Math.max(2, Math.round(nv * Q));
       const pos = [],
         idx = [];
       for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) pos.push(...f(i / nu, j / nv));
@@ -75,6 +83,15 @@ const KI84 = (() => {
     disc = (r, map, n, off) => {
       /* in rings, so it follows the curve of the skin instead of cutting under it */
       const n0 = map(0, 0)[1];
+      const q = Q;
+      Q = 1; /* markings keep their full shape in the distant form (few triangles, and a notched roundel shows) */
+      try {
+        return discG(r, map, n, off, n0);
+      } finally {
+        Q = q;
+      }
+    },
+    discG = (r, map, n, off, n0) => {
       return grid(n || 24, 6, (u, v) => {
         const [p, nn] = map(r * v * Math.cos(u * 2 * Math.PI), r * v * Math.sin(u * 2 * Math.PI));
         const k = off || 0.008;
@@ -240,6 +257,22 @@ const KI84 = (() => {
 
   const parts = (o) => {
     o = o || {};
+    FAR = !!o.far;
+    Q = FAR ? FAR_Q : 1;
+    try {
+      return build(o);
+    } finally {
+      FAR = false;
+      Q = 1;
+    }
+  };
+  /* a fitting smaller than FAR_MIN at its scale (s: the part's largest scale factor) */
+  const small = (g, s) => {
+    if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox;
+    return s * Math.max(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z) < FAR_MIN;
+  };
+  const build = (o) => {
     const body = o.body == null ? 0x4f5b3a : o.body,
       under = 0x9c9f93,
       dark = 0x1d1e1b,
@@ -251,7 +284,10 @@ const KI84 = (() => {
       metal = 0x55585a,
       line = (c) => (c === under ? 0x7d8076 : 0x3c4630),
       P = [],
-      add = (g, hex, x, y, z, rx, ry, rz, sx, sy, sz) => P.push(part(g, hex, x || 0, y || 0, z || 0, rx, ry, rz, sx, sy, sz));
+      add = (g, hex, x, y, z, rx, ry, rz, sx, sy, sz) => {
+        if (FAR && small(g, Math.max(sx || 1, sy || 1, sz || 1))) return; /* the distant form leaves the small fittings off */
+        P.push(part(g, hex, x || 0, y || 0, z || 0, rx, ry, rz, sx, sy, sz));
+      };
     const A = 0.62 * Math.PI; /* the colour demarcation, a little below the side's widest point */
     /* fuselage: olive top and sides, grey belly */
     add(fuse(0.5, 9.62, -A, A, 0, 48), body);

@@ -13,7 +13,7 @@
   /* a parked P-51D: the scenery model built from the player's factory tables (MODELS 'us-p51d'), nose toward +x, wheels on y = 0 */
   const fighter = (body, trim, o) => MODELS.get('us-p51d', body, trim, o);
   /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
-  const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI });
+  const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI, far: !!(o && o.far) });
 
   const drums = () => {
     const P = [],
