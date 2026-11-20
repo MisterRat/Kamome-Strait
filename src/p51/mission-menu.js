@@ -1,5 +1,7 @@
-/* mission menu */
-const MENU = [
+/* the P-51's missions: [id, title, what it is] (the shared mission menu shows them); picking one sets the mission and resets */
+SIMS.add({
+  id: 'p51',
+  missions: [
   ['free', 'Free Flight', 'Fly around. A convoy runs on the road, with ground targets, flak guns and searchlights.'],
   ['takeoff', 'Takeoff Trainer', 'Step-by-step coaching from the runway to a safe climb.'],
   ['landing', 'Landing Trainer', 'Start on approach: gear, flaps, flare and stop. Scored.'],
@@ -12,44 +14,9 @@ const MENU = [
   ['lowyoyo', 'Low Yo-Yo', 'Dive below a turning target to gain speed, then zoom up onto his tail.'],
   ['adf', 'ADF Navigation: Kamome Field', 'Fly 43 km out over the sea with the ADF radio compass, find the island airfield by its radio beacon and land there. Fuel is topped up.'],
   ['highyoyo', 'High Yo-Yo', 'Pull up out of a turn plane to bleed a speed excess, then drop onto his tail.'],
-];
-let menuOpen = false,
-  menuSel = 0; /* menuOpen = the pause popup is showing its Missions tab */
-const menuList = $$('menuList');
-MENU.forEach((it, i) => {
-  const b = document.createElement('button');
-  b.innerHTML = '<b>' + it[1] + '</b><span>' + it[2] + '</span>';
-  b.onclick = () => menuPick(i);
-  b.onmouseenter = () => menuHi(i);
-  menuList.appendChild(b);
+],
+  missionPick: (it) => {
+    trn.mode = it[0];
+    reset();
+  },
 });
-function menuHi(i) {
-  menuSel = (i + MENU.length) % MENU.length;
-  [...menuList.children].forEach((b, j) => b.classList.toggle('sel', j === menuSel));
-}
-function menuMove(d) {
-  menuHi(menuSel + d);
-}
-function toggleMenu() {
-  if (docsOpen) return;
-  if (pmOpen && pmTab === 'mis') pmShow(false);
-  else pmShow(true, 'mis');
-}
-function menuPick(i) {
-  trn.mode = MENU[i][0];
-  pmOpen = false;
-  menuOpen = false;
-  $$('pm').style.display = 'none';
-  pmPrev = false;
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (!started) {
-    started = true;
-    audio();
-    $$('start').style.display = 'none';
-  }
-  reset();
-}
-$$('goMenu').onclick = () => toggleMenu();
-
-reset();
-

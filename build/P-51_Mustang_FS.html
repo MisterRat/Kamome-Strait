@@ -590,7 +590,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.63';
+const VERSION = '5.64';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -676,13 +676,17 @@ const HOOKS = {
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
-     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
+     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
+                        own keys before the bindings (true: taken)
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
-     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts
+     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
+     sound(SND, { t, set, live, cockpit }): set them each frame
+     kbDoc, padDoc, helpBody(box): its doc rows for the help, and how it fills its controls box
+     missions, missionPick(it, first): its missions [id, title, what it is, ...] and what picking one does (first: the game just started)
      hcKeys             its Hardcore options (FM.use(key)); the switch takes them all; hcChanged() after the player changes them
      uiItems            its on-screen boxes for the display options [{ id, label, sel, g, sc }]; uiSet(id, on), uiInit() for a box with
                         behaviour of its own (the P-51's flight path guide)
@@ -744,8 +748,16 @@ const SIMS = {
     touchUI: () => {},
     bail: () => {},
     hcKeys: [],
+    kbDoc: [],
+    padDoc: [],
+    helpBody: () => {},
+    missions: [],
+    missionPick: () => reset(),
     hcChanged: () => {},
     voices: () => {},
+    sound: () => {},
+    keyFirst: () => false,
+    keyStation: () => false,
     mouseDown: () => false,
     mouseUp: () => {},
     mouseMove: () => false,
@@ -25796,8 +25808,10 @@ function updGuide(dt) {
   }
 }
 
-/* mission menu */
-const MENU = [
+/* the P-51's missions: [id, title, what it is] (the shared mission menu shows them); picking one sets the mission and resets */
+SIMS.add({
+  id: 'p51',
+  missions: [
   ['free', 'Free Flight', 'Fly around. A convoy runs on the road, with ground targets, flak guns and searchlights.'],
   ['takeoff', 'Takeoff Trainer', 'Step-by-step coaching from the runway to a safe climb.'],
   ['landing', 'Landing Trainer', 'Start on approach: gear, flaps, flare and stop. Scored.'],
@@ -25810,17 +25824,30 @@ const MENU = [
   ['lowyoyo', 'Low Yo-Yo', 'Dive below a turning target to gain speed, then zoom up onto his tail.'],
   ['adf', 'ADF Navigation: Kamome Field', 'Fly 43 km out over the sea with the ADF radio compass, find the island airfield by its radio beacon and land there. Fuel is topped up.'],
   ['highyoyo', 'High Yo-Yo', 'Pull up out of a turn plane to bleed a speed excess, then drop onto his tail.'],
-];
-let menuOpen = false,
+],
+  missionPick: (it) => {
+    trn.mode = it[0];
+    reset();
+  },
+});
+/* the mission menu: built from the current simulator's missions (its role's missions: [id, title, what it is, ...]); picking one
+   closes the menu, starts the game the first time, and hands the mission to the role (missionPick) */
+let MENU = [],
+  menuOpen = false,
   menuSel = 0; /* menuOpen = the pause popup is showing its Missions tab */
 const menuList = $$('menuList');
-MENU.forEach((it, i) => {
-  const b = document.createElement('button');
-  b.innerHTML = '<b>' + it[1] + '</b><span>' + it[2] + '</span>';
-  b.onclick = () => menuPick(i);
-  b.onmouseenter = () => menuHi(i);
-  menuList.appendChild(b);
-});
+function menuBuild() {
+  MENU = SIMS.cur.missions;
+  menuList.innerHTML = '';
+  MENU.forEach((it, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = '<b>' + it[1] + '</b><span>' + it[2] + '</span>';
+    b.onclick = () => menuPick(i);
+    b.onmouseenter = () => menuHi(i);
+    menuList.appendChild(b);
+  });
+}
+menuBuild();
 function menuHi(i) {
   menuSel = (i + MENU.length) % MENU.length;
   [...menuList.children].forEach((b, j) => b.classList.toggle('sel', j === menuSel));
@@ -25834,23 +25861,23 @@ function toggleMenu() {
   else pmShow(true, 'mis');
 }
 function menuPick(i) {
-  trn.mode = MENU[i][0];
+  const it = MENU[i];
   pmOpen = false;
   menuOpen = false;
   $$('pm').style.display = 'none';
   pmPrev = false;
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (!started) {
+  const first = !started;
+  if (first) {
     started = true;
     audio();
     $$('start').style.display = 'none';
   }
-  reset();
+  SIMS.cur.missionPick(it, first);
 }
 $$('goMenu').onclick = () => toggleMenu();
 
 reset();
-
 /* reset the game: the shared part; each simulator places its own vehicle (role spawn) and readies it (role ready) */
 function reset() {
   try {
@@ -27208,7 +27235,7 @@ function pmBuild() {
       '<label><input type="checkbox" data-id="' +
       i.id +
       '" ' +
-      ((i.id === 'guide' ? guide.on : UI.vis(i.id)) ? 'checked' : '') +
+      (UI.vis(i.id) ? 'checked' : '') +
       '> ' +
       (MOB ? i.label.replace(/ \([A-Z]\)$/, '') : i.label) +
       '</label>';
@@ -27223,7 +27250,7 @@ const PM_TABS = ['set', 'mis', 'about', 'ctl', 'ops', 'hc'],
   PM_PANE = { set: 'pmPaneS', mis: 'pmPaneM', about: 'pmPaneA', ctl: 'pmPaneC', ops: 'pmPaneO', hc: 'pmPaneH' },
   PM_BTN = { set: 'pmTabS', mis: 'pmTabM', about: 'pmTabA', ctl: 'pmTabC', ops: 'pmTabO', hc: 'pmTabH' },
   INFO_TABS = ['about', 'ctl', 'ops', 'hc'];
-let pmInfo = 'about';
+let pmInfo = SIMS.cur.docsTab; /* the help page the info tabs open on */
 function pmSetTab(tab) {
   pmTab = tab;
   if (INFO_TABS.includes(tab)) pmInfo = tab;
@@ -27965,7 +27992,10 @@ const bindText = (ids, pad) =>
     })
     .join(ids.every((id) => !BI[id].word) ? ' / ' : ' &middot; ');
 /* doc rows: [label, ids | literal html, note, box line] ; a string instead of an id list is literal text */
-const KBDOC = [
+/* the P-51's doc rows for the help (the shared help piece builds the tables and the controls box from them) */
+SIMS.add({
+  id: 'p51',
+  kbDoc: [
   ['Pitch', ['pitchUp', 'pitchDn'], '', 1],
   ['Roll', ['rollL', 'rollR'], '', 2],
   ['Rudder', ['rudL', 'rudR'], '', 2],
@@ -28002,8 +28032,8 @@ const KBDOC = [
   ['Restart', ['restart'], '', 6],
   ['Menus', ['pause', 'missions', 'manual'], 'Tab or &larr; / &rarr; switch tabs', 7],
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'guide', 'coach', 'quality', 'mute'], '', 8],
-];
-const PADDOC = [
+],
+  padDoc: [
   ['Pitch / roll', 'Right stick (pull back = climb)', '', 1],
   ['Rudder', ['rudL', 'rudR'], 'also steers on the ground', 1],
   ['Look around', 'Left stick: cockpit free-look, release to recenter', '', 2],
@@ -28038,7 +28068,24 @@ const PADDOC = [
     0,
   ],
   ['Pause / manual', ['pause', 'manual'], '', 7, 'box'],
-];
+],
+  helpBody: (box) => {
+    $$('hkBody').innerHTML = box(
+      '<b style="color:var(--acc)">CONTROLS &ndash; KEYBOARD</b> (' + kbText('help') + ' hides)',
+      SIMS.cur.kbDoc,
+      false,
+      '<br>Mouse drag: circle the plane (chase) / look around (cockpit)',
+    );
+    $$('hpBody').innerHTML = box(
+      '<b style="color:var(--acc)">CONTROLS &ndash; CONTROLLER</b> (' + kbText('help') + ' hides)',
+      SIMS.cur.padDoc,
+      true,
+      '',
+    );
+  },
+});
+/* the help (the Controls tab's tables and the controls box): built from the current simulator's doc rows (its role's kbDoc,
+   padDoc: [label, binding ids or text, note, box line, 'box' = box only]); its role's helpBody(box) fills the controls box */
 function docValue(row, pad) {
   const v = row[1],
     base = typeof v === 'function' ? v() : typeof v === 'string' ? v : bindText(v, pad);
@@ -28052,8 +28099,8 @@ function buildHelp() {
     $$(a).innerHTML = rows.slice(0, half).map(h).join('');
     $$(b).innerHTML = rows.slice(half).map(h).join('');
   };
-  tbl(KBDOC, false, 'kbT1', 'kbT2');
-  tbl(PADDOC, true, 'pdT1', 'pdT2');
+  tbl(SIMS.cur.kbDoc, false, 'kbT1', 'kbT2');
+  tbl(SIMS.cur.padDoc, true, 'pdT1', 'pdT2');
   const box = (title, rows, pad, extra) => {
     const lines = {};
     rows.forEach((r) => {
@@ -28068,20 +28115,9 @@ function buildHelp() {
       (extra || '')
     );
   };
-  $$('hkBody').innerHTML = box(
-    '<b style="color:var(--acc)">CONTROLS &ndash; KEYBOARD</b> (' + kbText('help') + ' hides)',
-    KBDOC,
-    false,
-    '<br>Mouse drag: circle the plane (chase) / look around (cockpit)',
-  );
-  $$('hpBody').innerHTML = box(
-    '<b style="color:var(--acc)">CONTROLS &ndash; CONTROLLER</b> (' + kbText('help') + ' hides)',
-    PADDOC,
-    true,
-    '',
-  );
+  SIMS.cur.helpBody(box);
 }
-buildHelp();
+buildHelp(); /* the P-51 builds its help as it loads (the PCE once her controls box exists) */
 /* held keys: kb('rudL') is 1 while any key bound to rudL is down */
 const kb = (id) => (BI[id].kb.some((c) => keys[c]) ? 1 : 0);
 /* Picks the controller to use. Windows can list several devices (virtual pads from Steam, vJoy and so on) and the
@@ -28325,6 +28361,8 @@ SIMS.add({ id: 'p51', uiAct: {
     }
   },
 } });
+/* the keys: menus, photo mode and the manual first, then the current simulator's own keys (its role's keyFirst, keyStation), then
+   its bindings (uiAct, act through KEYID); also the audio context, started on the first key or click */
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
     if (e.code == 'Escape') e.target.blur();
@@ -28334,6 +28372,7 @@ addEventListener('keydown', (e) => {
     photoKey(e);
     return;
   }
+  if (SIMS.cur.keyFirst(e)) return; /* the simulator takes the key first (the PCE's shell camera) */
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Quote', 'Backspace'].includes(e.code)) e.preventDefault();
   if (KEYID[e.code] === 'manual') {
     if (!e.repeat) toggleDocs();
@@ -28381,6 +28420,7 @@ addEventListener('keydown', (e) => {
     if (e.code == 'KeyP' || e.code == 'Escape') pauseMenu(false);
     return;
   }
+  if (SIMS.cur.keyStation(e)) return; /* a station's own keys (the PCE's comms) */
   const uid = KEYID[e.code];
   if (uid && SIMS.cur.uiAct[uid] && !e.repeat) {
     SIMS.cur.uiAct[uid]();
@@ -28417,7 +28457,58 @@ function audio() {
     logWarn('audio unavailable', e);
   }
 }
-/* every frame: set the continuous voices from the flight state */
+/* the P-51's voices each frame: the Merlin (by rpm, rough when hot or hit, coughing, sputtering), the wind (by airspeed, gear, flaps,
+   buffet), the tyres' rumble, and the warning tone (spin > stall > redline > overstress) */
+SIMS.add({
+  id: 'p51',
+  sound: (S, { t, set, live, cockpit }) => {
+    const v = vel.length(),
+      ias = FM.ias || v,
+      dry = FM.use('fuel') && FM.fuel <= 0,
+      alive = !engOut && !dry && !(DM.on && DM.eng >= 1),
+      rpm = alive ? Math.min(3300, 700 + thr * 2300 + Math.max(0, v * 2.237 - 420) * 3) : 250 + v * 4;
+    const e = S.e,
+      fire = (rpm / 60) * 6,
+      rough = FM.hot || (DM.on && DM.eng > 0.3) ? 1.04 : 1;
+    set(e.o1.frequency, fire);
+    set(e.o2.frequency, fire * 1.012 * rough);
+    set(e.o3.frequency, fire / 2);
+    set(e.bl.frequency, (rpm / 60) * 3);
+    set(e.lfo.frequency, 6 + (rpm / 60) * 0.4);
+    set(e.lfoG.gain, 0.04 + 0.12 * (1 - thr) + (FM.hot ? 0.2 : 0));
+    set(e.f.frequency, (220 + thr * 380 + (alive ? 0 : -100)) * (cockpit ? 0.75 : 1));
+    set(e.raspG.gain, 0.05 + thr * 0.2);
+    let lvl = alive ? (0.3 + 0.5 * thr) * S.eng * (1 - 0.35 * (DM.on ? DM.eng : 0)) : 0.04;
+    if (alive && DM.on && DM.eng > 0.3 && Math.random() < 0.15 * DM.eng) lvl *= 0.4; /* coughing */
+    if (alive && FM.use('fuel') && FM.fuel < 0.03 && Math.random() < 0.4) lvl *= 0.15; /* sputtering */
+    set(e.out.gain, live ? lvl : 0, 0.12);
+    const w = Math.min(1, Math.pow(ias / 150, 2)),
+      extra = 1 + (gearOn ? 0.25 : 0) + (flapLvl > 0 ? 0.25 : 0) + Math.min(1, buffet) * 0.6;
+    set(S.w.f.frequency, 350 + ias * 9);
+    set(S.w.g.gain, live ? 0.55 * S.eng * w * extra * (cockpit ? 0.55 : 1) : 0, 0.1);
+    set(S.r.g.gain, live && onGround ? Math.min(1, v / 35) * 0.55 : 0, 0.1);
+    /* warning tone: spin > stall > redline > overstress */
+    let wf = 0,
+      wv = 0;
+    const ph = t % 1;
+    if (live && FM.spin) {
+      wf = ph % 0.33 < 0.165 ? 420 : 620;
+      wv = 0.06;
+    } else if (live && stalled && !onGround) {
+      wf = 480;
+      wv = (ph * 6) % 1 < 0.5 ? 0.06 : 0;
+    } else if (live && FM.red > 470) {
+      wf = 880 + 60 * Math.sin(t * 20);
+      wv = 0.05;
+    } else if (live && FM.over > 1) {
+      wf = 1250;
+      wv = (ph * 4) % 1 < 0.4 ? 0.06 : 0;
+    }
+    if (wf) set(S.wo.frequency, wf, 0.01);
+    set(S.wg.gain, wv, 0.01);
+  },
+});
+/* every frame: the continuous voices: the master volume, the rain, the guns; the vehicle's own voices are its role's (sound) */
 function audioUpd() {
   const S = SND;
   if (!S.ctx) return;
@@ -28425,54 +28516,11 @@ function audioUpd() {
     t = a.currentTime,
     set = (p, v, k) => p.setTargetAtTime(v, t, k || 0.08),
     live = started && !paused && !crashed,
-    v = vel.length(),
-    ias = FM.ias || v,
-    dry = FM.use('fuel') && FM.fuel <= 0,
-    alive = !engOut && !dry && !(DM.on && DM.eng >= 1),
-    rpm = alive ? Math.min(3300, 700 + thr * 2300 + Math.max(0, v * 2.237 - 420) * 3) : 250 + v * 4,
     cockpit = camMode === 1;
   set(S.master.gain, S.on && !paused ? S.vol : 0, 0.05);
-  const e = S.e,
-    fire = (rpm / 60) * 6,
-    rough = FM.hot || (DM.on && DM.eng > 0.3) ? 1.04 : 1;
-  set(e.o1.frequency, fire);
-  set(e.o2.frequency, fire * 1.012 * rough);
-  set(e.o3.frequency, fire / 2);
-  set(e.bl.frequency, (rpm / 60) * 3);
-  set(e.lfo.frequency, 6 + (rpm / 60) * 0.4);
-  set(e.lfoG.gain, 0.04 + 0.12 * (1 - thr) + (FM.hot ? 0.2 : 0));
-  set(e.f.frequency, (220 + thr * 380 + (alive ? 0 : -100)) * (cockpit ? 0.75 : 1));
-  set(e.raspG.gain, 0.05 + thr * 0.2);
-  let lvl = alive ? (0.3 + 0.5 * thr) * S.eng * (1 - 0.35 * (DM.on ? DM.eng : 0)) : 0.04;
-  if (alive && DM.on && DM.eng > 0.3 && Math.random() < 0.15 * DM.eng) lvl *= 0.4; /* coughing */
-  if (alive && FM.use('fuel') && FM.fuel < 0.03 && Math.random() < 0.4) lvl *= 0.15; /* sputtering */
-  set(e.out.gain, live ? lvl : 0, 0.12);
-  const w = Math.min(1, Math.pow(ias / 150, 2)),
-    extra = 1 + (gearOn ? 0.25 : 0) + (flapLvl > 0 ? 0.25 : 0) + Math.min(1, buffet) * 0.6;
-  set(S.w.f.frequency, 350 + ias * 9);
-  set(S.w.g.gain, live ? 0.55 * S.eng * w * extra * (cockpit ? 0.55 : 1) : 0, 0.1);
-  set(S.r.g.gain, live && onGround ? Math.min(1, v / 35) * 0.55 : 0, 0.1);
+  SIMS.cur.sound(S, { t, set, live, cockpit }) /* the vehicle's own voices */;
   set(S.rn.g.gain, live ? 0.2 * Math.min(1.5, WX.rainK) * (cockpit ? 0.7 : 1) : 0, 0.3);
   set(S.gun.gain, live && performance.now() < S.gunUntil ? 0.45 : 0, 0.02);
-  /* warning tone: spin > stall > redline > overstress */
-  let wf = 0,
-    wv = 0;
-  const ph = t % 1;
-  if (live && FM.spin) {
-    wf = ph % 0.33 < 0.165 ? 420 : 620;
-    wv = 0.06;
-  } else if (live && stalled && !onGround) {
-    wf = 480;
-    wv = (ph * 6) % 1 < 0.5 ? 0.06 : 0;
-  } else if (live && FM.red > 470) {
-    wf = 880 + 60 * Math.sin(t * 20);
-    wv = 0.05;
-  } else if (live && FM.over > 1) {
-    wf = 1250;
-    wv = (ph * 4) % 1 < 0.4 ? 0.06 : 0;
-  }
-  if (wf) set(S.wo.frequency, wf, 0.01);
-  set(S.wg.gain, wv, 0.01);
 }
 $$('go').onclick = () => {
   started = true;

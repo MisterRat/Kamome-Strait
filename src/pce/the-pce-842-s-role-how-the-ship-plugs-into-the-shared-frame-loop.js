@@ -7,6 +7,19 @@ SIMS.add({
   fileTag: 'PCE842',
   word: 'Ship',
   orbitMin: 25,
+  /* the shell cam: any key cuts straight back to the gun (and does nothing else) */
+  keyFirst: (e) => {
+    if (!(SCAM.on && started && !paused)) return false;
+    SCAM.on = false;
+    e.preventDefault();
+    return true;
+  },
+  /* at communications the operator's own keys */
+  keyStation: (e) => {
+    if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
+    e.preventDefault();
+    return true;
+  },
   hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
      button held also lays it as the mouse is dragged */

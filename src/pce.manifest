@@ -120,8 +120,8 @@ shared/end-of-the-coast-batteries.js
 shared/aftermath-burning-wrecks-smoke-columns-craters-a.js
 shared/convoy-one-at-a-time-timed.js
 shared/the-mission-coach-box-and-the-mission-clock.js
-pce/mission-menu.js
 pce/pce-842-s-missions-id-title-what-it-is-station-v.js
+shared/the-mission-menu-built-from-the-current-simulator-s-missions.js
 shared/reset-the-game-the-shared-part-each-simulator-places-and-readies-its-own-vehicle.js
 shared/minimap.js
 shared/adf-radio-compass-the-needle-points-at-a-radio-b.js
@@ -140,8 +140,7 @@ shared/settings-panel.js
 shared/per-frame-glue.js
 pce/display-options-choose-what-is-on-screen-pause-m.js
 shared/display-options-the-ui-object-shows-hides-and-remembers-the-boxes.js
-pce/pause-menu.js
-pce/pce-842-the-p-51-s-six-tabs-rewritten-for-the-sh.js
+shared/pause-menu.js
 shared/controller-keyboard-focus-inside-the-settings-ta.js
 shared/hardcore-simulation-mode-page.js
 pce/enemy-settings-which-enemies-the-game-sends-agai.js
@@ -156,12 +155,15 @@ shared/gamepad.js
 pce/control-bindings-the-one-place-that-says-which-k.js
 shared/controls-the-lookup-tables-and-key-names-built-from-the-current-simulator.js
 pce/doc-rows-label-ids-literal-html-note-box-line-a.js
+shared/the-help-built-from-the-current-simulator-s-doc-rows.js
 pce/the-on-screen-controls-box-short-and-only-what-a.js
 shared/held-keys-kb-rudl-is-1-while-any-key-bound-to-ru.js
 shared/picks-the-controller-to-use-windows-can-list-sev.js
 pce/what-each-binding-does-the-keys-and-buttons-come.js
 pce/pce-842-the-p-51-s-aircraft-actions-do-nothing-a.js
-pce/every-frame-set-the-continuous-voices-from-the-f.js
+shared/the-keys-every-simulator-s-bindings-through-its-role.js
+pce/the-pce-s-voices-each-frame.js
+shared/every-frame-set-the-continuous-voices-from-the-f.js
 shared/physics.js
 shared/scratch-objects-reused-every-step-frame-so-the-h.js
 shared/smooth-repeating-noise-1-1.js

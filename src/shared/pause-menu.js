@@ -17,7 +17,7 @@ function pmBuild() {
       '<label><input type="checkbox" data-id="' +
       i.id +
       '" ' +
-      ((i.id === 'guide' ? guide.on : UI.vis(i.id)) ? 'checked' : '') +
+      (UI.vis(i.id) ? 'checked' : '') +
       '> ' +
       (MOB ? i.label.replace(/ \([A-Z]\)$/, '') : i.label) +
       '</label>';
@@ -32,7 +32,7 @@ const PM_TABS = ['set', 'mis', 'about', 'ctl', 'ops', 'hc'],
   PM_PANE = { set: 'pmPaneS', mis: 'pmPaneM', about: 'pmPaneA', ctl: 'pmPaneC', ops: 'pmPaneO', hc: 'pmPaneH' },
   PM_BTN = { set: 'pmTabS', mis: 'pmTabM', about: 'pmTabA', ctl: 'pmTabC', ops: 'pmTabO', hc: 'pmTabH' },
   INFO_TABS = ['about', 'ctl', 'ops', 'hc'];
-let pmInfo = 'about';
+let pmInfo = SIMS.cur.docsTab; /* the help page the info tabs open on */
 function pmSetTab(tab) {
   pmTab = tab;
   if (INFO_TABS.includes(tab)) pmInfo = tab;

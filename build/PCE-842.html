@@ -551,7 +551,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.81';
+const VERSION = '0.82';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -637,13 +637,17 @@ const HOOKS = {
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
-     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
+     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
+                        own keys before the bindings (true: taken)
      facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
-     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts
+     voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
+     sound(SND, { t, set, live, cockpit }): set them each frame
+     kbDoc, padDoc, helpBody(box): its doc rows for the help, and how it fills its controls box
+     missions, missionPick(it, first): its missions [id, title, what it is, ...] and what picking one does (first: the game just started)
      hcKeys             its Hardcore options (FM.use(key)); the switch takes them all; hcChanged() after the player changes them
      uiItems            its on-screen boxes for the display options [{ id, label, sel, g, sc }]; uiSet(id, on), uiInit() for a box with
                         behaviour of its own (the P-51's flight path guide)
@@ -705,8 +709,16 @@ const SIMS = {
     touchUI: () => {},
     bail: () => {},
     hcKeys: [],
+    kbDoc: [],
+    padDoc: [],
+    helpBody: () => {},
+    missions: [],
+    missionPick: () => reset(),
     hcChanged: () => {},
     voices: () => {},
+    sound: () => {},
+    keyFirst: () => false,
+    keyStation: () => false,
     mouseDown: () => false,
     mouseUp: () => {},
     mouseMove: () => false,
@@ -749,6 +761,19 @@ SIMS.add({
   fileTag: 'PCE842',
   word: 'Ship',
   orbitMin: 25,
+  /* the shell cam: any key cuts straight back to the gun (and does nothing else) */
+  keyFirst: (e) => {
+    if (!(SCAM.on && started && !paused)) return false;
+    SCAM.on = false;
+    e.preventDefault();
+    return true;
+  },
+  /* at communications the operator's own keys */
+  keyStation: (e) => {
+    if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
+    e.preventDefault();
+    return true;
+  },
   hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
      button held also lays it as the mouse is dragged */
@@ -18222,26 +18247,49 @@ function coachHide() {
   coachEl.style.display = 'none';
 }
 const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-/* mission menu */
-/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out] */
-const MENU = [
+/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out] (the shared mission menu shows them) */
+SIMS.add({
+  id: 'pce',
+  missions: [
   ['patrol', 'Free Patrol', 'The ship is yours: conn her from the open bridge, answer the bells, keep watch. No targets out.', 1, 0, false],
   ['gun3', 'Gunnery Practice: 3"/50', 'The forward 3"/50 with the target rafts out to 6,000 yards, PT-108 and her target sled, and the towed sleeves.', 5, 0, true],
   ['gun20', 'Gunnery Practice: 20 mm', 'The 20 mm amidships: the rafts inside 1,000 yards, the sleeve that passes close, and the sled on PT-108\'s passes.', 5, 1, true],
   ['gun40', 'Gunnery Practice: Twin 40 mm', 'The twin 40 mm aft against the towed sleeves and the target sled.', 5, 2, true],
   ['asw', 'Antisubmarine Attack Run', 'The torpedoman\'s station with the exercise submarine out: the OOD runs in on him and phones the orders. Hedgehog, K-guns and racks. Scored.', 6, -1, true],
   ['sonar', 'Sonar Watch', 'Communications, with the exercise submarine out: find him on the sonar and the radar.', 3, 1, true],
-];
-let menuOpen = false,
+],
+  /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */
+  missionPick: (it, first) => {
+    trn.mode = 'free';
+    if (first) reset();
+    paused = false;
+    if (!!PT.on !== it[5]) ptToggle();
+    const list = PCEM.STN[it[3]] || [];
+    camMode = 1;
+    SHIP.stn = it[3] === 6 ? 1 : it[3];
+    SHIP.sub = it[4] < 0 ? 0 : (it[4] - 1 + list.length) % Math.max(1, list.length);
+    shipStation(it[3]);
+    note(it[1].toUpperCase());
+  },
+});
+/* the mission menu: built from the current simulator's missions (its role's missions: [id, title, what it is, ...]); picking one
+   closes the menu, starts the game the first time, and hands the mission to the role (missionPick) */
+let MENU = [],
+  menuOpen = false,
   menuSel = 0; /* menuOpen = the pause popup is showing its Missions tab */
 const menuList = $$('menuList');
-MENU.forEach((it, i) => {
-  const b = document.createElement('button');
-  b.innerHTML = '<b>' + it[1] + '</b><span>' + it[2] + '</span>';
-  b.onclick = () => menuPick(i);
-  b.onmouseenter = () => menuHi(i);
-  menuList.appendChild(b);
-});
+function menuBuild() {
+  MENU = SIMS.cur.missions;
+  menuList.innerHTML = '';
+  MENU.forEach((it, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = '<b>' + it[1] + '</b><span>' + it[2] + '</span>';
+    b.onclick = () => menuPick(i);
+    b.onmouseenter = () => menuHi(i);
+    menuList.appendChild(b);
+  });
+}
+menuBuild();
 function menuHi(i) {
   menuSel = (i + MENU.length) % MENU.length;
   [...menuList.children].forEach((b, j) => b.classList.toggle('sel', j === menuSel));
@@ -18256,32 +18304,22 @@ function toggleMenu() {
 }
 function menuPick(i) {
   const it = MENU[i];
-  trn.mode = 'free';
   pmOpen = false;
   menuOpen = false;
   $$('pm').style.display = 'none';
   pmPrev = false;
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (!started) {
+  const first = !started;
+  if (first) {
     started = true;
     audio();
     $$('start').style.display = 'none';
-    reset();
   }
-  paused = false;
-  /* the practice targets out (or in) as the mission wants them, then the station and the view there */
-  if (!!PT.on !== it[5]) ptToggle();
-  const list = PCEM.STN[it[3]] || [];
-  camMode = 1;
-  SHIP.stn = it[3] === 6 ? 1 : it[3];
-  SHIP.sub = it[4] < 0 ? 0 : (it[4] - 1 + list.length) % Math.max(1, list.length);
-  shipStation(it[3]);
-  note(it[1].toUpperCase());
+  SIMS.cur.missionPick(it, first);
 }
 $$('goMenu').onclick = () => toggleMenu();
 
 reset();
-
 /* reset the game: the shared part; each simulator places its own vehicle (role spawn) and readies it (role ready) */
 function reset() {
   try {
@@ -19644,12 +19682,11 @@ function pmBuild() {
     .querySelectorAll('button')
     .forEach((b) => b.classList.toggle('on', b.dataset.q === QL.mode));
 }
-/* PCE-842: the P-51's six tabs, rewritten for the ship: Settings, Missions, About, Controls, Operations, Hardcore */
 const PM_TABS = ['set', 'mis', 'about', 'ctl', 'ops', 'hc'],
   PM_PANE = { set: 'pmPaneS', mis: 'pmPaneM', about: 'pmPaneA', ctl: 'pmPaneC', ops: 'pmPaneO', hc: 'pmPaneH' },
   PM_BTN = { set: 'pmTabS', mis: 'pmTabM', about: 'pmTabA', ctl: 'pmTabC', ops: 'pmTabO', hc: 'pmTabH' },
   INFO_TABS = ['about', 'ctl', 'ops', 'hc'];
-let pmInfo = 'ctl';
+let pmInfo = SIMS.cur.docsTab; /* the help page the info tabs open on */
 function pmSetTab(tab) {
   pmTab = tab;
   if (INFO_TABS.includes(tab)) pmInfo = tab;
@@ -20388,7 +20425,10 @@ const bindText = (ids, pad) =>
     })
     .join(ids.every((id) => !BI[id].word) ? ' / ' : ' &middot; ');
 /* doc rows: [label, ids | literal html, note, box line] ; a string instead of an id list is literal text */
-const KBDOC = [
+/* the PCE's doc rows for the help (the shared help piece builds the tables from them; her controls box is helpBox) */
+SIMS.add({
+  id: 'pce',
+  kbDoc: [
   ['Rudder', ['rollL', 'rollR'], 'hold, from any station; let go and she steadies', 1],
   ['Engines', ['thrUp', 'thrDn'], 'from any station; the order stays set', 1],
   ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5', 'st6'], 'press again for the next view', 2],
@@ -20400,8 +20440,8 @@ const KBDOC = [
   ['Restart', ['restart'], '', 3],
   ['Menus', ['pause', 'manual'], '', 3],
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'quality', 'mute'], '', 4],
-];
-const PADDOC = [
+],
+  padDoc: [
   ['Rudder', 'Right stick left / right, or the bumpers', '', 1],
   ['Engines', ['thrUp', 'thrDn'], 'the order stays where you leave it', 1],
   ['Look around', 'Left stick: bridge free-look, release to recenter', '', 2],
@@ -20419,7 +20459,14 @@ const PADDOC = [
     0,
   ],
   ['Pause / manual', ['pause', 'manual'], '', 3, 'box'],
-];
+],
+  helpBody: () => {
+    helpCtx = '';
+    helpBox();
+  },
+});
+/* the help (the Controls tab's tables and the controls box): built from the current simulator's doc rows (its role's kbDoc,
+   padDoc: [label, binding ids or text, note, box line, 'box' = box only]); its role's helpBody(box) fills the controls box */
 function docValue(row, pad) {
   const v = row[1],
     base = typeof v === 'function' ? v() : typeof v === 'string' ? v : bindText(v, pad);
@@ -20433,8 +20480,8 @@ function buildHelp() {
     $$(a).innerHTML = rows.slice(0, half).map(h).join('');
     $$(b).innerHTML = rows.slice(half).map(h).join('');
   };
-  tbl(KBDOC, false, 'kbT1', 'kbT2');
-  tbl(PADDOC, true, 'pdT1', 'pdT2');
+  tbl(SIMS.cur.kbDoc, false, 'kbT1', 'kbT2');
+  tbl(SIMS.cur.padDoc, true, 'pdT1', 'pdT2');
   const box = (title, rows, pad, extra) => {
     const lines = {};
     rows.forEach((r) => {
@@ -20449,8 +20496,7 @@ function buildHelp() {
       (extra || '')
     );
   };
-  helpCtx = '';
-  helpBox();
+  SIMS.cur.helpBody(box);
 }
 /* the on-screen controls box: short, and only what applies where the player is (sailing, at a station, at a gun) */
 let helpCtx = '';
@@ -20740,6 +20786,8 @@ SIMS.add({ id: 'pce', uiAct: {
   },
 } });
 ['bail', 'guide', 'coach'].forEach((k) => (SIMS.get('pce').uiAct[k] = () => {})); /* PCE-842: no bail-out or path guide */
+/* the keys: menus, photo mode and the manual first, then the current simulator's own keys (its role's keyFirst, keyStation), then
+   its bindings (uiAct, act through KEYID); also the audio context, started on the first key or click */
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
     if (e.code == 'Escape') e.target.blur();
@@ -20749,12 +20797,7 @@ addEventListener('keydown', (e) => {
     photoKey(e);
     return;
   }
-  /* the shell cam: any key cuts straight back to the gun (and does nothing else) */
-  if (SCAM.on && started && !paused) {
-    SCAM.on = false;
-    e.preventDefault();
-    return;
-  }
+  if (SIMS.cur.keyFirst(e)) return; /* the simulator takes the key first (the PCE's shell camera) */
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Quote', 'Backspace'].includes(e.code)) e.preventDefault();
   if (KEYID[e.code] === 'manual') {
     if (!e.repeat) toggleDocs();
@@ -20802,10 +20845,7 @@ addEventListener('keydown', (e) => {
     if (e.code == 'KeyP' || e.code == 'Escape') pauseMenu(false);
     return;
   }
-  if (!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code)) {
-    e.preventDefault();
-    return;
-  }
+  if (SIMS.cur.keyStation(e)) return; /* a station's own keys (the PCE's comms) */
   const uid = KEYID[e.code];
   if (uid && SIMS.cur.uiAct[uid] && !e.repeat) {
     SIMS.cur.uiAct[uid]();
@@ -20842,7 +20882,78 @@ function audio() {
     logWarn('audio unavailable', e);
   }
 }
-/* every frame: set the continuous voices from the flight state */
+/* the PCE's voices each frame: her two diesels, blowers, exhaust, screws, the wash and the wind over the deck, mixed by station */
+SIMS.add({
+  id: 'pce',
+  sound: (S, { t, set, live, cockpit }) => {
+    set(S.e.out.gain, 0, 0.1) /* the Merlin's voices are not hers */;
+    /* THE PCE: her two diesels follow the engine room's answer from about 300 rpm (stop, declutched) to 744 at full ahead (or
+       astern), firing 12 times a revolution, the port engine a little off the starboard so the two beat slowly against each other.
+       What you hear depends on where you are: the engine room is all engines and blowers; the bridge and the guns hear the exhaust,
+       the wash and the wind, the after stations the screws */
+    {
+      const D = S.d,
+        a = Math.min(1, Math.abs(ENG.ans)),
+        rpm = 300 + 444 * a,
+        sp = Math.min(1.2, Math.abs(SHIP.u) / SHIP.VMAX),
+        sub = SHIP.sub || 0,
+        st = camMode === 1 ? SHIP.stn : 0,
+        /* the mix by station: engines, their muffling (low-pass Hz), blower whine, exhaust, screws, wash, wind */
+        MX = {
+          0: [0.55, 650, 0.1, 0.7, 0.5, 1.0, 0.8] /* outside, the chase camera */,
+          1: [0.35, 420, 0.05, 0.9, 0.15, 0.85, 1.0] /* the open bridge */,
+          2: [1.6, 2400, 1.0, 0.25, 0.35, 0.12, 0.0] /* the forward engine room */,
+          3: [0.45, 320, 0.1, 0.25, 0.15, 0.25, 0.08] /* communications */,
+          4: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the pilothouse */,
+          5: [
+            [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the 3"/50 on the forecastle */,
+            [0.65, 650, 0.12, 0.8, 0.3, 0.8, 0.9] /* the 20 mm amidships */,
+            [0.5, 600, 0.08, 0.6, 0.9, 0.7, 0.9] /* the 40 mm aft */,
+          ],
+          6: [
+            [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the Hedgehog forward */,
+            [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9] /* the K-guns aft */,
+            [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9],
+            [0.4, 520, 0.05, 0.5, 1.3, 0.8, 0.9] /* the stern racks */,
+          ],
+        },
+        mx0 = MX[st] || MX[0],
+        mx = Array.isArray(mx0[0]) ? mx0[Math.min(sub, mx0.length - 1)] : mx0,
+        on = live ? S.eng : 0;
+      D.eng.forEach((g, k) => {
+        const r = rpm * (k ? 1.006 : 1) * (1 + 0.004 * Math.sin(t * (0.21 + k * 0.07))) /* the governors hunt a little */,
+          rev = r / 60;
+        set(g.o.frequency, rev * 12);
+        set(g.q.frequency, rev * 6);
+        set(g.lf.frequency, rev);
+        set(g.lfG.gain, 0.12 + 0.18 * (1 - a));
+        set(g.wh.frequency, rev * 52 * (k ? 1.004 : 1));
+        set(g.f.frequency, mx[1] * (0.75 + 0.45 * a));
+        set(g.amp.gain, on * mx[0] * (0.35 + 0.65 * a) * 0.55, 0.25);
+        set(g.whG.gain, on * mx[2] * (0.04 + 0.1 * a) * 0.35, 0.25);
+      });
+      set(D.ex.g.gain, on * mx[3] * (0.25 + 0.75 * a) * 0.5, 0.25);
+      /* the screws: three blades, the shafts geared down about 2.5:1, a beat of 6 to 15 a second in the water aft */
+      set(D.pr.lfo.frequency, ((rpm / 2.5) / 60) * 3);
+      set(D.pr.mod.gain, 0.4);
+      set(D.pr.g.gain, on * mx[4] * (0.08 + 0.92 * a) * 0.8, 0.3);
+      /* the wash along the hull: a slop of sea at rest, a rush that builds with speed */
+      set(D.wa.f.frequency, 450 + 500 * sp);
+      set(D.wa.g.gain, on * mx[5] * (0.05 + 0.6 * Math.pow(sp, 1.5)) * 0.9, 0.3);
+      /* the wind over the deck: the true wind (the weather's) less the ship's own way through the water */
+      const n = WX.wnd || { spd: 0, from: 0 },
+        wd = ((n.from + 180) * Math.PI) / 180,
+        wx = (WX.wx_ || Math.sin(wd) * n.spd) + Math.sin(SHIP.hdg) * SHIP.u,
+        wz = (WX.wz_ || -Math.cos(wd) * n.spd) + Math.cos(SHIP.hdg) * SHIP.u,
+        rel = Math.hypot(wx, wz);
+      set(S.w.f.frequency, 300 + rel * 22);
+      set(S.w.g.gain, on * mx[6] * Math.min(1, Math.pow(rel / 16, 2)) * 0.5, 0.2);
+    }
+    set(S.r.g.gain, 0, 0.1) /* nor the tyres' rumble */;
+    set(S.wg.gain, 0, 0.01) /* nor the warning horns */;
+  },
+});
+/* every frame: the continuous voices: the master volume, the rain, the guns; the vehicle's own voices are its role's (sound) */
 function audioUpd() {
   const S = SND;
   if (!S.ctx) return;
@@ -20850,99 +20961,11 @@ function audioUpd() {
     t = a.currentTime,
     set = (p, v, k) => p.setTargetAtTime(v, t, k || 0.08),
     live = started && !paused && !crashed,
-    v = vel.length(),
-    ias = FM.ias || v,
-    dry = FM.use('fuel') && FM.fuel <= 0,
-    alive = !engOut && !dry && !(DM.on && DM.eng >= 1),
-    rpm = alive ? Math.min(3300, 700 + thr * 2300 + Math.max(0, v * 2.237 - 420) * 3) : 250 + v * 4,
     cockpit = camMode === 1;
   set(S.master.gain, S.on && !paused ? S.vol : 0, 0.05);
-  /* the P-51's Merlin voices stay silent: the ship has her own (below) */
-  set(S.e.out.gain, 0, 0.1);
-  /* THE PCE: her two diesels follow the engine room's answer from about 300 rpm (stop, declutched) to 744 at full ahead (or
-     astern), firing 12 times a revolution, the port engine a little off the starboard so the two beat slowly against each other.
-     What you hear depends on where you are: the engine room is all engines and blowers; the bridge and the guns hear the exhaust,
-     the wash and the wind, the after stations the screws */
-  {
-    const D = S.d,
-      a = Math.min(1, Math.abs(ENG.ans)),
-      rpm = 300 + 444 * a,
-      sp = Math.min(1.2, Math.abs(SHIP.u) / SHIP.VMAX),
-      sub = SHIP.sub || 0,
-      st = camMode === 1 ? SHIP.stn : 0,
-      /* the mix by station: engines, their muffling (low-pass Hz), blower whine, exhaust, screws, wash, wind */
-      MX = {
-        0: [0.55, 650, 0.1, 0.7, 0.5, 1.0, 0.8] /* outside, the chase camera */,
-        1: [0.35, 420, 0.05, 0.9, 0.15, 0.85, 1.0] /* the open bridge */,
-        2: [1.6, 2400, 1.0, 0.25, 0.35, 0.12, 0.0] /* the forward engine room */,
-        3: [0.45, 320, 0.1, 0.25, 0.15, 0.25, 0.08] /* communications */,
-        4: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the pilothouse */,
-        5: [
-          [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the 3"/50 on the forecastle */,
-          [0.65, 650, 0.12, 0.8, 0.3, 0.8, 0.9] /* the 20 mm amidships */,
-          [0.5, 600, 0.08, 0.6, 0.9, 0.7, 0.9] /* the 40 mm aft */,
-        ],
-        6: [
-          [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the Hedgehog forward */,
-          [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9] /* the K-guns aft */,
-          [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9],
-          [0.4, 520, 0.05, 0.5, 1.3, 0.8, 0.9] /* the stern racks */,
-        ],
-      },
-      mx0 = MX[st] || MX[0],
-      mx = Array.isArray(mx0[0]) ? mx0[Math.min(sub, mx0.length - 1)] : mx0,
-      on = live ? S.eng : 0;
-    D.eng.forEach((g, k) => {
-      const r = rpm * (k ? 1.006 : 1) * (1 + 0.004 * Math.sin(t * (0.21 + k * 0.07))) /* the governors hunt a little */,
-        rev = r / 60;
-      set(g.o.frequency, rev * 12);
-      set(g.q.frequency, rev * 6);
-      set(g.lf.frequency, rev);
-      set(g.lfG.gain, 0.12 + 0.18 * (1 - a));
-      set(g.wh.frequency, rev * 52 * (k ? 1.004 : 1));
-      set(g.f.frequency, mx[1] * (0.75 + 0.45 * a));
-      set(g.amp.gain, on * mx[0] * (0.35 + 0.65 * a) * 0.55, 0.25);
-      set(g.whG.gain, on * mx[2] * (0.04 + 0.1 * a) * 0.35, 0.25);
-    });
-    set(D.ex.g.gain, on * mx[3] * (0.25 + 0.75 * a) * 0.5, 0.25);
-    /* the screws: three blades, the shafts geared down about 2.5:1, a beat of 6 to 15 a second in the water aft */
-    set(D.pr.lfo.frequency, ((rpm / 2.5) / 60) * 3);
-    set(D.pr.mod.gain, 0.4);
-    set(D.pr.g.gain, on * mx[4] * (0.08 + 0.92 * a) * 0.8, 0.3);
-    /* the wash along the hull: a slop of sea at rest, a rush that builds with speed */
-    set(D.wa.f.frequency, 450 + 500 * sp);
-    set(D.wa.g.gain, on * mx[5] * (0.05 + 0.6 * Math.pow(sp, 1.5)) * 0.9, 0.3);
-    /* the wind over the deck: the true wind (the weather's) less the ship's own way through the water */
-    const n = WX.wnd || { spd: 0, from: 0 },
-      wd = ((n.from + 180) * Math.PI) / 180,
-      wx = (WX.wx_ || Math.sin(wd) * n.spd) + Math.sin(SHIP.hdg) * SHIP.u,
-      wz = (WX.wz_ || -Math.cos(wd) * n.spd) + Math.cos(SHIP.hdg) * SHIP.u,
-      rel = Math.hypot(wx, wz);
-    set(S.w.f.frequency, 300 + rel * 22);
-    set(S.w.g.gain, on * mx[6] * Math.min(1, Math.pow(rel / 16, 2)) * 0.5, 0.2);
-  }
-  set(S.r.g.gain, 0, 0.1) /* the P-51's tyre rumble: not on a ship */;
+  SIMS.cur.sound(S, { t, set, live, cockpit }) /* the vehicle's own voices */;
   set(S.rn.g.gain, live ? 0.2 * Math.min(1.5, WX.rainK) * (cockpit ? 0.7 : 1) : 0, 0.3);
   set(S.gun.gain, live && performance.now() < S.gunUntil ? 0.45 : 0, 0.02);
-  /* warning tone: spin > stall > redline > overstress */
-  let wf = 0,
-    wv = 0;
-  const ph = t % 1;
-  if (live && FM.spin) {
-    wf = ph % 0.33 < 0.165 ? 420 : 620;
-    wv = 0.06;
-  } else if (live && stalled && !onGround) {
-    wf = 480;
-    wv = (ph * 6) % 1 < 0.5 ? 0.06 : 0;
-  } else if (live && FM.red > 470) {
-    wf = 880 + 60 * Math.sin(t * 20);
-    wv = 0.05;
-  } else if (live && FM.over > 1) {
-    wf = 1250;
-    wv = (ph * 4) % 1 < 0.4 ? 0.06 : 0;
-  }
-  if (wf) set(S.wo.frequency, wf, 0.01);
-  set(S.wg.gain, 0, 0.01) /* the P-51's stall and overspeed horns: not on a ship */;
 }
 $$('go').onclick = () => {
   started = true;

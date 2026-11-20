@@ -1,5 +1,8 @@
 /* doc rows: [label, ids | literal html, note, box line] ; a string instead of an id list is literal text */
-const KBDOC = [
+/* the P-51's doc rows for the help (the shared help piece builds the tables and the controls box from them) */
+SIMS.add({
+  id: 'p51',
+  kbDoc: [
   ['Pitch', ['pitchUp', 'pitchDn'], '', 1],
   ['Roll', ['rollL', 'rollR'], '', 2],
   ['Rudder', ['rudL', 'rudR'], '', 2],
@@ -36,8 +39,8 @@ const KBDOC = [
   ['Restart', ['restart'], '', 6],
   ['Menus', ['pause', 'missions', 'manual'], 'Tab or &larr; / &rarr; switch tabs', 7],
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'guide', 'coach', 'quality', 'mute'], '', 8],
-];
-const PADDOC = [
+],
+  padDoc: [
   ['Pitch / roll', 'Right stick (pull back = climb)', '', 1],
   ['Rudder', ['rudL', 'rudR'], 'also steers on the ground', 1],
   ['Look around', 'Left stick: cockpit free-look, release to recenter', '', 2],
@@ -72,47 +75,19 @@ const PADDOC = [
     0,
   ],
   ['Pause / manual', ['pause', 'manual'], '', 7, 'box'],
-];
-function docValue(row, pad) {
-  const v = row[1],
-    base = typeof v === 'function' ? v() : typeof v === 'string' ? v : bindText(v, pad);
-  return row[2] ? base + ' (' + row[2] + ')' : base;
-}
-function buildHelp() {
-  const tbl = (rows, pad, a, b) => {
-    rows = rows.filter((r) => r[4] !== 'box');
-    const h = (r) => '<tr><td>' + r[0] + '</td><td>' + docValue(r, pad) + '</td></tr>';
-    const half = Math.ceil(rows.length / 2);
-    $$(a).innerHTML = rows.slice(0, half).map(h).join('');
-    $$(b).innerHTML = rows.slice(half).map(h).join('');
-  };
-  tbl(KBDOC, false, 'kbT1', 'kbT2');
-  tbl(PADDOC, true, 'pdT1', 'pdT2');
-  const box = (title, rows, pad, extra) => {
-    const lines = {};
-    rows.forEach((r) => {
-      if (r[3]) (lines[r[3]] = lines[r[3]] || []).push('<b>' + r[0] + '</b> ' + docValue(r, pad));
-    });
-    return (
-      title +
-      '<br>' +
-      Object.keys(lines)
-        .map((k) => lines[k].join(' &middot; '))
-        .join('<br>') +
-      (extra || '')
+],
+  helpBody: (box) => {
+    $$('hkBody').innerHTML = box(
+      '<b style="color:var(--acc)">CONTROLS &ndash; KEYBOARD</b> (' + kbText('help') + ' hides)',
+      SIMS.cur.kbDoc,
+      false,
+      '<br>Mouse drag: circle the plane (chase) / look around (cockpit)',
     );
-  };
-  $$('hkBody').innerHTML = box(
-    '<b style="color:var(--acc)">CONTROLS &ndash; KEYBOARD</b> (' + kbText('help') + ' hides)',
-    KBDOC,
-    false,
-    '<br>Mouse drag: circle the plane (chase) / look around (cockpit)',
-  );
-  $$('hpBody').innerHTML = box(
-    '<b style="color:var(--acc)">CONTROLS &ndash; CONTROLLER</b> (' + kbText('help') + ' hides)',
-    PADDOC,
-    true,
-    '',
-  );
-}
-buildHelp();
+    $$('hpBody').innerHTML = box(
+      '<b style="color:var(--acc)">CONTROLS &ndash; CONTROLLER</b> (' + kbText('help') + ' hides)',
+      SIMS.cur.padDoc,
+      true,
+      '',
+    );
+  },
+});

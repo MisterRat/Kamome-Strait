@@ -1,5 +1,8 @@
 /* doc rows: [label, ids | literal html, note, box line] ; a string instead of an id list is literal text */
-const KBDOC = [
+/* the PCE's doc rows for the help (the shared help piece builds the tables from them; her controls box is helpBox) */
+SIMS.add({
+  id: 'pce',
+  kbDoc: [
   ['Rudder', ['rollL', 'rollR'], 'hold, from any station; let go and she steadies', 1],
   ['Engines', ['thrUp', 'thrDn'], 'from any station; the order stays set', 1],
   ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5', 'st6'], 'press again for the next view', 2],
@@ -11,8 +14,8 @@ const KBDOC = [
   ['Restart', ['restart'], '', 3],
   ['Menus', ['pause', 'manual'], '', 3],
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'quality', 'mute'], '', 4],
-];
-const PADDOC = [
+],
+  padDoc: [
   ['Rudder', 'Right stick left / right, or the bumpers', '', 1],
   ['Engines', ['thrUp', 'thrDn'], 'the order stays where you leave it', 1],
   ['Look around', 'Left stick: bridge free-look, release to recenter', '', 2],
@@ -30,36 +33,9 @@ const PADDOC = [
     0,
   ],
   ['Pause / manual', ['pause', 'manual'], '', 3, 'box'],
-];
-function docValue(row, pad) {
-  const v = row[1],
-    base = typeof v === 'function' ? v() : typeof v === 'string' ? v : bindText(v, pad);
-  return row[2] ? base + ' (' + row[2] + ')' : base;
-}
-function buildHelp() {
-  const tbl = (rows, pad, a, b) => {
-    rows = rows.filter((r) => r[4] !== 'box');
-    const h = (r) => '<tr><td>' + r[0] + '</td><td>' + docValue(r, pad) + '</td></tr>';
-    const half = Math.ceil(rows.length / 2);
-    $$(a).innerHTML = rows.slice(0, half).map(h).join('');
-    $$(b).innerHTML = rows.slice(half).map(h).join('');
-  };
-  tbl(KBDOC, false, 'kbT1', 'kbT2');
-  tbl(PADDOC, true, 'pdT1', 'pdT2');
-  const box = (title, rows, pad, extra) => {
-    const lines = {};
-    rows.forEach((r) => {
-      if (r[3]) (lines[r[3]] = lines[r[3]] || []).push('<b>' + r[0] + '</b> ' + docValue(r, pad));
-    });
-    return (
-      title +
-      '<br>' +
-      Object.keys(lines)
-        .map((k) => lines[k].join(' &middot; '))
-        .join('<br>') +
-      (extra || '')
-    );
-  };
-  helpCtx = '';
-  helpBox();
-}
+],
+  helpBody: () => {
+    helpCtx = '';
+    helpBox();
+  },
+});

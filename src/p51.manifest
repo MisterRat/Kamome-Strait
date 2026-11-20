@@ -181,6 +181,7 @@ p51/the-sim-pilot-s-recorded-flight-flown-before-the.js
 p51/where-a-rocket-fired-now-would-land-the-same-fli.js
 p51/against-a-bandit-the-point-where-the-bandit-has.js
 p51/mission-menu.js
+shared/the-mission-menu-built-from-the-current-simulator-s-missions.js
 shared/reset-the-game-the-shared-part-each-simulator-places-and-readies-its-own-vehicle.js
 shared/minimap.js
 shared/adf-radio-compass-the-needle-points-at-a-radio-b.js
@@ -199,7 +200,7 @@ shared/settings-panel.js
 shared/per-frame-glue.js
 p51/display-options-choose-what-is-on-screen-pause-m.js
 shared/display-options-the-ui-object-shows-hides-and-remembers-the-boxes.js
-p51/pause-menu.js
+shared/pause-menu.js
 shared/controller-keyboard-focus-inside-the-settings-ta.js
 shared/hardcore-simulation-mode-page.js
 shared/settings-ground-fire-bail-out-sound-full-screen-boxes-and-graphics.js
@@ -215,10 +216,14 @@ p51/the-gear-lever-overspeed-and-hydraulics.js
 p51/control-bindings-the-one-place-that-says-which-k.js
 shared/controls-the-lookup-tables-and-key-names-built-from-the-current-simulator.js
 p51/doc-rows-label-ids-literal-html-note-box-line-a.js
+shared/the-help-built-from-the-current-simulator-s-doc-rows.js
+p51/the-p-51-builds-its-help-as-it-loads.js
 shared/held-keys-kb-rudl-is-1-while-any-key-bound-to-ru.js
 shared/picks-the-controller-to-use-windows-can-list-sev.js
 p51/what-each-binding-does-the-keys-and-buttons-come.js
-p51/every-frame-set-the-continuous-voices-from-the-f.js
+shared/the-keys-every-simulator-s-bindings-through-its-role.js
+p51/the-p-51-s-voices-each-frame.js
+shared/every-frame-set-the-continuous-voices-from-the-f.js
 shared/physics.js
 p51/p-51d-manual-data-accelerated-stall-g-envelope-s.js
 p51/hardcore-ops-the-real-flap-settings-6-steps-up-t.js
