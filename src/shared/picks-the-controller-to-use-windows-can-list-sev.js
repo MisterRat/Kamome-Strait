@@ -69,6 +69,7 @@ function pollPad() {
     return;
   }
   if (!started) {
+    if (e(8) && SIMS.cur.padMenu) toggleMenu();
     if (e(0) || e(9)) $$('go').click();
     if (e(14)) setDiff(Math.max(0, DIFFS.indexOf(DIFF) - 1));
     if (e(15)) setDiff(Math.min(2, DIFFS.indexOf(DIFF) + 1));
@@ -87,7 +88,7 @@ function pollPad() {
     if (pad.trE || pad.trR || pad.trA) trimPadUsed = true;
     if (e(0)) {
       trimPadUsed = true;
-      ACT.trimC();
+      SIMS.cur.act.trimC();
     }
   }
   pad.r = dzf(a[2]);
@@ -113,27 +114,30 @@ function pollPad() {
     else if (orbitOn) orbReset();
     else camMode ^= 1;
   }
-  if (!mod && e(PB.flapUp)) ACT.flapUp();
-  if (!mod && e(PB.flapDn)) ACT.flapDn();
+  if (!mod && e(PB.flapUp)) SIMS.cur.act.flapUp();
+  if (!mod && e(PB.flapDn)) SIMS.cur.act.flapDn();
   if (crashed) {
     if (e(0) || e(1) || e(2) || e(3) || e(8) || e(9)) reset();
     padPrev = b.map((x) => x.pressed);
     return;
   }
   if (e(PB.r3)) r3Down = performance.now();
-  else if (!bp(PB.r3) && prevB[PB.r3] && r3Down) r3Down = 0; /* PCE-842: R3 does nothing yet (no enemy skill) */
-  if (!mod && e(PB.gear)) ACT.gear();
-  if (e(PB.brake)) ACT.brake();
-  if (e(PB.restart)) ACT.restart();
+  else if (!bp(PB.r3) && prevB[PB.r3] && r3Down) {
+    SIMS.cur.r3();
+    r3Down = 0;
+  }
+  if (!mod && e(PB.gear)) SIMS.cur.act.gear();
+  if (e(PB.brake)) SIMS.cur.act.brake();
+  if (e(PB.restart)) SIMS.cur.act.restart();
   if (FM.use('trim')) {
     /* with trim on, Back opens the pause menu when it is released, unless it was used as the trim key */
     if (!bp(PB.pause) && prevB[PB.pause]) {
-      if (!trimPadUsed) ACT.pause();
+      if (!trimPadUsed) SIMS.cur.act.pause();
       trimPadUsed = false;
     }
   } else {
     trimPadUsed = false;
-    if (e(PB.pause)) ACT.pause();
+    if (e(PB.pause)) SIMS.cur.act.pause();
   }
   padPrev = b.map((x) => x.pressed);
 }

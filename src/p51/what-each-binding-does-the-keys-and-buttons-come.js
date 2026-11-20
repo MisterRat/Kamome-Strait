@@ -1,5 +1,5 @@
-/* what each binding does (the keys and buttons come from BIND) */
-const ACT = {
+/* what each binding does (the keys and buttons come from the role's bind table) */
+SIMS.add({ id: 'p51', act: {
   gear: () => toggleGear(),
   camera: () => {
     if (ROAM.on) return roamExit();
@@ -40,8 +40,8 @@ const ACT = {
   pause: () => pauseMenu(true),
   help: () => UI.toggle('help'),
   restart: () => reset(),
-};
-const UIACT = {
+} });
+SIMS.add({ id: 'p51', uiAct: {
   missions: () => toggleMenu(),
   coach: () => (coachMin = !coachMin),
   map: () => {
@@ -77,7 +77,7 @@ const UIACT = {
       note(guide.on ? 'FLIGHT PATH GUIDE ON' : 'FLIGHT PATH GUIDE OFF');
     }
   },
-};
+} });
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
     if (e.code == 'Escape') e.target.blur();
@@ -135,8 +135,8 @@ addEventListener('keydown', (e) => {
     return;
   }
   const uid = KEYID[e.code];
-  if (uid && UIACT[uid] && !e.repeat) {
-    UIACT[uid]();
+  if (uid && SIMS.cur.uiAct[uid] && !e.repeat) {
+    SIMS.cur.uiAct[uid]();
     return;
   }
   if (menuOpen) {
@@ -148,7 +148,7 @@ addEventListener('keydown', (e) => {
   }
   if (e.repeat) return;
   keys[e.code] = true;
-  if (KEYID[e.code] && ACT[KEYID[e.code]]) ACT[KEYID[e.code]]();
+  if (KEYID[e.code] && SIMS.cur.act[KEYID[e.code]]) SIMS.cur.act[KEYID[e.code]]();
 });
 addEventListener('keyup', (e) => (keys[e.code] = false));
 addEventListener('blur', () => {

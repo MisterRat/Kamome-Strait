@@ -1,5 +1,5 @@
-/* what each binding does (the keys and buttons come from BIND) */
-const ACT = {
+/* what each binding does (the keys and buttons come from the role's bind table) */
+SIMS.add({ id: 'pce', act: {
   gear: () => toggleGear(),
   camera: () => {
     if (ROAM.on) return roamExit();
@@ -58,4 +58,4 @@ const ACT = {
   pause: () => pauseMenu(true),
   help: () => UI.toggle('help'),
   restart: () => reset(),
-};
+} });

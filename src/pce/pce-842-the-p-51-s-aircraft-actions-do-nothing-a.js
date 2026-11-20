@@ -1,6 +1,6 @@
 /* PCE-842: the P-51's aircraft actions do nothing aboard the ship (their keys stay reserved until the ship's own systems use them) */
-['gear', 'rocket', 'bomb', 'brake', 'flapDn', 'flapUp', 'trimC'].forEach((k) => (ACT[k] = () => {}));
-const UIACT = {
+['gear', 'rocket', 'bomb', 'brake', 'flapDn', 'flapUp', 'trimC'].forEach((k) => (SIMS.get('pce').act[k] = () => {}));
+SIMS.add({ id: 'pce', uiAct: {
   missions: () => toggleMenu(),
   coach: () => (coachMin = !coachMin),
   map: () => {
@@ -36,8 +36,8 @@ const UIACT = {
       note(guide.on ? 'FLIGHT PATH GUIDE ON' : 'FLIGHT PATH GUIDE OFF');
     }
   },
-};
-['bail', 'guide', 'coach'].forEach((k) => (UIACT[k] = () => {})); /* PCE-842: no bail-out or path guide */
+} });
+['bail', 'guide', 'coach'].forEach((k) => (SIMS.get('pce').uiAct[k] = () => {})); /* PCE-842: no bail-out or path guide */
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
     if (e.code == 'Escape') e.target.blur();
@@ -105,8 +105,8 @@ addEventListener('keydown', (e) => {
     return;
   }
   const uid = KEYID[e.code];
-  if (uid && UIACT[uid] && !e.repeat) {
-    UIACT[uid]();
+  if (uid && SIMS.cur.uiAct[uid] && !e.repeat) {
+    SIMS.cur.uiAct[uid]();
     return;
   }
   if (menuOpen) {
@@ -118,7 +118,7 @@ addEventListener('keydown', (e) => {
   }
   if (e.repeat) return;
   keys[e.code] = true;
-  if (KEYID[e.code] && ACT[KEYID[e.code]]) ACT[KEYID[e.code]]();
+  if (KEYID[e.code] && SIMS.cur.act[KEYID[e.code]]) SIMS.cur.act[KEYID[e.code]]();
 });
 addEventListener('keyup', (e) => (keys[e.code] = false));
 addEventListener('blur', () => {

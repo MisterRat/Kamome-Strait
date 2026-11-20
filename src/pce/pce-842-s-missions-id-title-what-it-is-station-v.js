@@ -55,35 +55,5 @@ function menuPick(i) {
 }
 $$('goMenu').onclick = () => toggleMenu();
 
-function reset() {
-  try {
-    roamExit(true);
-  } catch (e) {}
-  resetWeapons();
-  paused = false;
-  invT = 0;
-  blk = 0;
-  engOut = false;
-  FM.reset();
-  DM.reset();
-  buffet = 0;
-  flapLvl = 0;
-  fl = 0;
-  shipReset();
-  vel.set(0, 0, 0);
-  thr = 0;
-  s = { p: 0, r: 0, y: 0 };
-  trimGround();
-  crashed = false;
-  bailReset();
-  gearOn = false;
-  onGround = false;
-  plane.visible = false;
-  $$('msg').style.display = 'none';
-  cp.copy(pos).add(new V(0, 18, 75).applyQuaternion(q));
-  trainerReset();
-  PP.ix = 0;
-  if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
-}
 reset();
 

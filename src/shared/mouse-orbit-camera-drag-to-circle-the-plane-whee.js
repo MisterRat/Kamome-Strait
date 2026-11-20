@@ -2,11 +2,11 @@
 let orbitOn = false,
   orbYaw = 0,
   orbEl = 0.27,
-  orbDist = 13.5,
+  orbDist = SIMS.cur.orbitDist,
   orbDrag = false;
 function orbReset() {
   orbitOn = false;
   orbYaw = 0;
   orbEl = 0.27;
-  orbDist = 13.5;
+  orbDist = SIMS.cur.orbitDist;
 }

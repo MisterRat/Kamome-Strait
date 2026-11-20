@@ -1,11 +1,6 @@
-/* the target the ground fire lays on and the test for a round that strikes it. P-51 Mustang FS: the player's aircraft; PCE-842 sets
-   its own (her hull) in THE AIR RAIDS block */
-AA.aimY = () => pos.y;
-AA.hit = (a, b) => {
-  if (a.distanceToSquared(pos) > 6400 || !segHit(a, b, pos, 6.5)) return false;
-  playerHit(AA.litT > 20 ? 4 : 2, 0.4); /* held in the beams for over 20 s: hit about twice as hard */
-  return true;
-};
+/* the target the ground fire lays on and the test for a round that strikes it: the current simulator's (its role's aimY and hit) */
+AA.aimY = () => SIMS.cur.aimY();
+AA.hit = (a, b) => SIMS.cur.hit(a, b);
 function updAA(dt) {
   if (!AA.on) return;
   AA.t += dt;

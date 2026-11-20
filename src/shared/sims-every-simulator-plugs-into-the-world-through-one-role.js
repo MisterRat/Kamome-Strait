@@ -1,0 +1,105 @@
+/* SIMS: every simulator plugs into the world through ONE role object, and the shared frame loop (the frame loop piece) knows nothing
+   else about it. A new simulator is a folder of its own pieces (src/<id>/, its manifest) that ends with SIMS.add({ id, name, ... }); it
+   fills in only the hooks it needs, every other one has a do-nothing default here. Several may be registered at once (Kamome Strait
+   will register them all); SIMS.use(id) picks the one being played, SIMS.cur is it. Shared code never names a simulator: it asks
+   SIMS.cur, or calls HOOKS.
+
+   The role contract, in the order the frame loop calls it each frame:
+     look()             true when the mouse is looking for a reason of the sim's own (the PCE's gun sight); orbit-dragging is shared
+     canStep()          may the physics run (on top of started, not paused, not in a replay): e.g. not crashed, not bailed out
+     step(h)            one physics sub-step of h seconds (at most 1/120 s); the loop splits the frame and calls it n times
+     afterStep(dt)      once after the physics, before the attitude axes are refreshed (the P-51's bail-out)
+     pose(dt)           the vehicle in the scene and its own systems that run every frame (stations, guns, practice targets)
+     live(dt)           its part of the world while the game runs (weapons, enemies, missions), before the shared world updates
+     liveLate(dt)       the same, after them (the PCE's shore guns)
+     parts(dt)          its moving parts after the world has moved (control surfaces, propeller, cockpit levers)
+     eye(P, D)          the first-person eye: set P (position) and D (line of sight) from pos, q, fwd, up, viewYaw, viewPitch;
+                        returns a field-of-view hint for view()
+     eyeUp()            the camera's up vector in first person
+     chase(dt, cp, cu, T) the chase camera: ease cp (position) and cu (up) toward the sim's chase spot, set T (where it looks)
+     orbitLift          metres above pos that the orbit camera looks at
+     view(dt, fov)      after the vehicle's cameras: the field of view and sight overlays
+     overCam(dt)        a camera of its own that takes over (the P-51's parachute descent); busy() true while it does
+     below()            may the eye go below the ground or the water (a ship's engine room)
+     near()             the camera's near plane in first person
+     shake()            camera shake in metres this frame
+     hudEarly(dt), hud(dt), hudLate(dt)   its screen: before the shared clouds/world/weather updates, after them, after the minimap
+     preRender()        last changes before the frame is drawn (the PCE's sealed engine room)
+   and, outside the frame loop:
+     spawn()            put the vehicle at its start (position, attitude) when the game is reset
+     ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
+     aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
+     bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
+     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
+     facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
+     pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
+     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does)
+   A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
+const SIMS = {
+  list: [],
+  cur: null,
+  DEF: {
+    id: '',
+    name: '',
+    look: () => false,
+    canStep: () => true,
+    step: () => {},
+    afterStep: () => {},
+    pose: () => {},
+    live: () => {},
+    liveLate: () => {},
+    parts: () => {},
+    eye: (P, D) => {
+      P.copy(pos);
+      D.copy(fwd);
+      return 65;
+    },
+    eyeUp: () => up,
+    chase: (dt, cp, cu, T) => {
+      cp.lerp(SC.chase.set(0, 4, 14).applyQuaternion(q).add(pos), 1 - Math.exp(-5 * dt));
+      cu.set(0, 1, 0);
+      T.copy(pos);
+    },
+    orbitLift: 0,
+    view: () => {},
+    overCam: () => {},
+    busy: () => false,
+    below: () => false,
+    near: () => 0.12,
+    shake: () => 0,
+    hudEarly: () => {},
+    hud: () => {},
+    hudLate: () => {},
+    preRender: () => {},
+    spawn: () => {},
+    ready: () => {},
+    aimY: () => pos.y,
+    hit: () => false,
+    label: '',
+    fileTag: '',
+    word: 'Vehicle',
+    orbitDist: 30,
+    docsTab: 'ctl',
+    canBail: false,
+    showSelf: () => {},
+    padMenu: false,
+    r3: () => {},
+  },
+  add(r) {
+    const o = SIMS.get(r.id);
+    if (o) return Object.assign(o, r);
+    const s = Object.assign({}, SIMS.DEF, { bind: [], act: {}, uiAct: {} }, r);
+    SIMS.list.push(s);
+    if (!SIMS.cur) SIMS.cur = s;
+    return s;
+  },
+  get: (id) => SIMS.list.find((x) => x.id === id),
+  use(id) {
+    const s = SIMS.get(id);
+    if (s) {
+      SIMS.cur = s;
+      if (typeof bindsUse === 'function') bindsUse(s);
+    }
+    return s;
+  },
+};

@@ -119,7 +119,7 @@ function photoStamp(x, W, Hh, sf) {
     kmh = Math.round(vel.length() * 3.6),
     dmg = DM.on && DM.any() ? ' | damage: ' + DM.text() : '',
     ln =
-      'P-51 FS v' +
+      SIMS.cur.label + ' v' +
       VERSION +
       ' | ' +
       d.getFullYear() +
@@ -191,7 +191,7 @@ function photoCapture() {
   const d = new Date(),
     p2 = (n) => (n < 10 ? '0' : '') + n,
     name =
-      'P51_v' +
+      SIMS.cur.fileTag + '_v' +
       VERSION +
       '_' +
       d.getFullYear() +

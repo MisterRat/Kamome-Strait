@@ -52,7 +52,7 @@ function photoSave() {
 }
 function photoSync() {
   $$('phHud').textContent = 'HUD: ' + (PHOTO.hud ? 'on' : 'off');
-  $$('phAc').textContent = 'Aircraft: ' + (PHOTO.showPlane ? 'on' : 'off');
+  $$('phAc').textContent = SIMS.cur.word + ': ' + (PHOTO.showPlane ? 'on' : 'off');
   $$('phFz').textContent = 'Action: ' + (PHOTO.freeze ? 'frozen' : 'running');
   $$('phFov').value = Math.round(PHOTO.fov);
   $$('phFovV').textContent = Math.round(PHOTO.fov);

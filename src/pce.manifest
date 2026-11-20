@@ -14,6 +14,8 @@ shared/error-handling-nothing-in-this-file-is-allowed-t.js
 pce/version-major-minor-the-user-decides-when-the-ma.js
 shared/saved-settings-and-warnings-store-logwarn.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
+shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
+pce/the-pce-842-s-role-how-the-ship-plugs-into-the-shared-frame-loop.js
 shared/sea-the-world-s-sea-levels-in-one-place.js
 pce/the-player-takes-the-pce-842-from-the-allied-fleet.js
 pce/the-player-s-ship-mesh-and-her-start-line-filled.js
@@ -137,7 +139,7 @@ shared/the-player-is-hit-hull-damage-and-with-battle-da.js
 shared/every-frame-fire-burns-the-hull-a-leak-drains-fu.js
 shared/bailing-out-canopy-blown-the-pilot-climbs-out-of.js
 shared/share-of-shot-down-bandits-whose-pilot-jumps-fig.js
-pce/a-floating-drift-the-wind-with-the-wind-option-p.js
+shared/a-floating-drift-the-wind-with-the-wind-option-p.js
 shared/the-pilot-s-own-eyes-free-look-in-every-directio.js
 shared/bandit-screen-marker-lead-indicator.js
 shared/ground-service-repair-rearm.js
@@ -183,6 +185,7 @@ shared/where-a-rocket-fired-now-would-land-the-same-fli.js
 shared/against-a-bandit-the-point-where-the-bandit-has.js
 pce/mission-menu.js
 pce/pce-842-s-missions-id-title-what-it-is-station-v.js
+shared/reset-the-game-the-shared-part-each-simulator-places-and-readies-its-own-vehicle.js
 shared/minimap.js
 shared/adf-radio-compass-the-needle-points-at-a-radio-b.js
 shared/colour-of-one-map-pixel-of-the-far-world-from-it.js
@@ -201,7 +204,7 @@ shared/per-frame-glue.js
 pce/display-options-choose-what-is-on-screen-pause-m.js
 pce/pause-menu.js
 pce/pce-842-the-p-51-s-six-tabs-rewritten-for-the-sh.js
-pce/controller-keyboard-focus-inside-the-settings-ta.js
+shared/controller-keyboard-focus-inside-the-settings-ta.js
 pce/hardcore-simulation-mode-page.js
 pce/enemy-settings-which-enemies-the-game-sends-agai.js
 shared/swipe-a-box-off-the-screen-touch.js
@@ -209,14 +212,15 @@ shared/nose-art-options.js
 shared/move-boxes-drag-them-where-you-like-pause-menu-m.js
 shared/the-pause-button-must-never-be-lost-it-leads-to.js
 shared/the-manual-lives-in-the-pause-popup-about-contro.js
-pce/mouse-orbit-camera-drag-to-circle-the-plane-whee.js
+shared/mouse-orbit-camera-drag-to-circle-the-plane-whee.js
 pce/roam-camera-y-a-free-camera-that-works-like-phot.js
 shared/gamepad.js
 pce/control-bindings-the-one-place-that-says-which-k.js
+shared/controls-the-lookup-tables-and-key-names-built-from-the-current-simulator.js
 pce/doc-rows-label-ids-literal-html-note-box-line-a.js
 pce/the-on-screen-controls-box-short-and-only-what-a.js
 shared/held-keys-kb-rudl-is-1-while-any-key-bound-to-ru.js
-pce/picks-the-controller-to-use-windows-can-list-sev.js
+shared/picks-the-controller-to-use-windows-can-list-sev.js
 pce/what-each-binding-does-the-keys-and-buttons-come.js
 pce/pce-842-the-p-51-s-aircraft-actions-do-nothing-a.js
 pce/every-frame-set-the-continuous-voices-from-the-f.js
@@ -333,9 +337,9 @@ shared/the-wind-at-the-aircraft-m-s-the-direction-it-bl.js
 shared/the-plane-s-shadow-on-the-ground-follows-the-ter.js
 shared/landing-light-night-gear-down-a-pool-of-light-on.js
 shared/vapour-trails-from-the-wingtips-when-you-pull-ha.js
-pce/photo-mode-a-free-camera-hud-on-off-jpg-snapshot.js
-pce/high-up-the-camera-must-still-see-the-ground-the.js
-pce/paint-the-hud-boxes-dom-onto-the-photo.js
-pce/the-photo-mode-panel.js
+shared/photo-mode-a-free-camera-hud-on-off-jpg-snapshot.js
+shared/high-up-the-camera-must-still-see-the-ground-the.js
+shared/paint-the-hud-boxes-dom-onto-the-photo.js
+shared/the-photo-mode-panel-and-the-shared-frame-loop.js
 shared/script-close.html
 shared/end.html

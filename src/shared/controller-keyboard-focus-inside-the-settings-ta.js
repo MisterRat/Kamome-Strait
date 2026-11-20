@@ -31,6 +31,6 @@ $$('pmRestart').onclick = () => {
   pauseMenu(false);
   reset();
 };
-$$('pmDocs').onclick = () => pmSetTab('about');
+$$('pmDocs').onclick = () => pmSetTab(SIMS.cur.docsTab);
 $$('pmTilt').onclick = () => openTset(true);
 $$('pmExit').onclick = () => exitGame();

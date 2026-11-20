@@ -36,6 +36,5 @@ function photoCam(dt) {
     cam.fov = PHOTO.fov;
     cam.updateProjectionMatrix();
   }
-  plane.visible = false; /* PCE-842: the P-51 is never shown; the photo-mode toggle shows or hides the ship */
-  if (SHIPM.mesh) SHIPM.mesh.visible = PHOTO.showPlane;
+  SIMS.cur.showSelf(PHOTO.showPlane);
 }

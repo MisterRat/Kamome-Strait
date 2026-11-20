@@ -69,7 +69,7 @@ function updChutists(dt) {
   }
 }
 function bailOut() {
-  if (SHIPM.mesh) return; /* PCE-842: nobody bails out of the ship */
+  if (!SIMS.cur.canBail) return; /* nobody bails out of a ship */
   if (!started || crashed || BL.on) return;
   if (onGround) {
     note('YOU ARE ON THE GROUND - NO NEED TO BAIL OUT');

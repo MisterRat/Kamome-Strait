@@ -590,7 +590,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.61';
+const VERSION = '5.62';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -630,6 +630,249 @@ const HOOKS = {
      returns true takes her as a player's ship: she leaves the AI fleet and gets no AI gun crews. */
   claimShip: [],
 };
+/* SIMS: every simulator plugs into the world through ONE role object, and the shared frame loop (the frame loop piece) knows nothing
+   else about it. A new simulator is a folder of its own pieces (src/<id>/, its manifest) that ends with SIMS.add({ id, name, ... }); it
+   fills in only the hooks it needs, every other one has a do-nothing default here. Several may be registered at once (Kamome Strait
+   will register them all); SIMS.use(id) picks the one being played, SIMS.cur is it. Shared code never names a simulator: it asks
+   SIMS.cur, or calls HOOKS.
+
+   The role contract, in the order the frame loop calls it each frame:
+     look()             true when the mouse is looking for a reason of the sim's own (the PCE's gun sight); orbit-dragging is shared
+     canStep()          may the physics run (on top of started, not paused, not in a replay): e.g. not crashed, not bailed out
+     step(h)            one physics sub-step of h seconds (at most 1/120 s); the loop splits the frame and calls it n times
+     afterStep(dt)      once after the physics, before the attitude axes are refreshed (the P-51's bail-out)
+     pose(dt)           the vehicle in the scene and its own systems that run every frame (stations, guns, practice targets)
+     live(dt)           its part of the world while the game runs (weapons, enemies, missions), before the shared world updates
+     liveLate(dt)       the same, after them (the PCE's shore guns)
+     parts(dt)          its moving parts after the world has moved (control surfaces, propeller, cockpit levers)
+     eye(P, D)          the first-person eye: set P (position) and D (line of sight) from pos, q, fwd, up, viewYaw, viewPitch;
+                        returns a field-of-view hint for view()
+     eyeUp()            the camera's up vector in first person
+     chase(dt, cp, cu, T) the chase camera: ease cp (position) and cu (up) toward the sim's chase spot, set T (where it looks)
+     orbitLift          metres above pos that the orbit camera looks at
+     view(dt, fov)      after the vehicle's cameras: the field of view and sight overlays
+     overCam(dt)        a camera of its own that takes over (the P-51's parachute descent); busy() true while it does
+     below()            may the eye go below the ground or the water (a ship's engine room)
+     near()             the camera's near plane in first person
+     shake()            camera shake in metres this frame
+     hudEarly(dt), hud(dt), hudLate(dt)   its screen: before the shared clouds/world/weather updates, after them, after the minimap
+     preRender()        last changes before the frame is drawn (the PCE's sealed engine room)
+   and, outside the frame loop:
+     spawn()            put the vehicle at its start (position, attitude) when the game is reset
+     ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
+     aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
+     bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
+     act, uiAct         what each binding does: flight/ship actions, and the menu and view actions
+     facts: label (on photos), fileTag (photo file names), word ('Aircraft', 'Ship'), orbitDist (orbit camera, m), docsTab (the
+     pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
+     padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does)
+   A simulator's pieces may each add their part: SIMS.add({ id, ... }) with an id already registered adds to that role. */
+const SIMS = {
+  list: [],
+  cur: null,
+  DEF: {
+    id: '',
+    name: '',
+    look: () => false,
+    canStep: () => true,
+    step: () => {},
+    afterStep: () => {},
+    pose: () => {},
+    live: () => {},
+    liveLate: () => {},
+    parts: () => {},
+    eye: (P, D) => {
+      P.copy(pos);
+      D.copy(fwd);
+      return 65;
+    },
+    eyeUp: () => up,
+    chase: (dt, cp, cu, T) => {
+      cp.lerp(SC.chase.set(0, 4, 14).applyQuaternion(q).add(pos), 1 - Math.exp(-5 * dt));
+      cu.set(0, 1, 0);
+      T.copy(pos);
+    },
+    orbitLift: 0,
+    view: () => {},
+    overCam: () => {},
+    busy: () => false,
+    below: () => false,
+    near: () => 0.12,
+    shake: () => 0,
+    hudEarly: () => {},
+    hud: () => {},
+    hudLate: () => {},
+    preRender: () => {},
+    spawn: () => {},
+    ready: () => {},
+    aimY: () => pos.y,
+    hit: () => false,
+    label: '',
+    fileTag: '',
+    word: 'Vehicle',
+    orbitDist: 30,
+    docsTab: 'ctl',
+    canBail: false,
+    showSelf: () => {},
+    padMenu: false,
+    r3: () => {},
+  },
+  add(r) {
+    const o = SIMS.get(r.id);
+    if (o) return Object.assign(o, r);
+    const s = Object.assign({}, SIMS.DEF, { bind: [], act: {}, uiAct: {} }, r);
+    SIMS.list.push(s);
+    if (!SIMS.cur) SIMS.cur = s;
+    return s;
+  },
+  get: (id) => SIMS.list.find((x) => x.id === id),
+  use(id) {
+    const s = SIMS.get(id);
+    if (s) {
+      SIMS.cur = s;
+      if (typeof bindsUse === 'function') bindsUse(s);
+    }
+    return s;
+  },
+};
+/* the P-51D's role: how the fighter plugs into the shared frame loop (the role contract is in the SIMS piece). It is registered first,
+   right after SIMS: every hook only looks up the game's code when it is called, and the game resets itself while it loads */
+SIMS.add({
+  id: 'p51',
+  name: 'P-51D Mustang',
+  label: 'P-51 FS',
+  fileTag: 'P51',
+  word: 'Aircraft',
+  orbitDist: 13.5,
+  docsTab: 'about',
+  canBail: true,
+  showSelf: (on) => (plane.visible = on),
+  padMenu: true,
+  r3: () => setDiff((DIFFS.indexOf(DIFF) + 1) % 3) /* the enemy's skill, round the three */,
+  canStep: () => !crashed && !BL.on,
+  step: (h) => step(h),
+  afterStep: (dt) => updBail(dt),
+  pose: () => {
+    plane.position.copy(pos);
+    plane.quaternion.copy(q);
+  },
+  live: (dt) => {
+    updWeapons(dt);
+    updEnemies(dt);
+    updChutists(dt);
+    updService(dt);
+    updTrainer(dt);
+    updGuide(dt);
+    updAA(dt);
+  },
+  /* the moving parts: gear, propeller, the tail settling on its wheels, controls, flaps, the cockpit */
+  parts: (dt) => {
+    gear.visible = gearOn;
+    pa += dt * (8 + thr * 80);
+    prop.rotation.z = pa;
+    tiltV += ((onGround && !crashed ? GEAR.sit * (1 - Math.min(1, spd() / 42)) : 0) - tiltV) * Math.min(1, 4 * dt);
+    model.rotation.x = tiltV;
+    {
+      /* the tail settles about the main wheels, so they stay on the ground */
+      const ct = Math.cos(tiltV),
+        st = Math.sin(tiltV),
+        py = GEAR.mainBottom,
+        pz = GEAR.mainZ;
+      model.position.y = 0.17 + (py - (py * ct - pz * st));
+      model.position.z = pz - (py * st + pz * ct);
+    }
+    ckStick.rotation.x = s.p * 0.35;
+    ckStick.rotation.z = -s.r * 0.3;
+    ckThr.rotation.x = 0.3 - thr * 0.9;
+    /* control surfaces follow the smoothed inputs (so keys, pad, touch and every setting that scales them show up) */
+    ailP.forEach((o) => {
+      o[0].rotation.x = -o[1] * s.r * 0.45; /* right roll: right aileron up, left down */
+      o[0].visible = !(DM.on && (o[1] < 0 ? DM.wl : DM.wr) > 0.6); /* a badly hit wing loses its aileron */
+    });
+    rudG.visible = !(DM.on && DM.tail > 0.8);
+    elevG.rotation.x = -s.p * 0.5; /* pull back: trailing edge up */
+    rudG.quaternion.setFromAxisAngle(RUD_AX, s.y * 0.45); /* right pedal: trailing edge to the right */
+    {
+      const tm = FM.use('trim') ? 1 : 0; /* the tabs only move in Hardcore mode */
+      elevTabs.forEach((g) => (g.rotation.x = TRIM.e * TABK * tm)); /* nose-up trim: trailing edge down */
+      rudTab.rotation.y = -TRIM.r * TABK * tm; /* right trim: the tab goes left */
+      if (ailTab) ailTab.rotation.x = -TRIM.a * TABK * tm;
+    }
+    ckPed[1].position.z = -1.05 - s.y * 0.05; /* pushed pedal goes forward */
+    ckPed[-1].position.z = -1.05 + s.y * 0.05;
+    ckPedU[1].position.z = -1.3 - s.y * 0.05;
+    ckPedU[-1].position.z = -1.3 + s.y * 0.05;
+    if (ckLev.flap) ckLev.flap.rotation.x = 0.5 - (flapLvl / (ANG.length - 1)) * 1.0;
+    if (ckLev.gear) ckLev.gear.rotation.x = gearOn ? 0.45 : -0.25;
+    {
+      const inCk = camMode == 1 || lb > 0.4;
+      bladeGroups.forEach((g) => (g.visible = !inCk));
+      plPilot.userData.head.visible = !inCk;
+      if (plPilot.visible && !BL.on) pilotIK();
+      ring.material.opacity = inCk ? 0.07 : 0.14;
+      if ((camMode == 1 || lb > 0.05) && ++ckT % 3 == 0) drawPanel();
+    }
+    flapP.forEach((g) => (g.rotation.x = fl * 0.79));
+  },
+  /* the pilot's eye in the cockpit, turned by the head */
+  eye: (P, D) => {
+    P.set(0, 0.69, -0.43).applyEuler(model.rotation).add(model.position).applyQuaternion(q).add(pos);
+    D.copy(fwd).applyAxisAngle(up, -viewYaw);
+    D.applyAxisAngle(SC.rt.crossVectors(D, up).normalize(), viewPitch);
+    return 65;
+  },
+  /* the chase camera rides behind and above the tail, rolling with the aircraft */
+  chase: (dt, cp, cu, T) => {
+    cp.lerp(SC.chase.set(0, 3.6 * chaseZ, 13 * chaseZ).applyQuaternion(q).add(pos), 1 - Math.exp(-7 * dt));
+    cu.lerp(up, 1 - Math.exp(-3 * dt)).normalize();
+    T.copy(fwd).multiplyScalar(18).add(pos);
+  },
+  overCam: (dt) => {
+    if (BL.on) bailCam(dt);
+  },
+  busy: () => BL.on,
+  shake: () => (buffet > 0 && started && !paused && !crashed ? Math.min(1, buffet) * 0.3 : 0),
+  hudEarly: (dt) => {
+    updPlaneDetail(cam.position.distanceTo(plane.position));
+    {
+      /* the gun cross, 350 m ahead */
+      const a = tmp.copy(fwd).multiplyScalar(350).add(pos).project(cam),
+        cr = $$('cross');
+      if (a.z < 1 && started && !crashed && !BL.on) {
+        cr.style.display = 'block';
+        cr.style.left = (a.x * 0.5 + 0.5) * innerWidth + 'px';
+        cr.style.top = (1 - (a.y * 0.5 + 0.5)) * innerHeight + 'px';
+      } else cr.style.display = 'none';
+    }
+    updBandit();
+    drawGuide();
+    updShadow();
+    updLandingLight();
+    updTrails(dt);
+  },
+  hud: (dt) => {
+    updDamage(dt);
+    updHUD();
+  },
+  hudLate: () => drawADF(),
+  /* the start: on the runway's threshold, wings level, gear down */
+  spawn: () => {
+    pos.set(0, 2, 420);
+    q.identity();
+  },
+  ready: () => {
+    gearOn = true;
+    model.visible = true;
+    cp.copy(pos).add(new V(0, 4, 14));
+  },
+  /* the world's guns lay on the aircraft; a round within 6.5 m of her strikes (held in the searchlights over 20 s: about twice as hard) */
+  aimY: () => pos.y,
+  hit: (a, b) => {
+    if (a.distanceToSquared(pos) > 6400 || !segHit(a, b, pos, 6.5)) return false;
+    playerHit(AA.litT > 20 ? 4 : 2, 0.4);
+    return true;
+  },
+});
 /* SEA: the world's sea levels, in one place (metres; the world's zero is the home airfield's runway). Every piece that needs the
    level of the sea uses these, never a number of its own. */
 const SEA = {
@@ -15244,6 +15487,7 @@ function updChutists(dt) {
   }
 }
 function bailOut() {
+  if (!SIMS.cur.canBail) return; /* nobody bails out of a ship */
   if (!started || crashed || BL.on) return;
   if (onGround) {
     note('YOU ARE ON THE GROUND - NO NEED TO BAIL OUT');
@@ -16585,14 +16829,9 @@ function aaSees(a, b) {
   }
   return true;
 }
-/* the target the ground fire lays on and the test for a round that strikes it. P-51 Mustang FS: the player's aircraft; PCE-842 sets
-   its own (her hull) in THE AIR RAIDS block */
-AA.aimY = () => pos.y;
-AA.hit = (a, b) => {
-  if (a.distanceToSquared(pos) > 6400 || !segHit(a, b, pos, 6.5)) return false;
-  playerHit(AA.litT > 20 ? 4 : 2, 0.4); /* held in the beams for over 20 s: hit about twice as hard */
-  return true;
-};
+/* the target the ground fire lays on and the test for a round that strikes it: the current simulator's (its role's aimY and hit) */
+AA.aimY = () => SIMS.cur.aimY();
+AA.hit = (a, b) => SIMS.cur.hit(a, b);
 function updAA(dt) {
   if (!AA.on) return;
   AA.t += dt;
@@ -25695,6 +25934,9 @@ function menuPick(i) {
 }
 $$('goMenu').onclick = () => toggleMenu();
 
+reset();
+
+/* reset the game: the shared part; each simulator places its own vehicle (role spawn) and readies it (role ready) */
 function reset() {
   try {
     roamExit(true);
@@ -25709,24 +25951,19 @@ function reset() {
   buffet = 0;
   flapLvl = 0;
   fl = 0;
-  pos.set(0, 2, 420);
+  SIMS.cur.spawn() /* the vehicle at its start */;
   vel.set(0, 0, 0);
-  q.identity();
   thr = 0;
   s = { p: 0, r: 0, y: 0 };
   trimGround();
   crashed = false;
   bailReset();
-  gearOn = true;
-  model.visible = true;
+  SIMS.cur.ready() /* gear, which model shows, where the chase camera starts */;
   $$('msg').style.display = 'none';
-  cp.copy(pos).add(new V(0, 4, 14));
   trainerReset();
   PP.ix = 0;
   if (started && !RPL.busy && !RPL.keep && PRE_MODES[trn.mode] && PP.key !== ppKey()) rpPrefly();
 }
-reset();
-
 /* ---------- minimap ---------- */
 const mmC = $$('mmc'),
   mmx = mmC.getContext('2d'),
@@ -27160,7 +27397,7 @@ $$('pmRestart').onclick = () => {
   pauseMenu(false);
   reset();
 };
-$$('pmDocs').onclick = () => pmSetTab('about');
+$$('pmDocs').onclick = () => pmSetTab(SIMS.cur.docsTab);
 $$('pmTilt').onclick = () => openTset(true);
 $$('pmExit').onclick = () => exitGame();
 /* hardcore simulation mode page */
@@ -27536,13 +27773,13 @@ function toggleDocs() {
 let orbitOn = false,
   orbYaw = 0,
   orbEl = 0.27,
-  orbDist = 13.5,
+  orbDist = SIMS.cur.orbitDist,
   orbDrag = false;
 function orbReset() {
   orbitOn = false;
   orbYaw = 0;
   orbEl = 0.27;
-  orbDist = 13.5;
+  orbDist = SIMS.cur.orbitDist;
 }
 /* Roam camera (Y): a free camera that works like photo mode's, but the flight carries on and every flight key still works.
    Only the mouse moves it: left-drag looks, right-drag moves along the ground, middle-drag up and down, wheel in and out
@@ -27690,10 +27927,10 @@ function toggleGear() {
   if (gearOn !== was) SND.gear(gearOn);
 }
 /* ---------- control bindings: the ONE place that says which key / button does what ----------
-   The code below reads these (kb(), PB.x, KEYID) and the on-screen controls box and the Controls tab of the
+   The controls piece builds its lookup tables from these (kb(), PB.x, KEYID) and the on-screen controls box and the Controls tab of the
    pause menu are generated from them, so the help can never disagree with the controls.
    To change a control: edit its row here. Menu navigation (arrows, Tab, D-pad in menus) is documented as text. */
-const BIND = [
+SIMS.add({ id: 'p51', bind: [
   /* id, doc word, keyboard codes, controller button (null = none) */
   ['pitchUp', 'pull up', ['KeyS', 'ArrowDown'], null],
   ['pitchDn', 'push down', ['KeyW', 'ArrowUp'], null],
@@ -27737,15 +27974,22 @@ const BIND = [
   ['trimAR', 'right wing down', ['Quote'], null],
   ['trimC', 'centre all trim', ['Backspace'], null],
   ['photo', 'photo mode', ['F9'], null],
-];
+] });
+/* controls: the lookup tables (BI by id, PB controller buttons, KEYID key code to id) built from the current simulator's bindings
+   (each simulator's own table is its role's `bind`, in its control-bindings piece), and the key and button names for the help */
 const BI = {},
   PB = {},
   KEYID = {};
-BIND.forEach(([id, word, kc, pb]) => {
-  BI[id] = { id, word, kb: kc, pad: pb };
-  if (pb !== null) PB[id] = pb;
-  kc.forEach((c) => (KEYID[c] = id));
-});
+/* the current simulator's bindings into the lookup tables (SIMS.use calls it again when another simulator is picked) */
+function bindsUse(sim) {
+  for (const o of [BI, PB, KEYID]) for (const k in o) delete o[k];
+  sim.bind.forEach(([id, word, kc, pb]) => {
+    BI[id] = { id, word, kb: kc, pad: pb };
+    if (pb !== null) PB[id] = pb;
+    kc.forEach((c) => (KEYID[c] = id));
+  });
+}
+bindsUse(SIMS.cur);
 const KNAME = {
   ArrowUp: '&uarr;',
   ArrowDown: '&darr;',
@@ -27987,7 +28231,7 @@ function pollPad() {
     return;
   }
   if (!started) {
-    if (e(8)) toggleMenu();
+    if (e(8) && SIMS.cur.padMenu) toggleMenu();
     if (e(0) || e(9)) $$('go').click();
     if (e(14)) setDiff(Math.max(0, DIFFS.indexOf(DIFF) - 1));
     if (e(15)) setDiff(Math.min(2, DIFFS.indexOf(DIFF) + 1));
@@ -28006,7 +28250,7 @@ function pollPad() {
     if (pad.trE || pad.trR || pad.trA) trimPadUsed = true;
     if (e(0)) {
       trimPadUsed = true;
-      ACT.trimC();
+      SIMS.cur.act.trimC();
     }
   }
   pad.r = dzf(a[2]);
@@ -28032,8 +28276,8 @@ function pollPad() {
     else if (orbitOn) orbReset();
     else camMode ^= 1;
   }
-  if (!mod && e(PB.flapUp)) ACT.flapUp();
-  if (!mod && e(PB.flapDn)) ACT.flapDn();
+  if (!mod && e(PB.flapUp)) SIMS.cur.act.flapUp();
+  if (!mod && e(PB.flapDn)) SIMS.cur.act.flapDn();
   if (crashed) {
     if (e(0) || e(1) || e(2) || e(3) || e(8) || e(9)) reset();
     padPrev = b.map((x) => x.pressed);
@@ -28041,21 +28285,21 @@ function pollPad() {
   }
   if (e(PB.r3)) r3Down = performance.now();
   else if (!bp(PB.r3) && prevB[PB.r3] && r3Down) {
-    setDiff((DIFFS.indexOf(DIFF) + 1) % 3);
+    SIMS.cur.r3();
     r3Down = 0;
   }
-  if (!mod && e(PB.gear)) ACT.gear();
-  if (e(PB.brake)) ACT.brake();
-  if (e(PB.restart)) ACT.restart();
+  if (!mod && e(PB.gear)) SIMS.cur.act.gear();
+  if (e(PB.brake)) SIMS.cur.act.brake();
+  if (e(PB.restart)) SIMS.cur.act.restart();
   if (FM.use('trim')) {
     /* with trim on, Back opens the pause menu when it is released, unless it was used as the trim key */
     if (!bp(PB.pause) && prevB[PB.pause]) {
-      if (!trimPadUsed) ACT.pause();
+      if (!trimPadUsed) SIMS.cur.act.pause();
       trimPadUsed = false;
     }
   } else {
     trimPadUsed = false;
-    if (e(PB.pause)) ACT.pause();
+    if (e(PB.pause)) SIMS.cur.act.pause();
   }
   padPrev = b.map((x) => x.pressed);
 }
@@ -28077,8 +28321,8 @@ addEventListener('gamepaddisconnected', () => {
   setHelpMode('kbd');
 });
 const keys = {};
-/* what each binding does (the keys and buttons come from BIND) */
-const ACT = {
+/* what each binding does (the keys and buttons come from the role's bind table) */
+SIMS.add({ id: 'p51', act: {
   gear: () => toggleGear(),
   camera: () => {
     if (ROAM.on) return roamExit();
@@ -28119,8 +28363,8 @@ const ACT = {
   pause: () => pauseMenu(true),
   help: () => UI.toggle('help'),
   restart: () => reset(),
-};
-const UIACT = {
+} });
+SIMS.add({ id: 'p51', uiAct: {
   missions: () => toggleMenu(),
   coach: () => (coachMin = !coachMin),
   map: () => {
@@ -28156,7 +28400,7 @@ const UIACT = {
       note(guide.on ? 'FLIGHT PATH GUIDE ON' : 'FLIGHT PATH GUIDE OFF');
     }
   },
-};
+} });
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
     if (e.code == 'Escape') e.target.blur();
@@ -28214,8 +28458,8 @@ addEventListener('keydown', (e) => {
     return;
   }
   const uid = KEYID[e.code];
-  if (uid && UIACT[uid] && !e.repeat) {
-    UIACT[uid]();
+  if (uid && SIMS.cur.uiAct[uid] && !e.repeat) {
+    SIMS.cur.uiAct[uid]();
     return;
   }
   if (menuOpen) {
@@ -28227,7 +28471,7 @@ addEventListener('keydown', (e) => {
   }
   if (e.repeat) return;
   keys[e.code] = true;
-  if (KEYID[e.code] && ACT[KEYID[e.code]]) ACT[KEYID[e.code]]();
+  if (KEYID[e.code] && SIMS.cur.act[KEYID[e.code]]) SIMS.cur.act[KEYID[e.code]]();
 });
 addEventListener('keyup', (e) => (keys[e.code] = false));
 addEventListener('blur', () => {
@@ -29888,7 +30132,7 @@ function photoSave() {
 }
 function photoSync() {
   $$('phHud').textContent = 'HUD: ' + (PHOTO.hud ? 'on' : 'off');
-  $$('phAc').textContent = 'Aircraft: ' + (PHOTO.showPlane ? 'on' : 'off');
+  $$('phAc').textContent = SIMS.cur.word + ': ' + (PHOTO.showPlane ? 'on' : 'off');
   $$('phFz').textContent = 'Action: ' + (PHOTO.freeze ? 'frozen' : 'running');
   $$('phFov').value = Math.round(PHOTO.fov);
   $$('phFovV').textContent = Math.round(PHOTO.fov);
@@ -30035,7 +30279,7 @@ function photoCam(dt) {
     cam.fov = PHOTO.fov;
     cam.updateProjectionMatrix();
   }
-  plane.visible = PHOTO.showPlane;
+  SIMS.cur.showSelf(PHOTO.showPlane);
 }
 /* ---- paint the HUD boxes (DOM) onto the photo ---- */
 function photoHud(x, sf) {
@@ -30158,7 +30402,7 @@ function photoStamp(x, W, Hh, sf) {
     kmh = Math.round(vel.length() * 3.6),
     dmg = DM.on && DM.any() ? ' | damage: ' + DM.text() : '',
     ln =
-      'P-51 FS v' +
+      SIMS.cur.label + ' v' +
       VERSION +
       ' | ' +
       d.getFullYear() +
@@ -30230,7 +30474,7 @@ function photoCapture() {
   const d = new Date(),
     p2 = (n) => (n < 10 ? '0' : '') + n,
     name =
-      'P51_v' +
+      SIMS.cur.fileTag + '_v' +
       VERSION +
       '_' +
       d.getFullYear() +
@@ -30347,14 +30591,16 @@ $$('ph').addEventListener('change', () => {
 $$('ph').addEventListener('pointerup', () => {
   if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
 });
+/* the frame loop: shared by every simulator. What belongs to one simulator is asked of its role (SIMS.cur, the SIMS piece) */
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+  const R_ = SIMS.cur,
+    dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   adaptRes(now - last);
   last = now;
   pollPad();
   touchUpdate();
-  if (orbDrag && camMode == 1 && !pad.lx && !pad.ly) {
+  if ((orbDrag || R_.look()) && camMode == 1 && !pad.lx && !pad.ly) {
     /* mouse is looking */
   } else if (pad.lx || pad.ly) {
     viewYaw += pad.lx * 3.2 * dt;
@@ -30365,99 +30611,41 @@ function frame(now) {
   }
   viewYaw = ((((viewYaw + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) - Math.PI;
   /* the frame's time is split into equal sub-steps of at most 1/120 s: physics stays accurate at any frame rate
-     and the plane still moves exactly as far as the real time that passed, so there is no stutter */
-  if (started && !paused && !crashed && !BL.on && !RPL.on) {
+     and the vehicle still moves exactly as far as the real time that passed, so there is no stutter */
+  if (started && !paused && !RPL.on && R_.canStep()) {
     const n = Math.max(1, Math.ceil(dt / PH_DT - 1e-6));
-    for (let i = 0; i < n && !crashed; i++) step(dt / n);
+    for (let i = 0; i < n && R_.canStep(); i++) R_.step(dt / n);
   }
-  updBail(dt);
+  R_.afterStep(dt);
   axes();
-  plane.position.copy(pos);
-  plane.quaternion.copy(q);
+  R_.pose(dt);
   if (started && !paused && !RPL.on) {
-    updWeapons(dt);
-    updEnemies(dt);
-    updChutists(dt);
-    updService(dt);
+    R_.live(dt);
     updConvoy(dt);
-    updTrainer(dt);
-    updGuide(dt);
-    updAA(dt);
     AF.update(dt);
     _afT += dt * 6;
     AFLD.update(dt);
     if (SITE.pat) SITE.pat(dt);
+    R_.liveLate(dt);
   } else if (RPL.on) {
     AA.hide();
     AF.hide();
   }
-  gear.visible = gearOn;
-  pa += dt * (8 + thr * 80);
-  prop.rotation.z = pa;
-  tiltV += ((onGround && !crashed ? GEAR.sit * (1 - Math.min(1, spd() / 42)) : 0) - tiltV) * Math.min(1, 4 * dt);
-  model.rotation.x = tiltV;
-  { /* the tail settles about the main wheels, so they stay on the ground */
-    const ct = Math.cos(tiltV),
-      st = Math.sin(tiltV),
-      py = GEAR.mainBottom,
-      pz = GEAR.mainZ;
-    model.position.y = 0.17 + (py - (py * ct - pz * st));
-    model.position.z = pz - (py * st + pz * ct);
-  }
-  ckStick.rotation.x = s.p * 0.35;
-  ckStick.rotation.z = -s.r * 0.3;
-  ckThr.rotation.x = 0.3 - thr * 0.9;
-  /* control surfaces follow the smoothed inputs (so keys, pad, touch and every setting that scales them show up) */
-  ailP.forEach((o) => {
-    o[0].rotation.x = -o[1] * s.r * 0.45; /* right roll: right aileron up, left down */
-    o[0].visible = !(DM.on && (o[1] < 0 ? DM.wl : DM.wr) > 0.6); /* a badly hit wing loses its aileron */
-  });
-  rudG.visible = !(DM.on && DM.tail > 0.8);
-  elevG.rotation.x = -s.p * 0.5; /* pull back: trailing edge up */
-  rudG.quaternion.setFromAxisAngle(RUD_AX, s.y * 0.45); /* right pedal: trailing edge to the right */
-  {
-    const tm = FM.use('trim') ? 1 : 0; /* the tabs only move in Hardcore mode */
-    elevTabs.forEach((g) => (g.rotation.x = TRIM.e * TABK * tm)); /* nose-up trim: trailing edge down */
-    rudTab.rotation.y = -TRIM.r * TABK * tm; /* right trim: the tab goes left */
-    if (ailTab) ailTab.rotation.x = -TRIM.a * TABK * tm;
-  }
-  ckPed[1].position.z = -1.05 - s.y * 0.05; /* pushed pedal goes forward */
-  ckPed[-1].position.z = -1.05 + s.y * 0.05;
-  ckPedU[1].position.z = -1.3 - s.y * 0.05;
-  ckPedU[-1].position.z = -1.3 + s.y * 0.05;
-  if (ckLev.flap) ckLev.flap.rotation.x = 0.5 - (flapLvl / (ANG.length - 1)) * 1.0;
-  if (ckLev.gear) ckLev.gear.rotation.x = gearOn ? 0.45 : -0.25;
-  {
-    const inCk = camMode == 1 || lb > 0.4;
-    bladeGroups.forEach((g) => (g.visible = !inCk));
-    plPilot.userData.head.visible = !inCk;
-    if (plPilot.visible && !BL.on) pilotIK();
-    ring.material.opacity = inCk ? 0.07 : 0.14;
-    if ((camMode == 1 || lb > 0.05) && ++ckT % 3 == 0) drawPanel();
-  }
-  flapP.forEach((g) => (g.rotation.x = fl * 0.79));
+  R_.parts(dt);
   const lookOn = !!(pad.lx || pad.ly) || Math.abs(viewYaw) > 0.03 || Math.abs(viewPitch) > 0.03;
   lb += ((camMode == 1 || lookOn ? 1 : 0) - lb) * Math.min(1, 10 * dt);
-  const cockPos = SC.cockPos.set(0, 0.69, -0.43).applyEuler(model.rotation).add(model.position).applyQuaternion(q).add(pos),
-    dv = tmp.copy(fwd).applyAxisAngle(up, -viewYaw),
-    rt = SC.rt.crossVectors(dv, up).normalize();
-  dv.applyAxisAngle(rt, viewPitch);
+  const cockPos = SC.cockPos,
+    dv = tmp,
+    fovHint = R_.eye(cockPos, dv);
   const cockT = SC.cockT.copy(dv).multiplyScalar(50).add(cockPos);
   if (camMode == 1) {
     cam.position.copy(cockPos);
-    cam.up.copy(up);
+    cam.up.copy(R_.eyeUp());
     cam.lookAt(cockT);
     cp.copy(cockPos);
   } else {
-    cp.lerp(
-      SC.chase
-        .set(0, 3.6 * chaseZ, 13 * chaseZ)
-        .applyQuaternion(q)
-        .add(pos),
-      1 - Math.exp(-7 * dt),
-    );
-    cu.lerp(up, 1 - Math.exp(-3 * dt)).normalize();
-    const chaseT = SC.chaseT.copy(fwd).multiplyScalar(18).add(pos);
+    const chaseT = SC.chaseT;
+    R_.chase(dt, cp, cu, chaseT);
     if (lb < 0.01) {
       cam.position.copy(cp);
       cam.up.copy(cu);
@@ -30478,16 +30666,17 @@ function frame(now) {
           .applyQuaternion(q),
       );
     cam.up.set(0, 1, 0);
-    cam.lookAt(pos);
+    cam.lookAt(R_.orbitLift ? SC.aim.copy(pos).setY(pos.y + R_.orbitLift) : pos);
   }
+  R_.view(dt, fovHint);
   if (RPL.on) {
     rpUpdate(dt);
     rpCam();
   }
-  if (BL.on) bailCam(dt);
+  R_.overCam(dt);
   if (PHOTO.on) photoCam(dt);
   else if (ROAM.on) {
-    if (BL.on || RPL.on) roamExit(true);
+    if (R_.busy() || RPL.on) roamExit(true);
     else {
       roamCam();
       highView();
@@ -30495,7 +30684,7 @@ function frame(now) {
   }
   {
     const gh = H(cam.position.x, cam.position.z) + (PHOTO.on || ROAM.on ? 0.3 : 1);
-    if (cam.position.y < gh) cam.position.y = gh;
+    if (cam.position.y < gh && !(camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn && R_.below())) cam.position.y = gh;
   }
   sun.target.position.copy(pos);
 
@@ -30503,44 +30692,32 @@ function frame(now) {
   terrU.uTime.value = now / 1000;
   OCEAN.U.uTime.value = now / 1000;
   {
-    const nn = PHOTO.on || ROAM.on ? Math.max(0.3, Math.max(0, PHOTO.pos.y) * 0.004) : !orbitOn && (camMode == 1 || lb > 0.3) ? 0.12 : 1;
+    const nn = PHOTO.on || ROAM.on ? Math.max(0.3, Math.max(0, PHOTO.pos.y) * 0.004) : !orbitOn && (camMode == 1 || lb > 0.3) ? R_.near() : 1;
     if (cam.near !== nn) {
       cam.near = nn;
       cam.updateProjectionMatrix();
     }
   }
-  if (buffet > 0 && started && !paused && !crashed) {
-    const b2 = Math.min(1, buffet) * 0.3;
-    cam.position.x += (Math.random() - 0.5) * b2;
-    cam.position.y += (Math.random() - 0.5) * b2;
-    cam.position.z += (Math.random() - 0.5) * b2;
+  {
+    const b2 = R_.shake();
+    if (b2 > 0) {
+      cam.position.x += (Math.random() - 0.5) * b2;
+      cam.position.y += (Math.random() - 0.5) * b2;
+      cam.position.z += (Math.random() - 0.5) * b2;
+    }
   }
   cam.updateMatrixWorld();
   updNearTrees(cam.position.x, cam.position.y, cam.position.z);
   updGrass(cam.position.x, cam.position.y, cam.position.z);
-  updPlaneDetail(cam.position.distanceTo(plane.position));
-  {
-    const a = tmp.copy(fwd).multiplyScalar(350).add(pos).project(cam),
-      cr = $$('cross');
-    if (a.z < 1 && started && !crashed && !BL.on) {
-      cr.style.display = 'block';
-      cr.style.left = (a.x * 0.5 + 0.5) * innerWidth + 'px';
-      cr.style.top = (1 - (a.y * 0.5 + 0.5)) * innerHeight + 'px';
-    } else cr.style.display = 'none';
-  }
-  updBandit();
-  drawGuide();
-  updShadow();
-  updLandingLight();
-  updTrails(dt);
+  R_.hudEarly(dt);
   driftClouds(dt);
   WORLD.update(dt);
   updWX(dt);
-  updDamage(dt);
-  updHUD();
+  R_.hud(dt);
   drawMinimap();
-  drawADF();
+  R_.hudLate(dt);
   audioUpd();
+  R_.preRender();
   R.render(scene, cam);
   if (PHOTO.shot) photoCapture();
 }
