@@ -39,6 +39,7 @@ def shot(path):
         print("NOTE  screenshot skipped:", path, str(e).split(chr(10))[0])
 
 def check(name, ok, detail=""):
+    ok = bool(ok)
     results.append(ok)
     print(("PASS  " if ok else "FAIL  ") + name + (f"  ({detail})" if detail else ""))
 
@@ -197,7 +198,7 @@ with sync_playwright() as p:
     r0 = pg.evaluate("()=>GUN.cur.rnd")
     pg.keyboard.down("Space"); pg.wait_for_timeout(1500)
     tr = pg.evaluate("()=>GUN.geo.drawRange.count")
-    shot(path=str(SHOTS / "PCE-842_gun_20mm.png"))
+    if os.environ.get("ALL_SHOTS"): shot(path=str(SHOTS / "PCE-842_gun_20mm.png"))  # each sight picture costs ~500 MB under software rendering
     pg.keyboard.up("Space")
     r1 = pg.evaluate("()=>GUN.cur.rnd")
     check("20 mm: fires from its 60-round drum, with tracer", r1 < r0 and tr > 0, f"{r0} -> {r1} rounds, {tr // 2} tracers")
@@ -207,7 +208,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const g=GUN.cur;g.elT=0.1;g.trT=g.tr+0.4;}"); pg.wait_for_timeout(600)
     al = pg.evaluate("()=>{const g=GUN.cur;g.ft=0;g.al=[8,8];keys.Space=true;for(let i=0;i<4;i++)gunUpdate(0.23);keys.Space=false;return g.al}")
     check("twin 40 mm: the barrels fire in turn from their autoloaders", al[0] < 8 and al[1] < 8 and abs(al[0] - al[1]) <= 1, str(al))
-    shot(path=str(SHOTS / "PCE-842_gun_40mm.png"))
+    if os.environ.get("ALL_SHOTS"): shot(path=str(SHOTS / "PCE-842_gun_40mm.png"))  # each sight picture costs ~500 MB under software rendering
     pg.keyboard.press("KeyT"); pg.wait_for_timeout(300)
     pt = pg.evaluate("()=>PT.on&&PT.L.filter(t=>t.kind==='raft').length===5&&PT.L.filter(t=>t.kind==='sleeve').length===2")
     hit = pg.evaluate("()=>{const t=PT.L.find(x=>x.kind==='sleeve');const n=PT.hits.sleeve;ptHit(t.p.clone().add(new THREE.Vector3(-4,0,0)),t.p.clone().add(new THREE.Vector3(4,0,0)),GSPEC['40']);return PT.hits.sleeve===n+1}")
@@ -269,7 +270,7 @@ with sync_playwright() as p:
     run = pg.evaluate("""()=>{const was=paused;paused=true;ptToggle();SHIP.stn=6;camMode=1;SHIP.sub=3;HH.n=24;let i=0;
        for(;i<8000;i++){const dt=0.05;let trig=false;const o=ASW.O.filter(o=>o.st==='open').pop();
          if(o){const k=tpIdx(o.k);if(SHIP.sub!==k)tpGo(k);else trig=(i%2===0);}for(const k in DC.dep)DC.dep[k]=ASW.depth;
-         shipStep(dt);shipPose(dt);SHIPM.mesh.updateMatrixWorld(true);ptUpdate(dt);dcStep(dt);STN.fire0=false;tpUpdate(dt,true,trig);
+         shipStep(dt);sonarStep(dt,false,0);shipPose(dt);SHIPM.mesh.updateMatrixWorld(true);ptUpdate(dt);dcStep(dt);STN.fire0=false;tpUpdate(dt,true,trig);
          if(ASW.deb)break;}
        const d=ASW.deb,held=ASW.ph==='done'&&!PT.on;for(let k=0;k<5;k++)aswStep(0.05,true);const still=ASW.ph==='done'&&ASW.deb===d;
        SHIP.stn=1;aswStep(0.05,true);const gone=ASW.ph==='idle'&&!ASW.deb;paused=was;return [d,held&&still&&gone]}""")
