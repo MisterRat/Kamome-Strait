@@ -1,6 +1,6 @@
 # Battle-practice target raft: game model measured against the references
 
-Measured from the PCE-842 0.61 build by `tools/blueprint.py` (2026-11-18). Model box: 12.00 m long, 5.00 m wide, 8.40 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.76 build by `tools/blueprint.py` (2026-11-19). Model box: 12.00 m long, 5.00 m wide, 8.40 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Battle-practice target raft with screen (generic)
 

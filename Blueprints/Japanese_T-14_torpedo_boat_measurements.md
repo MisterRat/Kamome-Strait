@@ -1,6 +1,6 @@
 # Type T-14 motor torpedo boat (Gyoraitei): game model measured against the references
 
-Measured from the PCE-842 0.69 build by `tools/blueprint.py` (2026-11-19). Model box: 15.67 m long, 3.67 m wide, 5.43 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-19). Model box: 15.67 m long, 3.67 m wide, 5.43 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45
 

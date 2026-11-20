@@ -297,7 +297,7 @@ const SITES = [],
       GX_ = GX;
     const tt = (x) => (x - X0) / L,
       bowK = (t) => Math.max(0, (t - 0.55) / 0.45),
-      beamF = (t) => (t < 0.12 ? 0.6 + 0.4 * Math.sin((t / 0.12) * Z) : t < 0.6 ? 1 : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.6) / 0.4, 1.7), 0.62))),
+      beamF = (t) => (t < 0.12 ? 0.6 + 0.4 * Math.sin((t / 0.12) * Z) : t < 0.6 ? 1 : t > 0.999 ? 0 /* the stem: the sides meet, no gap */ : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.6) / 0.4, 1.7), 0.62))),
       W = (x) => 4.55 * beamF(tt(x)),
       deckY = (x) => 3.7 + 0.25 * Math.max(0, 1 - tt(x) / 0.15) + 1.0 * Math.pow(bowK(tt(x)), 2.2),
       flare = (x) => 1 + 0.2 * Math.pow(bowK(tt(x)), 1.3),

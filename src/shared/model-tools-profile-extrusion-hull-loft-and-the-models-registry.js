@@ -89,6 +89,27 @@ const MODELS = (() => {
       g.translate(s.X0, 0, 0);
       P.push(part(g, s.transom, 0, 0, 0));
     }
+    /* the ends: a station that still has breadth there (the bow, and the stern when it has no transom) is closed with a face looking
+       out along the hull (dir +1 ahead, -1 astern), painted per band as the sides are, so no hull is ever left open at an end */
+    const cap = (r, dir) => {
+      if (!r.some((p) => Math.abs(p[2]) > 1e-3)) return;
+      for (let k = 0; k < K - 1; k++) {
+        const a = r[k],
+          b = r[k + 1],
+          g = new THREE.BufferGeometry(),
+          v = [a[0], a[1], a[2], b[0], b[1], -b[2], b[0], b[1], b[2], a[0], a[1], a[2], a[0], a[1], -a[2], b[0], b[1], -b[2]];
+        g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+        g.computeVertexNormals();
+        if (g.attributes.normal.getX(0) * dir < 0) {
+          const p = g.attributes.position.array;
+          for (let t = 0; t < p.length; t += 9) for (let q = 0; q < 3; q++) [p[t + 3 + q], p[t + 6 + q]] = [p[t + 6 + q], p[t + 3 + q]];
+          g.computeVertexNormals();
+        }
+        P.push(part(g, s.paint((a[1] + b[1]) / 2, k), 0, 0, 0));
+      }
+    };
+    cap(st[s.N - 1], 1);
+    if (s.transom == null) cap(st[0], -1);
     return P;
   };
   /* a part seen from both sides (a thin skin or wall): the part and a copy facing the other way */

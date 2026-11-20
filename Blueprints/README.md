@@ -18,7 +18,7 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Target sled (towed by PT-108) | Gunnery target sled (generic) | 11.70 x 3.50 x 5.73 | no reference yet | `Target_sled_blueprint.png`, `Target_sled_measurements.md` |
 | Battle-practice target raft | Battle-practice target raft with screen (generic) | 12.00 x 5.00 x 8.40 | no reference yet | `Target_raft_blueprint.png`, `Target_raft_measurements.md` |
 | Towed target sleeve | Towed aerial target sleeve (generic) | 9.00 x 1.40 x 1.40 | no reference yet | `Target_sleeve_blueprint.png`, `Target_sleeve_measurements.md` |
-| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.26 x 11.81 x 23.66 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
+| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.28 x 11.81 x 23.74 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
 | Daihatsu landing barge (Japanese harbours) | Daihatsu (Type A) landing barge | 14.94 x 3.35 x 4.18 | match | `Japanese_Daihatsu_barge_blueprint.png`, `Japanese_Daihatsu_barge_measurements.md` |
 | Wooden lighter (Japanese harbours) | wooden cargo lighter (unpowered barge) | 12.00 x 4.20 x 2.40 | close | `Japanese_lighter_blueprint.png`, `Japanese_lighter_measurements.md` |
 | Timber A-frame derrick (home port T-head) | hand-cranked timber A-frame derrick (shear legs) | 11.66 x 4.87 x 11.20 | match | `Japanese_A-frame_derrick_blueprint.png`, `Japanese_A-frame_derrick_measurements.md` |
@@ -47,7 +47,7 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Butler combat hangar (US airfields) | Butler steel-arch combat hangar, 130 x 160 ft | 54.97 x 41.62 x 12.29 | match | `US_Butler_hangar_blueprint.png`, `US_Butler_hangar_measurements.md` |
 | Quonset hut, Stran-Steel 20 x 48 ft (US airfields) | Stran-Steel Quonset hut, 20 x 48 ft | 15.63 x 6.90 x 3.21 | match | `US_Quonset_hut_blueprint.png`, `US_Quonset_hut_measurements.md` |
 | Quonset Elephant hut, 40 x 100 ft (Fletcher Field store) | Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft | 31.48 x 12.99 x 6.26 | match | `US_Quonset_Elephant_hut_blueprint.png`, `US_Quonset_Elephant_hut_measurements.md` |
-| Steel-angle control tower (US airfields) | Bolted steel-angle airfield control tower, 4 storeys | 7.00 x 7.00 x 19.24 | match | `US_control_tower_blueprint.png`, `US_control_tower_measurements.md` |
+| Steel-angle control tower (US airfields) | Bolted steel-angle airfield control tower, open braced frame, cab at 12 m | 7.46 x 8.04 x 19.25 | match | `US_control_tower_blueprint.png`, `US_control_tower_measurements.md` |
 | M5 bomb trailer with two 500 lb bombs (Fletcher Field) | M5 2-ton bomb trailer | 3.60 x 1.52 x 1.14 | match | `US_M5_bomb_trailer_blueprint.png`, `US_M5_bomb_trailer_measurements.md` |
 | C-10 auxiliary power unit (Fletcher Field) | C-10 auxiliary power unit (starter cart) | 1.49 x 0.90 x 1.10 | match | `US_C10_power_cart_blueprint.png`, `US_C10_power_cart_measurements.md` |
 | Japanese aircraft tractor (Japanese airbases) | Kato 4-ton tractor (IJAAF) / Komatsu G40 (IJN) | 3.40 x 1.60 x 1.64 | **check** | `Japanese_aircraft_tractor_blueprint.png`, `Japanese_aircraft_tractor_measurements.md` |
@@ -65,5 +65,8 @@ The PCE-842 has her own, more detailed drawings and frame-by-frame check against
 | Village pig | pig (plantation pen) | 1.93 x 0.84 x 0.99 | no reference yet | `Village_pig_blueprint.png`, `Village_pig_measurements.md` |
 | Village hen | hen (plantation) | 0.60 x 0.32 x 0.60 | no reference yet | `Village_hen_blueprint.png`, `Village_hen_measurements.md` |
 | Plantation handcart | two-wheeled wooden handcart | 4.00 x 1.52 x 1.65 | no reference yet | `Village_handcart_blueprint.png`, `Village_handcart_measurements.md` |
+| USAAF ground crewman, jointed walker (CREW_RIG) | USAAF mechanic, 1945, as he walks (the airfield's walkers and the repair mechanic) | 0.92 x 0.55 x 1.70 | close | `Ground_crewman_walking_blueprint.png`, `Ground_crewman_walking_measurements.md` |
+| Type T-14 motor torpedo boat as she patrols (moving 25 mm, droppable torpedoes) | Type T-14 (No. 538 class) motor torpedo boat, IJN 1944-45: the patrol model (MODELS 'jp-t14' with live = true) | 15.67 x 3.67 x 5.43 | match | `Japanese_T-14_torpedo_boat_live_blueprint.png`, `Japanese_T-14_torpedo_boat_live_measurements.md` |
+| USS PCE-842, patrol craft escort (the player's ship) | PCE-842 class patrol craft escort, USN 1943-45 | 56.64 x 12.12 x 23.65 | **check** | `PCE-842_patrol_craft_escort_blueprint.png`, `PCE-842_patrol_craft_escort_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).
