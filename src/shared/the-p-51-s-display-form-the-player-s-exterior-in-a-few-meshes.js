@@ -128,6 +128,7 @@ const P51DISP = (() => {
     for (const m of src.children) {
       const c = new THREE.Mesh(m.geometry, m.material);
       c.renderOrder = m.renderOrder;
+      if (m.geometry.attributes.color && m.geometry.attributes.position.count > 3000) GX.far(c, 0.28) /* beyond 1 km its distant form */;
       g.add(c);
     }
     return g;

@@ -216,10 +216,12 @@ const GX = (() => {
      beyond at metres from the camera (the swap is made as it is drawn, so it holds for every view). The mesh stays the same
      object (the code that moves, sinks or claims it is untouched); one marked m.userData.player (the player's own) keeps its near
      form. A mesh without vertex colours is left as it is. */
-  const far = (m, cell, at) => {
+  const FARS = new WeakMap() /* a geometry's distant form, made once for all its copies */;
+  const far = (m, cell, at, ready) => {
     const near = m.geometry;
-    if (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal) return m; /* empty (its model comes later) or not vertex coloured */
-    const f = thin(near.index ? near.toNonIndexed() : near, cell),
+    if (!ready && (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal)) return m; /* empty (its model comes later) or not vertex coloured */
+    /* ready: a distant geometry the model's own builder made (the Ki-84's far) */
+    const f = ready || FARS.get(near) || (FARS.set(near, thin(near.index ? near.toNonIndexed() : near, cell)), FARS.get(near)),
       d2 = (at || 1000) * (at || 1000),
       wp = new V3();
     m.userData.near = near;

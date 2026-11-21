@@ -6,11 +6,12 @@ function buildEnemy() {
   g.add(inner);
   if (!KI84GEO.air) {
     KI84GEO.air = new GX.Acc().add(KI84.parts({ gear: 'up', prop: false })).geometry();
+    KI84GEO.far = new GX.Acc().add(KI84.parts({ gear: 'up', prop: false, far: true })).geometry() /* its distant form (the builder at lower detail) */;
     KI84GEO.prop = new GX.Acc().add(KI84.blades(0)).geometry();
     KI84GEO.mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   }
   /* the model's nose is +x; the bandit flies along -z */
-  const body = new THREE.Mesh(KI84GEO.air, KI84GEO.mat);
+  const body = GX.far(new THREE.Mesh(KI84GEO.air, KI84GEO.mat), 0, 1000, KI84GEO.far) /* beyond 1 km its distant form */;
   body.rotation.y = Math.PI / 2;
   inner.add(body);
   const pilot = makePilot();

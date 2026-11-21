@@ -818,7 +818,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.09';
+const VERSION = '0.10';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -3821,10 +3821,12 @@ const GX = (() => {
      beyond at metres from the camera (the swap is made as it is drawn, so it holds for every view). The mesh stays the same
      object (the code that moves, sinks or claims it is untouched); one marked m.userData.player (the player's own) keeps its near
      form. A mesh without vertex colours is left as it is. */
-  const far = (m, cell, at) => {
+  const FARS = new WeakMap() /* a geometry's distant form, made once for all its copies */;
+  const far = (m, cell, at, ready) => {
     const near = m.geometry;
-    if (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal) return m; /* empty (its model comes later) or not vertex coloured */
-    const f = thin(near.index ? near.toNonIndexed() : near, cell),
+    if (!ready && (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal)) return m; /* empty (its model comes later) or not vertex coloured */
+    /* ready: a distant geometry the model's own builder made (the Ki-84's far) */
+    const f = ready || FARS.get(near) || (FARS.set(near, thin(near.index ? near.toNonIndexed() : near, cell)), FARS.get(near)),
       d2 = (at || 1000) * (at || 1000),
       wp = new V3();
     m.userData.near = near;
@@ -12480,6 +12482,7 @@ const P51DISP = (() => {
     for (const m of src.children) {
       const c = new THREE.Mesh(m.geometry, m.material);
       c.renderOrder = m.renderOrder;
+      if (m.geometry.attributes.color && m.geometry.attributes.position.count > 3000) GX.far(c, 0.28) /* beyond 1 km its distant form */;
       g.add(c);
     }
     return g;
@@ -16019,11 +16022,12 @@ function buildEnemy() {
   g.add(inner);
   if (!KI84GEO.air) {
     KI84GEO.air = new GX.Acc().add(KI84.parts({ gear: 'up', prop: false })).geometry();
+    KI84GEO.far = new GX.Acc().add(KI84.parts({ gear: 'up', prop: false, far: true })).geometry() /* its distant form (the builder at lower detail) */;
     KI84GEO.prop = new GX.Acc().add(KI84.blades(0)).geometry();
     KI84GEO.mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   }
   /* the model's nose is +x; the bandit flies along -z */
-  const body = new THREE.Mesh(KI84GEO.air, KI84GEO.mat);
+  const body = GX.far(new THREE.Mesh(KI84GEO.air, KI84GEO.mat), 0, 1000, KI84GEO.far) /* beyond 1 km its distant form */;
   body.rotation.y = Math.PI / 2;
   inner.add(body);
   const pilot = makePilot();
