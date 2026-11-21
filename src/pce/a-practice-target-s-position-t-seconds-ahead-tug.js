@@ -93,7 +93,8 @@ function gunRings() {
   g.strokeStyle = 'rgba(255,170,40,0.95)';
   g.font = 'bold ' + Math.round(H * 0.018) + 'px monospace';
   g.textAlign = 'center';
-  const now = performance.now() / 1000;
+  const now = performance.now() / 1000,
+    drawn = [];
   for (const [tp, tv, at, mark] of L) {
     const dist = tp.distanceTo(cam.position),
       far = dist > effR;
@@ -112,13 +113,23 @@ function gunRings() {
        (drawn from the eye straight at the aim point, the shells passed that metre or two wide: enough to miss a sleeve). The 3"/50's
        line of sight also lies the sight's superelevation below the bore */
       const d = q.clone().sub(gunMz(G, GUN.V[3]));
-      if (G.se) d.applyAxisAngle(GUN.V[2].set(0, 0, 1).transformDirection(G.m.tr.matrixWorld), -G.se);
+      /* game mode: the sight-setter ranges the target the pointer lays on, so each ring is drawn for the sight as it will stand when
+         he is on that one: its own range's superelevation, not the setting for whatever is ranged now (with one setting for all,
+         every nearer target's ring sat far below it in the water and they all jumped as the range was cranked: the user's,
+         2026-11-21). Hardcore (the player sets the range): the sight as set */
+      const se = G.s.sight !== 'scope' ? 0 : FM.use('range') ? G.se : gunSE(G.s, Math.hypot(q.x - cam.position.x, q.z - cam.position.z));
+      /* lowered by it in the target's own vertical plane (about the horizontal axis square to the line to her: the mount's own
+         trunnion axis is that only once the gun is trained on her; the others' rings were skewed sideways) */
+      if (se) d.applyAxisAngle(GUN.V[2].set(d.x, 0, d.z).cross(GUN.V[0].set(0, 1, 0)).normalize(), -se);
       q.copy(cam.position).add(d);
     }
     const v = q.project(cam);
     if (v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) continue;
     const x = ((v.x + 1) / 2) * W,
       y = ((1 - v.y) / 2) * H;
+    /* targets close together (boats rafted at a mole, a gun pit and its searchlight): one ring, not a stack of them */
+    if (drawn.some(([x0, y0, o0]) => o0 === out && Math.hypot(x - x0, y - y0) < rd * 1.2)) continue;
+    drawn.push([x, y, out]);
     g.strokeStyle = out ? 'rgba(190,190,190,0.85)' : 'rgba(255,170,40,0.95)'; /* grey: out of the gun's range */
     g.beginPath();
     g.arc(x, y, rd, 0, Math.PI * 2);
