@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.84';
+const VERSION = '5.85';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -12000,7 +12000,7 @@ const P51DISP = (() => {
   const first = (gearOn) => {
     const skip = [ck, prop];
     if (pilot()) skip.push(pilot());
-    if (!gearOn) skip.push(gear);
+    if (!gearOn) skip.push(gear) /* gear up: the flying copies (air support, the tow planes) */;
     const body = bake(model, skip);
     body.position.copy(model.position);
     body.quaternion.copy(model.quaternion);
@@ -12038,16 +12038,15 @@ const P51DISP = (() => {
      art, soot, panel lines: the player's near detail) and the propeller's blur disc are left out, the canopy glass is made opaque,
      and the paint is the livery asked for: body (natural metal or olive drab) and trim (spinner, nose band). Sitting on its three
      wheels in the factory's three-point attitude (GEAR.sit), wheels on y = 0, nose toward +x (the scenery's frame).
-     P51DISP.parts(body, trim, o) -> [part]   (o.air: gear up and level instead, for a tow plane; its thrust line at y = 1.4) */
+     P51DISP.parts(body, trim) -> [part] */
   const GLASS = 0x2f4655,
     BODY = [metal.color.getHex(), metal2.color.getHex()],
     TRIM = red.color.getHex();
-  const flat = {};
-  const flatten = (gearOn) => {
+  let flat = null;
+  const flatten = () => {
     model.updateMatrix();
     const skip = [ck];
     if (pilot()) skip.push(pilot());
-    if (!gearOn) skip.push(gear);
     const P = [],
       N = [],
       C = [],
@@ -12084,10 +12083,8 @@ const P51DISP = (() => {
     walk(model);
     return { P, N, C, tag };
   };
-  const parts = (body, trim, o) => {
-    o = o || {};
-    const k = o.air ? 'air' : 'park',
-      F = flat[k] || (flat[k] = flatten(!o.air)),
+  const parts = (body, trim) => {
+    const F = flat || (flat = flatten()),
       g = new THREE.BufferGeometry(),
       C = Float32Array.from(F.C),
       cb = new THREE.Color(body == null ? BODY[0] : body),
@@ -12111,12 +12108,9 @@ const P51DISP = (() => {
     g.setAttribute('normal', new THREE.Float32BufferAttribute(F.N, 3));
     /* nose -z to nose +x; parked: tail down on the three wheels, the main wheels' contact on y = 0 */
     const T = new THREE.Matrix4().makeRotationY(-Math.PI / 2);
-    if (o.air) T.multiply(new THREE.Matrix4().makeTranslation(0, 1.4, 0));
-    else {
-      const a = GEAR.sit,
-        y = GEAR.mainBottom * Math.cos(a) - GEAR.mainZ * Math.sin(a);
-      T.multiply(new THREE.Matrix4().makeTranslation(0, -y, 0)).multiply(new THREE.Matrix4().makeRotationX(a));
-    }
+    const a = GEAR.sit,
+      y = GEAR.mainBottom * Math.cos(a) - GEAR.mainZ * Math.sin(a);
+    T.multiply(new THREE.Matrix4().makeTranslation(0, -y, 0)).multiply(new THREE.Matrix4().makeRotationX(a));
     return [{ g, vc: true, hex: 0xffffff, m: T }];
   };
   /* a parked copy as its own object (not merged into the scenery): a THREE.LOD of the parked form near and its distant form (GX.thin,
@@ -12146,8 +12140,8 @@ const P51DISP = (() => {
     BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
   };
   /* a parked P-51D: the player's own aircraft in its parked form (P51DISP.parts: the same exterior and markings, in this livery),
-     nose toward +x, wheels on y = 0; o.air: gear up and level (the tow plane) */
-  const fighter = (body, trim, o) => P51DISP.parts(body, trim, o);
+     nose toward +x, wheels on y = 0 */
+  const fighter = (body, trim) => P51DISP.parts(body, trim);
   /* the parked ones stand on their own (P51DISP.parked: near and distant forms), not merged into the apron's mesh */
   const placeLOD = (O, x, z, yaw, bl, bw) => {
     O.applyMatrix4(xf(x, 0.12, z, yaw));
@@ -12171,7 +12165,7 @@ const P51DISP = (() => {
      tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
   const FIT = {},
     fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
-    fighterR = (body, trim, o) => fighter(body, trim, o) /* built to its real size (9.83 m x 11.28 m) */,
+    fighterR = (body, trim) => fighter(body, trim) /* built to its real size (9.83 m x 11.28 m) */,
     /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
     cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
     fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
@@ -12212,7 +12206,7 @@ const P51DISP = (() => {
     crew = (shirt, pose) => (pose || 'walk') === 'walk' ? CREW_RIG('us', CREWV[shirt] || 0) : MODELS.get('crew', 'us', pose, CREWV[shirt] || 0) /* a walker is jointed, and walks */;
   /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
      goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
-  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {
+  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24), crew(0x6f7a8a, 'walk'), {
     path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
     door: [-176.5, 145.5],
     spot: [-172.4, 150],

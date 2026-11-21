@@ -191,6 +191,7 @@ Built files in `build/` only; the released games in `C:\Code\Arcade` are untouch
 | P-51 5.82, PCE-842 0.103, Kamome 0.22 | The user: the PCE's sight rings say nothing more: out of the gun's range the ring is simply grey (beyond the shell's reach it sits on the target itself); the help page says so. |
 | P-51 5.83, PCE-842 0.104, Kamome 0.23 | The user: air support, one call a caller at a time: a caller whose flight is still answering (not broken off for home nor down; Japanese fighters handed to the bandits or raiders count until those are gone) cannot call again until it has. Replaces the 10-minute wait between calls. |
 | P-51 5.84, PCE-842 0.105, Kamome 0.24 | The user: out of the gun's range there is no sight ring at all, only a grey ring on the target itself; the help page says so. |
+| P-51 5.85, PCE-842 0.106, Kamome 0.25 | The user: no separate target-tug aircraft: the tow planes are the P-51 display model itself (P51DISP.make, gear up; its distant form beyond 1 km), banked for their circle, propeller turning. Fixed on the way: P51DISP.make({ gear: false }) left the wheels down (the air-support P-51s flew with them out); now up. The parked form's unused tow-plane option (o.air) is gone; blueprint Target-tug_aircraft retired (P-51D_display covers it). |
 
 Notes from step 2:
 - `HOOKS` (`src/shared/hooks-...js`) is the pattern for every new module: shared code calls `HOOKS.<name>` handlers, a game's own piece registers them. Add hooks there, never game names in shared code.

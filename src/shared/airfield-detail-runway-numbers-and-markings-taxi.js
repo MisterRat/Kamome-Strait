@@ -11,8 +11,8 @@
     BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
   };
   /* a parked P-51D: the player's own aircraft in its parked form (P51DISP.parts: the same exterior and markings, in this livery),
-     nose toward +x, wheels on y = 0; o.air: gear up and level (the tow plane) */
-  const fighter = (body, trim, o) => P51DISP.parts(body, trim, o);
+     nose toward +x, wheels on y = 0 */
+  const fighter = (body, trim) => P51DISP.parts(body, trim);
   /* the parked ones stand on their own (P51DISP.parked: near and distant forms), not merged into the apron's mesh */
   const placeLOD = (O, x, z, yaw, bl, bw) => {
     O.applyMatrix4(xf(x, 0.12, z, yaw));
@@ -36,7 +36,7 @@
      tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
   const FIT = {},
     fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
-    fighterR = (body, trim, o) => fighter(body, trim, o) /* built to its real size (9.83 m x 11.28 m) */,
+    fighterR = (body, trim) => fighter(body, trim) /* built to its real size (9.83 m x 11.28 m) */,
     /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
     cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
     fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
@@ -77,7 +77,7 @@
     crew = (shirt, pose) => (pose || 'walk') === 'walk' ? CREW_RIG('us', CREWV[shirt] || 0) : MODELS.get('crew', 'us', pose, CREWV[shirt] || 0) /* a walker is jointed, and walks */;
   /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
      goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
-  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {
+  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24), crew(0x6f7a8a, 'walk'), {
     path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
     door: [-176.5, 145.5],
     spot: [-172.4, 150],

@@ -57,7 +57,8 @@
   ],
   "notes": [
    "Phase 5's display form: made from the player's own model (P51DISP), the cockpit, pilot, light glows and aerial wire left out and the rest merged into one mesh per material, the propeller separate. Checked pixel for pixel against the player's exterior from the side, above and ahead: no difference.",
-   "Its box is taller than the player's sheet (5.0 m against 3.7 m): the propeller's faint blur disc (3.4 m across), part of the exterior, is merged into the same mesh here and so counted."
+   "Its box is taller than the player's sheet (5.0 m against 3.7 m): the propeller's faint blur disc (3.4 m across), part of the exterior, is merged into the same mesh here and so counted.",
+   "Also the target tug of the PCE-842's gunnery practice (the user's, 2026-11-21: no separate tug model)."
   ]
  },
  {
@@ -187,30 +188,6 @@
   ],
   "notes": [
    "Phase 5's distant form: the same builder as the parked model (KI84.parked) at lower detail: every lofted surface at 35% of its segments, the fittings under 0.3 m left off. Swapped in automatically beyond 1 km."
-  ]
- },
- {
-  "id": "tow-plane",
-  "file": "Target-tug_aircraft",
-  "title": "Target-towing aircraft: P-51D (gunnery practice)",
-  "kind": "aircraft",
-  "fwd": "+x",
-  "make": "return ptMesh('tug');",
-  "type": "North American P-51D Mustang (simplified airfield model, gear up)",
-  "ref": [
-   [
-    "Length",
-    9.83,
-    "P-51D, as the player's model"
-   ],
-   [
-    "Span",
-    11.28,
-    "P-51D, as the player's model"
-   ]
-  ],
-  "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
   ]
  },
  {

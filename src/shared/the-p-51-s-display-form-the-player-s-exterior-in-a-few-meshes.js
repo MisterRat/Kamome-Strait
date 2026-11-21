@@ -107,7 +107,7 @@ const P51DISP = (() => {
   const first = (gearOn) => {
     const skip = [ck, prop];
     if (pilot()) skip.push(pilot());
-    if (!gearOn) skip.push(gear);
+    if (!gearOn) skip.push(gear) /* gear up: the flying copies (air support, the tow planes) */;
     const body = bake(model, skip);
     body.position.copy(model.position);
     body.quaternion.copy(model.quaternion);
@@ -145,16 +145,15 @@ const P51DISP = (() => {
      art, soot, panel lines: the player's near detail) and the propeller's blur disc are left out, the canopy glass is made opaque,
      and the paint is the livery asked for: body (natural metal or olive drab) and trim (spinner, nose band). Sitting on its three
      wheels in the factory's three-point attitude (GEAR.sit), wheels on y = 0, nose toward +x (the scenery's frame).
-     P51DISP.parts(body, trim, o) -> [part]   (o.air: gear up and level instead, for a tow plane; its thrust line at y = 1.4) */
+     P51DISP.parts(body, trim) -> [part] */
   const GLASS = 0x2f4655,
     BODY = [metal.color.getHex(), metal2.color.getHex()],
     TRIM = red.color.getHex();
-  const flat = {};
-  const flatten = (gearOn) => {
+  let flat = null;
+  const flatten = () => {
     model.updateMatrix();
     const skip = [ck];
     if (pilot()) skip.push(pilot());
-    if (!gearOn) skip.push(gear);
     const P = [],
       N = [],
       C = [],
@@ -191,10 +190,8 @@ const P51DISP = (() => {
     walk(model);
     return { P, N, C, tag };
   };
-  const parts = (body, trim, o) => {
-    o = o || {};
-    const k = o.air ? 'air' : 'park',
-      F = flat[k] || (flat[k] = flatten(!o.air)),
+  const parts = (body, trim) => {
+    const F = flat || (flat = flatten()),
       g = new THREE.BufferGeometry(),
       C = Float32Array.from(F.C),
       cb = new THREE.Color(body == null ? BODY[0] : body),
@@ -218,12 +215,9 @@ const P51DISP = (() => {
     g.setAttribute('normal', new THREE.Float32BufferAttribute(F.N, 3));
     /* nose -z to nose +x; parked: tail down on the three wheels, the main wheels' contact on y = 0 */
     const T = new THREE.Matrix4().makeRotationY(-Math.PI / 2);
-    if (o.air) T.multiply(new THREE.Matrix4().makeTranslation(0, 1.4, 0));
-    else {
-      const a = GEAR.sit,
-        y = GEAR.mainBottom * Math.cos(a) - GEAR.mainZ * Math.sin(a);
-      T.multiply(new THREE.Matrix4().makeTranslation(0, -y, 0)).multiply(new THREE.Matrix4().makeRotationX(a));
-    }
+    const a = GEAR.sit,
+      y = GEAR.mainBottom * Math.cos(a) - GEAR.mainZ * Math.sin(a);
+    T.multiply(new THREE.Matrix4().makeTranslation(0, -y, 0)).multiply(new THREE.Matrix4().makeRotationX(a));
     return [{ g, vc: true, hex: 0xffffff, m: T }];
   };
   /* a parked copy as its own object (not merged into the scenery): a THREE.LOD of the parked form near and its distant form (GX.thin,

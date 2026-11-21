@@ -74,10 +74,18 @@ function ptMesh(kind) {
     P.push(part(cyl(0.7, 0.5, 9, 12), 0xf07020, 0, 0, 0, 0, 0, Math.PI / 2));
     for (const x of [-2.5, 1.5]) P.push(part(cyl(0.68, 0.64, 1, 12), 0xf4f4f0, x, 0, 0, 0, 0, Math.PI / 2));
   } else {
-    /* the tow plane: a P-51D (the American side's one aircraft type) in natural metal with a yellow nose, gear up, at its real size
-       (AFLD.models.fighter, GX.fit); the airfield model stands on its wheels, so it is lowered to put the fuselage on the flight path */
-    const T = new THREE.Matrix4().makeTranslation(0, -1.4, 0);
-    for (const q of AFLD.models.fighter(0xb7bcc2, 0xd0b020, { air: 1, ang: 0.3 })) P.push({ ...q, m: new THREE.Matrix4().multiplyMatrices(T, q.m) });
+    /* the tow plane: the P-51D itself, the player's own model in its display form (P51DISP, gear up; the user's, 2026-11-21: no
+       separate tug model). Its distant form takes over beyond 1 km, as for every P-51 in the air. Turned nose to +x; the bank group
+       lets it lean into its circle; the propeller turns */
+    const D = P51DISP.make({ gear: false }),
+      g = new THREE.Group(),
+      bank = new THREE.Group();
+    D.g.rotation.y = -Math.PI / 2;
+    bank.add(D.g);
+    g.add(bank);
+    g.userData.bank = bank;
+    g.userData.prop = D.prop;
+    return g;
   }
   const a = new GX.Acc();
   a.add(P, null);
@@ -150,6 +158,8 @@ function ptToggle() {
   ].forEach(([R, h, kn, a0, gun, fol]) => {
     const tug = ptMesh('tug'),
       sl = ptMesh('sleeve');
+    /* a level turn round the circle: tan(bank) = v^2 / (g R), left wing down (it circles anticlockwise seen from above) */
+    tug.userData.bank.rotation.x = -Math.atan((kn * 0.5144) ** 2 / (9.81 * R));
     scene.add(tug, sl);
     const o = { R, h, v: kn * 0.5144, a: a0, gun, fol, c: fol ? new THREE.Vector3(pos.x, 0, pos.z) : PT.c };
     PT.L.push({ kind: 'tug', p: tug.position, r: 6, m: tug, o });
@@ -195,6 +205,7 @@ function ptUpdate(dt) {
     const o = t.o;
     if (t.kind === 'tug') {
       o.a += (o.v / o.R) * dt;
+      if (t.m.userData.prop) t.m.userData.prop.rotation.z += 120 * dt;
       if (o.fol) o.c.set(pos.x, 0, pos.z);
     }
     const a = t.kind === 'tug' ? o.a : o.a - 450 / o.R,
