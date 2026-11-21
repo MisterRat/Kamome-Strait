@@ -112,6 +112,7 @@ shared/airfield-detail-runway-numbers-and-markings-taxi.js
 shared/sky-dome-sun-clouds.js
 shared/cloud-shadows-every-cumulus-puff-is-painted-into.js
 shared/the-hull-outline-cut-out-the-sea-inside-a-manned-ship.js
+shared/the-clouds-drawn-in-one-batch.js
 shared/the-shadow-map-is-painted-from-the-puffs-that-ar.js
 shared/everything-built-so-far-is-scenery-that-never-mo.js
 shared/the-p-51-airframe-joins-the-scene-after-the-scenery-freeze.js
