@@ -824,7 +824,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.05';
+const VERSION = '0.06';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -35758,11 +35758,9 @@ function frame(now) {
 requestAnimationFrame(frame);
 /* CROSSOVER: air support for the PCE-842 (Kamome Strait page only: it needs both simulators). She has no standing air cover. When
    the radar picks up enemy planes (a live raider inside DETECT), Comms reports them to the bridge; the OOD decides whether he wants
-   air support. The player as OOD (on the bridge, or conning from the chase view) gets the choice on screen (Y / N, or the buttons);
-   at another station the AI OOD asks for it. Comms radios Kamome Control, which scrambles two P-51s from Kamome Field (the P-51's
+   air support. The OOD is the AI's for now (the player's OOD is on hold, like the other stations nobody mans): he asks for it. Comms radios Kamome Control, which scrambles two P-51s from Kamome Field (the P-51's
    display form, P51DISP): they take off a minute later, fly out, go after the raiders and can shoot them down (their kills, not the
-   ship's: RAID.kills is hers), and once the sky has been clear for a while they report and fly home. Declined, the OOD is asked
-   again at the next raid. The fighters show on the minimap in blue. */
+   ship's: RAID.kills is hers), and once the sky has been clear for a while they report and fly home. The fighters show on the minimap in blue. */
 const CAP = (() => {
   const DETECT = 18000 /* the radar's reach for low aircraft, m */,
     FIELD = new THREE.Vector3(0, 0, 420) /* Kamome Field, where they take off and land */,
@@ -35775,39 +35773,15 @@ const CAP = (() => {
     TURN = 0.45 /* rad/s */,
     CLEAR = 45 /* s with no raider before they go home */,
     L = [];
-  const S = { st: 'none' /* none, asked, declined, called, out, home */, t: 0, raid: false, clear: 0, box: null };
+  const S = { st: 'none' /* none, called, out, home */, t: 0, raid: false, clear: 0 };
   const up = new THREE.Vector3(0, 1, 0),
     w = new THREE.Vector3(),
     M = new THREE.Matrix4(),
     tgt = new THREE.Vector3();
   const brg = (p) => String(Math.round(((((Math.atan2(p.x - pos.x, -(p.z - pos.z)) * 180) / Math.PI) % 360) + 360) % 360) % 360).padStart(3, '0');
   const live = () => (typeof RAID !== 'undefined' ? RAID.L.filter((e) => e.st !== 'down') : []);
-  /* the OOD's choice on screen */
-  const ask = (e) => {
-    S.st = 'asked';
-    S.t = 0;
-    const b = S.box || (S.box = document.createElement('div'));
-    b.id = 'capAsk';
-    b.style.cssText =
-      'position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:40;background:rgba(10,20,35,.88);color:#e8eef5;border:1px solid #5aa8ff;border-radius:8px;padding:10px 14px;font:bold 15px monospace;text-align:center';
-    b.innerHTML = 'COMMS: ENEMY AIRCRAFT ON RADAR, BEARING ' + brg(e.p) + ', ' + (e.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES.<br>REQUEST AIR SUPPORT?<br>';
-    for (const [t, yes] of [['Request air support (Y)', true], ['Not now (N)', false]]) {
-      const k = document.createElement('button');
-      k.textContent = t;
-      k.style.cssText = 'margin:8px 6px 0;font:bold 14px monospace;padding:4px 10px';
-      k.onclick = () => decide(yes);
-      b.appendChild(k);
-    }
-    document.body.appendChild(b);
-  };
-  const shut = () => S.box && S.box.remove();
-  const decide = (yes) => {
-    shut();
-    if (!yes) {
-      S.st = 'declined';
-      note('OOD: NO AIR SUPPORT FOR NOW');
-      return;
-    }
+  /* the OOD's decision (the AI's for now: he asks for it) */
+  const decide = () => {
     S.st = 'called';
     S.t = 0;
     RADIO.add('BRIDGE', 'COMMS, BRIDGE: REQUEST AIR SUPPORT FROM KAMOME CONTROL.', { own: true });
@@ -35892,7 +35866,6 @@ const CAP = (() => {
   const tick = (dt) => {
     if (!SIMS.on('pce') || crashed) {
       for (const f of L) f.g.visible = false;
-      shut();
       return;
     }
     const R0 = live(),
@@ -35902,10 +35875,7 @@ const CAP = (() => {
     if (seen && !S.raid) {
       S.raid = true;
       RADIO.add('RADAR', 'BRIDGE, COMMS: RADAR CONTACT, ENEMY AIRCRAFT BEARING ' + brg(seen.p) + ', ' + (seen.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES, CLOSING.', { own: true });
-      if (S.st === 'none' || S.st === 'declined') {
-        if (SHIP.stn === 1 || camMode != 1) ask(seen);
-        else decide(true) /* the AI OOD: the player is at another station */;
-      }
+      if (S.st === 'none') decide();
     }
     if (!R0.length) S.raid = false;
     /* the call goes out, Control answers, the fighters scramble */
@@ -35940,19 +35910,6 @@ const CAP = (() => {
     }
   };
   HOOKS.tick.push(tick);
-  /* Y / N answer the OOD's question while it is on the screen */
-  {
-    const R = SIMS.get('pce'),
-      k0 = R.keyFirst;
-    R.keyFirst = (e) => {
-      if (S.st === 'asked' && (e.code === 'KeyY' || e.code === 'KeyN')) {
-        e.preventDefault();
-        decide(e.code === 'KeyY');
-        return true;
-      }
-      return k0(e);
-    };
-  }
   HOOKS.mapDraw.push((g, lw) => {
     if (!SIMS.on('pce')) return;
     g.fillStyle = '#5aa8ff';
