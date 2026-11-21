@@ -33,7 +33,7 @@ const SITES = [],
         lod.addLevel(asMesh(Pfar, null, near)[0], FAR_AT);
         lod.geometry = m.geometry /* the near form's, for the code that measures a target */;
         m = lod;
-      }
+      } else if (type === 'ship') GX.far(m, Math.max(0.3, r / 36)) /* a vessel's distant form beyond 1 km (r: about 0.3 of her length) */;
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const gb = m.geometry.boundingBox,
@@ -1671,6 +1671,7 @@ const SITES = [],
   const mooredF = (F, P, u, d, yaw, len, beam) => {
     const [m, s1, k0] = asMesh(P),
       [x, z] = F.w(u, d);
+    GX.far(m, Math.max(0.3, len / 120)); /* her distant form beyond 1 km */
     m.position.set(x, SEA.WL + k0 + s1 / 2, z);
     m.rotation.y = yaw;
     scene.add(m);

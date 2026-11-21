@@ -6,6 +6,7 @@ HOOKS.claimShip.push((kind, num, o) => {
   COLL.remove(o); /* she is the player's ship now: COLL knows her as that */
   o.m.add(PCEM.buildInterior()); /* the stations' rooms */
   SHIPM.mesh = o.m;
+  o.m.userData.player = true; /* her own ship keeps its full detail at any distance (GX.far) */
   SHIPM.wake = o.m.children[0];
   SHIPM.pts = o.pts;
   return true;

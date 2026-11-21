@@ -818,7 +818,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.08';
+const VERSION = '0.09';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -1381,6 +1381,7 @@ HOOKS.claimShip.push((kind, num, o) => {
   COLL.remove(o); /* she is the player's ship now: COLL knows her as that */
   o.m.add(PCEM.buildInterior()); /* the stations' rooms */
   SHIPM.mesh = o.m;
+  o.m.userData.player = true; /* her own ship keeps its full detail at any distance (GX.far) */
   SHIPM.wake = o.m.children[0];
   SHIPM.pts = o.pts;
   return true;
@@ -3816,7 +3817,25 @@ const GX = (() => {
     o.computeBoundingSphere();
     return o;
   };
-  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin };
+  /* a vessel's or vehicle's distant form, swapped in by itself: the mesh's own geometry thinned (cells of cell metres), drawn
+     beyond at metres from the camera (the swap is made as it is drawn, so it holds for every view). The mesh stays the same
+     object (the code that moves, sinks or claims it is untouched); one marked m.userData.player (the player's own) keeps its near
+     form. A mesh without vertex colours is left as it is. */
+  const far = (m, cell, at) => {
+    const near = m.geometry;
+    if (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal) return m; /* empty (its model comes later) or not vertex coloured */
+    const f = thin(near.index ? near.toNonIndexed() : near, cell),
+      d2 = (at || 1000) * (at || 1000),
+      wp = new V3();
+    m.userData.near = near;
+    m.userData.far = f;
+    m.onBeforeRender = (r, s, c) => {
+      const g = !m.userData.player && m.getWorldPosition(wp).distanceToSquared(c.position) > d2 ? f : near;
+      if (m.geometry !== g) m.geometry = g;
+    };
+    return m;
+  };
+  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin, far };
 })();
 /* ---------- model tools: profile extrusion, hull lofting and the MODELS registry ----------
    Every reference-built model (vehicles, ships, boats, crews, buildings) is a list of GX parts, nose or bow along +x, ground or
@@ -10393,7 +10412,7 @@ const AFLD = {
       ];
       const g = new GX.Acc();
       g.add(P, GX.xf(0, 0, 0, 0));
-      const m = new THREE.Mesh(g.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+      const m = GX.far(new THREE.Mesh(g.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true })), Math.max(0.3, L / 120)) /* her distant form beyond 1 km */;
       const wk = shipWakeMesh(L / 78, wy === undefined ? -1.3 : wy); /* the same painted wake as the patrol boat, scaled to the ship (one shared texture) */
       m.add(wk);
       m.position.set(pts[0][0], yo === undefined ? -6.4 : yo, pts[0][1]);
@@ -12936,8 +12955,13 @@ const P51DISP = (() => {
       o.m.geometry.dispose();
       o.m.geometry = PCEM.build(num);
       o.m.material = PCEM.material;
+      GX.far(o.m, L / 120); /* her distant form beyond 1 km (the empty first geometry had none) */
       PCEM.flags(o.m);
-    } else o.m.add(PTB.build(num));
+    } else {
+      const B = PTB.build(num);
+      B.traverse((q) => q.isMesh && q.geometry.attributes.position.count > 6000 && GX.far(q, 0.2)) /* the hull and its big parts: distant forms */;
+      o.m.add(B);
+    }
     if (HOOKS.claimShip.some((h) => h(kind, num, o))) continue; /* a player's ship: no AI gun crews */
     if (kind === 'pce')
       try {
@@ -20773,7 +20797,7 @@ const SITES = [],
         lod.addLevel(asMesh(Pfar, null, near)[0], FAR_AT);
         lod.geometry = m.geometry /* the near form's, for the code that measures a target */;
         m = lod;
-      }
+      } else if (type === 'ship') GX.far(m, Math.max(0.3, r / 36)) /* a vessel's distant form beyond 1 km (r: about 0.3 of her length) */;
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const gb = m.geometry.boundingBox,
@@ -22411,6 +22435,7 @@ const SITES = [],
   const mooredF = (F, P, u, d, yaw, len, beam) => {
     const [m, s1, k0] = asMesh(P),
       [x, z] = F.w(u, d);
+    GX.far(m, Math.max(0.3, len / 120)); /* her distant form beyond 1 km */
     m.position.set(x, SEA.WL + k0 + s1 / 2, z);
     m.rotation.y = yaw;
     scene.add(m);

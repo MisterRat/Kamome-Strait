@@ -241,6 +241,36 @@
   "wl": "SEA.Y - SEA.WL"
  },
  {
+  "id": "pt105-distant",
+  "file": "PT-105_distant",
+  "title": "PT-105: the distant form (AI copies beyond 1 km)",
+  "kind": "ship",
+  "fwd": "+x",
+  "make": "const B = PTB.build('105'); B.traverse((q) => q.isMesh && q.geometry.attributes.position.count > 6000 && (q.geometry = GX.thin(q.geometry.index ? q.geometry.toNonIndexed() : q.geometry, 0.2))); return B;",
+  "type": "Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108",
+  "ref": [
+   [
+    "Length",
+    24.38,
+    "80 ft (NavSource PT-104 / PT-108 pages)"
+   ],
+   [
+    "Beam",
+    6.3,
+    "20 ft 8 in (NavSource)"
+   ],
+   [
+    "Draught",
+    null,
+    "5 ft (1.52 m) NavSource; 3 ft 6 in aft per Pacific Wrecks"
+   ]
+  ],
+  "wl": "SEA.Y - SEA.WL",
+  "notes": [
+   "Phase 5's distant form of the AI PT boats (GX.far): the hull and its big parts thinned by vertex clustering (GX.thin, 0.2 m cells), about 23% of their triangles; swapped in by itself beyond 1 km."
+  ]
+ },
+ {
   "id": "sled",
   "file": "Target_sled",
   "title": "Target sled (towed by PT-108)",
@@ -1587,6 +1617,36 @@
   "notes": [
    "The player's ship in the PCE-842 game (SHIPM), built by the PCE game's own hull code; drawn as she floats (still water marked).",
    "Her hull, structures and weapons were checked frame by frame against the PCE-874/875 Booklet of General Plans: see docs/PCE-842_plans_check.md (length, waterline length, beam, draught and every major item's frame match within about 0.5 m)."
+  ]
+ },
+ {
+  "id": "pce842-distant",
+  "file": "PCE-842_distant",
+  "title": "PCE-842: the distant form (AI copies beyond 1 km)",
+  "fwd": "+x",
+  "kind": "ship",
+  "game": "pce",
+  "make": "const g = PCEM.build('842'); return new THREE.Mesh(GX.thin(g.index ? g.toNonIndexed() : g, 56.2 / 120), PCEM.material);",
+  "type": "PCE-842 class patrol craft escort, USN 1943-45",
+  "ref": [
+   [
+    "Length",
+    56.24,
+    "184 ft 6 in overall (published; PCE-874/875 plans, plate 4)"
+   ],
+   [
+    "Beam of the hull",
+    10.08,
+    "33 ft 1 in at the deck edge (the drawn width also takes in the life rafts and gun tubs, 12.1 m)"
+   ],
+   [
+    "Draught to the baseline",
+    2.54,
+    "8 ft 4 in design waterline above the baseline (plate 4); the model's 2.79 m below the still water is to the bottom of her propellers, which reach below the keel"
+   ]
+  ],
+  "notes": [
+   "Phase 5's distant form of the AI PCEs (GX.far): her display mesh thinned by vertex clustering (GX.thin, cells of length / 120 m, colours kept apart), about 15% of its triangles; swapped in by itself beyond 1 km. The ship the player commands keeps her full detail."
   ]
  },
  {

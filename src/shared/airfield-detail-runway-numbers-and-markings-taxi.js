@@ -362,8 +362,13 @@
       o.m.geometry.dispose();
       o.m.geometry = PCEM.build(num);
       o.m.material = PCEM.material;
+      GX.far(o.m, L / 120); /* her distant form beyond 1 km (the empty first geometry had none) */
       PCEM.flags(o.m);
-    } else o.m.add(PTB.build(num));
+    } else {
+      const B = PTB.build(num);
+      B.traverse((q) => q.isMesh && q.geometry.attributes.position.count > 6000 && GX.far(q, 0.2)) /* the hull and its big parts: distant forms */;
+      o.m.add(B);
+    }
     if (HOOKS.claimShip.some((h) => h(kind, num, o))) continue; /* a player's ship: no AI gun crews */
     if (kind === 'pce')
       try {

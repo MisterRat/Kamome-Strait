@@ -139,7 +139,7 @@ const AFLD = {
       ];
       const g = new GX.Acc();
       g.add(P, GX.xf(0, 0, 0, 0));
-      const m = new THREE.Mesh(g.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+      const m = GX.far(new THREE.Mesh(g.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true })), Math.max(0.3, L / 120)) /* her distant form beyond 1 km */;
       const wk = shipWakeMesh(L / 78, wy === undefined ? -1.3 : wy); /* the same painted wake as the patrol boat, scaled to the ship (one shared texture) */
       m.add(wk);
       m.position.set(pts[0][0], yo === undefined ? -6.4 : yo, pts[0][1]);

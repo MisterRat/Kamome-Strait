@@ -212,5 +212,23 @@ const GX = (() => {
     o.computeBoundingSphere();
     return o;
   };
-  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin };
+  /* a vessel's or vehicle's distant form, swapped in by itself: the mesh's own geometry thinned (cells of cell metres), drawn
+     beyond at metres from the camera (the swap is made as it is drawn, so it holds for every view). The mesh stays the same
+     object (the code that moves, sinks or claims it is untouched); one marked m.userData.player (the player's own) keeps its near
+     form. A mesh without vertex colours is left as it is. */
+  const far = (m, cell, at) => {
+    const near = m.geometry;
+    if (!near || !near.attributes.position || !near.attributes.position.count || !near.attributes.color || !near.attributes.normal) return m; /* empty (its model comes later) or not vertex coloured */
+    const f = thin(near.index ? near.toNonIndexed() : near, cell),
+      d2 = (at || 1000) * (at || 1000),
+      wp = new V3();
+    m.userData.near = near;
+    m.userData.far = f;
+    m.onBeforeRender = (r, s, c) => {
+      const g = !m.userData.player && m.getWorldPosition(wp).distanceToSquared(c.position) > d2 ? f : near;
+      if (m.geometry !== g) m.geometry = g;
+    };
+    return m;
+  };
+  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin, far };
 })();

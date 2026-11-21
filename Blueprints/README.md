@@ -17,6 +17,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Nakajima Ki-84-Ia Hayate, parked: the distant form (beyond 1 km) | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.73 x 11.24 x 3.81 | **check** | `Ki-84_distant_blueprint.png`, `Ki-84_distant_measurements.md` |
 | Target-towing aircraft: P-51D (gunnery practice) | North American P-51D Mustang (simplified airfield model, gear up) | 9.84 x 11.28 x 3.49 | match | `Target-tug_aircraft_blueprint.png`, `Target-tug_aircraft_measurements.md` |
 | PT-105, 80 ft Elco motor torpedo boat | Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108 | 25.55 x 6.74 x 8.64 | close | `PT-105_blueprint.png`, `PT-105_measurements.md` |
+| PT-105: the distant form (AI copies beyond 1 km) | Elco 80 ft motor torpedo boat (PT-103 class), as PT-105 / PT-106 / PT-108 | 25.55 x 6.74 x 8.64 | close | `PT-105_distant_blueprint.png`, `PT-105_distant_measurements.md` |
 | Target sled (towed by PT-108) | Gunnery target sled (generic) | 11.70 x 3.50 x 5.73 | no reference yet | `Target_sled_blueprint.png`, `Target_sled_measurements.md` |
 | Battle-practice target raft | Battle-practice target raft with screen (generic) | 12.00 x 5.00 x 8.40 | no reference yet | `Target_raft_blueprint.png`, `Target_raft_measurements.md` |
 | Towed target sleeve | Towed aerial target sleeve (generic) | 9.00 x 1.40 x 1.40 | no reference yet | `Target_sleeve_blueprint.png`, `Target_sleeve_measurements.md` |
@@ -69,6 +70,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Plantation handcart | two-wheeled wooden handcart | 4.00 x 1.52 x 1.65 | no reference yet | `Village_handcart_blueprint.png`, `Village_handcart_measurements.md` |
 | USAAF ground crewman, jointed walker (CREW_RIG) | USAAF mechanic, 1945, as he walks (the airfield's walkers and the repair mechanic) | 0.92 x 0.55 x 1.70 | close | `Ground_crewman_walking_blueprint.png`, `Ground_crewman_walking_measurements.md` |
 | USS PCE-842, patrol craft escort (the player's ship) | PCE-842 class patrol craft escort, USN 1943-45 | 56.64 x 12.12 x 23.65 | match | `PCE-842_blueprint.png`, `PCE-842_measurements.md` |
+| PCE-842: the distant form (AI copies beyond 1 km) | PCE-842 class patrol craft escort, USN 1943-45 | 56.24 x 10.64 x 23.46 | match | `PCE-842_distant_blueprint.png`, `PCE-842_distant_measurements.md` |
 | 1,000-barrel bolted steel fuel tank (US PT-boat base) | 1,000-barrel bolted steel tank (API 12B), the Seabees' gasoline tank | 7.18 x 7.18 x 5.80 | match | `US_fuel_tank_blueprint.png`, `US_fuel_tank_measurements.md` |
 | Timber pier on piles (naval bases) | timber finger pier on piles, advance-base practice | 60.43 x 6.00 x 6.70 | match | `Timber_pier_blueprint.png`, `Timber_pier_measurements.md` |
 
