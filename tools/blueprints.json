@@ -1705,5 +1705,35 @@
   "measure": {
    "Width": "__partsSize(MODELS.get('naval-pier', 60, 6, null, -2, true),[0x8a6e4a])[2]"
   }
+ },
+ {
+  "id": "us-lcm3",
+  "file": "US_LCM3_landing_craft",
+  "title": "LCM(3) landing craft (US resupply run)",
+  "fwd": "+x",
+  "kind": "ship",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('us-lcm3'));",
+  "type": "Landing Craft, Mechanized, Mark 3 (LCM(3))",
+  "ref": [
+   [
+    "Length",
+    15.24,
+    "50 ft 0 in (US Navy, LCM(3))"
+   ],
+   [
+    "Beam",
+    4.29,
+    "14 ft 1 in"
+   ],
+   [
+    "Draught",
+    1.2,
+    "about 4 ft aft, loaded"
+   ]
+  ],
+  "notes": [
+   "Steel scow: bow ramp, open well with crates and drums, engine room under the raised after deck, the coxswain standing at the wheel behind his steel shield, the ensign at the stern. The Liberty ship's boat on the resupply run between the US naval base and the US supply depot: it carries the cargo from the anchored ship to the base's middle finger pier and to the depot's pier head."
+  ]
  }
 ]

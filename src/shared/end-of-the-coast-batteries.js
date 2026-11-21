@@ -850,7 +850,8 @@ const SITES = [],
       GB = geo(GP.bar),
       FISH = [null, geo(T14.torp(-T14.TZ)), geo([...T14.torp(-T14.TZ), ...T14.torp(T14.TZ)])] /* by fish aboard: none, the port one, both */,
       RUN = []; /* this group's torpedoes running */
-    const G = { B, RUN, mag: T14MAG, mag0: T14MAG }; /* mag: the torpedoes left at the group's base for reloads */
+    const G = { B, RUN, F, mag: T14MAG, mag0: T14MAG, cap: 2 * T14MAG }; /* mag: the torpedoes left at the group's base for reloads (up to cap,
+      the base's store, when a freighter brings more) */
     (T14W.groups || (T14W.groups = [])).push(G);
     FR = F;
     for (let i = 0; i < n; i++) {
@@ -1931,23 +1932,54 @@ const SITES = [],
       seg.push(l);
       L += l;
     }
-    const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len };
+    const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len, onA: o.onA, onB: o.onB };
     c.bd = COLL.add({ sea: true, hl: len / 2, r: len * 0.075, mg: 40, x: p0[0], z: p0[1], yaw: c.yaw, v: 0, maxOff: 250 }); /* she gives way (COLL) */
     CIV.push(c);
     /* her Daihatsu: works between her and the harbour's jetty head while she lies at anchor (1945 practice: deep-draught ships were
        unloaded offshore by barge), and waits at that jetty while she is at sea */
     {
-      const [bm, bs1, bk0] = asMesh(MODELS.get('jp-daihatsu'));
+      const [bm, bs1, bk0] = asMesh(MODELS.get(o.boat || 'jp-daihatsu')); /* o.boat: an American ship's LCM(3) */
+      bm.userData.lcm = !!o.boat;
       scene.add(bm);
-      c.bg = { m: bm, y0: SEA.WL + bk0 + bs1 / 2, ride: RIDE.make(6.4, 1.5, 3), yaw: FA.ryS, u, dA, dB, FA, FB, jA: o.jA || [-9, 245], jB: o.jB || [-9, 245] };
+      c.bg = {
+        m: bm,
+        y0: SEA.WL + bk0 + bs1 / 2,
+        ride: RIDE.make(o.boat ? 6.6 : 6.4, o.boat ? 1.9 : 1.5, 3),
+        yaw: FA.ryS,
+        u,
+        dA,
+        dB,
+        FA,
+        FB,
+        jA: o.jA || [-9, 245],
+        jB: o.jB || [-9, 245],
+      };
       bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
-    /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts */
-    c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
-    T.push(c.t);
+    /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts (an American one, o.us, is not) */
+    if (!o.us)
+      c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
+    if (c.t) T.push(c.t);
     m.rotation.y = c.yaw;
     m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */
     return c;
+  };
+  /* her cargo ashore (onA at the first harbour, onB at the second): when her boat reaches the jetty on its first run in each stay at
+     anchor (40% of the way through the stay). Every frame for every run, seen or not, so a base far off is still supplied; a sunk ship
+     brings nothing */
+  const civCargo = (c, t) => {
+    if (!c.onA && !c.onB) return;
+    if (c.t && c.t.dead) return;
+    const cyc = 2 * (c.L / c.v + c.dock),
+      tt = (t + c.phase) % cyc,
+      kA = c.dock * 0.4,
+      kB = c.dock * 1.4 + c.L / c.v,
+      was = c.ctt;
+    c.ctt = tt;
+    if (was === undefined) return;
+    const past = (k) => (was <= tt ? was < k && tt >= k : was < k || tt >= k);
+    if (c.onA && past(kA)) c.onA();
+    if (c.onB && past(kB)) c.onB();
   };
   const updCiv = (c, t, dt) => {
     if (c.t && c.t.dead) {
@@ -2029,7 +2061,7 @@ const SITES = [],
       B.m.matrixAutoUpdate = true;
       if (typeof OCEAN !== 'undefined')
         OCEAN.place(
-          B.hh || (B.hh = OCEAN.hull({ kind: 'rect', cut: 'deck', hl: 6.8, hw: 1.4 })),
+          B.hh || (B.hh = OCEAN.hull({ kind: 'rect', cut: 'deck', hl: B.m.userData.lcm ? 7.4 : 6.8, hw: B.m.userData.lcm ? 2.0 : 1.4 })),
           bx,
           bz,
           Math.cos(B.yaw),
@@ -2217,6 +2249,12 @@ const SITES = [],
             jA: [-MT / 2 - 2.2, Md0 + ML - 4],
             jB: MK.landing,
             via: [CH.a, CH.b],
+            /* she brings the base's torpedoes (the user's, 2026-11-21: the runs resupply the bases): each call six more Type 91s into
+               the store its T-14s reload from, up to what the store holds */
+            onA: () => {
+              const G = (SITE.t14w.groups || []).find((g) => g.F === F);
+              if (G) G.mag = Math.min(G.cap, G.mag + T14MAG);
+            },
           }); /* through the dredged channel */
         /* the channel's buoys: red to port going in from the sea (left of a -> b), green to starboard, every 400 m */
         {
@@ -2315,6 +2353,13 @@ const SITES = [],
       flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
       const wy = pad + 0.6;
       pierF(F, S, 0, F.po - 4, 170, 10, wy); /* the supply pier */
+      /* the resupply run (the user's, 2026-11-21): a Liberty ship between the US naval base and here, anchored off each in turn while
+         her LCM(3) works the cargo in to the base's middle finger pier (its east side, clear of PT-110) and to this pier's head;
+         anchored west of the base's piers, clear of the PCE's berth and PT-110's lane */
+      {
+        const NB = FS.nav.find((s) => s.navy === 'us');
+        if (NB) mkCiv(M.freighter('us'), 134.6, NB, F, -150, 300, 8.5, { jA: [-25 + 3 + 2.4, 128], jB: [-5 - 2.4, 160], boat: 'us-lcm3', us: true });
+      }
       use(-14, 14, -6, 180);
       for (const [u, d] of [
         [-75, -95],
@@ -2587,7 +2632,10 @@ const SITES = [],
       for (const o of SITE.anch || []) SITE.rideAt(o, dt); /* the home port's ships and craft at anchor */
       const t = performance.now() / 1000;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
-      for (const c of CIV) if (c.vis) updCiv(c, t, dt);
+      for (const c of CIV) {
+        if (c.vis) updCiv(c, t, dt);
+        civCargo(c, t);
+      }
     };
   }
 }

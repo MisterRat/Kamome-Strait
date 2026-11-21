@@ -73,5 +73,6 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | PCE-842: the distant form (AI copies beyond 1 km) | PCE-842 class patrol craft escort, USN 1943-45 | 56.24 x 10.64 x 23.46 | match | `PCE-842_distant_blueprint.png`, `PCE-842_distant_measurements.md` |
 | 1,000-barrel bolted steel fuel tank (US PT-boat base) | 1,000-barrel bolted steel tank (API 12B), the Seabees' gasoline tank | 7.18 x 7.18 x 5.80 | match | `US_fuel_tank_blueprint.png`, `US_fuel_tank_measurements.md` |
 | Timber pier on piles (naval bases) | timber finger pier on piles, advance-base practice | 60.43 x 6.00 x 6.70 | match | `Timber_pier_blueprint.png`, `Timber_pier_measurements.md` |
+| LCM(3) landing craft (US resupply run) | Landing Craft, Mechanized, Mark 3 (LCM(3)) | 15.85 x 4.29 x 4.32 | close | `US_LCM3_landing_craft_blueprint.png`, `US_LCM3_landing_craft_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).
