@@ -15,4 +15,7 @@ const HOOKS = {
   nightLights: [],
   /* collJoin(C): once a frame, add a simulator's own bodies to collision avoidance (C is COLL; C.pl holds the player's own body) */
   collJoin: [],
+  /* tick(dt): once a frame while the game runs (not paused, not a replay), after the simulator's own live update: modules that
+     are neither the world nor a simulator (Kamome Strait's crossovers, say) run here */
+  tick: [],
 };

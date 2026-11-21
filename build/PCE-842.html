@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.84';
+const VERSION = '0.85';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -601,6 +601,9 @@ const HOOKS = {
   nightLights: [],
   /* collJoin(C): once a frame, add a simulator's own bodies to collision avoidance (C is COLL; C.pl holds the player's own body) */
   collJoin: [],
+  /* tick(dt): once a frame while the game runs (not paused, not a replay), after the simulator's own live update: modules that
+     are neither the world nor a simulator (Kamome Strait's crossovers, say) run here */
+  tick: [],
 };
 /* SIMS: every simulator plugs into the world through ONE role object, and the shared frame loop (the frame loop piece) knows nothing
    else about it. A new simulator is a folder of its own pieces (src/<id>/, its manifest) that ends with SIMS.add({ id, name, ... }); it
@@ -26064,6 +26067,7 @@ function frame(now) {
     AFLD.update(dt);
     if (SITE.pat) SITE.pat(dt);
     R_.liveLate(dt);
+    for (const h of HOOKS.tick) h(dt);
   } else if (RPL.on) {
     AA.hide();
     AF.hide();

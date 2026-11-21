@@ -96,6 +96,7 @@ function frame(now) {
     AFLD.update(dt);
     if (SITE.pat) SITE.pat(dt);
     R_.liveLate(dt);
+    for (const h of HOOKS.tick) h(dt);
   } else if (RPL.on) {
     AA.hide();
     AF.hide();

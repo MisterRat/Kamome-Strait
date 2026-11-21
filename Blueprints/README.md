@@ -9,6 +9,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Model | Represents | Length x width x height (m) | Check | Files |
 |---|---|---|---|---|
 | North American P-51D Mustang (the player's aircraft) | North American P-51D Mustang | 9.84 x 11.28 x 3.72 | match | `P-51D_blueprint.png`, `P-51D_measurements.md` |
+| North American P-51D Mustang: the display form (AI copies) | North American P-51D Mustang | 10.04 x 11.28 x 5.04 | match | `P-51D_display_blueprint.png`, `P-51D_display_measurements.md` |
 | P-51D Mustang, parked (home airfield) | North American P-51D Mustang (simplified airfield model) | 9.69 x 11.28 x 3.98 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
 | Nakajima Ki-84-Ia Hayate (bandit and raider) | Nakajima Ki-84-Ia Hayate ("Frank") | 9.92 x 11.27 x 3.58 | match | `Ki-84_blueprint.png`, `Ki-84_measurements.md` |
 | Nakajima Ki-84-Ia Hayate, parked | Nakajima Ki-84-Ia Hayate ("Frank"), parked | 9.76 x 11.27 x 3.81 | **check** | `Ki-84_parked_blueprint.png`, `Ki-84_parked_measurements.md` |

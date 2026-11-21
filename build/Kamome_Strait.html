@@ -816,7 +816,6 @@ var KS_SIM = (function () {
    plugs in through its role (SIMS). One simulator is played per visit: KS_SIM, picked before the page was built (see the
    picker just after the simulators' pages). The stand-alone P-51 and PCE-842 pages are built from the same pieces.
    ===================================================================================================================== */
-
 /* $$(id): the page's elements by id, looked up once and remembered */
 const _el = {},
   $$ = (id) => _el[id] || (_el[id] = document.getElementById(id));
@@ -825,7 +824,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.02';
+const VERSION = '0.03';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -874,6 +873,9 @@ const HOOKS = {
   nightLights: [],
   /* collJoin(C): once a frame, add a simulator's own bodies to collision avoidance (C is COLL; C.pl holds the player's own body) */
   collJoin: [],
+  /* tick(dt): once a frame while the game runs (not paused, not a replay), after the simulator's own live update: modules that
+     are neither the world nor a simulator (Kamome Strait's crossovers, say) run here */
+  tick: [],
 };
 /* SIMS: every simulator plugs into the world through ONE role object, and the shared frame loop (the frame loop piece) knows nothing
    else about it. A new simulator is a folder of its own pieces (src/<id>/, its manifest) that ends with SIMS.add({ id, name, ... }); it
@@ -15020,6 +15022,110 @@ function drawPanel() {
   ptex.needsUpdate = true;
 }
 
+/* THE P-51D'S DISPLAY FORM (Phase 5): the player's exterior made from the player's own model, never built separately. The cockpit
+   (ck), the pilot, the lights' glows and the aerial wire are left out (o.gear false: the landing gear too); everything else is
+   merged into one mesh per material, texture coordinates kept for the decals. The propeller stays its own group so it can turn.
+   P51DISP.make(o) -> { g, prop }: g in the frame of the player's `plane` group (nose toward -z), prop inside it, spun about its
+   own z axis like the player's. Copies share geometry and materials with the first one made (cheap), so make them freely.
+   Built from the model as it stands, so the first call comes while the player's model is in its rest pose (load time). */
+const P51DISP = (() => {
+  const made = {};
+  /* one geometry per material; a part mirrored by a negative scale has its triangles turned back to face out */
+  const bake = (root, skip) => {
+    root.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(),
+      by = new Map(),
+      M = new THREE.Matrix4();
+    const walk = (o) => {
+      if (!o.visible || skip.includes(o) || o.isSprite || o.isLine || o.isPoints) return;
+      if (o.isMesh && o.geometry && !Array.isArray(o.material)) {
+        const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        M.multiplyMatrices(inv, o.matrixWorld);
+        geo.applyMatrix4(M);
+        if (M.determinant() < 0)
+          for (const k of ['position', 'normal', 'uv']) {
+            const a = geo.attributes[k];
+            if (!a) continue;
+            const s = a.itemSize,
+              A = a.array;
+            for (let t = 0; t < a.count; t += 3)
+              for (let c = 0; c < s; c++) {
+                const i = (t + 1) * s + c,
+                  j = (t + 2) * s + c,
+                  x = A[i];
+                A[i] = A[j];
+                A[j] = x;
+              }
+          }
+        if (!by.has(o.material)) by.set(o.material, []);
+        by.get(o.material).push([geo, o.renderOrder]);
+      }
+      for (const c of o.children) walk(c);
+    };
+    walk(root);
+    const g = new THREE.Group();
+    by.forEach((list, m) => {
+      const n = list.reduce((a, [q]) => a + q.attributes.position.count, 0),
+        uv = list.every(([q]) => q.attributes.uv),
+        P = new Float32Array(n * 3),
+        N = new Float32Array(n * 3),
+        U = uv ? new Float32Array(n * 2) : null;
+      let k = 0;
+      for (const [q] of list) {
+        P.set(q.attributes.position.array, k * 3);
+        if (q.attributes.normal) N.set(q.attributes.normal.array, k * 3);
+        if (U) U.set(q.attributes.uv.array, k * 2);
+        k += q.attributes.position.count;
+        q.dispose();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+      geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+      if (U) geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+      geo.computeBoundingSphere();
+      const mesh = new THREE.Mesh(geo, m);
+      mesh.renderOrder = Math.max(...list.map((x) => x[1]));
+      g.add(mesh);
+    });
+    return g;
+  };
+  const first = (gearOn) => {
+    const skip = [ck, plPilot, prop];
+    if (!gearOn) skip.push(gear);
+    const body = bake(model, skip);
+    body.position.copy(model.position);
+    body.quaternion.copy(model.quaternion);
+    body.scale.copy(model.scale);
+    model.updateMatrix();
+    prop.updateMatrix();
+    const pr = bake(prop, []);
+    pr.matrixAutoUpdate = true;
+    pr.position.copy(prop.position).applyMatrix4(model.matrix);
+    pr.quaternion.copy(model.quaternion).multiply(prop.quaternion);
+    return { body, pr };
+  };
+  const copy = (src) => {
+    const g = new THREE.Group();
+    g.position.copy(src.position);
+    g.quaternion.copy(src.quaternion);
+    g.scale.copy(src.scale);
+    for (const m of src.children) {
+      const c = new THREE.Mesh(m.geometry, m.material);
+      c.renderOrder = m.renderOrder;
+      g.add(c);
+    }
+    return g;
+  };
+  const make = (o) => {
+    const k = o && o.gear === false ? 'up' : 'down';
+    const F = made[k] || (made[k] = first(k === 'down'));
+    const g = new THREE.Group(),
+      prop2 = copy(F.pr);
+    g.add(copy(F.body), prop2);
+    return { g, prop: prop2 };
+  };
+  return { make };
+})();
 /* ---------- state ---------- */
 const pos = new V(),
   vel = new V(),
@@ -35591,6 +35697,7 @@ function frame(now) {
     AFLD.update(dt);
     if (SITE.pat) SITE.pat(dt);
     R_.liveLate(dt);
+    for (const h of HOOKS.tick) h(dt);
   } else if (RPL.on) {
     AA.hide();
     AF.hide();
@@ -35683,6 +35790,117 @@ function frame(now) {
   if (PHOTO.shot) photoCapture();
 }
 requestAnimationFrame(frame);
+/* CROSSOVER: P-51s fly cover over the PCE-842 (Kamome Strait page only: it needs both simulators). Two Mustangs (the P-51's
+   display form, P51DISP) hold a combat air patrol circle over the ship; when the PCE's raiders come (Settings > Enemy: Planes),
+   each goes after the nearest Frank and, holding it in its sights, has a fair chance of shooting it down every second. Their
+   kills are theirs, not the ship's (RAID.kills is hers). They show on the minimap in blue. */
+const CAP = (() => {
+  const R = 1800 /* the circle's radius round the ship, m */,
+    ALT = 700 /* above the sea */,
+    V_CAP = 125,
+    V_ATK = 165 /* m/s */,
+    TURN = 0.45 /* rad/s */,
+    L = [];
+  let said = false;
+  const up = new THREE.Vector3(0, 1, 0),
+    w = new THREE.Vector3(),
+    M = new THREE.Matrix4(),
+    tgt = new THREE.Vector3();
+  const spawn = () => {
+    for (let k = 0; k < 2; k++) {
+      const D = P51DISP.make({ gear: false }),
+        a = k * Math.PI,
+        f = {
+          g: D.g,
+          prop: D.prop,
+          a,
+          p: new THREE.Vector3(pos.x + R * Math.cos(a), SEA.Y + ALT, pos.z + R * Math.sin(a)),
+          v: new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)).multiplyScalar(V_CAP),
+          bank: 0,
+          tgt: null,
+          aim: 0,
+        };
+      scene.add(f.g);
+      L.push(f);
+    }
+  };
+  /* turn the velocity toward w at most TURN rad/s, at speed sp; the bank follows the turn */
+  const steer = (f, dir, sp, dt) => {
+    const v0 = f.v.clone().normalize(),
+      ang = Math.acos(Math.max(-1, Math.min(1, v0.dot(dir)))),
+      k = ang > 1e-4 ? Math.min(1, (TURN * dt) / ang) : 1,
+      v1 = v0.clone().lerp(dir, k).normalize(),
+      side = Math.sign(v0.x * v1.z - v0.z * v1.x);
+    const rate = ang > 1e-4 ? Math.min(ang, TURN * dt) / dt : 0;
+    f.bank += (Math.atan((sp * rate) / 9.81) * side - f.bank) * Math.min(1, dt * 2);
+    const s0 = f.v.length();
+    f.v.copy(v1).multiplyScalar(s0 + (sp - s0) * Math.min(1, dt * 0.5));
+  };
+  const pose = (f) => {
+    f.g.position.copy(f.p);
+    const d = w.copy(f.v).normalize(),
+      u = up.clone().applyAxisAngle(d, -f.bank);
+    M.lookAt(f.p, tgt.copy(f.p).add(d), u);
+    f.g.quaternion.setFromRotationMatrix(M);
+  };
+  const tick = (dt) => {
+    const on = SIMS.on('pce') && !crashed;
+    if (!on) {
+      for (const f of L) f.g.visible = false;
+      return;
+    }
+    if (!L.length) spawn();
+    if (!said) {
+      said = true;
+      RADIO.add('CAP', 'TWO P-51S ON STATION OVER YOU, ANGELS TWO. WE HAVE YOUR BACK.');
+    }
+    const live = typeof RAID !== 'undefined' ? RAID.L.filter((e) => e.st !== 'down' && e.p.distanceTo(pos) < 9000) : [];
+    for (const f of L) {
+      f.g.visible = !PHOTO.on || PHOTO.showPlane !== false;
+      f.prop.rotation.z += dt * 60;
+      if (f.tgt && (f.tgt.st === 'down' || !live.includes(f.tgt))) f.tgt = null;
+      if (!f.tgt && live.length) f.tgt = live.reduce((b, e) => (e.p.distanceTo(f.p) < b.p.distanceTo(f.p) ? e : b));
+      if (f.tgt) {
+        const e = f.tgt;
+        tgt.copy(e.p).addScaledVector(e.v, Math.min(3, e.p.distanceTo(f.p) / 300));
+        steer(f, w.copy(tgt).sub(f.p).normalize(), V_ATK, dt);
+        const to = tgt.sub(f.p),
+          dist = to.length();
+        if (dist < 450 && to.normalize().dot(w.copy(f.v).normalize()) > 0.985) {
+          f.aim += dt;
+          if (f.aim >= 1) {
+            f.aim = 0;
+            if (Math.random() < 0.3) {
+              e.st = 'down';
+              e.sm = 0;
+              note('THE P-51S SPLASH A FRANK');
+              RADIO.add('CAP', 'SPLASH ONE FRANK! RETURNING TO STATION.');
+            }
+          }
+        } else f.aim = 0;
+      } else {
+        /* the circle: aim a little ahead of our place on it, back up at patrol height */
+        f.a += (V_CAP / R) * dt;
+        tgt.set(pos.x + R * Math.cos(f.a + 0.35), SEA.Y + ALT, pos.z + R * Math.sin(f.a + 0.35));
+        steer(f, w.copy(tgt).sub(f.p).normalize(), V_CAP, dt);
+      }
+      f.p.addScaledVector(f.v, dt);
+      f.p.y = Math.max(f.p.y, SEA.Y + 60);
+      pose(f);
+    }
+  };
+  HOOKS.tick.push(tick);
+  HOOKS.mapDraw.push((g, lw) => {
+    if (!SIMS.on('pce')) return;
+    g.fillStyle = '#5aa8ff';
+    for (const f of L) {
+      g.beginPath();
+      g.arc(f.p.x, f.p.z, lw(4), 0, 2 * Math.PI);
+      g.fill();
+    }
+  });
+  return { L };
+})();
 /* the start screen: a button for each other simulator; it remembers the choice and reloads the page with it */
 (() => {
   const row = $$('goRow');
