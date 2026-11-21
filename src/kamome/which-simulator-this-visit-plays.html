@@ -19,6 +19,13 @@
 #ksMain .line{font-size:14px;line-height:1.5;color:#b5c3d3;min-height:3em}
 #ksMain .play{display:inline-block;margin-top:14px;padding:8px 22px;border:1px solid #c9a35a;border-radius:4px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#f4e3bd}
 #ksMain .card:hover .play,#ksMain .card:focus .play{background:#c9a35a;color:#0d1a2a}
+#ksLoad{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#e9eef5;
+  font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:radial-gradient(120% 90% at 50% 0%,#1d3550 0%,#0d1a2a 55%,#070d16 100%);transition:opacity .5s}
+#ksLoad .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.18;filter:blur(14px) saturate(.8);transform:scale(1.1)}
+#ksLoad .t{position:relative;font-weight:300;font-size:clamp(26px,4.6vw,52px);letter-spacing:.28em;text-indent:.28em;text-align:center}
+#ksLoad .s{position:relative;font-size:13px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase;color:#c9a35a}
+#ksLoad .spin{position:relative;width:54px;height:54px;border-radius:50%;border:3px solid rgba(201,163,90,.22);border-top-color:#c9a35a;will-change:transform;animation:ksSpin .9s linear infinite}
+@keyframes ksSpin{to{transform:rotate(360deg)}}
 #ksMain .foot{margin-top:auto;padding-top:6vh;font-size:12px;letter-spacing:.14em;color:#6f8399;text-align:center}
 </style>
 <script>
@@ -31,13 +38,36 @@
 var KS_SIM = (function () {
   const ok = (id) => id && document.getElementById('sim-' + id);
   const id = new URLSearchParams(location.search).get('sim');
+  /* the loading screen (the user's, 2026-11-21: choosing a game took a while with nothing to show it was answering): the simulator's
+     name and picture, a turning ring (drawn by the GPU, so it keeps turning while the game's code loads); shown as soon as a card is
+     chosen, and again at once on the new page until it has loaded */
+  const loading = (sid) => {
+    const c = KS_MENU.find((x) => x.id === sid) || {},
+      L = document.createElement('div');
+    L.id = 'ksLoad';
+    L.innerHTML = '<div class="bg"></div><div class="t"></div><div class="spin"></div><div class="s">Loading the world</div>';
+    if (c.img) L.querySelector('.bg').style.backgroundImage = 'url(' + c.img + ')';
+    L.querySelector('.t').textContent = c.title || 'KAMOME STRAIT';
+    document.documentElement.appendChild(L);
+    return L;
+  };
   if (ok(id)) {
+    const L = loading(id);
+    addEventListener('load', () => {
+      L.style.pointerEvents = 'none' /* never in the way of the start screen, even while it fades */;
+      L.style.opacity = '0';
+      L.addEventListener('transitionend', () => L.remove());
+      setTimeout(() => L.remove(), 800);
+    });
     document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true));
     document.documentElement.dataset.sim = id;
     return id;
   }
   /* the main menu */
-  const go = (s) => (location.search = '?sim=' + s);
+  const go = (s) => {
+    loading(s);
+    requestAnimationFrame(() => requestAnimationFrame(() => (location.search = '?sim=' + s))) /* painted first, then away */;
+  };
   const m = document.createElement('div');
   m.id = 'ksMain';
   m.innerHTML =

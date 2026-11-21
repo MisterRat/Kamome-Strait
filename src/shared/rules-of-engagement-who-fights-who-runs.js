@@ -36,16 +36,17 @@ var ROE = (() => {
             hurt: (d) => damage(q, d),
           })),
         );
-    if (typeof CAP !== 'undefined' && SIMS.on('pce'))
-      for (const f of CAP.L)
-        if (!f.down)
+    /* the American air support's fighters (AIRSUP) */
+    if (typeof AIRSUP !== 'undefined')
+      for (const f of AIRSUP.L)
+        if (f.side === 'us' && f.up && !f.down)
           L.push(
             unit(f, () => ({
               kind: 'fighter',
               air: true,
               p: f.p,
               r: 6,
-              hurt: () => CAP.hurt(f),
+              hurt: (d) => AIRSUP.hurt(f, Math.min(d, 1.5)),
             })),
           );
     /* their velocity, measured frame to frame */
@@ -69,6 +70,8 @@ var ROE = (() => {
     const L = [];
     if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ kind: 'fighter', air: true, p: e.p, k: e.hp0 ? e.hp / e.hp0 : 1 });
     if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ kind: 'fighter', air: true, p: e.p, k: e.dmg ? 0.5 : 1 });
+    if (typeof AIRSUP !== 'undefined')
+      for (const u of AIRSUP.L) if (u.side === 'jp' && u.up && !u.down) L.push({ kind: 'fighter', air: true, p: u.p, k: Math.max(0.1, u.hp / 4) });
     for (const t of T)
       if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.kind !== 'boat' && t.m && t.m.visible !== false)
         L.push({ kind: t.r < 10 ? 't14' : 'escort', air: false, p: t.c, k: t.hp0 ? t.hp / t.hp0 : 1 });
@@ -118,70 +121,165 @@ var ROE = (() => {
     return true;
   };
 
-  /* ----- the Allied ships' guns against enemy aircraft: tracers and rounds of their own ----- */
+  /* ----- THE GUN POSTS: every crewed gun not laid by code of its own (the user's, 2026-11-21: all guns manned and able to fire; all
+     vehicles and fixed guns fire on all targets of opportunity, the player's vehicle first). The Allied fleet's PCEs (all nine: the
+     3"/50, three twin 40 mm, five 20 mm), the PT boats (two twin .50s and a 20 mm), the Liberty's Naval Armed Guard (a 5"/38 aft, a
+     3"/50 forward, four 20 mm), the player's own PCE's six mounts she does not man herself (two twin 40 mm, four 20 mm: her AI crews,
+     from her magazines), and the Ukuru escorts' three 12 cm guns. Each picks its own target twice a second: the Japanese take the
+     player's vehicle first, then the Allied aircraft, then the Allied vessels and vehicles; the Allied take the enemy aircraft first,
+     then the armed vessels and shore guns, then any other. Surface fire only with the shore enemies on (the role's coastOn: the PCE's
+     Enemy setting, the P-51's Ground Fire). The rounds fly (gravity), tracers show, and each is tested against its own target; the
+     big guns' shells burst near an aircraft (time and VT fuzes). The Japanese 25 mm guns and coast guns have their own code. ----- */
+  const GT = {
+    20: { air: 1400, surf: 1000, rps: 4, sp: 0.006, dmg: 1.5, mv: 830 },
+    40: { air: 3600, surf: 3600, rps: 2, sp: 0.004, dmg: 4, mv: 880 },
+    50: { air: 1300, surf: 900, rps: 6, sp: 0.007, dmg: 0.6, mv: 870 },
+    '3in': { air: 5000, surf: 9000, rps: 0.3, sp: 0.0025, dmg: 14, mv: 823, prox: 15 },
+    '5in': { air: 7000, surf: 14000, rps: 0.25, sp: 0.0025, dmg: 40, mv: 792, prox: 20 },
+    '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15 },
+  };
+  const FIT = {
+    pt: [
+      ['50', 1.5, 2.4, 1.1],
+      ['50', 1.5, 2.4, -1.1],
+      ['20', -9, 2.2, 0],
+    ],
+    liberty: [
+      ['3in', 60, 11, 0],
+      ['5in', -62, 9, 0],
+      ['20', 22, 14, 7],
+      ['20', 22, 14, -7],
+      ['20', -30, 12, 7],
+      ['20', -30, 12, -7],
+    ],
+    escort: [
+      ['12cm', 26, 7, 0],
+      ['12cm', -22, 7, 0],
+      ['12cm', -30, 6, 0],
+    ],
+  };
+  const war = () => started && !crashed && SIMS.cur.coastOn();
+  const post = new WeakMap();
+  const mkGuns = (L) =>
+    L.map((g) => (Array.isArray(g) ? { id: g[0], p: new V3(g[1], g[2], g[3]) } : g)).map((g) => ({
+      ...g,
+      s: GT[g.id],
+      cd: Math.random(),
+      ct: Math.random() * 0.5,
+    }));
+  /* the posts now (rebuilt once a second): { m: the mesh they ride, side, guns, mag (draws on the player's magazines), dead() } */
+  let POSTS = [],
+    pT = -1;
+  const posts = () => {
+    const now = performance.now();
+    if (now - pT < 1000) return POSTS;
+    pT = now;
+    const L = [];
+    const at = (m, side, kind, fit, dead, mag) => {
+      let P = post.get(m);
+      if (!P || P.kind !== kind) post.set(m, (P = { m, side, kind, guns: mkGuns(fit), dead, mag }));
+      L.push(P);
+    };
+    for (const q of T) {
+      if (q.dead || q.m.visible === false) continue;
+      if (q.side === 'us' && q.rk === 'pce') at(q.m, 'us', 'pce', PCEM.guns(true), () => q.dead);
+      else if (q.side === 'us' && q.rk === 'pt') at(q.m, 'us', 'pt', FIT.pt, () => q.dead);
+      else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
+      else if (q.side !== 'us' && q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat' && q.r >= 10) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead);
+    }
+    if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed, true);
+    POSTS = L;
+    return L;
+  };
+  /* the aircraft each side can engage */
+  const aircraft = (side) => {
+    const L = [];
+    if (side === 'us') {
+      if (typeof EN !== 'undefined')
+        for (const e of EN) if (!e.dying && !e.drone) L.push({ k: 'en', e, p: e.p, v: e.v || e.fwd.clone().multiplyScalar(e.sp || 0) });
+      if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ k: 'raid', e, p: e.p, v: e.v });
+    }
+    if (typeof AIRSUP !== 'undefined') for (const u of AIRSUP.L) if (!u.down && u.side !== side && u.up) L.push({ k: 'air', e: u, p: u.p, v: u.v });
+    return L;
+  };
+  const armed = (q) => q.kind === 'aa' || (q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat');
+  const pick = (P, g, o) => {
+    const s = g.s;
+    let best = null,
+      bd = 1e9;
+    /* the player's vehicle first (the Japanese) */
+    if (P.side === 'jp' && started && !crashed) {
+      const d = pos.distanceTo(o);
+      if (SIMS.cur.afloat ? war() && d < s.surf : d < s.air && pos.y > H(pos.x, pos.z) + 20) return { k: 'player', p: pos, v: vel, air: !SIMS.cur.afloat };
+    }
+    for (const a of aircraft(P.side)) {
+      const d = a.p.distanceTo(o);
+      if (d < s.air && d < bd && a.p.y > o.y + 20) ((bd = d), (best = { ...a, air: true }));
+    }
+    if (best || !war()) return best;
+    for (const pass of [true, false])
+      for (const q of T) {
+        if (q.dead || q.m.visible === false || (P.side === 'us' ? q.side === 'us' : q.side !== 'us')) continue;
+        if (pass !== armed(q) || (q.type !== 'ship' && s.dmg > 20 && q.kind !== 'aa')) continue;
+        const d = q.c.distanceTo(o);
+        if (d < s.surf && d < bd) ((bd = d), (best = { k: 't', q, p: q.c, v: q.ringV || new V3() }));
+      }
+    return best;
+  };
   const RND = [],
-    MAXR = 240,
+    MAXR = 400,
     tp = new Float32Array(MAXR * 6),
     tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(tp, 3));
   const tl = new THREE.LineSegments(tg, new THREE.LineBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.9 }));
   tl.frustumCulled = false;
   scene.add(tl);
-  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm.
-     They engage enemy aircraft first; with none in reach, an enemy vessel or shore gun (targets of opportunity) */
-  const GUNS = {
-    pce: [2500, 4, 0.006, 4],
-    pt: [1500, 6, 0.008, 1.5],
-    merchant: [1500, 3, 0.009, 1.5],
-  }; /* damage as the PCE's own 40 mm and 20 mm (GSPEC hit) */
-  const air = () => {
-    const L = [];
-    if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ e, p: e.p, v: e.v || new V3(), en: true });
-    if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ e, p: e.p, v: e.v, en: false });
-    return L;
-  };
-  /* the enemy's vessels and shore guns, for the Allied guns */
-  const surf = () => {
-    const L = [];
-    for (const q of T)
-      if (!q.dead && q.side !== 'us' && (q.type === 'ship' || q.kind === 'aa') && q.m.visible !== false)
-        L.push({ q, p: q.c, v: q.ringV || new V3(), sea: true });
-    return L;
+  const o = new V3(),
+    ab = new V3(),
+    w = new V3();
+  const segNear = (a, b, c) => {
+    ab.subVectors(b, a);
+    const l2 = ab.lengthSq(),
+      k = l2 ? Math.max(0, Math.min(1, w.subVectors(c, a).dot(ab) / l2)) : 0;
+    return a.clone().addScaledVector(ab, k);
   };
   const tick = (dt) => {
-    const A = started && !crashed ? air() : [],
-      S = started && !crashed ? surf() : [];
-    if (A.length || S.length)
-      for (const u of alliesNow()) {
-        const G = GUNS[u.kind];
-        if (!G) continue;
-        u.cd = (u.cd || 0) - dt;
-        if (u.cd > 0) continue;
-        let best = null,
-          bd = G[0];
-        for (const a of A) {
-          const d = a.p.distanceTo(u.p);
-          if (d < bd && a.p.y > u.p.y + 20) ((bd = d), (best = a));
+    if (!started || crashed) return;
+    for (const P of posts()) {
+      if (P.dead()) continue;
+      P.m.updateMatrixWorld();
+      for (const g of P.guns) {
+        g.cd -= dt;
+        if ((g.ct -= dt) <= 0) {
+          g.ct = 0.5;
+          o.copy(g.p).applyMatrix4(P.m.matrixWorld);
+          g.tg = pick(P, g, o);
         }
-        if (!best)
-          for (const a of S) {
-            const d = a.p.distanceTo(u.p);
-            if (d < bd * 0.8) ((bd = d), (best = a));
-          }
-        if (!best) continue;
-        u.cd = 1 / G[1];
-        const o = u.p.clone().add(new V3(0, 5, 0)),
-          tof = bd / 850,
-          aim = best.p.clone().addScaledVector(best.v, tof * 0.9);
+        if (!g.tg || g.cd > 0) continue;
+        if (P.mag && (MAG[g.id] || 0) <= 0) continue;
+        const T0 = g.tg,
+          s = g.s;
+        if (T0.k === 'en' ? T0.e.dying : T0.k === 'raid' ? T0.e.st === 'down' : T0.k === 'air' ? T0.e.down : T0.k === 't' ? T0.q.dead : crashed) {
+          g.tg = null;
+          continue;
+        }
+        g.cd = (1 / s.rps) * (0.85 + Math.random() * 0.3);
+        if (P.mag) MAG[g.id]--;
+        o.copy(g.p).applyMatrix4(P.m.matrixWorld);
+        const R = T0.p.distanceTo(o),
+          tof = R / s.mv,
+          aim = T0.p.clone().addScaledVector(T0.v, tof * 0.95);
+        if (T0.k === 'player' && !T0.air) aim.y = coastSea() + 2;
         aim.y += 4.9 * tof * tof;
         const d = aim.sub(o).normalize(),
-          gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2 * G[2];
+          gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2 * s.sp * (1 + R / 3000);
         d.x += gz();
         d.y += gz();
         d.z += gz();
-        if (RND.length < MAXR) RND.push({ p: o, v: d.normalize().multiplyScalar(850), t: 0, tg: best, dmg: G[3] });
-        if (typeof fxAdd === 'function') fxAdd(o, 0xffd890, 1.1, 3, 0.07, 0, true);
+        if (RND.length < MAXR) RND.push({ p: o.clone(), v: d.normalize().multiplyScalar(s.mv), t: 0, life: (Math.max(s.air, s.surf) / s.mv) * 1.3, tg: T0, s });
+        if (o.distanceTo(cam.position) < 4000) fxAdd(o, 0xffd890, s.dmg > 10 ? 2.5 : 1.1, s.dmg > 10 ? 6 : 3, 0.07, 0, true);
       }
+    }
     let n = 0;
     for (let i = RND.length - 1; i >= 0; i--) {
       const b = RND[i],
@@ -189,34 +287,38 @@ var ROE = (() => {
       b.t += dt;
       b.v.y -= 9.8 * dt;
       b.p.addScaledVector(b.v, dt);
-      let dead = b.t > 3.5;
-      const e = b.tg.e;
-      if (!dead && b.tg.sea) {
-        const q = b.tg.q;
-        if (q.dead) dead = true;
-        else {
-          const ab = new V3().subVectors(b.p, a),
-            l2 = ab.lengthSq(),
-            k = Math.max(0, Math.min(1, new V3().subVectors(q.c, a).dot(ab) / l2)),
-            c = a.clone().addScaledVector(ab, k);
-          if (Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
+      let dead = b.t > b.life || b.p.y < SEA.WL - 1 || b.p.y < H(b.p.x, b.p.z);
+      const T0 = b.tg,
+        s = b.s;
+      if (!dead) {
+        if (T0.k === 'player') {
+          if (T0.air || s.dmg <= 4) {
+            if (AA.hit(a, b.p)) dead = true;
+          } else if (SIMS.cur.afloat && SIMS.cur.struck(b.p)) ((dead = true), SIMS.cur.shelled());
+        } else if (T0.k === 't') {
+          const q = T0.q;
+          if (!q.dead) {
+            const c = segNear(a, b.p, q.c);
+            if (Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
+              dead = true;
+              fxAdd(c, 0xffd080, s.dmg > 10 ? 4 : 1.5, s.dmg > 10 ? 12 : 4, 0.25, 0, true);
+              damage(q, s.dmg);
+            }
+          }
+        } else {
+          const e = T0.e,
+            c = segNear(a, b.p, e.p),
+            dd = c.distanceTo(e.p);
+          if (dd < 7 || (s.prox && dd < s.prox && Math.random() < 0.35)) {
             dead = true;
-            if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.5, 4, 0.2, 0, true);
-            damage(q, b.dmg);
-          } else if (b.p.y < SEA.WL) dead = true;
-        }
-      } else if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
-        const ab = new V3().subVectors(b.p, a),
-          l2 = ab.lengthSq(),
-          t = Math.max(0, Math.min(1, new V3().subVectors(e.p, a).dot(ab) / l2));
-        if (a.clone().addScaledVector(ab, t).distanceTo(e.p) < 7) {
-          dead = true;
-          if (typeof fxAdd === 'function') fxAdd(e.p, 0xffd080, 1.5, 4, 0.2, 0, true);
-          if (b.tg.en) damageE(e, b.dmg);
-          else if (++e.dmg >= 2) {
-            e.st = 'down';
-            e.sm = 0;
-            note('A FRANK IS SHOT DOWN BY THE ESCORTS');
+            fxAdd(c, s.prox ? 0x555555 : 0xffd080, s.prox ? 4 : 1.5, s.prox ? 10 : 4, s.prox ? 1 : 0.2, 0, !s.prox);
+            if (T0.k === 'en') damageE(e, s.dmg);
+            else if (T0.k === 'air') AIRSUP.hurt(e, s.dmg);
+            else if (++e.dmg >= 2) {
+              e.st = 'down';
+              e.sm = 0;
+              if (e.p.distanceTo(cam.position) < 8000) note('A FRANK IS SHOT DOWN');
+            }
           }
         }
       }
@@ -224,7 +326,7 @@ var ROE = (() => {
         RND.splice(i, 1);
         continue;
       }
-      if (n < MAXR) {
+      if (n < MAXR && s.dmg <= 4) {
         const k = n++ * 6;
         tp[k] = b.p.x;
         tp[k + 1] = b.p.y;
@@ -238,5 +340,5 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, reset: () => (RND.length = 0) };
 })();

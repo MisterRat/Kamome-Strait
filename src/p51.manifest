@@ -20,7 +20,6 @@ shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
 shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
 shared/mission-and-replay-state-what-every-simulator-reads.js
 p51/the-p-51d-s-role-how-the-fighter-plugs-into-the-shared-frame-loop.js
-p51/fighters-an-enemy-base-scrambles.js
 shared/sea-the-world-s-sea-levels-in-one-place.js
 p51/hardcore-simulation-mode-off-by-default-the-sim.js
 shared/hardcore-simulation-mode-fm-the-switch-the-options-and-their-state.js
@@ -166,9 +165,9 @@ shared/the-coast-batteries-settings-enable-enemy-shore.js
 shared/the-coast-guns-ballistics-the-same-drag-law-as-the-pce.js
 shared/the-coast-guns-at-work-their-aim-their-shells.js
 shared/end-of-the-coast-batteries.js
-shared/the-naval-bases-call-for-fighters-when-under-fire.js
 shared/every-vehicle-a-target-hit-points-damage-and-sinking.js
 shared/rules-of-engagement-who-fights-who-runs.js
+shared/air-support-both-sides-call-launch-fight-return.js
 shared/aftermath-burning-wrecks-smoke-columns-craters-a.js
 shared/convoy-one-at-a-time-timed.js
 shared/the-mission-coach-box-and-the-mission-clock.js

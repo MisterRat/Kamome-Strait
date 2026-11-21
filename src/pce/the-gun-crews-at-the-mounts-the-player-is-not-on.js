@@ -27,6 +27,8 @@ function crewStep(dt) {
         bd = 1e9;
       if (planes)
         for (const e of RAID.L) if (e.st !== 'down' && e.p.distanceTo(mz) < Math.min(rA, bd)) ((bd = e.p.distanceTo(mz)), (best = { p: e.p, v: e.v, e }));
+      for (const u of AIRSUP.L)
+        if (u.side === 'jp' && u.up && !u.down && u.p.distanceTo(mz) < Math.min(rA, bd)) ((bd = u.p.distanceTo(mz)), (best = { p: u.p, v: u.v, e: u }));
       if (!best && shore) {
         for (const t of T)
           if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.m.visible !== false) {

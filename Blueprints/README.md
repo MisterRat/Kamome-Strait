@@ -32,7 +32,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Japanese navy dock hand (home port) | IJNAS / naval base working rig, 1945: blue-grey trousers, white singlet, white headband | 0.30 x 0.55 x 1.68 | match | `Japanese_navy_dock_hand_blueprint.png`, `Japanese_navy_dock_hand_measurements.md` |
 | Japanese freighter | Type 2A wartime standard cargo ship | 137.00 x 18.20 x 25.24 | match | `Japanese_freighter_blueprint.png`, `Japanese_freighter_measurements.md` |
 | Japanese tanker | Type 2TL wartime standard tanker | 153.50 x 20.00 x 24.77 | match | `Japanese_tanker_blueprint.png`, `Japanese_tanker_measurements.md` |
-| US freighter (kept for later) | Liberty ship EC2-S-C1, kept for later | 134.60 x 17.30 x 30.20 | match | `US_freighter_blueprint.png`, `US_freighter_measurements.md` |
+| Liberty ship (US resupply run) | Liberty ship EC2-S-C1 (the supply run between Depot Nimitz and PT Base Halsey) | 134.60 x 17.30 x 30.20 | match | `US_freighter_blueprint.png`, `US_freighter_measurements.md` |
 | US tanker (kept for later) | T2-SE-A1 tanker, kept for later | 159.60 x 20.70 x 26.07 | match | `US_tanker_blueprint.png`, `US_tanker_measurements.md` |
 | 12 cm/45 3rd Year Type gun in its coast emplacement | 12 cm/45 3rd Year Type naval gun on a coast-defence pedestal | 9.20 x 9.20 x 3.47 | close | `12cm-45_coast_gun_blueprint.png`, `12cm-45_coast_gun_measurements.md` |
 | Type 96 25 mm twin AA gun in its emplacement | Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit | 9.80 x 9.80 x 3.14 | no reference yet | `Type96_25mm_twin_blueprint.png`, `Type96_25mm_twin_measurements.md` |
@@ -74,5 +74,9 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | 1,000-barrel bolted steel fuel tank (US PT-boat base) | 1,000-barrel bolted steel tank (API 12B), the Seabees' gasoline tank | 7.18 x 7.18 x 5.80 | match | `US_fuel_tank_blueprint.png`, `US_fuel_tank_measurements.md` |
 | Timber pier on piles (naval bases) | timber finger pier on piles, advance-base practice | 60.43 x 6.00 x 6.70 | match | `Timber_pier_blueprint.png`, `Timber_pier_measurements.md` |
 | LCM(3) landing craft (US resupply run) | Landing Craft, Mechanized, Mark 3 (LCM(3)) | 15.85 x 4.29 x 4.32 | close | `US_LCM3_landing_craft_blueprint.png`, `US_LCM3_landing_craft_measurements.md` |
+| US driver, seated (every moving American vehicle) | USAAF / US Navy driver at the wheel, 1945 (MODELS.driven) | 0.82 x 0.55 x 1.42 | **check** | `US_seated_driver_blueprint.png`, `US_seated_driver_measurements.md` |
+| Japanese army driver, seated (every moving Japanese vehicle) | Japanese army driver, 1945 (khaki-tan, field cap) | 0.82 x 0.55 x 1.39 | close | `Japanese_seated_driver_blueprint.png`, `Japanese_seated_driver_measurements.md` |
+| Japanese navy hand, jointed walker (CREW_RIG) | IJN working rig, 1945, as he walks (Port Ugaki's and the home port's hands) | 0.88 x 0.55 x 1.62 | close | `Japanese_navy_walker_blueprint.png`, `Japanese_navy_walker_measurements.md` |
+| Channel buoy (the dredged channel to Depot Mikawa) | Can buoy marking a dredged channel (red to port going in, green to starboard) | 2.09 x 2.20 x 3.80 | **check** | `Channel_buoy_blueprint.png`, `Channel_buoy_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).

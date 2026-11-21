@@ -65,7 +65,7 @@ function spawnEnemy() {
   note('BANDIT!');
   SND.beep(880, 0.15);
 }
-/* a bandit at p, turned toward the player (spawnEnemy's, and the fighters an enemy base scrambles: BASEAIR) */
+/* a bandit at p, turned toward the player (spawnEnemy's, and Japanese air support that reaches the player: AIRSUP) */
 function banditAt(p) {
   const b = buildEnemy();
   Object.assign(b, {

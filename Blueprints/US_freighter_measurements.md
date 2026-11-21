@@ -1,8 +1,8 @@
-# US freighter (kept for later): game model measured against the references
+# Liberty ship (US resupply run): game model measured against the references
 
-Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 134.60 m long, 17.30 m wide, 30.20 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.101 build by `tools/blueprint.py` (2026-11-21). Model box: 134.60 m long, 17.30 m wide, 30.20 m high (solid parts only, as drawn on the blueprint).
 
-**Represents:** Liberty ship EC2-S-C1, kept for later
+**Represents:** Liberty ship EC2-S-C1 (the supply run between Depot Nimitz and PT Base Halsey)
 
 **Where she floats in the game:** the still water is 21.70 m below her highest point and 8.50 m above her keel (her draught in the game).
 
@@ -18,5 +18,6 @@ Results: match within 3%, close within 8%, **check** beyond that. The box takes 
 
 - Hull below the waterline deepened to the real draught (the top 0.5 m as built).
 - Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece).
+- In service since Kamome 0.17: the Liberty runs between Depot Nimitz and PT Base Halsey with her LCM(3); her Naval Armed Guard mans a 5"/38 aft, a 3"/50 forward and four 20 mm (RULES OF ENGAGEMENT).
 
 Blueprint: `US_freighter_blueprint.png`.

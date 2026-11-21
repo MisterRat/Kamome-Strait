@@ -15,7 +15,7 @@ function raidBrg(p) {
     .padStart(3, '0');
 }
 function raidSpawn(from) {
-  /* from: a point the section comes from (fighters an enemy base has scrambled from their airfield, BASEAIR); else the raid's own way */
+  /* from: a point the section comes from (Japanese air support that has reached her, AIRSUP); else the raid's own way */
   const h = from || raidHome(),
     d = new THREE.Vector3(h.x - pos.x, 0, h.z - pos.z);
   const rng = from ? d.length() : RAIDV.RNG;
@@ -37,10 +37,3 @@ function raidSpawn(from) {
   SND.tone(620, 620, 0.5, 0.35, 'square');
   SND.tone(620, 620, 0.5, 0.35, 'square', 0.7);
 }
-/* fighters an enemy base has scrambled (BASEAIR): a section from their airfield, as a raid (if enemy planes are on) */
-SIMS.add({
-  id: 'pce',
-  scramble: (p) => {
-    if (typeof ENEMY !== 'undefined' && ENEMY.has('planes') && !crashed) raidSpawn(p);
-  },
-});

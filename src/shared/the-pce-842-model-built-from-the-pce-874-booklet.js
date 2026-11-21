@@ -418,6 +418,9 @@ const PCEM = (() => {
      is a sight built about the eye that tilts with the guns (a sight linkage). d.eye is in the training frame, or in the
      elevating frame when d.eyeEl (the 20 mm gunner rides the gun in its shoulder rests). d.muzzles are in the elevating frame. */
   const MNT = [];
+  /* every gun of hers that is not a moving mount, in the model frame (the AI crews fire them: RULES OF ENGAGEMENT): [type, x, y, z] at the
+     trunnions */
+  const GUNPOS = [];
   const mount = (d) => {
     groups.push([d.base, d.T, false]);
     MNT.push(d);
@@ -1268,6 +1271,7 @@ const PCEM = (() => {
     begin();
     P.push(...twin40(0.22));
     emit(GX.xf(XF(62.1), hd(62.1) + 0.16, s * 2.85, PI + s * 0.6)) /* at rest trained aft and a little outboard, like the after mount */;
+    GUNPOS.push(['40', XF(62.1), hd(62.1) + 0.16 + 1.1, s * 2.85]);
   }
 
   /* ================= THE MAIN DECK AFT: K-guns, the aft twin 40 mm on its platform, its director, the depth-charge racks ================= */
@@ -1518,6 +1522,7 @@ const PCEM = (() => {
     begin();
     P.push(...oer20());
     emit(GX.xf(x, y, z, ry));
+    GUNPOS.push(['20', x, y + 1.2, z]);
   }
   {
     /* the starboard 20 mm amidships, abaft the bridge: the player's (station 5) */

@@ -148,6 +148,15 @@ function gunUpdate(dt) {
     }
     if (!dead && ptHit(b.a, b.p, s)) dead = true;
     if (!dead && raidHit(b.a, b.p, s)) dead = true;
+    /* the air-support fighters (AIRSUP, either side): a kill zone as the raiders' (the VT fuze's, or 6 m) */
+    if (!dead)
+      for (const u of AIRSUP.L)
+        if (u.up && !u.down && b.a.distanceToSquared(u.p) < 90000 && segHit(b.a, b.p, u.p, s.vt || 6)) {
+          gunBurst(b.p, s, true);
+          AIRSUP.hurt(u, s.hit > 10 ? 4 : s.hit > 3 ? 2 : 1);
+          dead = true;
+          break;
+        }
     if (!dead && s.vt)
       for (const e of EN)
         if (!e.dying && segHit(b.a, b.p, e.p, s.vt)) {

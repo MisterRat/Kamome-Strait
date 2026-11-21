@@ -100,6 +100,17 @@ function updWeapons(dt) {
           break;
         }
       }
+    if (!dead && typeof AIRSUP !== 'undefined')
+      for (const u of AIRSUP.L) {
+        /* the air-support fighters of either side (a P-51 of ours hit is the player's own doing) */
+        if (u.down || !u.up || a.distanceToSquared(u.p) > 3600) continue;
+        if (segHit(a, b.p, u.p, 6.5)) {
+          AIRSUP.hurt(u, 0.25);
+          dead = true;
+          if (Math.random() < 0.5) spark(b.p);
+          break;
+        }
+      }
     if (dead) B.splice(i, 1);
   }
   for (let i = 0; i < B.length; i++) {

@@ -404,7 +404,7 @@ function note(x) {
 }
 function damage(t, d) {
   if (t.dead) return;
-  if (typeof BASEAIR !== 'undefined') BASEAIR.hit(t); /* a naval base under fire calls for fighters */
+  if (typeof AIRSUP !== 'undefined') AIRSUP.hit(t); /* a sea unit or ground installation under fire calls for air support */
   t.hp -= d;
   if (t.hp <= 0) killT(t);
 }

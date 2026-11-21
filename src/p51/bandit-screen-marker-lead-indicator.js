@@ -14,7 +14,8 @@ function updBandit() {
     }
   });
   if (!best || crashed || !started) {
-    bdE.style.display = bdT.style.display = ldE.style.display = 'none';
+    bdE.style.display = bdT.style.display = 'none';
+    for (const e of LEADS) e.style.display = 'none';
     return;
   }
   const pr = best.p.clone().project(cam),
@@ -52,17 +53,37 @@ function updBandit() {
     ' m ' +
     (dy >= 0 ? 'above' : 'below') +
     ' you)';
-  if (!off && bdist < 1500) {
-    const tt = bdist / 880,
-      ev = best.fwd.clone().multiplyScalar(best.sp),
-      lp = best.p.clone().addScaledVector(ev.sub(vel), tt);
+  /* a lead ring on every bandit within 1,500 m (the user's, 2026-11-21): where to aim for the guns' rounds to meet it (the guns'
+     time of flight, gravity drop, its motion against ours). The nearest keeps the first ring; the others have rings of their own */
+  const L = [];
+  for (const e of EN) if (!e.dying && e.p.distanceTo(pos) < 1500) L.push({ p: e.p, v: e.fwd.clone().multiplyScalar(e.sp) });
+  if (typeof AIRSUP !== 'undefined') for (const u of AIRSUP.L) if (u.side === 'jp' && !u.down && u.p.distanceTo(pos) < 1500) L.push({ p: u.p, v: u.v });
+  let n = 0;
+  for (const b of L) {
+    const d = b.p.distanceTo(pos),
+      tt = d / 880,
+      lp = b.p.clone().addScaledVector(b.v.clone().sub(vel), tt);
     lp.y += 4.9 * tt * tt;
     const lq = lp.project(cam);
-    if (lq.z < 1) {
-      ldE.style.display = 'block';
-      ldE.style.left = (lq.x * 0.5 + 0.5) * innerWidth + 'px';
-      ldE.style.top = (1 - (lq.y * 0.5 + 0.5)) * innerHeight + 'px';
-    } else ldE.style.display = 'none';
-  } else ldE.style.display = 'none';
+    if (lq.z >= 1 || Math.abs(lq.x) > 1 || Math.abs(lq.y) > 1) continue;
+    const el = n === 0 ? ldE : leadRing(n);
+    n++;
+    el.style.display = 'block';
+    el.style.left = (lq.x * 0.5 + 0.5) * innerWidth + 'px';
+    el.style.top = (1 - (lq.y * 0.5 + 0.5)) * innerHeight + 'px';
+  }
+  if (n === 0) ldE.style.display = 'none';
+  for (let k = Math.max(1, n); k < LEADS.length; k++) LEADS[k].style.display = 'none';
+}
+/* the extra lead rings: copies of the first (same look), made as they are needed */
+const LEADS = [ldE];
+function leadRing(k) {
+  while (LEADS.length <= k) {
+    const e = ldE.cloneNode(true);
+    e.removeAttribute('id');
+    ldE.parentNode.appendChild(e);
+    LEADS.push(e);
+  }
+  return LEADS[k];
 }
 

@@ -584,11 +584,11 @@
  {
   "id": "us-freighter",
   "file": "US_freighter",
-  "title": "US freighter (kept for later)",
+  "title": "Liberty ship (US resupply run)",
   "kind": "ship",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.freighter('us'));",
-  "type": "Liberty ship EC2-S-C1, kept for later",
+  "type": "Liberty ship EC2-S-C1 (the supply run between Depot Nimitz and PT Base Halsey)",
   "wl": "0",
   "ref": [
    [
@@ -609,7 +609,8 @@
   ],
   "notes": [
    "Hull below the waterline deepened to the real draught (the top 0.5 m as built).",
-   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece)."
+   "Built from the research (docs/research_1945_bases.md): hull lofted at real size, islands, hatches, masts and 1945 paint (MODELS, the cargo ships piece).",
+   "In service since Kamome 0.17: the Liberty runs between Depot Nimitz and PT Base Halsey with her LCM(3); her Naval Armed Guard mans a 5\"/38 aft, a 3\"/50 forward and four 20 mm (RULES OF ENGAGEMENT)."
   ]
  },
  {
@@ -1734,6 +1735,85 @@
   ],
   "notes": [
    "Steel scow: bow ramp, open well with crates and drums, engine room under the raised after deck, the coxswain standing at the wheel behind his steel shield, the ensign at the stern. The Liberty ship's boat on the resupply run between the US naval base and the US supply depot: it carries the cargo from the anchored ship to the base's middle finger pier and to the depot's pier head."
+  ]
+ },
+ {
+  "id": "driver-us",
+  "file": "US_seated_driver",
+  "title": "US driver, seated (every moving American vehicle)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('driver', 'us', 0, [0.42, 0.11]));",
+  "type": "USAAF / US Navy driver at the wheel, 1945 (MODELS.driven)",
+  "ref": [
+   [
+    "Height",
+    1.3,
+    "seated, about 1.3 m from the seat's floor to the top of the cap"
+   ]
+  ],
+  "notes": [
+   "Each vehicle that moves gets a driver in its seat (SEATS in the crews piece); a parked one has none. The American vehicles drive on the left of the cab."
+  ]
+ },
+ {
+  "id": "driver-ja",
+  "file": "Japanese_seated_driver",
+  "title": "Japanese army driver, seated (every moving Japanese vehicle)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('driver', 'ja', 0, [0.42, 0.11]));",
+  "type": "Japanese army driver, 1945 (khaki-tan, field cap)",
+  "ref": [
+   [
+    "Height",
+    1.3,
+    "seated, about 1.3 m"
+   ]
+  ],
+  "notes": [
+   "The Japanese vehicles drive on the right; at a naval base the driver is a sailor in working blues (MODELS.drivenAs)."
+  ]
+ },
+ {
+  "id": "crew-rig-jn",
+  "file": "Japanese_navy_walker",
+  "title": "Japanese navy hand, jointed walker (CREW_RIG)",
+  "fwd": "+x",
+  "make": "const r = CREW_RIG('jn', 0); for (let i = 0; i < 60; i++) r.step(0.375, 1.4); r.root.traverse((o) => o.updateMatrix()); return r.root;",
+  "type": "IJN working rig, 1945, as he walks (Port Ugaki's and the home port's hands)",
+  "ref": [
+   [
+    "Height",
+    1.7,
+    "about 1.6-1.7 m"
+   ],
+   [
+    "Stride",
+    1.5,
+    "two steps of 0.75 m at 1.4 m/s"
+   ]
+  ],
+  "notes": [
+   "The same jointed rig as the American walkers, in the navy's working rig."
+  ]
+ },
+ {
+  "id": "channel-buoy",
+  "file": "Channel_buoy",
+  "title": "Channel buoy (the dredged channel to Depot Mikawa)",
+  "fwd": "+x",
+  "wl": "0",
+  "kind": "ship",
+  "make": "const { part, cyl } = GX; return __bake([part(cyl(0.9, 1.1, 1.6, 10), 0xb8302a, 0, 0.5, 0), part(cyl(0.12, 0.5, 2.2, 8), 0xb8302a, 0, 2.4, 0)]);",
+  "type": "Can buoy marking a dredged channel (red to port going in, green to starboard)",
+  "ref": [
+   [
+    "Height",
+    3.5,
+    "about 3.5 m above its base, 2.2 m diameter at the waterline"
+   ]
+  ],
+  "notes": [
+   "Every 400 m along both edges of the channel cut through the bank between Port Ugaki and Depot Mikawa's bay."
   ]
  }
 ]

@@ -154,9 +154,9 @@ shared/the-coast-batteries-settings-enable-enemy-shore.js
 shared/the-coast-guns-ballistics-the-same-drag-law-as-the-pce.js
 shared/the-coast-guns-at-work-their-aim-their-shells.js
 shared/end-of-the-coast-batteries.js
-shared/the-naval-bases-call-for-fighters-when-under-fire.js
 shared/every-vehicle-a-target-hit-points-damage-and-sinking.js
 shared/rules-of-engagement-who-fights-who-runs.js
+shared/air-support-both-sides-call-launch-fight-return.js
 shared/aftermath-burning-wrecks-smoke-columns-craters-a.js
 shared/convoy-one-at-a-time-timed.js
 shared/the-mission-coach-box-and-the-mission-clock.js
