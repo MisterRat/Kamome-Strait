@@ -461,7 +461,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div><h2>Gunnery</h2>
 <table class="t2">
 <tr><td>Fire</td><td>Left mouse button, Space or the controller trigger.</td></tr>
-<tr><td>Aiming rings</td><td>Game mode: a ring on each target shows where to lay the sight so the shells meet it; out of the gun's range, only a grey ring on the target itself.</td></tr>
+<tr><td>Aiming rings</td><td>Game mode: a ring on each target shows where to lay the sight so the shells meet it; out of the gun's range there is no aiming ring and the target's own ring turns grey.</td></tr>
 <tr><td>3&Prime;/50 range</td><td>Game mode: the sight-setter ranges the target nearest your sight. Hardcore: you set it (mouse wheel, Page Up / Page Down).</td></tr>
 <tr><td>Reloading</td><td>Guns reload by themselves when empty; R reloads on demand. Changing to a gun finds it loaded.</td></tr>
 <tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-108 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-108 brings &ldquo;check fire&rdquo;.</td></tr>
@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.106';
+const VERSION = '0.107';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -26352,7 +26352,7 @@ function gunRings() {
   g.clearRect(0, 0, W, H);
   if (PT.on)
     for (const t of PT.L)
-      if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t)]);
+      if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t), t.m.children.find((c) => c.userData.ptRing)]);
   for (const e of EN) if (!e.dying && e.p) L.push([e.p, e.v || (e.fwd ? e.fwd.clone().multiplyScalar(e.sp || 0) : zero)]);
   for (const e of RAID.L) if (e.st !== 'down') L.push([e.p, e.v]);
   /* the enemies on the water and ashore within the gun's reach: the warships (the T-14s, the escort: not the civilian ships) and the
@@ -26390,12 +26390,18 @@ function gunRings() {
   g.strokeStyle = 'rgba(255,170,40,0.95)';
   g.font = 'bold ' + Math.round(H * 0.018) + 'px monospace';
   g.textAlign = 'center';
-  for (const [tp, tv, at] of L) {
+  const now = performance.now() / 1000;
+  for (const [tp, tv, at, mark] of L) {
     const dist = tp.distanceTo(cam.position),
       far = dist > effR;
     const out = far || !gunAim(G, tp, tv, q, at);
     if (out) {
-      /* out of range: no sight ring, only a grey ring on the target itself (the user's, 2026-11-21, less clutter) */
+      /* out of range: no sight ring; the target's own ring turns grey (a practice target's marker), or, with no marker, a grey ring
+         on the target itself: one ring only (the user's, 2026-11-21) */
+      if (mark) {
+        mark.userData.outT = now;
+        continue;
+      }
       q.copy(tp);
     } else {
       /* the ring goes where the sight must be laid for the bore to point at the aim point: the sight looks parallel to the bore from the
@@ -26651,11 +26657,7 @@ function ptTowStart() {
   o.w = new THREE.Vector3(-o.u.z, 0, o.u.x);
   scene.add(boat, sl);
   /* the sled's game-mode marker ring */
-  const r = new THREE.Sprite(PT.ring);
-  r.scale.set(0.045, 0.045, 1);
-  r.renderOrder = 5;
-  r.userData.ptRing = true;
-  sl.add(r);
+  sl.add(ptRingSprite());
   const tb = { kind: 'ptboat', p: new THREE.Vector3(), r: 6, m: boat, o, v: new THREE.Vector3() },
     ts = { kind: 'sled', p: new THREE.Vector3(), r: 4.5, m: sl, o, v: new THREE.Vector3(), gun: '20' };
   /* lay her track back along the oval so the sled starts 300 m astern of her, on it */
@@ -26772,26 +26774,35 @@ function ptMesh(kind) {
   const m = new THREE.Mesh(a.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
   m.material.userData.cs = 1;
   if (kind !== 'tug') {
-    /* game mode: a marker ring that stays the same size on screen, so a target can be found at any range */
-    if (!PT.ring) {
+    const r = ptRingSprite();
+    r.position.y = kind === 'raft' ? 4 : 0;
+    m.add(r);
+  }
+  return m;
+}
+/* game mode: a target's marker ring, the same size on screen at any range, so a target can be found; orange, or grey while the
+   manned gun cannot reach it (gunRings: the user's, 2026-11-21, one ring only) */
+function ptRingSprite() {
+  if (!PT.ring) {
+    const mat = (col) => {
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const g = c.getContext('2d');
-      g.strokeStyle = '#ffb030';
+      g.strokeStyle = col;
       g.lineWidth = 5;
       g.beginPath();
       g.arc(32, 32, 26, 0, Math.PI * 2);
       g.stroke();
-      PT.ring = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true });
-    }
-    const r = new THREE.Sprite(PT.ring);
-    r.scale.set(0.045, 0.045, 1);
-    r.position.y = kind === 'raft' ? 4 : 0;
-    r.renderOrder = 5;
-    r.userData.ptRing = true;
-    m.add(r);
+      return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true });
+    };
+    PT.ring = mat('#ffb030');
+    PT.ringOut = mat('#bebebe');
   }
-  return m;
+  const r = new THREE.Sprite(PT.ring);
+  r.scale.set(0.045, 0.045, 1);
+  r.renderOrder = 5;
+  r.userData.ptRing = true;
+  return r;
 }
 function ptToggle() {
   PT.on = !PT.on;
@@ -26860,7 +26871,14 @@ function ptToggle() {
 }
 function ptUpdate(dt) {
   if (!PT.on) return;
-  for (const t of PT.L) if (t.m) t.m.children.forEach((c) => c.userData.ptRing && (c.visible = !FM.use('rings')));
+  const now = performance.now() / 1000;
+  for (const t of PT.L)
+    if (t.m)
+      t.m.children.forEach((c) => {
+        if (!c.userData.ptRing) return;
+        c.visible = !FM.use('rings');
+        c.material = now - (c.userData.outT || -1) < 0.25 ? PT.ringOut : PT.ring; /* grey while the manned gun cannot reach it */
+      });
   const cp = PT.g.geometry.attributes.position.array;
   let n = 0;
   ptTowStep(dt);

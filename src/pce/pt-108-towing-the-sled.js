@@ -12,11 +12,7 @@ function ptTowStart() {
   o.w = new THREE.Vector3(-o.u.z, 0, o.u.x);
   scene.add(boat, sl);
   /* the sled's game-mode marker ring */
-  const r = new THREE.Sprite(PT.ring);
-  r.scale.set(0.045, 0.045, 1);
-  r.renderOrder = 5;
-  r.userData.ptRing = true;
-  sl.add(r);
+  sl.add(ptRingSprite());
   const tb = { kind: 'ptboat', p: new THREE.Vector3(), r: 6, m: boat, o, v: new THREE.Vector3() },
     ts = { kind: 'sled', p: new THREE.Vector3(), r: 4.5, m: sl, o, v: new THREE.Vector3(), gun: '20' };
   /* lay her track back along the oval so the sled starts 300 m astern of her, on it */

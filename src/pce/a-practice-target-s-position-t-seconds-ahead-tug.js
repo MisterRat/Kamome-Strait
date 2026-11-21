@@ -55,7 +55,7 @@ function gunRings() {
   g.clearRect(0, 0, W, H);
   if (PT.on)
     for (const t of PT.L)
-      if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t)]);
+      if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t), t.m.children.find((c) => c.userData.ptRing)]);
   for (const e of EN) if (!e.dying && e.p) L.push([e.p, e.v || (e.fwd ? e.fwd.clone().multiplyScalar(e.sp || 0) : zero)]);
   for (const e of RAID.L) if (e.st !== 'down') L.push([e.p, e.v]);
   /* the enemies on the water and ashore within the gun's reach: the warships (the T-14s, the escort: not the civilian ships) and the
@@ -93,12 +93,18 @@ function gunRings() {
   g.strokeStyle = 'rgba(255,170,40,0.95)';
   g.font = 'bold ' + Math.round(H * 0.018) + 'px monospace';
   g.textAlign = 'center';
-  for (const [tp, tv, at] of L) {
+  const now = performance.now() / 1000;
+  for (const [tp, tv, at, mark] of L) {
     const dist = tp.distanceTo(cam.position),
       far = dist > effR;
     const out = far || !gunAim(G, tp, tv, q, at);
     if (out) {
-      /* out of range: no sight ring, only a grey ring on the target itself (the user's, 2026-11-21, less clutter) */
+      /* out of range: no sight ring; the target's own ring turns grey (a practice target's marker), or, with no marker, a grey ring
+         on the target itself: one ring only (the user's, 2026-11-21) */
+      if (mark) {
+        mark.userData.outT = now;
+        continue;
+      }
       q.copy(tp);
     } else {
       /* the ring goes where the sight must be laid for the bore to point at the aim point: the sight looks parallel to the bore from the

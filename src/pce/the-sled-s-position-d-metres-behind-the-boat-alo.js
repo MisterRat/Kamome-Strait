@@ -92,26 +92,35 @@ function ptMesh(kind) {
   const m = new THREE.Mesh(a.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
   m.material.userData.cs = 1;
   if (kind !== 'tug') {
-    /* game mode: a marker ring that stays the same size on screen, so a target can be found at any range */
-    if (!PT.ring) {
+    const r = ptRingSprite();
+    r.position.y = kind === 'raft' ? 4 : 0;
+    m.add(r);
+  }
+  return m;
+}
+/* game mode: a target's marker ring, the same size on screen at any range, so a target can be found; orange, or grey while the
+   manned gun cannot reach it (gunRings: the user's, 2026-11-21, one ring only) */
+function ptRingSprite() {
+  if (!PT.ring) {
+    const mat = (col) => {
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const g = c.getContext('2d');
-      g.strokeStyle = '#ffb030';
+      g.strokeStyle = col;
       g.lineWidth = 5;
       g.beginPath();
       g.arc(32, 32, 26, 0, Math.PI * 2);
       g.stroke();
-      PT.ring = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true });
-    }
-    const r = new THREE.Sprite(PT.ring);
-    r.scale.set(0.045, 0.045, 1);
-    r.position.y = kind === 'raft' ? 4 : 0;
-    r.renderOrder = 5;
-    r.userData.ptRing = true;
-    m.add(r);
+      return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true });
+    };
+    PT.ring = mat('#ffb030');
+    PT.ringOut = mat('#bebebe');
   }
-  return m;
+  const r = new THREE.Sprite(PT.ring);
+  r.scale.set(0.045, 0.045, 1);
+  r.renderOrder = 5;
+  r.userData.ptRing = true;
+  return r;
 }
 function ptToggle() {
   PT.on = !PT.on;
@@ -180,7 +189,14 @@ function ptToggle() {
 }
 function ptUpdate(dt) {
   if (!PT.on) return;
-  for (const t of PT.L) if (t.m) t.m.children.forEach((c) => c.userData.ptRing && (c.visible = !FM.use('rings')));
+  const now = performance.now() / 1000;
+  for (const t of PT.L)
+    if (t.m)
+      t.m.children.forEach((c) => {
+        if (!c.userData.ptRing) return;
+        c.visible = !FM.use('rings');
+        c.material = now - (c.userData.outT || -1) < 0.25 ? PT.ringOut : PT.ring; /* grey while the manned gun cannot reach it */
+      });
   const cp = PT.g.geometry.attributes.position.array;
   let n = 0;
   ptTowStep(dt);
