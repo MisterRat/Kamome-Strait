@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.95';
+const VERSION = '0.96';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -21807,6 +21807,21 @@ function pauseMenu(v) {
     if (!started) return;
     pmShow(true, 'set');
   } else pmShow(false);
+}
+/* the pause menu's Main Menu: leaves the game for the main menu (the page without a simulator chosen: Kamome Strait's menu, or a
+   game's own start screen). The first press asks for a second, so a stray click does not end a game. */
+{
+  const b = document.createElement('button');
+  b.id = 'pmMain';
+  b.textContent = 'Main Menu';
+  let armed = 0;
+  b.onclick = () => {
+    if (performance.now() - armed < 3000) return void (location.href = location.pathname);
+    armed = performance.now();
+    b.textContent = 'Leave the game? Press again';
+    setTimeout(() => (b.textContent = 'Main Menu'), 3000);
+  };
+  if ($$('pmRestart')) $$('pmRestart').after(b);
 }
 /* controller / keyboard focus inside the Settings tab */
 const pmItems = () =>

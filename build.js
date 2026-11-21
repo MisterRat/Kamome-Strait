@@ -61,6 +61,23 @@ function merge(a, b) {
   }
   return r;
 }
+/* the main menu's cards: each simulator's src/<sim>/menu-card.json (title, kind, line, order) and its picture src/<sim>/menu.jpg */
+function menuCards(id, sims) {
+  const cards = sims
+    .map((s) => {
+      const c = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', s, 'menu-card.json'), 'utf8'));
+      return Object.assign(c, { id: s, img: 'data:image/jpeg;base64,' + fs.readFileSync(path.join(ROOT, 'src', s, 'menu.jpg')).toString('base64') });
+    })
+    .sort((a, b) => (a.order || 99) - (b.order || 99));
+  const v = (fs.readFileSync(path.join(ROOT, 'src', id, 'version-major-minor-the-user-decides-when-the-ma.js'), 'utf8').match(/VERSION = '([^']+)'/) || [])[1];
+  return (
+    "<script>\n/* the main menu's cards (made by build.js from each simulator's menu-card.json and menu.jpg) and the page's version */\nvar KS_MENU = " +
+    JSON.stringify(cards) +
+    ',\n  KS_VERSION = ' +
+    JSON.stringify(v) +
+    ';\n</script>\n'
+  );
+}
 function combined(id, sims) {
   let out = [];
   for (const s of sims) out = merge(out, manifest(s));
@@ -76,7 +93,7 @@ function combined(id, sims) {
         res.push({ text: `<template id="sim-${s}">\n` }, s + '/body.html', {
           text: '</template>\n',
         });
-      res.push(id + '/which-simulator-this-visit-plays.html');
+      res.push({ text: menuCards(id, sims) }, id + '/which-simulator-this-visit-plays.html');
     } else res.push(p);
     if (p === 'shared/sims-every-simulator-plugs-into-the-world-through-one-role.js') res.push(id + '/the-simulator-picked-for-this-visit.js');
   }
@@ -85,7 +102,7 @@ function combined(id, sims) {
     twice = js.filter((p, i) => js.indexOf(p) !== i);
   if (twice.length) throw new Error(`${id}: the simulators' manifests order these shared pieces differently: ${twice.join(', ')}`);
   const end = res.lastIndexOf('shared/script-close.html');
-  res.splice(end, 0, ...((GAMES[id] && GAMES[id].cross) || []), id + '/the-start-screen-s-switch-to-another-simulator.js');
+  res.splice(end, 0, ...((GAMES[id] && GAMES[id].cross) || []), id + '/the-start-screen-s-way-back-to-the-main-menu.js');
   return res;
 }
 

@@ -1,21 +1,91 @@
+<style>
+#ksMain{position:fixed;inset:0;z-index:100;overflow:auto;color:#e9eef5;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  background:radial-gradient(120% 90% at 50% 0%,#1d3550 0%,#0d1a2a 55%,#070d16 100%)}
+#ksMain .bg{position:fixed;inset:0;background-size:cover;background-position:center;opacity:.16;filter:blur(14px) saturate(.8);transform:scale(1.1);transition:background-image .4s}
+#ksMain .wrap{position:relative;max-width:1180px;margin:0 auto;padding:7vh 28px 40px;display:flex;flex-direction:column;align-items:center;min-height:100%;box-sizing:border-box}
+#ksMain h1{margin:0;font-weight:300;font-size:clamp(34px,6.4vw,74px);letter-spacing:.32em;text-indent:.32em;text-align:center;color:#f4f7fb;text-shadow:0 4px 30px rgba(0,0,0,.5)}
+#ksMain .rule{width:min(520px,70vw);height:1px;margin:18px 0 12px;background:linear-gradient(90deg,transparent,#c9a35a,transparent)}
+#ksMain .sub{font-size:clamp(12px,1.5vw,15px);letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;color:#c9a35a}
+#ksMain .pick{margin:6vh 0 18px;font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:#8fa3ba}
+#ksMain .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:26px;width:100%}
+#ksMain .card{display:flex;flex-direction:column;text-align:left;background:rgba(14,26,40,.78);border:1px solid rgba(201,163,90,.22);border-radius:10px;overflow:hidden;
+  cursor:pointer;color:inherit;font:inherit;padding:0;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .18s,box-shadow .18s,border-color .18s;outline:none}
+#ksMain .card:hover,#ksMain .card:focus{transform:translateY(-4px);border-color:#c9a35a;box-shadow:0 16px 44px rgba(0,0,0,.5),0 0 0 1px #c9a35a}
+#ksMain .pic{position:relative;aspect-ratio:16/9;background-size:cover;background-position:center}
+#ksMain .pic::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(14,26,40,.92))}
+#ksMain .kind{position:absolute;left:14px;top:12px;z-index:1;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 9px;border-radius:3px;background:rgba(7,13,22,.7);color:#c9a35a}
+#ksMain .txt{padding:4px 20px 20px}
+#ksMain .ttl{font-size:24px;font-weight:600;letter-spacing:.04em;margin:-6px 0 8px;position:relative;z-index:1}
+#ksMain .line{font-size:14px;line-height:1.5;color:#b5c3d3;min-height:3em}
+#ksMain .play{display:inline-block;margin-top:14px;padding:8px 22px;border:1px solid #c9a35a;border-radius:4px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#f4e3bd}
+#ksMain .card:hover .play,#ksMain .card:focus .play{background:#c9a35a;color:#0d1a2a}
+#ksMain .foot{margin-top:auto;padding-top:6vh;font-size:12px;letter-spacing:.14em;color:#6f8399;text-align:center}
+</style>
 <script>
-/* KAMOME STRAIT: one world, several simulators. Each simulator's page sits above in its own <template id="sim-<id>">
-   (inert: nothing in it runs or takes an id until chosen). This picks one, from ?sim=<id> or the last one played, and puts
-   its page here; every simulator's code then loads below and SIMS.pick = KS_SIM makes the chosen one the one being played.
-   Switching simulators reloads the page (see the start screen's switch), so each visit runs exactly one. A new simulator
-   adds its template, its pieces and its role: nothing here names one. */
+/* KAMOME STRAIT: one world, several simulators. Each simulator's page sits above in its own <template id="sim-<id>"> (inert: nothing
+   in it runs or takes an id until chosen). With ?sim=<id> this puts that simulator's page here; every simulator's code then loads
+   below and SIMS.pick = KS_SIM makes the chosen one the one being played. Without it (a first visit, or the pause menu's Main Menu)
+   the page is the MAIN MENU: the title and a card for each simulator (KS_MENU, made by build.js from each simulator's menu-card.json
+   and menu.jpg), and nothing more loads (window.stop) until one is chosen. The last game is not remembered: the menu comes first.
+   A new simulator adds its template, its pieces, its role and its card: nothing here names one. */
 var KS_SIM = (function () {
   const ok = (id) => id && document.getElementById('sim-' + id);
-  let id = new URLSearchParams(location.search).get('sim');
-  if (!ok(id))
-    try {
-      id = localStorage.getItem('kamome.sim');
-    } catch (e) {
-      id = null;
-    }
-  if (!ok(id)) id = document.querySelector('template[id^="sim-"]').id.slice(4);
-  document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true));
-  document.documentElement.dataset.sim = id;
-  return id;
+  const id = new URLSearchParams(location.search).get('sim');
+  if (ok(id)) {
+    document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true));
+    document.documentElement.dataset.sim = id;
+    return id;
+  }
+  /* the main menu */
+  const go = (s) => (location.search = '?sim=' + s);
+  const m = document.createElement('div');
+  m.id = 'ksMain';
+  m.innerHTML =
+    '<div class="bg"></div><div class="wrap"><h1>KAMOME STRAIT</h1><div class="rule"></div><div class="sub">World War II &middot; the Pacific</div>' +
+    '<div class="pick">Choose your command</div><div class="grid"></div><div class="foot">KAMOME STRAIT &middot; VERSION ' + KS_VERSION + '</div></div>';
+  const grid = m.querySelector('.grid'),
+    bg = m.querySelector('.bg');
+  for (const c of KS_MENU) {
+    const b = document.createElement('button');
+    b.className = 'card';
+    b.innerHTML = '<div class="pic"><span class="kind"></span></div><div class="txt"><div class="ttl"></div><div class="line"></div><span class="play">Play</span></div>';
+    b.querySelector('.pic').style.backgroundImage = 'url(' + c.img + ')';
+    b.querySelector('.kind').textContent = c.kind;
+    b.querySelector('.ttl').textContent = c.title;
+    b.querySelector('.line').textContent = c.line;
+    b.onclick = () => go(c.id);
+    b.onfocus = b.onmouseenter = () => (bg.style.backgroundImage = 'url(' + c.img + ')');
+    grid.appendChild(b);
+  }
+  bg.style.backgroundImage = 'url(' + KS_MENU[0].img + ')';
+  document.currentScript.replaceWith(m);
+  document.title = 'Kamome Strait';
+  const cards = [...grid.children];
+  cards[0].focus();
+  /* the keys and a controller: left / right (or up / down) between the cards, Enter or A to play */
+  const move = (d) => {
+    const i = cards.indexOf(document.activeElement);
+    cards[(Math.max(0, i) + d + cards.length) % cards.length].focus();
+  };
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(1), e.preventDefault();
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(-1), e.preventDefault();
+  });
+  let held = true;
+  const pad = () => {
+    const g = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find((x) => x);
+    if (g) {
+      const ax = g.axes[0] || 0,
+        b = (i) => g.buttons[i] && g.buttons[i].pressed,
+        dir = b(15) || b(13) || ax > 0.6 ? 1 : b(14) || b(12) || ax < -0.6 ? -1 : 0;
+      if (!held && dir) move(dir);
+      if (!held && b(0) && document.activeElement.classList.contains('card')) document.activeElement.click();
+      held = !!(dir || b(0));
+    } else held = false;
+    requestAnimationFrame(pad);
+  };
+  requestAnimationFrame(pad);
+  window.stop() /* the menu is the page: the simulators load when one is chosen */;
+  return null;
 })();
 </script>

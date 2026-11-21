@@ -88,3 +88,18 @@ function pauseMenu(v) {
     pmShow(true, 'set');
   } else pmShow(false);
 }
+/* the pause menu's Main Menu: leaves the game for the main menu (the page without a simulator chosen: Kamome Strait's menu, or a
+   game's own start screen). The first press asks for a second, so a stray click does not end a game. */
+{
+  const b = document.createElement('button');
+  b.id = 'pmMain';
+  b.textContent = 'Main Menu';
+  let armed = 0;
+  b.onclick = () => {
+    if (performance.now() - armed < 3000) return void (location.href = location.pathname);
+    armed = performance.now();
+    b.textContent = 'Leave the game? Press again';
+    setTimeout(() => (b.textContent = 'Main Menu'), 3000);
+  };
+  if ($$('pmRestart')) $$('pmRestart').after(b);
+}

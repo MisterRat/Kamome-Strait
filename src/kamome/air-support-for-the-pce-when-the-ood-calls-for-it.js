@@ -116,7 +116,11 @@ const CAP = (() => {
     /* a new raid on the radar: Comms reports it, the OOD decides */
     if (seen && !S.raid) {
       S.raid = true;
-      RADIO.add('RADAR', 'BRIDGE, COMMS: RADAR CONTACT, ENEMY AIRCRAFT BEARING ' + brg(seen.p) + ', ' + (seen.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES, CLOSING.', { own: true });
+      RADIO.add(
+        'RADAR',
+        'BRIDGE, COMMS: RADAR CONTACT, ENEMY AIRCRAFT BEARING ' + brg(seen.p) + ', ' + (seen.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES, CLOSING.',
+        { own: true },
+      );
       if (S.st === 'none') decide();
     }
     if (!R0.length) S.raid = false;
