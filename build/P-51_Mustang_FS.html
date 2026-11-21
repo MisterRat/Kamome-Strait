@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.71';
+const VERSION = '5.72';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -20673,8 +20673,11 @@ const SITES = [],
   /* T-14 weapons. The 25 mm single is an AA.gun entry (it fires under the Ground Fire option, at the aircraft or at the ship, as the
      escort's twin mounts do). The torpedoes: with Ground Fire on and the player's ship (PCE-842) within 3 km, a boat leaves her patrol,
      runs in at 30 knots on a collision course, drops both fish at about 1,200 m (side-drop cradles: she aims the boat), turns away,
-     and rejoins her track; she re-arms 5 minutes later. A Type 91 runs at 42 knots for 2,000 m just under the surface, its wake showing.
+     and rejoins her track; she reloads at her base (the start of her track) from its stock (T14MAG). A Type 91 runs at 42 knots for 2,000 m just under the surface, its wake showing.
      A hit on the hull is counted, like the shells, until battle damage comes. */
+  /* T14MAG: the torpedoes each group's base holds for reloads (three reloads for its two boats); a boat that has fired goes back for
+     two more while there are any, then patrols on with her 25 mm only */
+  const T14MAG = 6;
   const T14W = (SITE.t14w = { hits: 0, msgT: 0, fired: 0 }),
     TSP = 21.6,
     TRUN = 2000;
@@ -20691,6 +20694,14 @@ const SITES = [],
     T14W.fired++;
     (T14W.log || (T14W.log = [])).push([Math.round(x), Math.round(z), +yw.toFixed(3), Math.round(pos.x), Math.round(pos.z)]) > 20 && T14W.log.shift(); /* for the tests */
     if (T14W.msgT <= 0 && Math.hypot(pos.x - x, pos.z - z) < 3000) note('TORPEDO WAKES!'), (T14W.msgT = 10);
+  };
+  /* the skipper's estimate of the ship's course and speed, by eye from a low, fast boat: off by about 10 degrees and 24 per cent (one
+     standard deviation, times the difficulty's spread); calibrated so that about one attack in four hits a ship holding her course
+     and speed (fewer if she turns: he aims at where she was going). WWII torpedo-boat attacks seldom hit; this keeps them a threat. */
+  const t14Guess = () => {
+    const g = () => (Math.random() + Math.random() + Math.random() - 1.5) / 0.5,
+      k = 0.6 + DIFF.spread * 8;
+    return { eC: g() * 0.17 * k, eS: g() * 0.24 * k };
   };
   const t14Torps = (RUN, dt) => {
     for (let i = RUN.length - 1; i >= 0; i--) {
@@ -20728,7 +20739,8 @@ const SITES = [],
       GB = geo(GP.bar),
       FISH = [null, geo(T14.torp(-T14.TZ)), geo([...T14.torp(-T14.TZ), ...T14.torp(T14.TZ)])] /* by fish aboard: none, the port one, both */,
       RUN = [] /* this group's torpedoes running */;
-    (T14W.groups || (T14W.groups = [])).push({ B, RUN });
+    const G = { B, RUN, mag: T14MAG, mag0: T14MAG } /* mag: the torpedoes left at the group's base for reloads */;
+    (T14W.groups || (T14W.groups = [])).push(G);
     FR = F;
     for (let i = 0; i < n; i++) {
       const e = target(MODELS.get('jp-t14', i % 2, undefined, true), 'ship', 30, 15 * 0.3, u0, d0, F.ryS),
@@ -20790,7 +20802,7 @@ const SITES = [],
       if (COLL.intrudes(b.bd, nx, nz, b.yw)) b.v = 0; /* she holds rather than go into another hull */
       else (b.x = nx), (b.z = nz);
     };
-    return (dt) => {
+    return (G.upd = (dt) => {
       const hot = t14Hot();
       T14W.msgT = Math.max(0, T14W.msgT - dt / 3);
       for (const b of B) {
@@ -20813,11 +20825,11 @@ const SITES = [],
           yw = yt + b.bd.dyaw;
           v = sp * Math.abs(b.bd.slow);
           if (COLL.intrudes(b.bd, x, z, yw)) (b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0); /* she holds */
-          b.rearm = Math.max(0, b.rearm - dt);
-          if (b.rearm <= 0 && b.fish.n < 2) b.fish.set(2); /* back from the base with fresh fish */
+          /* fired: back to the base for two more, while it has them (the start of her track, in deep water) */
+          if (b.fish.n < 2 && G.mag >= 2) Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v });
           const R = Math.hypot(pos.x - x, pos.z - z);
           if (hot && b.fish.n === 2 && R < 3000 && R > 1400 && HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4)
-            Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, aimE: ((Math.random() + Math.random() - 1) * 0.02 * (0.6 + DIFF.spread * 8)) / 1.4 });
+            Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, ...t14Guess() });
         } else {
           b.mt += dt;
           const dx = pos.x - b.x,
@@ -20825,13 +20837,17 @@ const SITES = [],
             R = Math.hypot(dx, dz);
           if (b.mode === 'run') {
             /* a collision course: where the ship will be when a fish fired now would meet her (|d + v t| = fish speed x t) */
-            const qa = vel.x * vel.x + vel.z * vel.z - TSP * TSP,
-              qb = 2 * (dx * vel.x + dz * vel.z),
+            const ce = Math.cos(b.eC),
+              se = Math.sin(b.eC),
+              vx = (vel.x * ce - vel.z * se) * (1 + b.eS) /* what her skipper makes of the ship's course and speed */,
+              vz = (vel.x * se + vel.z * ce) * (1 + b.eS),
+              qa = vx * vx + vz * vz - TSP * TSP,
+              qb = 2 * (dx * vx + dz * vz),
               qd = Math.max(0, qb * qb - 4 * qa * R * R),
               tt = (-qb - Math.sqrt(qd)) / (2 * qa),
-              lx = dx + vel.x * tt,
-              lz = dz + vel.z * tt,
-              hw = Math.atan2(-lz, lx) + b.aimE /* the skipper's error in the ship's speed and course */;
+              lx = dx + vx * tt,
+              lz = dz + vz * tt,
+              hw = Math.atan2(-lz, lx);
             freeMove(b, hw, 15.4, dt);
             if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin' /* no shot, or too close in: she gives it up */;
             else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
@@ -20840,9 +20856,17 @@ const SITES = [],
               b.fish.set(1);
               b.f2 = 1;
               b.fy = b.yw /* the course both fish are aimed on: she holds it until the second is away */;
-              b.rearm = 300;
               Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2) });
             }
+          } else if (b.mode === 'reload') {
+            /* to the base, then two minutes lying there while the torpedoes are swung aboard */
+            const [rx, rz] = trackXZ(b, 0),
+              rd = Math.hypot(rx - b.x, rz - b.z);
+            if (rd > 25) freeMove(b, Math.atan2(-(rz - b.z), rx - b.x), rd > 200 ? 15.4 : 4, dt);
+            else if ((b.rt += dt) > 120 || G.mag < 2) {
+              if (G.mag >= 2) (G.mag -= 2), b.fish.set(2);
+              b.mode = 'rejoin';
+            } else freeMove(b, b.yw, 0, dt);
           } else if (b.mode === 'away') {
             if (b.f2 > 0 && (b.f2 -= dt) <= 0) t14Fish(RUN, b.x, b.z, b.fy - 0.012), b.fish.set(0); /* the second fish a second later */
             freeMove(b, b.f2 > 0 ? b.fy : b.aw, 15.4, dt);
@@ -20882,7 +20906,7 @@ const SITES = [],
         if (typeof OCEAN !== 'undefined') OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
       }
       t14Torps(RUN, dt);
-    };
+    }) /* G.upd: the group each frame (the tests step it too) */;
   };
   /* is a racetrack (and m metres round it) water deeper than dmin? (h: the seabed function of that map) */
   const deepOK = (F, u0, u1, d0, R, m, dmin, h) => {
@@ -26082,6 +26106,7 @@ function reset() {
   } catch (e) {}
   for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
   SIMS.cur.resetBegin() /* its own weapons and systems */;
+  if (SITE.t14w) for (const g of SITE.t14w.groups || []) (g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2)); /* the torpedo boats' bases restocked, their tubes full */
   killed = 0;
   paused = false;
   invT = 0;
