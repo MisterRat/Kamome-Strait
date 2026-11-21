@@ -120,10 +120,12 @@ function updAA(dt) {
     const dead = g.t.dead || (g.site && trn.mode !== 'free');
     if (g.site) g.grp.visible = trn.mode === 'free';
     let can = false,
-      R = 1e9;
-    const dx = pos.x - g.piv.x,
+      R = 1e9,
+      dx = pos.x - g.piv.x,
       dy = AA.aimY() - g.piv.y /* the point they lay on: the aircraft, or the ship's hull */,
-      dz = pos.z - g.piv.z;
+      dz = pos.z - g.piv.z,
+      tv = vel;
+    g.tg = null;
     if (!dead) {
       R = Math.hypot(dx, dy, dz);
       if ((g.ct = (g.ct || 0) - dt) <= 0) {
@@ -135,7 +137,21 @@ function updAA(dt) {
       /* and they need a clear line to the target past the hills (checked once a second) */
       if ((g.lt = (g.lt || 0) - dt) <= 0) (g.lt = 1), (g.los = aaSees(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)));
       can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2;
-      g.v.lerp(vel, Math.min(1, 1.3 * dt));
+      /* targets of opportunity (RULES OF ENGAGEMENT): not on the player, the nearest Allied unit it can see in range (an escort P-51, a
+         fleet PCE or PT boat, the Liberty) */
+      if (!can && hot && typeof ROE !== 'undefined') {
+        const u = ROE.pickAlly(g.piv, Math.min(2200, sight));
+        if (u) {
+          dx = u.p.x - g.piv.x;
+          dy = u.p.y + (u.air ? 0 : 3) - g.piv.y;
+          dz = u.p.z - g.piv.z;
+          R = Math.hypot(dx, dy, dz);
+          tv = u.v;
+          g.tg = u;
+          can = true;
+        }
+      }
+      g.v.lerp(tv, Math.min(1, 1.3 * dt));
       const tt = R / 840,
         ax = dx + g.v.x * tt * 0.9,
         ay = dy + g.v.y * tt * 0.9 + 4.9 * tt * tt,
@@ -179,7 +195,7 @@ function updAA(dt) {
             sg = g.bias,
             d = _aaF.clone().addScaledVector(_aaR, gz() * s + sg.x * 0.012).addScaledVector(_aaU, gz() * s + sg.y * 0.012).normalize(),
             mp = g.piv.clone().addScaledVector(_aaF, 3.3).addScaledVector(_aaR, g.side * 0.2);
-          if (AA.bl.length < 190) AA.bl.push({ p: mp, v: d.multiplyScalar(870), t: 0, tr: g.nr++ % 4 === 0 /* one round in four is a tracer */ });
+          if (AA.bl.length < 190) AA.bl.push({ p: mp, v: d.multiplyScalar(870), t: 0, tr: g.nr++ % 4 === 0 /* one round in four is a tracer */, tg: g.tg });
           fxAdd(mp, 0xffd890, 1.3, 3.8, 0.07, 0, true);
           g.rec = 1;
         }
@@ -187,7 +203,7 @@ function updAA(dt) {
           g.rl = 6;
           g.bias.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 0); /* each fresh magazine: the crew's estimate of speed and range is a little off */
         }
-        if (AA.fT <= 0 && R < 3000) {
+        if (AA.fT <= 0 && R < 3000 && !g.tg) {
           note('GROUND FIRE!');
           AA.fT = 14;
         }
@@ -209,7 +225,7 @@ function updAA(dt) {
     b.v.y -= 9.8 * dt;
     b.p.addScaledVector(b.v, dt);
     let dead = b.t > 3.6 || b.p.y < H(b.p.x, b.p.z);
-    if (!dead && hot && AA.hit(a, b.p)) dead = true; /* the target's own test: the aircraft, or the ship (see AA.hit) */
+    if (!dead && hot && (b.tg ? ROE.hitAlly(b.tg, a, b.p) : AA.hit(a, b.p))) dead = true; /* the target's own test: the aircraft, or the ship (see AA.hit); an Allied unit's (ROE) */
     if (dead && b.t > 3.5 && Math.random() < 0.3) fxAdd(b.p, 0x555555, 2, 7, 1.2, 0, false);
     if (dead) AA.bl.splice(i, 1);
   }

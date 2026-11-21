@@ -1000,8 +1000,21 @@ const SITES = [],
             ((b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0)); /* she holds */
           /* fired: back to the base for two more, while it has them (the start of her track, in deep water) */
           if (b.fish.n < 2 && G.mag >= 2) Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v });
+          /* RULES OF ENGAGEMENT: damaged past 40% she retires to her base and stays there; after a torpedo run she withdraws (no
+             second run for ten minutes); she attacks only while her side is at least half as strong as ours near her */
+          b.cool = Math.max(0, (b.cool || 0) - dt);
+          if (b.e.hp0 && b.e.hp < 0.6 * b.e.hp0 && !b.hurt) ((b.hurt = true), Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v }));
           const R = Math.hypot(pos.x - x, pos.z - z);
-          if (hot && b.fish.n === 2 && R < 3000 && R > 1400 && HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4)
+          if (
+            hot &&
+            b.fish.n === 2 &&
+            !b.cool &&
+            !b.hurt &&
+            R < 3000 &&
+            R > 1400 &&
+            HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4 &&
+            (typeof ROE === 'undefined' || ROE.ratio('jp', b.e.c) >= 0.5)
+          )
             Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, ...t14Guess() });
         } else {
           b.mt += dt;
@@ -1022,20 +1035,21 @@ const SITES = [],
               lz = dz + vz * tt,
               hw = Math.atan2(-lz, lx);
             freeMove(b, hw, 15.4, dt);
-            if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
+            if (!hot || b.mt > 240 || R > 4500 || R < 500 || b.e.hp < 0.6 * b.e.hp0) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
             else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
               /* both fish over the side, one a second after the other, then hard over away from her */
               t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012); /* the two spread a little, to bracket her */
               b.fish.set(1);
               b.f2 = 1;
               b.fy = b.yw; /* the course both fish are aimed on: she holds it until the second is away */
-              Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2) });
+              Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2), cool: 600 });
             }
           } else if (b.mode === 'reload') {
             /* to the base, then two minutes lying there while the torpedoes are swung aboard */
             const [rx, rz] = trackXZ(b, 0),
               rd = Math.hypot(rx - b.x, rz - b.z);
             if (rd > 25) freeMove(b, Math.atan2(-(rz - b.z), rx - b.x), rd > 200 ? 15.4 : 4, dt);
+            else if (b.hurt) freeMove(b, b.yw, 0, dt); /* damaged: she stays at her base */
             else if ((b.rt += dt) > 120 || G.mag < 2) {
               if (G.mag >= 2) ((G.mag -= 2), b.fish.set(2));
               b.mode = 'rejoin';
@@ -1618,7 +1632,27 @@ const SITES = [],
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
-      if (!e.dead) {
+      /* RULES OF ENGAGEMENT: damaged past 40% she breaks off her patrol for her station's harbour (300 m off its shore point) and lies there */
+      if (!e.dead && !P.ret && e.hp0 && e.hp < 0.6 * e.hp0) P.ret = { x: m.position.x, z: m.position.z, yw: m.rotation.y };
+      if (!e.dead && P.ret) {
+        const r = P.ret,
+          [hx, hz] = F.w(0, 300),
+          dx = hx - r.x,
+          dz = hz - r.z,
+          dd = Math.hypot(dx, dz),
+          sp = dd > 30 ? Math.min(6, dd / 20) : 0;
+        if (sp) {
+          const dy = Math.atan2(Math.sin(Math.atan2(-dz, dx) - r.yw), Math.cos(Math.atan2(-dz, dx) - r.yw));
+          r.yw += Math.max(-0.05 * dt, Math.min(0.05 * dt, dy));
+          r.x += Math.cos(r.yw) * sp * dt;
+          r.z -= Math.sin(r.yw) * sp * dt;
+        }
+        const rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8));
+        Object.assign(bd, { x: r.x, z: r.z, yaw: r.yw, v: sp });
+        RIDE.step(rd, r.x, r.z, Math.cos(r.yw), -Math.sin(r.yw), dt, 0);
+        m.position.set(r.x, y0 + rd.hv, r.z);
+        m.rotation.set(rd.ro, r.yw, rd.pi, 'YXZ');
+      } else if (!e.dead) {
         const s0 = s,
           o0 = bd.off;
         COLL.steer(bd, dt, 600);
@@ -1980,6 +2014,26 @@ const SITES = [],
     const past = (k) => (was <= tt ? was < k && tt >= k : was < k || tt >= k);
     if (c.onA && past(kA)) c.onA();
     if (c.onB && past(kB)) c.onB();
+  };
+  /* RULES OF ENGAGEMENT: a merchant ship runs from any attack: under way when hit (or, an American one, fired on), she turns back for
+     the port she left (her place on the other leg of her run); not again for two minutes */
+  const civFlee = (c, t) => {
+    const hp = c.t ? c.t.hp : 0,
+      hit = c.t ? !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen : c.underFire && c.underFire > (c.fledAt || 0);
+    if (c.t) c.hpSeen = hp;
+    if (!hit || t - (c.fledT || -1e9) < 120) return;
+    c.fledAt = performance.now();
+    const cyc = 2 * (c.L / c.v + c.dock),
+      tt = (((t + c.phase) % cyc) + cyc) % cyc,
+      run = c.L / c.v;
+    let t2 = null;
+    if (tt >= c.dock && tt < c.dock + run) t2 = 2 * c.dock + run + (c.L - (tt - c.dock) * c.v) / c.v; /* outbound: back to the first port */
+    else if (tt >= 2 * c.dock + run) t2 = c.dock + (c.L - (tt - 2 * c.dock - run) * c.v) / c.v; /* homeward: back to the second */
+    if (t2 === null) return; /* at anchor: she stays */
+    c.phase += t2 - tt;
+    c.fledT = t;
+    c.ctt = undefined; /* her cargo check starts afresh (the jump in her timetable is not a call at a jetty) */
+    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t ? 'THE FREIGHTER TURNS BACK' : 'THE LIBERTY SHIP TURNS BACK');
   };
   const updCiv = (c, t, dt) => {
     if (c.t && c.t.dead) {
@@ -2640,6 +2694,7 @@ const SITES = [],
       const t = performance.now() / 1000;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
       for (const c of CIV) {
+        civFlee(c, t);
         if (c.vis) updCiv(c, t, dt);
         civCargo(c, t);
       }

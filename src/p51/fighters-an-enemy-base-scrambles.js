@@ -4,7 +4,7 @@ SIMS.add({
   id: 'p51',
   scramble: (p) => {
     if (!started || crashed) return;
-    for (let k = 0; k < 2; k++) banditAt(p.clone().add(new THREE.Vector3(k * 60, k * 30, k * 40)));
+    for (let k = 0; k < 2; k++) banditAt(p.clone().add(new THREE.Vector3(k * 60, k * 30, k * 40))).scr = true; /* defending its base: it fights on until damaged */
     note('BANDITS - FRANKS UP FROM AIRBASE KAKUTA');
     SND.beep(880, 0.15);
   },

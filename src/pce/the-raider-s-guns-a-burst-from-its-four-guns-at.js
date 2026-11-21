@@ -58,6 +58,15 @@ function raidUpdate(dt) {
     const e = RAID.L[i];
     e.t += dt;
     e.b.prop.rotation.z += dt * 70;
+    /* RULES OF ENGAGEMENT, once a second: hit, or outgunned (under half the strength against it within 5 km), it breaks off for home;
+       fighters scrambled to defend a base (e.scr) fight on until hit */
+    if ((e.roeT = (e.roeT || 0) + dt) > 1 && e.st !== 'down' && e.st !== 'home') {
+      e.roeT = 0;
+      if (e.dmg > 0 || (!e.scr && typeof ROE !== 'undefined' && ROE.ratio('jp', e.p) < 0.5)) {
+        e.st = 'home';
+        if (!RAID.brkT || performance.now() - RAID.brkT > 20000) (RAID.brkT = performance.now()), RADIO.add('LOOKOUT', 'BANDITS BREAKING OFF!');
+      }
+    }
     if (e.st === 'down') {
       /* shot down: burning, falling into the sea */
       e.v.y -= 9.81 * dt;

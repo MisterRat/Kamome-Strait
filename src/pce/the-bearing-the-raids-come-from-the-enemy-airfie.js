@@ -29,6 +29,7 @@ function raidSpawn(from) {
     scene.add(b.g);
     const e = { b, p, v: d.clone().multiplyScalar(-RAIDV.CRU), st: 'in', hp: 1, dmg: 0, runs: 0, t: 0, fire: 0, ft: 0, bank: 0, lag: k * 7, k };
     e.fwd = e.v.clone().normalize();
+    e.scr = !!from; /* scrambled to defend a base: it fights on until hit (RULES OF ENGAGEMENT) */
     RAID.L.push(e);
   }
   RADIO.add('LOOKOUT', 'TWO BOGIES BEARING ' + raidBrg(RAID.L[RAID.L.length - 1].p) + ', ANGELS FIVE, CLOSING. SINGLE ENGINE, LOOK LIKE FRANKS.');

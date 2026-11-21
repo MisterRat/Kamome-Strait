@@ -1,4 +1,4 @@
-/* CROSSOVER: air support for the PCE-842 (Kamome Strait page only: it needs both simulators). She has no standing air cover. When
+/* air support for the PCE-842 (the P-51s are the shared display form, P51DISP, so every page that has her has it). She has no standing air cover. When
    the radar picks up enemy planes (a live raider inside DETECT), Comms reports them to the bridge; the OOD decides whether he wants
    air support. The OOD is the AI's for now (the player's OOD is on hold, like the other stations nobody mans): he asks for it. Comms radios Kamome Control, which scrambles two P-51s from Fletcher Field (the P-51's
    display form, P51DISP): they take off a minute later, fly out, go after the raiders and can shoot them down (their kills, not the
@@ -42,6 +42,11 @@ const CAP = (() => {
           bank: 0,
           tgt: null,
           aim: 0,
+          hp: 1 /* RULES OF ENGAGEMENT: home alone at half, down at none */,
+          ammo: 8 /* attacks (bursts) before he is out of ammunition */,
+          home: false,
+          down: false,
+          rt: Math.random(),
         };
       scene.add(f.g);
       L.push(f);
@@ -66,8 +71,29 @@ const CAP = (() => {
     f.g.quaternion.setFromRotationMatrix(M);
   };
   const fly = (f, dt, R0) => {
+    if (f.down) {
+      /* shot down: he falls into the sea */
+      f.v.y -= 9.8 * dt;
+      f.p.addScaledVector(f.v, dt);
+      f.bank += dt * 2;
+      pose(f);
+      if (f.p.y < SEA.Y) {
+        if (typeof fxAdd === 'function') fxAdd(f.p, 0xdddddd, 6, 20, 1.5, 3, false);
+        scene.remove(f.g);
+        f.gone = true;
+      }
+      return;
+    }
     f.prop.rotation.z += dt * 60;
-    if (S.st === 'home') {
+    /* RULES OF ENGAGEMENT, once a second: outgunned (under half the enemy's strength near him), he breaks off for home */
+    if ((f.rt += dt) > 1) {
+      f.rt = 0;
+      if (!f.home && S.st === 'out' && typeof ROE !== 'undefined' && ROE.ratio('us', f.p) < 0.5) {
+        f.home = true;
+        RADIO.add('PONY FLIGHT', 'TOO MANY OF THEM. PONY ' + (L.indexOf(f) + 1) + ' BREAKING OFF.');
+      }
+    }
+    if (S.st === 'home' || f.home) {
       tgt.copy(FIELD).setY(SEA.Y + 300);
       steer(f, w.copy(tgt).sub(f.p).normalize(), V_GO, dt);
     } else {
@@ -83,6 +109,10 @@ const CAP = (() => {
           f.aim += dt;
           if (f.aim >= 1) {
             f.aim = 0;
+            if (--f.ammo <= 0) {
+              f.home = true;
+              RADIO.add('PONY FLIGHT', 'PONY ' + (L.indexOf(f) + 1) + ', WINCHESTER. OUT OF AMMUNITION, RETURNING TO BASE.');
+            }
             if (Math.random() < 0.3) {
               e.st = 'down';
               e.sm = 0;
@@ -148,13 +178,23 @@ const CAP = (() => {
     }
     if (S.st === 'out') {
       S.clear = R0.length ? 0 : S.clear + dt;
-      if (S.clear > CLEAR && L.every((f) => f.p.distanceTo(pos) < R * 3)) {
+      if (S.clear > CLEAR && L.every((f) => f.gone || f.home || f.p.distanceTo(pos) < R * 3)) {
         S.st = 'home';
         RADIO.add('PONY FLIGHT', 'PCE 842, PONY FLIGHT. NO MORE BANDITS IN SIGHT. RETURNING TO BASE.');
       }
     }
-    if (S.st === 'out' || S.st === 'home') for (const f of L) fly(f, dt, R0);
-    if (S.st === 'home' && L.every((f) => f.p.distanceTo(tgt.copy(FIELD).setY(f.p.y)) < 600)) {
+    if (S.st === 'out' || S.st === 'home') for (const f of L) if (!f.gone) fly(f, dt, R0);
+    /* one sent home on his own lands out of sight */
+    for (const f of L)
+      if (f.home && !f.gone && !f.down && f.p.distanceTo(tgt.copy(FIELD).setY(f.p.y)) < 600) {
+        scene.remove(f.g);
+        f.gone = true;
+      }
+    if (L.length && L.every((f) => f.gone)) {
+      L.length = 0;
+      Object.assign(S, { st: 'none', sent: false, ack: false });
+    }
+    if (S.st === 'home' && L.every((f) => f.gone || f.p.distanceTo(tgt.copy(FIELD).setY(f.p.y)) < 600)) {
       /* home: they land out of sight */
       for (const f of L) scene.remove(f.g);
       L.length = 0;
@@ -177,5 +217,19 @@ const CAP = (() => {
     Object.assign(S, { st: 'called', t: 0, who, sent: false, ack: false });
     note(who + ': REQUESTING AIR SUPPORT');
   };
-  return { L, S, call };
+  /* a hit on one of them (the Japanese guns, ROE.hitAlly): home alone at half, down at none */
+  const hurt = (f) => {
+    if (f.down) return;
+    f.hp -= 0.25;
+    if (f.hp <= 0) {
+      f.down = true;
+      f.home = true;
+      note('A P-51 IS SHOT DOWN');
+      RADIO.add('PONY FLIGHT', 'PONY ' + (L.indexOf(f) + 1) + ' IS HIT, GOING IN!');
+    } else if (f.hp <= 0.5 && !f.home) {
+      f.home = true;
+      RADIO.add('PONY FLIGHT', 'PONY ' + (L.indexOf(f) + 1) + ' HIT, RETURNING TO BASE.');
+    }
+  };
+  return { L, S, call, hurt };
 })();

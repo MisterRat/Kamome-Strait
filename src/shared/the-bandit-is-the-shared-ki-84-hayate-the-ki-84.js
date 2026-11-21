@@ -61,7 +61,7 @@ function spawnEnemy() {
     c.y = Math.max(pos.y + (Math.random() - 0.5) * 300, H(c.x, c.z) + 200);
     if (c.y - pos.y < 350 || k == 9) p = c;
   }
-  banditAt(p);
+  banditAt(p).duel = true; /* the one the player calls up: a duel (it breaks off only when damaged, RULES OF ENGAGEMENT) */
   note('BANDIT!');
   SND.beep(880, 0.15);
 }
@@ -73,6 +73,7 @@ function banditAt(p) {
     fwd: pos.clone().sub(p).normalize(),
     sp: Math.max(60, 125 * DIFF.f),
     hp: DIFF.hp,
+    hp0: DIFF.hp /* RULES OF ENGAGEMENT: it breaks off when damaged past half */,
     dying: false,
     t: 0,
     ev: 0,

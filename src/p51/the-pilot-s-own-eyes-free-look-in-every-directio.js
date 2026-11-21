@@ -107,6 +107,29 @@ function updEnemies(dt) {
           d.normalize();
         }
       }
+      /* RULES OF ENGAGEMENT, once a second: damaged past half, or (a fighter scrambled to defend a base fights on until damaged)
+         outgunned under half the strength against it within 5 km, the bandit breaks off for the nearest Japanese airbase, climbing;
+         far enough off it is gone */
+      if (e.hp0 && (e.roeT = (e.roeT || 0) + dt) > 1) {
+        e.roeT = 0;
+        if (!e.run && (e.hp < 0.5 * e.hp0 || (!e.scr && !e.duel && typeof ROE !== 'undefined' && ROE.ratio('jp', e.p) < 0.5))) {
+          e.run = true;
+          const A = FS.list.filter((s) => s.kind === 'air');
+          e.home = A.length ? A.reduce((a, b) => (Math.hypot(b.O.x - e.p.x, b.O.z - e.p.z) < Math.hypot(a.O.x - e.p.x, a.O.z - e.p.z) ? b : a)).O : { x: e.p.x, z: e.p.z - 20000 };
+          note('BANDIT BREAKING OFF');
+        }
+      }
+      if (e.run) {
+        d = new V(e.home.x - e.p.x, 0, e.home.z - e.p.z).normalize();
+        d.y = 0.12;
+        d.normalize();
+        if (dist > 7000) {
+          scene.remove(e.g);
+          EN.splice(i, 1);
+          note('THE BANDIT GOT AWAY');
+          continue;
+        }
+      }
       let avoid = false,
         tmax = H(e.p.x, e.p.z);
       for (const L of [300, 600, 1000, 1500, 2200]) {
@@ -220,6 +243,7 @@ function updEnemies(dt) {
         e.fwd.dot(dir) > DIFF.cone &&
         e.bt % 3 < DIFF.burst &&
         e.fireT <= 0 &&
+        !e.run &&
         !crashed
       ) {
         e.fireT = 0.07;

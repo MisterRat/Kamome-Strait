@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.78';
+const VERSION = '5.79';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -969,7 +969,7 @@ SIMS.add({
   id: 'p51',
   scramble: (p) => {
     if (!started || crashed) return;
-    for (let k = 0; k < 2; k++) banditAt(p.clone().add(new THREE.Vector3(k * 60, k * 30, k * 40)));
+    for (let k = 0; k < 2; k++) banditAt(p.clone().add(new THREE.Vector3(k * 60, k * 30, k * 40))).scr = true; /* defending its base: it fights on until damaged */
     note('BANDITS - FRANKS UP FROM AIRBASE KAKUTA');
     SND.beep(880, 0.15);
   },
@@ -15679,7 +15679,7 @@ function spawnEnemy() {
     c.y = Math.max(pos.y + (Math.random() - 0.5) * 300, H(c.x, c.z) + 200);
     if (c.y - pos.y < 350 || k == 9) p = c;
   }
-  banditAt(p);
+  banditAt(p).duel = true; /* the one the player calls up: a duel (it breaks off only when damaged, RULES OF ENGAGEMENT) */
   note('BANDIT!');
   SND.beep(880, 0.15);
 }
@@ -15691,6 +15691,7 @@ function banditAt(p) {
     fwd: pos.clone().sub(p).normalize(),
     sp: Math.max(60, 125 * DIFF.f),
     hp: DIFF.hp,
+    hp0: DIFF.hp /* RULES OF ENGAGEMENT: it breaks off when damaged past half */,
     dying: false,
     t: 0,
     ev: 0,
@@ -16195,6 +16196,29 @@ function updEnemies(dt) {
           d.normalize();
         }
       }
+      /* RULES OF ENGAGEMENT, once a second: damaged past half, or (a fighter scrambled to defend a base fights on until damaged)
+         outgunned under half the strength against it within 5 km, the bandit breaks off for the nearest Japanese airbase, climbing;
+         far enough off it is gone */
+      if (e.hp0 && (e.roeT = (e.roeT || 0) + dt) > 1) {
+        e.roeT = 0;
+        if (!e.run && (e.hp < 0.5 * e.hp0 || (!e.scr && !e.duel && typeof ROE !== 'undefined' && ROE.ratio('jp', e.p) < 0.5))) {
+          e.run = true;
+          const A = FS.list.filter((s) => s.kind === 'air');
+          e.home = A.length ? A.reduce((a, b) => (Math.hypot(b.O.x - e.p.x, b.O.z - e.p.z) < Math.hypot(a.O.x - e.p.x, a.O.z - e.p.z) ? b : a)).O : { x: e.p.x, z: e.p.z - 20000 };
+          note('BANDIT BREAKING OFF');
+        }
+      }
+      if (e.run) {
+        d = new V(e.home.x - e.p.x, 0, e.home.z - e.p.z).normalize();
+        d.y = 0.12;
+        d.normalize();
+        if (dist > 7000) {
+          scene.remove(e.g);
+          EN.splice(i, 1);
+          note('THE BANDIT GOT AWAY');
+          continue;
+        }
+      }
       let avoid = false,
         tmax = H(e.p.x, e.p.z);
       for (const L of [300, 600, 1000, 1500, 2200]) {
@@ -16308,6 +16332,7 @@ function updEnemies(dt) {
         e.fwd.dot(dir) > DIFF.cone &&
         e.bt % 3 < DIFF.burst &&
         e.fireT <= 0 &&
+        !e.run &&
         !crashed
       ) {
         e.fireT = 0.07;
@@ -17370,10 +17395,12 @@ function updAA(dt) {
     const dead = g.t.dead || (g.site && trn.mode !== 'free');
     if (g.site) g.grp.visible = trn.mode === 'free';
     let can = false,
-      R = 1e9;
-    const dx = pos.x - g.piv.x,
+      R = 1e9,
+      dx = pos.x - g.piv.x,
       dy = AA.aimY() - g.piv.y /* the point they lay on: the aircraft, or the ship's hull */,
-      dz = pos.z - g.piv.z;
+      dz = pos.z - g.piv.z,
+      tv = vel;
+    g.tg = null;
     if (!dead) {
       R = Math.hypot(dx, dy, dz);
       if ((g.ct = (g.ct || 0) - dt) <= 0) {
@@ -17385,7 +17412,21 @@ function updAA(dt) {
       /* and they need a clear line to the target past the hills (checked once a second) */
       if ((g.lt = (g.lt || 0) - dt) <= 0) (g.lt = 1), (g.los = aaSees(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)));
       can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2;
-      g.v.lerp(vel, Math.min(1, 1.3 * dt));
+      /* targets of opportunity (RULES OF ENGAGEMENT): not on the player, the nearest Allied unit it can see in range (an escort P-51, a
+         fleet PCE or PT boat, the Liberty) */
+      if (!can && hot && typeof ROE !== 'undefined') {
+        const u = ROE.pickAlly(g.piv, Math.min(2200, sight));
+        if (u) {
+          dx = u.p.x - g.piv.x;
+          dy = u.p.y + (u.air ? 0 : 3) - g.piv.y;
+          dz = u.p.z - g.piv.z;
+          R = Math.hypot(dx, dy, dz);
+          tv = u.v;
+          g.tg = u;
+          can = true;
+        }
+      }
+      g.v.lerp(tv, Math.min(1, 1.3 * dt));
       const tt = R / 840,
         ax = dx + g.v.x * tt * 0.9,
         ay = dy + g.v.y * tt * 0.9 + 4.9 * tt * tt,
@@ -17429,7 +17470,7 @@ function updAA(dt) {
             sg = g.bias,
             d = _aaF.clone().addScaledVector(_aaR, gz() * s + sg.x * 0.012).addScaledVector(_aaU, gz() * s + sg.y * 0.012).normalize(),
             mp = g.piv.clone().addScaledVector(_aaF, 3.3).addScaledVector(_aaR, g.side * 0.2);
-          if (AA.bl.length < 190) AA.bl.push({ p: mp, v: d.multiplyScalar(870), t: 0, tr: g.nr++ % 4 === 0 /* one round in four is a tracer */ });
+          if (AA.bl.length < 190) AA.bl.push({ p: mp, v: d.multiplyScalar(870), t: 0, tr: g.nr++ % 4 === 0 /* one round in four is a tracer */, tg: g.tg });
           fxAdd(mp, 0xffd890, 1.3, 3.8, 0.07, 0, true);
           g.rec = 1;
         }
@@ -17437,7 +17478,7 @@ function updAA(dt) {
           g.rl = 6;
           g.bias.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 0); /* each fresh magazine: the crew's estimate of speed and range is a little off */
         }
-        if (AA.fT <= 0 && R < 3000) {
+        if (AA.fT <= 0 && R < 3000 && !g.tg) {
           note('GROUND FIRE!');
           AA.fT = 14;
         }
@@ -17459,7 +17500,7 @@ function updAA(dt) {
     b.v.y -= 9.8 * dt;
     b.p.addScaledVector(b.v, dt);
     let dead = b.t > 3.6 || b.p.y < H(b.p.x, b.p.z);
-    if (!dead && hot && AA.hit(a, b.p)) dead = true; /* the target's own test: the aircraft, or the ship (see AA.hit) */
+    if (!dead && hot && (b.tg ? ROE.hitAlly(b.tg, a, b.p) : AA.hit(a, b.p))) dead = true; /* the target's own test: the aircraft, or the ship (see AA.hit); an Allied unit's (ROE) */
     if (dead && b.t > 3.5 && Math.random() < 0.3) fxAdd(b.p, 0x555555, 2, 7, 1.2, 0, false);
     if (dead) AA.bl.splice(i, 1);
   }
@@ -21222,8 +21263,21 @@ const SITES = [],
             ((b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0)); /* she holds */
           /* fired: back to the base for two more, while it has them (the start of her track, in deep water) */
           if (b.fish.n < 2 && G.mag >= 2) Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v });
+          /* RULES OF ENGAGEMENT: damaged past 40% she retires to her base and stays there; after a torpedo run she withdraws (no
+             second run for ten minutes); she attacks only while her side is at least half as strong as ours near her */
+          b.cool = Math.max(0, (b.cool || 0) - dt);
+          if (b.e.hp0 && b.e.hp < 0.6 * b.e.hp0 && !b.hurt) ((b.hurt = true), Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v }));
           const R = Math.hypot(pos.x - x, pos.z - z);
-          if (hot && b.fish.n === 2 && R < 3000 && R > 1400 && HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4)
+          if (
+            hot &&
+            b.fish.n === 2 &&
+            !b.cool &&
+            !b.hurt &&
+            R < 3000 &&
+            R > 1400 &&
+            HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4 &&
+            (typeof ROE === 'undefined' || ROE.ratio('jp', b.e.c) >= 0.5)
+          )
             Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, ...t14Guess() });
         } else {
           b.mt += dt;
@@ -21244,20 +21298,21 @@ const SITES = [],
               lz = dz + vz * tt,
               hw = Math.atan2(-lz, lx);
             freeMove(b, hw, 15.4, dt);
-            if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
+            if (!hot || b.mt > 240 || R > 4500 || R < 500 || b.e.hp < 0.6 * b.e.hp0) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
             else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
               /* both fish over the side, one a second after the other, then hard over away from her */
               t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012); /* the two spread a little, to bracket her */
               b.fish.set(1);
               b.f2 = 1;
               b.fy = b.yw; /* the course both fish are aimed on: she holds it until the second is away */
-              Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2) });
+              Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2), cool: 600 });
             }
           } else if (b.mode === 'reload') {
             /* to the base, then two minutes lying there while the torpedoes are swung aboard */
             const [rx, rz] = trackXZ(b, 0),
               rd = Math.hypot(rx - b.x, rz - b.z);
             if (rd > 25) freeMove(b, Math.atan2(-(rz - b.z), rx - b.x), rd > 200 ? 15.4 : 4, dt);
+            else if (b.hurt) freeMove(b, b.yw, 0, dt); /* damaged: she stays at her base */
             else if ((b.rt += dt) > 120 || G.mag < 2) {
               if (G.mag >= 2) ((G.mag -= 2), b.fish.set(2));
               b.mode = 'rejoin';
@@ -21840,7 +21895,27 @@ const SITES = [],
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
-      if (!e.dead) {
+      /* RULES OF ENGAGEMENT: damaged past 40% she breaks off her patrol for her station's harbour (300 m off its shore point) and lies there */
+      if (!e.dead && !P.ret && e.hp0 && e.hp < 0.6 * e.hp0) P.ret = { x: m.position.x, z: m.position.z, yw: m.rotation.y };
+      if (!e.dead && P.ret) {
+        const r = P.ret,
+          [hx, hz] = F.w(0, 300),
+          dx = hx - r.x,
+          dz = hz - r.z,
+          dd = Math.hypot(dx, dz),
+          sp = dd > 30 ? Math.min(6, dd / 20) : 0;
+        if (sp) {
+          const dy = Math.atan2(Math.sin(Math.atan2(-dz, dx) - r.yw), Math.cos(Math.atan2(-dz, dx) - r.yw));
+          r.yw += Math.max(-0.05 * dt, Math.min(0.05 * dt, dy));
+          r.x += Math.cos(r.yw) * sp * dt;
+          r.z -= Math.sin(r.yw) * sp * dt;
+        }
+        const rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8));
+        Object.assign(bd, { x: r.x, z: r.z, yaw: r.yw, v: sp });
+        RIDE.step(rd, r.x, r.z, Math.cos(r.yw), -Math.sin(r.yw), dt, 0);
+        m.position.set(r.x, y0 + rd.hv, r.z);
+        m.rotation.set(rd.ro, r.yw, rd.pi, 'YXZ');
+      } else if (!e.dead) {
         const s0 = s,
           o0 = bd.off;
         COLL.steer(bd, dt, 600);
@@ -22202,6 +22277,26 @@ const SITES = [],
     const past = (k) => (was <= tt ? was < k && tt >= k : was < k || tt >= k);
     if (c.onA && past(kA)) c.onA();
     if (c.onB && past(kB)) c.onB();
+  };
+  /* RULES OF ENGAGEMENT: a merchant ship runs from any attack: under way when hit (or, an American one, fired on), she turns back for
+     the port she left (her place on the other leg of her run); not again for two minutes */
+  const civFlee = (c, t) => {
+    const hp = c.t ? c.t.hp : 0,
+      hit = c.t ? !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen : c.underFire && c.underFire > (c.fledAt || 0);
+    if (c.t) c.hpSeen = hp;
+    if (!hit || t - (c.fledT || -1e9) < 120) return;
+    c.fledAt = performance.now();
+    const cyc = 2 * (c.L / c.v + c.dock),
+      tt = (((t + c.phase) % cyc) + cyc) % cyc,
+      run = c.L / c.v;
+    let t2 = null;
+    if (tt >= c.dock && tt < c.dock + run) t2 = 2 * c.dock + run + (c.L - (tt - c.dock) * c.v) / c.v; /* outbound: back to the first port */
+    else if (tt >= 2 * c.dock + run) t2 = c.dock + (c.L - (tt - 2 * c.dock - run) * c.v) / c.v; /* homeward: back to the second */
+    if (t2 === null) return; /* at anchor: she stays */
+    c.phase += t2 - tt;
+    c.fledT = t;
+    c.ctt = undefined; /* her cargo check starts afresh (the jump in her timetable is not a call at a jetty) */
+    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t ? 'THE FREIGHTER TURNS BACK' : 'THE LIBERTY SHIP TURNS BACK');
   };
   const updCiv = (c, t, dt) => {
     if (c.t && c.t.dead) {
@@ -22862,6 +22957,7 @@ const SITES = [],
       const t = performance.now() / 1000;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
       for (const c of CIV) {
+        civFlee(c, t);
         if (c.vis) updCiv(c, t, dt);
         civCargo(c, t);
       }
@@ -22873,7 +22969,7 @@ const SITES = [],
    later two Ki-84s take off there and come for the attacker: the P-51 meets them as bandits (EN), the PCE as a raid (RAID). Our radio
    intelligence hears the call. One call in ten minutes; none if Kakuta's parked fighters have all been destroyed. PT Base Halsey (the
    US base): raiders shooting within 3 km of it and it calls Kamome Control for P-51s from Fletcher Field (the air support crossover,
-   CAP: on the Kamome Strait page, where both simulators are). The current simulator brings the Ki-84s on (its role's scramble(p)). */
+   CAP, the PCE's air support). The current simulator brings the Ki-84s on (its role's scramble(p)). */
 /* var: reset() and damage() may run before this piece has (typeof on a const not yet set throws) */
 var BASEAIR = (() => {
   const DELAY = 60 /* s from the call to the fighters in the air */,
@@ -22923,6 +23019,226 @@ var BASEAIR = (() => {
   };
 })();
 HOOKS.tick.push((dt) => BASEAIR.tick(dt));
+/* RULES OF ENGAGEMENT (the user's, 2026-11-21).
+   Targets of opportunity: every armed unit on both sides engages any enemy in range that it can see: aircraft, ships, boats and
+   shore guns. Merchant ships and their boats never fire (a Liberty's Naval Armed Guard does: her 20 mm).
+   Stay and fight while the unit's side is at least half as strong as the enemy within 5 km (ROE.ratio: each unit's strength from its
+   guns and torpedoes, scaled by its damage).
+   Outgunned, break off and run (for home, or the nearest friendly guns): below half the enemy's strength; damaged past 50% (aircraft)
+   or 40% (ships); out of ammunition or torpedoes.
+   Exceptions: shore guns and bases never run; a T-14 makes one torpedo run, then withdraws; merchant ships run from any attack;
+   fighters scrambled to defend a base fight until damaged or out of ammunition.
+   This piece: the units and their strength (ROE.units, ROE.ratio), the Allied ships' guns against enemy aircraft (the fleet's PCEs
+   and PT boats, the Liberty's 20 mm), with their tracers. The Japanese 25 mm guns and coast guns choose Allied units here too
+   (ROE.allies, ROE.hitAlly). Each unit's own rules are in its own piece (raiders, bandits, T-14s, the merchant ships, the air
+   support's P-51s, the PCE's gun crews). var: other pieces may ask before this one has run. */
+var ROE = (() => {
+  const STR = { fighter: 2, pce: 6, pt: 2, escort: 6, t14: 3, aa: 1, coast: 2, merchant: 0.5 };
+  const V3 = THREE.Vector3;
+  /* an Allied AI unit (the player's own vehicle is not one: the guns have their own ways at her) */
+  const wrap = new WeakMap();
+  const unit = (o, f) => {
+    let u = wrap.get(o);
+    if (!u) wrap.set(o, (u = Object.assign({ o, v: new V3(), hits: 0 }, f())));
+    return u;
+  };
+  const allies = () => {
+    const L = [];
+    if (typeof AFLD !== 'undefined')
+      for (const o of AFLD.a)
+        if (o.kind === 'ship' && o.m)
+          L.push(
+            unit(o, () => ({
+              kind: o.L > 40 ? 'pce' : 'pt',
+              air: false,
+              p: o.m.position,
+              r: o.L * 0.45,
+              hurt() {},
+            })),
+          );
+    if (SITE.civ)
+      for (const c of SITE.civ)
+        if (!c.t)
+          L.push(
+            unit(c, () => ({
+              kind: 'merchant',
+              air: false,
+              p: c.m.position,
+              r: c.len * 0.45,
+              hurt: () => (c.underFire = performance.now()) /* she runs (the merchant ships' rule) */,
+            })),
+          );
+    if (typeof CAP !== 'undefined' && SIMS.on('pce'))
+      for (const f of CAP.L)
+        if (!f.down)
+          L.push(
+            unit(f, () => ({
+              kind: 'fighter',
+              air: true,
+              p: f.p,
+              r: 6,
+              hurt: () => CAP.hurt(f),
+            })),
+          );
+    /* their velocity, measured frame to frame */
+    const now = performance.now() / 1000;
+    for (const u of L) {
+      if (u.t0 !== undefined && now > u.t0 && now - u.t0 < 0.5) u.v.lerp(new V3().subVectors(u.p, u.p0).divideScalar(now - u.t0), 0.3);
+      (u.p0 || (u.p0 = new V3())).copy(u.p);
+      u.t0 = now;
+    }
+    return L;
+  };
+  let AL = [],
+    alT = -1;
+  const alliesNow = () => {
+    const now = performance.now();
+    if (now - alT > 100) ((AL = allies()), (alT = now));
+    return AL;
+  };
+  /* the enemy's units (the Japanese) */
+  const enemy = () => {
+    const L = [];
+    if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ kind: 'fighter', air: true, p: e.p, k: e.hp0 ? e.hp / e.hp0 : 1 });
+    if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ kind: 'fighter', air: true, p: e.p, k: e.dmg ? 0.5 : 1 });
+    for (const t of T)
+      if (!t.dead && t.type === 'ship' && t.kind !== 'civ' && t.m && t.m.visible !== false)
+        L.push({ kind: t.r < 10 ? 't14' : 'escort', air: false, p: t.c, k: t.hp0 ? t.hp / t.hp0 : 1 });
+    for (const g of AA.gun) if (!g.t.dead && !g.ship) L.push({ kind: 'aa', air: false, p: g.piv, k: 1 });
+    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) L.push({ kind: 'coast', air: false, p: g.p, k: 1 });
+    return L;
+  };
+  /* the player's own vehicle, on our side */
+  const me = () => {
+    if (crashed || !started) return null;
+    if (SIMS.cur.afloat) return { kind: 'pce', p: pos, k: typeof SDM !== 'undefined' ? Math.max(0.1, 1 - Math.max(SDM.holes, SDM.flood)) : 1 };
+    return { kind: 'fighter', p: pos, k: typeof php !== 'undefined' ? Math.max(0.1, php / 100) : 1 };
+  };
+  const sum = (L, p, R) => L.reduce((s, u) => s + (Math.hypot(u.p.x - p.x, u.p.z - p.z) < R ? STR[u.kind] * (u.k === undefined ? 1 : u.k) : 0), 0);
+  /* side ('us' or 'jp') at p: its strength within R over the enemy's (Infinity with no enemy) */
+  const ratio = (side, p, R = 5000) => {
+    const m = me(),
+      us = sum(alliesNow(), p, R) + (m ? sum([m], p, R) : 0),
+      jp = sum(enemy(), p, R);
+    const own = side === 'us' ? us : jp,
+      opp = side === 'us' ? jp : us;
+    return opp > 0 ? own / opp : Infinity;
+  };
+  /* the nearest Allied AI unit to p within R (for the Japanese guns' targets of opportunity) */
+  const pickAlly = (p, R, air) => {
+    let best = null,
+      bd = R;
+    for (const u of alliesNow()) {
+      if (air === false && u.air) continue;
+      const d = u.p.distanceTo(p);
+      if (d < bd) ((bd = d), (best = u));
+    }
+    return best;
+  };
+  /* a round's segment a-b against an Allied unit: a hit counts on it */
+  const hitAlly = (u, a, b) => {
+    if (!u || (u.o && u.o.down)) return false;
+    const ab = new V3().subVectors(b, a),
+      l2 = ab.lengthSq(),
+      t = l2 ? Math.max(0, Math.min(1, new V3().subVectors(u.p, a).dot(ab) / l2)) : 0,
+      c = a.clone().addScaledVector(ab, t);
+    const dy = u.air ? 0 : Math.max(0, c.y - (u.p.y + 6)); /* a ship's hull and upperworks: about 6 m above her waterline */
+    if (Math.hypot(c.x - u.p.x, (u.air ? c.y - u.p.y : dy) * 1, c.z - u.p.z) > (u.air ? u.r : Math.min(u.r, 8))) return false;
+    u.hits++;
+    u.hurt();
+    if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.2, 3, 0.15, 0, true);
+    return true;
+  };
+
+  /* ----- the Allied ships' guns against enemy aircraft: tracers and rounds of their own ----- */
+  const RND = [],
+    MAXR = 240,
+    tp = new Float32Array(MAXR * 6),
+    tg = new THREE.BufferGeometry();
+  tg.setAttribute('position', new THREE.BufferAttribute(tp, 3));
+  const tl = new THREE.LineSegments(tg, new THREE.LineBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.9 }));
+  tl.frustumCulled = false;
+  scene.add(tl);
+  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm */
+  const GUNS = { pce: [2500, 4, 0.006, 1], pt: [1500, 6, 0.008, 0.5], merchant: [1500, 3, 0.009, 0.5] };
+  const air = () => {
+    const L = [];
+    if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ e, p: e.p, v: e.v || new V3(), en: true });
+    if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ e, p: e.p, v: e.v, en: false });
+    return L;
+  };
+  const tick = (dt) => {
+    const A = started && !crashed ? air() : [];
+    if (A.length)
+      for (const u of alliesNow()) {
+        const G = GUNS[u.kind];
+        if (!G) continue;
+        u.cd = (u.cd || 0) - dt;
+        if (u.cd > 0) continue;
+        let best = null,
+          bd = G[0];
+        for (const a of A) {
+          const d = a.p.distanceTo(u.p);
+          if (d < bd && a.p.y > u.p.y + 20) ((bd = d), (best = a));
+        }
+        if (!best) continue;
+        u.cd = 1 / G[1];
+        const o = u.p.clone().add(new V3(0, 5, 0)),
+          tof = bd / 850,
+          aim = best.p.clone().addScaledVector(best.v, tof * 0.9);
+        aim.y += 4.9 * tof * tof;
+        const d = aim.sub(o).normalize(),
+          gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2 * G[2];
+        d.x += gz();
+        d.y += gz();
+        d.z += gz();
+        if (RND.length < MAXR) RND.push({ p: o, v: d.normalize().multiplyScalar(850), t: 0, tg: best, dmg: G[3] });
+        if (typeof fxAdd === 'function') fxAdd(o, 0xffd890, 1.1, 3, 0.07, 0, true);
+      }
+    let n = 0;
+    for (let i = RND.length - 1; i >= 0; i--) {
+      const b = RND[i],
+        a = b.p.clone();
+      b.t += dt;
+      b.v.y -= 9.8 * dt;
+      b.p.addScaledVector(b.v, dt);
+      let dead = b.t > 3.5;
+      const e = b.tg.e;
+      if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
+        const ab = new V3().subVectors(b.p, a),
+          l2 = ab.lengthSq(),
+          t = Math.max(0, Math.min(1, new V3().subVectors(e.p, a).dot(ab) / l2));
+        if (a.clone().addScaledVector(ab, t).distanceTo(e.p) < 7) {
+          dead = true;
+          if (typeof fxAdd === 'function') fxAdd(e.p, 0xffd080, 1.5, 4, 0.2, 0, true);
+          if (b.tg.en) damageE(e, b.dmg);
+          else if (++e.dmg >= 2) {
+            e.st = 'down';
+            e.sm = 0;
+            note('A FRANK IS SHOT DOWN BY THE ESCORTS');
+          }
+        }
+      }
+      if (dead) {
+        RND.splice(i, 1);
+        continue;
+      }
+      if (n < MAXR) {
+        const k = n++ * 6;
+        tp[k] = b.p.x;
+        tp[k + 1] = b.p.y;
+        tp[k + 2] = b.p.z;
+        tp[k + 3] = b.p.x - b.v.x * 0.05;
+        tp[k + 4] = b.p.y - b.v.y * 0.05;
+        tp[k + 5] = b.p.z - b.v.z * 0.05;
+      }
+    }
+    tg.setDrawRange(0, n * 2);
+    tg.attributes.position.needsUpdate = true;
+  };
+  HOOKS.tick.push(tick);
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, reset: () => (RND.length = 0) };
+})();
 /* ---------- aftermath: burning wrecks, smoke columns, craters and scorch marks that last for the rest of the flight ---------- */
 const AF = {
   g: null,

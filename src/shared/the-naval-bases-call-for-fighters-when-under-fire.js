@@ -3,7 +3,7 @@
    later two Ki-84s take off there and come for the attacker: the P-51 meets them as bandits (EN), the PCE as a raid (RAID). Our radio
    intelligence hears the call. One call in ten minutes; none if Kakuta's parked fighters have all been destroyed. PT Base Halsey (the
    US base): raiders shooting within 3 km of it and it calls Kamome Control for P-51s from Fletcher Field (the air support crossover,
-   CAP: on the Kamome Strait page, where both simulators are). The current simulator brings the Ki-84s on (its role's scramble(p)). */
+   CAP, the PCE's air support). The current simulator brings the Ki-84s on (its role's scramble(p)). */
 /* var: reset() and damage() may run before this piece has (typeof on a const not yet set throws) */
 var BASEAIR = (() => {
   const DELAY = 60 /* s from the call to the fighters in the air */,
