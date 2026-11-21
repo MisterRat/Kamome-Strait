@@ -5,8 +5,8 @@ SIMS.add({
   kbDoc: [
   ['Rudder', ['rollL', 'rollR'], 'hold, from any station; let go and she steadies', 1],
   ['Engines', ['thrUp', 'thrDn'], 'from any station; the order stays set', 1],
-  ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5', 'st6'], 'press again for the next view', 2],
-  ['At a gun', 'the mouse aims &middot; Space or click fires &middot; ' + 'X sight / look round &middot; 5 next gun &middot; Page Up / Down 3"/50 sight range (Hardcore)', '', 0],
+  ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5'], 'press again for the next view', 2],
+  ['At a gun', 'the mouse aims &middot; Space or click fires &middot; ' + 'X sight / look round &middot; 4 next gun &middot; Page Up / Down 3"/50 sight range (Hardcore)', '', 0],
   ['Targets', ['targets'], 'rafts for the 3"/50, towed sleeves for the 40 mm and 20 mm', 0],
   ['Camera', ['camera', 'clear'], '', 2],
   ['Photo mode', ['photo'], '', 2],

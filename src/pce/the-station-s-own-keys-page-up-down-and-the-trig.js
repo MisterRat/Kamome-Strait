@@ -5,5 +5,5 @@ function stnRange(d) {
   if (camMode != 1 || !st) return;
   if (st.dev === 'radar') radarRange(d);
   else if (st.dev === 'sonar') sonarRange(d);
-  else if (SHIP.stn === 6) dcDepth(d * 25);
+  else if (SHIP.stn === 5) dcDepth(d * 25);
 }

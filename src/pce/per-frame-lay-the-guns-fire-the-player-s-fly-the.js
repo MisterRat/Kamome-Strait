@@ -3,7 +3,7 @@ function gunUpdate(dt) {
   gunInit();
   if (!GUN.M.length) return;
   const on = camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn;
-  if (GUN.cur && SHIP.stn !== 5) GUN.cur = null;
+  if (GUN.cur && SHIP.stn !== 4) GUN.cur = null;
   if (document.pointerLockElement === cv && !(GUN.cur && on && started && !paused && !pmOpen && !docsOpen)) gunLock(false); /* the 3"/50 is laid by right-drag, with the pointer free */ /* off the gun, in a menu or paused: the pointer is free again */
   const G = on ? GUN.cur : null,
     play = started && !paused && !RPL.on;

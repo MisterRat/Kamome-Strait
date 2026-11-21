@@ -11,8 +11,8 @@ function aswFired(tp) {
 function aswStep(dt, here) {
   const sub = PT.on ? PT.L.find((t) => t.kind === 'sub') : null,
     cm = ASW.who === 'comms',
-    stn = cm ? 3 : 6,
-    want = (cm ? SHIP.stn === 3 && COMMS.les && COMMS.les.atk : SHIP.stn === 6) && started && !RPL.on && !!sub;
+    stn = cm ? 3 : 5,
+    want = (cm ? SHIP.stn === 3 && COMMS.les && COMMS.les.atk : SHIP.stn === 5) && started && !RPL.on && !!sub;
   ASW.t += dt;
   /* after a run the score stays up until the player presses T again (a new run) or leaves the station */
   if (ASW.ph === 'done') {

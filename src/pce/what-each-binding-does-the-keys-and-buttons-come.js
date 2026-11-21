@@ -16,14 +16,13 @@ SIMS.add({ id: 'pce', act: {
   st3: () => shipStation(3),
   st4: () => shipStation(4),
   st5: () => shipStation(5),
-  st6: () => shipStation(6),
   tpJump: () => tpJump(),
   hhLoad: () => {
     if (gunReload()) return;
-    if (camMode == 1 && SHIP.stn === 6 && HH.n < 24) (HH.loading = true), note('LOADING THE HEDGEHOG');
+    if (camMode == 1 && SHIP.stn === 5 && HH.n < 24) (HH.loading = true), note('LOADING THE HEDGEHOG');
   },
   gSight: () => {
-    if (SHIP.stn === 6 && camMode == 1) return tpArm();
+    if (SHIP.stn === 5 && camMode == 1) return tpArm();
     if (SHIP.stn === 1 && camMode == 1) {
       STN.bino = !STN.bino;
       note(STN.bino ? 'BINOCULARS' : 'BINOCULARS DOWN');

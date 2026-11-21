@@ -1,6 +1,6 @@
 /* the torpedoman's station each frame: walk (Hardcore), fire what he is at, load the Hedgehog, and the attack */
 function tpUpdate(dt, here, trig) {
-  const at6 = here && SHIP.stn === 6;
+  const at6 = here && SHIP.stn === 5;
   if (at6 && FM.use('walk')) tpWalk(dt);
   if (at6) {
     const i = tpAt(),

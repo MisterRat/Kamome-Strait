@@ -21,7 +21,6 @@ function stnDraw(f, dt) {
     case 'dcBoard':
       dcBoardDraw(f);
       break;
-    case 'oodGyro':
     case 'qmCompass': {
       /* the compass card turns under the lubber line: the ship's head is at the top */
       const T = [];

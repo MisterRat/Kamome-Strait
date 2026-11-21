@@ -1,5 +1,5 @@
-/* is the player steering (OOD, Quartermaster or the chase view)? elsewhere the helmsman holds her course */
-const atHelm = () => camMode != 1 || SHIP.stn === 1 || SHIP.stn === 4;
+/* is the player steering (the OOD in the pilothouse, or the chase view)? elsewhere the helmsman holds her course */
+const atHelm = () => camMode != 1 || SHIP.stn === 1;
 function stnUpdate(dt) {
   stnInit();
   if (!STN.init) return;
@@ -16,7 +16,6 @@ function stnUpdate(dt) {
     STN.fire0 = f;
     commsUpdate(dt, here);
   }
-  if (STN.ood) STN.ood.visible = !(here && SHIP.stn === 1);
   if (STN.wheel) STN.wheel.rotation.x = SHIP.rud * Math.PI * 3; /* about three turns of the wheel, hard over to hard over */
   /* paint the station's faces about 15 times a second (the radar every frame); the radio only when there is news */
   STN.t += dt;

@@ -442,19 +442,18 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="sub">The stations, practice, gunnery, the torpedoman's work and the ship</div>
 <h2>Missions (the Missions tab, or press M)</h2>
 <table class="t2">
-<tr><td>Free patrol</td><td>The ship is yours: conn her from the bridge, answer the bells, keep watch. No targets out.</td></tr>
+<tr><td>Free patrol</td><td>The ship is yours: conn her from the pilothouse, answer the bells, keep watch. No targets out.</td></tr>
 <tr><td>Gunnery practice</td><td>One for each gun (the 3&Prime;/50, the 20 mm and the twin 40 mm): puts out the practice targets and takes you to that gun.</td></tr>
 <tr><td>Antisubmarine attack run</td><td>Takes you to the torpedoman's station with the exercise submarine out. The OOD runs in on him and phones the orders; you fire the Hedgehog, the K-guns and the racks. One run, then the debrief and the pattern plot stay up until you press T again or leave the station.</td></tr>
 <tr><td>Sonar watch</td><td>The communications station with the exercise submarine out: find him on the sonar and the radar.</td></tr>
 </table>
-<h2>The stations (keys 1 to 6; press again for the next view there)</h2>
+<h2>The stations (keys 1 to 5; press again for the next view there)</h2>
 <table class="t2">
-<tr><td><b>1</b> OOD</td><td>The open bridge: conn the ship (W / S rings the engines, A / D the rudder), X for the binoculars.</td></tr>
+<tr><td><b>1</b> OOD</td><td>The pilothouse: conn the ship (W / S rings the engines, A / D the rudder) at the wheel, the telegraphs and the compass; X for the binoculars.</td></tr>
 <tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines.</td></tr>
 <tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
-<tr><td><b>4</b> Quartermaster</td><td>The pilothouse: the wheel, the telegraphs and the compass.</td></tr>
-<tr><td><b>5</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 5 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
-<tr><td><b>6</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
+<tr><td><b>4</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 4 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
+<tr><td><b>5</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
 <tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
 </table>
 <div class="cols">
@@ -552,7 +551,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.107';
+const VERSION = '0.108';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -977,7 +976,7 @@ const SHIP = {
   TAU: 25 /* seconds to settle most of the way on a new speed */,
   RMIN: 180 /* turning radius at full rudder, m (first-pass figure) */,
   EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by shipStation() */,
-  stn: 1 /* station 1-6 (PCEM.STN) */,
+  stn: 1 /* station 1-5 (PCEM.STN) */,
   sub: 0 /* which view at that station */,
   look: [0, 0] /* the station's own look direction: yaw (+ to starboard), pitch */,
   YAX: new THREE.Vector3(0, 1, 0),
@@ -1005,10 +1004,10 @@ const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
 const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };
-/* the gunner's state (station 5; see THE GUNNER above the loop) */
+/* the gunner's state (station 4; see THE GUNNER above the loop) */
 const GUN = {
   M: [] /* the mounts */,
-  cur: null /* the mount the player is on (station 5, first person) */,
+  cur: null /* the mount the player is on (station 4, first person) */,
   look: false /* looking up from the sight */,
   rng: 2000 /* the 3"/50's sight range, m */,
   rmb: false /* right mouse button held: fire */,
@@ -1035,7 +1034,7 @@ const DC = { depth: 100 /* ft */, rack: [8, 8], kg: [2, 2], dep: { rack: 100, po
 /* the torpedoman walking the deck (Hardcore), the Hedgehog, and the attack run the OOD cons (see THE TORPEDOMAN AT WORK) */
 const TPW = { p: new THREE.Vector2() /* model x, z */, at: 3, bob: 0, ob: [] },
   HH = { n: 24, L: [], q: [], ld: 0, hits: 0 },
-  ASW = { who: 'tp' /* who the attack is for: the torpedoman's run (6) or the sonar test (3) */, ph: 'idle', t: 0, O: [], f: {}, run: 0, tel: 0, hold: 0, depth: 100, best: 1e9, hh: 0, un: 0, bad: false, msg: '', deb: '', debT: 0 };
+  ASW = { who: 'tp' /* who the attack is for: the torpedoman's run (5) or the sonar test (3) */, ph: 'idle', t: 0, O: [], f: {}, run: 0, tel: 0, hold: 0, depth: 100, best: 1e9, hh: 0, un: 0, bad: false, msg: '', deb: '', debT: 0 };
 /* Wave motion setting (saved): 'on', 'guns' (off while the player is at a gun) or 'off' */
 const WAVE = { mode: ['on', 'guns', 'off'].includes(store.get('wave', 'on')) ? store.get('wave', 'on') : 'on' };
 /* the PCE-842's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
@@ -6762,9 +6761,9 @@ const FLG = (() => {
    Paint: Measure 32 dazzle as photographed on PCE-842 (port side; the starboard side is mirrored until a starboard photo turns up),
    in 5-L light gray, 5-O ocean gray and BK dull black, with 20-B deck blue on the decks. The pattern is painted per pixel by the
    ship's material (PCEM.material) on every part coloured with the KEY colour, so the band edges stay sharp.
-   The six playable stations have their own first-person interiors (rooms face inward, so they cannot be seen from outside):
-   1 OOD open bridge, 2 engine room, 3 radar / radio room (and the sonar in the A/S hut), 4 pilothouse, 5 3"/50 and aft twin 40 mm,
-   6 the depth-charge fantail (and a K-gun).
+   The five playable stations have their own first-person interiors (rooms face inward, so they cannot be seen from outside):
+   1 OOD in the pilothouse, 2 engine room, 3 radar / radio room (and the sonar in the A/S hut), 4 gunner: 3"/50, 20 mm and aft twin
+   40 mm, 5 torpedoman: the Hedgehog, the K-guns and the depth-charge racks.
    ===================================================================================================================== */
 const PCEM = (() => {
   const FR = 0.6096,
@@ -7152,8 +7151,7 @@ const PCEM = (() => {
   /* live instrument faces: the game paints them (radar, sonar, gauges, telegraphs, compass cards); p is the face's centre (model frame),
      w x h its size, n the way it faces, up the way its top points */
   const FACES = [],
-    WHEEL = { parts: [], pivot: [0, 0, 0] },
-    OOD = { parts: [] };
+    WHEEL = { parts: [], pivot: [0, 0, 0] };
   const face = (id, p, w, h, n, up) => FACES.push({ id, p, w, h, n, up: up || [0, 1, 0] });
   /* collect the parts a function adds into a list of their own */
   const grab = (fn) => {
@@ -7164,7 +7162,7 @@ const PCEM = (() => {
     P = P0;
     return Q;
   };
-  /* the guns the player can man (station 5) are moving parts, not baked into the hull: d.T places the mount (its rest bearing
+  /* the guns the player can man (station 4) are moving parts, not baked into the hull: d.T places the mount (its rest bearing
      included) in the model frame, d.base stays fixed with the hull, d.train turns about the mount's vertical axis, d.elev is
      built level about the trunnions at d.pivot (in the training frame), d.pm is the crewman the player replaces, d.sight (if any)
      is a sight built about the eye that tilts with the guns (a sight linkage). d.eye is in the training frame, or in the
@@ -7409,7 +7407,7 @@ const PCEM = (() => {
       C(2.4, 2.4, 0.05, 0x2f3740, x, y + 0.02, 0, 0, 0, 0, 32);
       emit();
       begin();
-      /* the mount is the player's (station 5): its pedestal stays put, the carriage trains and the slide elevates (see MNT) */
+      /* the mount is the player's (station 4): its pedestal stays put, the carriage trains and the slide elevates (see MNT) */
       const base = grab(() => {
         C(0.42, 0.55, 0.85, GUNC, 0, 0.42, 0, 0, 0, 0, 16);
         C(0.62, 0.62, 0.12, GUNC, 0, 0.9, 0, 0, 0, 0, 18);
@@ -7675,7 +7673,6 @@ const PCEM = (() => {
       C(0.05, 0.07, 1.0, STEEL, XF(28.6), YG + 0.5, 0, 0, 0, 0, 8);
       C(0.17, 0.17, 0.06, DARK, XF(28.6), YG + 1.04, 0, 0, 0, 0.35, 14);
       C(0.15, 0.15, 0.065, DIAL, XF(28.6), YG + 1.045, 0, 0, 0, 0.35, 14);
-      face('oodGyro', [XF(28.6) - 0.035 * Math.sin(0.35), YG + 1.045 + 0.035 * Math.cos(0.35), 0], 0.29, 0.29, [-Math.sin(0.35), Math.cos(0.35), 0], [1, 0, 0]);
       for (const [f, z] of [
         [26.8, -1.3],
         [26.8, -1.0],
@@ -7695,12 +7692,11 @@ const PCEM = (() => {
         C(0.15, 0.15, 0.03, 0xdedcc0, ob1 + 0.47, YG + 1.82, s * (w3 - 0.15), 0, 0, HP, 14);
       }
       B(1.4, 0.6, 0.6, CANVAS, ob1 - 0.6, YG + 0.3, 0);
-      /* the watch on the open bridge: a lookout in each wing with binoculars, the OOD's talker on the sound-powered phone,
-         and the OOD himself (a moving part: hidden while the player has the watch, see OOD below) */
+      /* the watch on the open bridge: a lookout in each wing with binoculars and a talker on the sound-powered phone (the OOD
+         stands his watch in the pilothouse: the user's, 2026-11-21; the open bridge is no longer a station) */
       man(XF(27.6), YG, -2.35, 1.0, 'stand', 'glass');
       man(XF(27.6), YG, 2.35, -1.0, 'stand', 'glass');
       man(XF(32.3), YG, -1.05, 0.25, 'stand', 'down', true);
-      OOD.parts = grab(() => man(XF(31.7) - 0.18, YG, 0, 0, 'stand', 'down'));
     }
   }
   emit();
@@ -8174,7 +8170,7 @@ const PCEM = (() => {
   }
   emit();
   {
-    /* the after twin 40 mm: the player's (station 5) */
+    /* the after twin 40 mm: the player's (station 4) */
     const g = twin40parts(true);
     mount({
       id: '40',
@@ -8277,7 +8273,7 @@ const PCEM = (() => {
     GUNPOS.push(['20', x, y + 1.2, z]);
   }
   {
-    /* the starboard 20 mm amidships, abaft the bridge: the player's (station 5) */
+    /* the starboard 20 mm amidships, abaft the bridge: the player's (station 4) */
     const g = oer20parts();
     mount({
       id: '20',
@@ -8338,7 +8334,7 @@ const PCEM = (() => {
   };
 
   INTR = true;
-  /* --- 4: the pilothouse (steering station): wheel, two engine-order telegraphs, compass, rudder-angle indicator, voice tubes --- */
+  /* --- 1: the pilothouse (steering station, the OOD's): wheel, two engine-order telegraphs, compass, rudder-angle indicator, voice tubes --- */
   begin();
   {
     const x0 = X_PH1,
@@ -8611,21 +8607,21 @@ const PCEM = (() => {
 
   /* ---------- the stations: eye in the model frame, the way the eye looks (yaw: + to starboard), and a name ---------- */
   const STN = {
-    1: [{ e: [XF(31.7), YG + 1.68, 0], yaw: 0, pitch: -0.06, name: 'OOD - OPEN BRIDGE' }],
+    /* the OOD in the pilothouse, at the wheel and telegraphs (he has the quartermaster's duties too: the user's, 2026-11-21) */
+    1: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' }],
     2: [{ e: [ER.x0 + 1.4, ER.y0 + 1.65, -0.35], yaw: 0.62, pitch: -0.12, fov: 52, name: 'ENGINEERING - FORWARD ENGINE ROOM' }],
     3: [
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -0.61, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADAR', dev: 'radar' },
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -1.61, pitch: 0.08, fov: 38, name: 'COMMUNICATIONS - SONAR', dev: 'sonar' },
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -2.53, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADIO', dev: 'radio' },
     ],
-    4: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'QUARTERMASTER - PILOTHOUSE' }],
     /* the gunner mans a gun (gun: the mount's id): his eye and the way he looks come from the gun itself (see GUN in the game) */
-    5: [
+    4: [
       { gun: '3in', e: [XF(16.0) - 0.63, hd(16.0) + 0.12 + 1.82, -0.6], yaw: 0, pitch: 0, name: 'GUNNER - 3"/50 FORWARD (POINTER)' },
       { gun: '20', e: [XF(44.7), hd(44.7) + 0.12 + 1.63, 3.3], yaw: 1.4, pitch: 0, name: 'GUNNER - 20 MM STARBOARD AMIDSHIPS' },
       { gun: '40', e: [XF(76.3) + 0.6, Y_PLAT + 1.8, 1.0], yaw: PI, pitch: 0, name: 'GUNNER - TWIN 40 MM AFT (POINTER)' },
     ],
-    6: [
+    5: [
       /* the torpedoman's four positions, bow to stern: the Hedgehog, the K-guns each side, the stern racks and their control board */
       { tp: 'hh', e: [XF(24.1), hd(24.1) + 0.12 + 1.65, -1.6], yaw: 0.3, pitch: -0.32, name: 'TORPEDOMAN - HEDGEHOG' },
       { tp: 'port', e: [XF(69.0), hm(69.0) + 0.12 + 1.65, -2.7], yaw: -1.0, pitch: -0.33, name: 'TORPEDOMAN - PORT K-GUNS' },
@@ -8922,7 +8918,7 @@ bool iIs(vec3 c, vec3 k){ return distance(c, k) < 0.012; }
     ...GUNPOS.map(([id, x, y, z]) => ({ id, p: new THREE.Vector3(x, y, z) })),
     ...(moving ? MNT.map((d) => ({ id: d.id, p: new THREE.Vector3().setFromMatrixPosition(d.T).add(new THREE.Vector3(0, 1.2, 0)) })) : []),
   ];
-  return { guns, XF, hb, top, WL, F_STEM, F_END, STN, ER, build, buildInterior, flags, mounts, solid, material, intMaterial, FACES, WHEEL, OOD, Y2, Y3, hd, hm,
+  return { guns, XF, hb, top, WL, F_STEM, F_END, STN, ER, build, buildInterior, flags, mounts, solid, material, intMaterial, FACES, WHEEL, Y2, Y3, hd, hm,
     /* for other craft (PT-105): a 20 mm Oerlikon on its Mk 4 mount with gunner and loader, a twin 40 mm, and a crewman, as parts at their own origins */
     oer20: () => oer20(),
     twin40: (k) => twin40(k),
@@ -22032,11 +22028,11 @@ const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padSta
 SIMS.add({
   id: 'pce',
   missions: [
-  ['patrol', 'Free Patrol', 'The ship is yours: conn her from the open bridge, answer the bells, keep watch. No targets out.', 1, 0, false],
-  ['gun3', 'Gunnery Practice: 3"/50', 'The forward 3"/50 with the target rafts out to 6,000 yards, PT-108 and her target sled, and the towed sleeves.', 5, 0, true],
-  ['gun20', 'Gunnery Practice: 20 mm', 'The 20 mm amidships: the rafts inside 1,000 yards, the sleeve that passes close, and the sled on PT-108\'s passes.', 5, 1, true],
-  ['gun40', 'Gunnery Practice: Twin 40 mm', 'The twin 40 mm aft against the towed sleeves and the target sled.', 5, 2, true],
-  ['asw', 'Antisubmarine Attack Run', 'The torpedoman\'s station with the exercise submarine out: the OOD runs in on him and phones the orders. Hedgehog, K-guns and racks. Scored.', 6, -1, true],
+  ['patrol', 'Free Patrol', 'The ship is yours: conn her from the pilothouse, answer the bells, keep watch. No targets out.', 1, 0, false],
+  ['gun3', 'Gunnery Practice: 3"/50', 'The forward 3"/50 with the target rafts out to 6,000 yards, PT-108 and her target sled, and the towed sleeves.', 4, 0, true],
+  ['gun20', 'Gunnery Practice: 20 mm', 'The 20 mm amidships: the rafts inside 1,000 yards, the sleeve that passes close, and the sled on PT-108\'s passes.', 4, 1, true],
+  ['gun40', 'Gunnery Practice: Twin 40 mm', 'The twin 40 mm aft against the towed sleeves and the target sled.', 4, 2, true],
+  ['asw', 'Antisubmarine Attack Run', 'The torpedoman\'s station with the exercise submarine out: the OOD runs in on him and phones the orders. Hedgehog, K-guns and racks. Scored.', 5, -1, true],
   ['sonar', 'Sonar Watch', 'Communications, with the exercise submarine out: find him on the sonar and the radar.', 3, 1, true],
 ],
   /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */
@@ -22047,7 +22043,7 @@ SIMS.add({
     if (!!PT.on !== it[5]) ptToggle();
     const list = PCEM.STN[it[3]] || [];
     camMode = 1;
-    SHIP.stn = it[3] === 6 ? 1 : it[3];
+    SHIP.stn = it[3] === 5 ? 1 : it[3];
     SHIP.sub = it[4] < 0 ? 0 : (it[4] - 1 + list.length) % Math.max(1, list.length);
     shipStation(it[3]);
     note(it[1].toUpperCase());
@@ -24139,9 +24135,8 @@ SIMS.add({ id: 'pce', bind: [
   ['st1', 'OOD', ['Digit1', 'Numpad1'], null],
   ['st2', 'Engineering', ['Digit2', 'Numpad2'], null],
   ['st3', 'Communications', ['Digit3', 'Numpad3'], null],
-  ['st4', 'Quartermaster', ['Digit4', 'Numpad4'], null],
-  ['st5', 'Gunner', ['Digit5', 'Numpad5'], null],
-  ['st6', 'Torpedoman', ['Digit6', 'Numpad6'], null],
+  ['st4', 'Gunner', ['Digit4', 'Numpad4'], null],
+  ['st5', 'Torpedoman', ['Digit5', 'Numpad5'], null],
   ['gSight', 'on the sight / look round', ['KeyX'], null],
   ['targets', 'practice targets on / off', ['KeyT'], null],
   ['gRngUp', 'sight range up', ['PageUp'], null],
@@ -24241,8 +24236,8 @@ SIMS.add({
   kbDoc: [
   ['Rudder', ['rollL', 'rollR'], 'hold, from any station; let go and she steadies', 1],
   ['Engines', ['thrUp', 'thrDn'], 'from any station; the order stays set', 1],
-  ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5', 'st6'], 'press again for the next view', 2],
-  ['At a gun', 'the mouse aims &middot; Space or click fires &middot; ' + 'X sight / look round &middot; 5 next gun &middot; Page Up / Down 3"/50 sight range (Hardcore)', '', 0],
+  ['Stations', ['st1', 'st2', 'st3', 'st4', 'st5'], 'press again for the next view', 2],
+  ['At a gun', 'the mouse aims &middot; Space or click fires &middot; ' + 'X sight / look round &middot; 4 next gun &middot; Page Up / Down 3"/50 sight range (Hardcore)', '', 0],
   ['Targets', ['targets'], 'rafts for the 3"/50, towed sleeves for the 40 mm and 20 mm', 0],
   ['Camera', ['camera', 'clear'], '', 2],
   ['Photo mode', ['photo'], '', 2],
@@ -24314,7 +24309,7 @@ function helpBox() {
   const gun = typeof GUN !== 'undefined' && GUN.cur && camMode == 1 ? GUN.cur.id : '',
     stn = typeof SHIP !== 'undefined' ? SHIP.stn : 1,
     dev = (PCEM.STN[stn] && PCEM.STN[stn][SHIP.sub] && PCEM.STN[stn][SHIP.sub].dev) || '',
-    ctx = gun || (camMode == 1 ? 's' + stn + dev + SHIP.sub + (stn === 6 && FM.use('walk') ? 'h' : '') : 'c');
+    ctx = gun || (camMode == 1 ? 's' + stn + dev + SHIP.sub + (stn === 5 && FM.use('walk') ? 'h' : '') : 'c');
   if (ctx === helpCtx) return;
   helpCtx = ctx;
   const mk = (pad) => {
@@ -24325,7 +24320,7 @@ function helpBox() {
         ? ['<b>Aim</b> stick &middot; <b>Fire</b> trigger']
         : [
             '<b>Aim</b> mouse (hold <b>`</b> for big moves)' + ' &middot; <b>Fire</b> Space or left click &middot; <b>W / S</b> engines &middot; <b>A / D</b> rudder',
-            '<b>' + kbText('gSight') + '</b> ' + (gun === '3in' ? 'telescope / look round' : 'sight / look round') + ' &middot; <b>5</b> next gun' + (gun === '20' ? ' &middot; <b>' + kbText('hhLoad') + '</b> new drum' : ''),
+            '<b>' + kbText('gSight') + '</b> ' + (gun === '3in' ? 'telescope / look round' : 'sight / look round') + ' &middot; <b>4</b> next gun' + (gun === '20' ? ' &middot; <b>' + kbText('hhLoad') + '</b> new drum' : ''),
             gun === '3in' ? '<b>Page Up / Down</b> sight range (Hardcore)' : 'Rings: lead for 100, 200, 300 knots',
             '<b>' + kbText('targets') + '</b> practice targets &middot; <b>Esc</b> frees the mouse',
           ];
@@ -24335,9 +24330,9 @@ function helpBox() {
         dev === 'radar' ? '<b>Q / E</b> cursor &middot; <b>R / F</b> strobe &middot; <b>Space</b> report &middot; <b>Page Up / Down</b> scale' : dev === 'sonar' ? '<b>Q / E</b> train &middot; <b>Z / X</b> cuts &middot; <b>Space</b> report &middot; <b>U / B / N</b> Doppler' : '<b>Space</b> acknowledge &middot; <b>B</b> route to the bridge',
         '<b>3</b> next: radar, sonar, radio &middot; <b>T</b> Comms school',
       ];
-    else if (camMode == 1 && stn === 6)
+    else if (camMode == 1 && stn === 5)
       l = [
-        FM.use('walk') ? '<b>W A S D</b> walk the deck &middot; <b>Shift</b> run &middot; drag to look' : '<b>6</b> next position &middot; <b>' + t('tpJump') + '</b> go to the ordered one',
+        FM.use('walk') ? '<b>W A S D</b> walk the deck &middot; <b>Shift</b> run &middot; drag to look' : '<b>5</b> next position &middot; <b>' + t('tpJump') + '</b> go to the ordered one',
         '<b>' + (pad ? t('guns') : 'Space') + '</b> fire the weapon you are at',
         '<b>Page Up / Down</b> its depth &middot; <b>' + t('gSight') + '</b> arm / safe',
         '<b>' + t('hhLoad') + '</b> load the Hedgehog (at it) &middot; <b>' + t('targets') + '</b> the exercise sub',
@@ -24345,7 +24340,7 @@ function helpBox() {
     else
       l = [
         '<b>Rudder</b> ' + (pad ? 'right stick' : 'A / D') + ' &middot; <b>Engines</b> ' + (pad ? t('thrUp') + ' / ' + t('thrDn') : 'W / S'),
-        pad ? '' : '<b>Stations</b> 1 OOD &middot; 2 Eng &middot; 3 Comms &middot; 4 QM &middot; 5 Guns &middot; 6 DC',
+        pad ? '' : '<b>Stations</b> 1 OOD &middot; 2 Eng &middot; 3 Comms &middot; 4 Guns &middot; 5 DC',
         camMode == 1 && stn === 1 ? '<b>' + kbText('gSight') + '</b> binoculars' : '',
       ];
     l.push('<b>' + t('camera') + '</b> ' + (camMode == 1 ? 'chase view' : 'to station') + ' &middot; <b>' + t('pause') + '</b> menu');
@@ -24536,14 +24531,13 @@ SIMS.add({ id: 'pce', act: {
   st3: () => shipStation(3),
   st4: () => shipStation(4),
   st5: () => shipStation(5),
-  st6: () => shipStation(6),
   tpJump: () => tpJump(),
   hhLoad: () => {
     if (gunReload()) return;
-    if (camMode == 1 && SHIP.stn === 6 && HH.n < 24) (HH.loading = true), note('LOADING THE HEDGEHOG');
+    if (camMode == 1 && SHIP.stn === 5 && HH.n < 24) (HH.loading = true), note('LOADING THE HEDGEHOG');
   },
   gSight: () => {
-    if (SHIP.stn === 6 && camMode == 1) return tpArm();
+    if (SHIP.stn === 5 && camMode == 1) return tpArm();
     if (SHIP.stn === 1 && camMode == 1) {
       STN.bino = !STN.bino;
       note(STN.bino ? 'BINOCULARS' : 'BINOCULARS DOWN');
@@ -24711,16 +24705,15 @@ SIMS.add({
         /* the mix by station: engines, their muffling (low-pass Hz), blower whine, exhaust, screws, wash, wind */
         MX = {
           0: [0.55, 650, 0.1, 0.7, 0.5, 1.0, 0.8] /* outside, the chase camera */,
-          1: [0.35, 420, 0.05, 0.9, 0.15, 0.85, 1.0] /* the open bridge */,
+          1: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the OOD in the pilothouse */,
           2: [1.6, 2400, 1.0, 0.25, 0.35, 0.12, 0.0] /* the forward engine room */,
           3: [0.45, 320, 0.1, 0.25, 0.15, 0.25, 0.08] /* communications */,
-          4: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the pilothouse */,
-          5: [
+          4: [
             [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the 3"/50 on the forecastle */,
             [0.65, 650, 0.12, 0.8, 0.3, 0.8, 0.9] /* the 20 mm amidships */,
             [0.5, 600, 0.08, 0.6, 0.9, 0.7, 0.9] /* the 40 mm aft */,
           ],
-          6: [
+          5: [
             [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the Hedgehog forward */,
             [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9] /* the K-guns aft */,
             [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9],
@@ -24990,12 +24983,12 @@ function drawCompass(hdg) {
    She runs aground in water shallower than her draft (2.9 m): back her off with the engines astern.
    The swell (pitch, roll, heave) is for the eye only and does not move her track. All figures are first-pass (see the plan).
    ===================================================================================================================== */
-/* take a station (1-6): its first-person eye and look; pressing the same key again steps to the station's next view */
+/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): its first-person eye and look; pressing the same key again steps to the station's next view */
 function shipStation(n) {
   const list = PCEM.STN[n];
   if (!list) return;
-  if (n === 6 && FM.use('walk') && camMode == 1 && SHIP.stn === 6) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
-  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 6 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
+  if (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
+  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
   SHIP.stn = n;
   const st = list[SHIP.sub];
   SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
@@ -25005,7 +24998,7 @@ function shipStation(n) {
   camMode = 1;
   SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
   STN.bino = false;
-  if (n === 6) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
+  if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
   gunStation();
   note(st.name);
 }
@@ -25043,8 +25036,8 @@ function shipStep(dt) {
   SHIP.t += dt;
   /* W / S ring the engines and A / D put the rudder over from every station. Let go of the rudder away from the bridge (a gun, the
      engine room, comms, the fantail) and the helmsman steadies her on the heading she has then */
-  const tp6 = SHIP.stn === 6 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
-    engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 4))) /* Hardcore: only the engine room and the pilothouse work the engines */,
+  const tp6 = SHIP.stn === 5 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
+    engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 1))) /* Hardcore: only the engine room and the pilothouse (the OOD) work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
     hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
     rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */,
@@ -25225,7 +25218,7 @@ function crewStep(dt) {
   if (!planes && !shore) return;
   const V3 = THREE.Vector3,
     REACH = { 20: [1400, 1000], 40: [3600, 3600], '3in': [7000, 12000] },
-    manned = camMode == 1 && SHIP.stn === 5 ? GUN.cur : null;
+    manned = camMode == 1 && SHIP.stn === 4 ? GUN.cur : null;
   for (const g of GUN.M) {
     if (g === manned) continue;
     const s = g.s,
@@ -25561,9 +25554,9 @@ function shipHUD() {
 }
 
 /* =====================================================================================================================
-   THE GUNNER - station 5. The player becomes the man who lays and fires the gun: the 3"/50 forward (the pointer, seated on the
+   THE GUNNER - station 4. The player becomes the man who lays and fires the gun: the 3"/50 forward (the pointer, seated on the
    left of the mount, at his telescope), the 20 mm on the starboard side amidships (the gunner, standing in the shoulder rests,
-   at the cartwheel ring sight) and the twin 40 mm aft (the pointer, seated on the left, at his ring sight). Press 5 again for
+   at the cartwheel ring sight) and the twin 40 mm aft (the pointer, seated on the left, at his ring sight). Press 4 again for
    the next gun. Meanwhile the helmsman holds her course and the engine order stands.
    Laying: move the mouse (the pointer is captured while on the gun; click once if the browser refused, Esc frees it),
    (a controller: the left stick); W / S and A / D still work the engines and the rudder; the 3"/50 and the 40 mm follow at their mounts'
@@ -25755,7 +25748,7 @@ function gunFill(G) {
 function gunStation() {
   gunInit();
   const st = PCEM.STN[SHIP.stn] && PCEM.STN[SHIP.stn][SHIP.sub];
-  GUN.cur = SHIP.stn === 5 && st && st.gun ? gunOf(st.gun) : null;
+  GUN.cur = SHIP.stn === 4 && st && st.gun ? gunOf(st.gun) : null;
   GUN.look = false;
   if (GUN.cur) {
     GUN.cur.trT = GUN.cur.tr;
@@ -25992,7 +25985,7 @@ function gunUpdate(dt) {
   gunInit();
   if (!GUN.M.length) return;
   const on = camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn;
-  if (GUN.cur && SHIP.stn !== 5) GUN.cur = null;
+  if (GUN.cur && SHIP.stn !== 4) GUN.cur = null;
   if (document.pointerLockElement === cv && !(GUN.cur && on && started && !paused && !pmOpen && !docsOpen)) gunLock(false); /* the 3"/50 is laid by right-drag, with the pointer free */ /* off the gun, in a menu or paused: the pointer is free again */
   const G = on ? GUN.cur : null,
     play = started && !paused && !RPL.on;
@@ -27361,7 +27354,7 @@ function stnHUD() {
   if (SHIP.stn === 2) return '<br>TELEGRAPH <b>' + TEL[telIdx(SHIP.tel)].replace('\n', ' ') + '</b><br>' + (ans ? 'ANSWERED' : '<span style="color:#ff8a6a">ANSWER THE BELL</span>') + ' &middot; <b>' + Math.round(Math.abs(ENG.ans) * 744) + '</b> rpm';
   if (st && st.dev === 'radar') return '<br>RADAR <b>' + RADAR.R[RADAR.ri] + '</b> nm scale';
   if (st && st.dev === 'sonar') return '<br>SONAR TRAIN <b>' + String(Math.round(((((SONAR.brg * 180) / Math.PI) % 360) + 360) % 360)).padStart(3, '0') + '</b>&deg; rel &middot; <b>' + SONAR.R[SONAR.ri] + '</b> yd';
-  if (SHIP.stn === 6) {
+  if (SHIP.stn === 5) {
     const i = tpAt();
     const tc = i >= 0 && tpList()[i] ? tpList()[i].tp : null;
     return '<br><b>' + (tc ? TPNAME[tc] : 'ON DECK') + '</b><br>' + (DC.dep[tc] ? 'DEPTH <b>' + DC.dep[tc] + '</b> ft ' + (DC.arm[tc] ? 'ARMED' : 'SAFE') + '<br>' : '') + 'RACKS ' + DC.rack[0] + '/' + DC.rack[1] + ' &middot; K ' + DC.kg[0] + '/' + DC.kg[1] + '<br>HEDGEHOG ' + HH.n + '/24';
@@ -27388,9 +27381,11 @@ function gunHUD() {
 /* =====================================================================================================================
    THE STATIONS AT WORK - the live instruments in each station and the duties behind them (the gunner is THE GUNNER above).
    Each face from PCEM.FACES is a canvas painted by the game: they are drawn about 15 times a second while the player is at
-   that station (once otherwise). W / S (engines) and A / D (rudder) work from every station; away from the bridge (1 OOD,
-   4 Quartermaster), when the rudder is let go the helmsman holds the course.
-     1 OOD: gyro-compass repeater; X raises the 7 x 50 binoculars (drag to look round).
+   that station (once otherwise). W / S (engines) and A / D (rudder) work from every station; away from the pilothouse (1 OOD),
+   when the rudder is let go the helmsman holds the course.
+     1 OOD, in the pilothouse (he has the quartermaster's duties too: the user's, 2026-11-21; the open bridge is no longer a
+       station): the wheel turns with the helm, the rudder-angle indicator, the gyro compass card in the binnacle, the two
+       engine-order telegraphs, the two rpm indicators and the clock; X raises the 7 x 50 binoculars (drag to look round).
      2 Engineering: the engine-order telegraph repeater (red = the bridge's order, black = what the engine room answers)
        and the gauge board (engine rpm, shaft rpm, lube oil, fresh water, exhaust, fuel, scavenge air, load). The bridge
        rings an order with a bell; the
@@ -27401,14 +27396,13 @@ function gunHUD() {
        the transducer, Page Up / Down the range scale; you hear the ping and the echo (its pitch shifts with the target's
        motion: up for closing, down for opening). When the player is elsewhere the operator searches by himself.
        radio - the receiver prints the traffic: orders, the target tugs, contact reports.
-     4 Quartermaster: the wheel turns with the helm, the rudder-angle indicator, the gyro compass card in the binnacle,
-       the two engine-order telegraphs, the two rpm indicators and the clock.
-     6 Torpedoman: the depth-charge board; Page Up / Down set the depth (50 to 300 ft), Space releases a charge from the
+     4 Gunner: THE GUNNER above.
+     5 Torpedoman: the depth-charge board; Page Up / Down set the depth (50 to 300 ft), Space releases a charge from the
        stern racks (port and starboard in turn), or at the K-gun view fires a K-gun (port, then starboard). Charges sink
        to their depth and go off.
    Figures marked (est.) are first-pass game figures, not researched yet.
    ===================================================================================================================== */
-const STN_OF = (id) => (/^radar|^sonar|^radio/.test(id) ? 3 : /^e/.test(id) ? 2 : /^qm/.test(id) ? 4 : id === 'oodGyro' ? 1 : id === 'dcBoard' ? 6 : 0);
+const STN_OF = (id) => (/^radar|^sonar|^radio/.test(id) ? 3 : /^e/.test(id) ? 2 : /^qm/.test(id) ? 1 : id === 'dcBoard' ? 5 : 0);
 function stnInit() {
   if (STN.init || !SHIPM.mesh) return;
   STN.init = true;
@@ -27438,13 +27432,6 @@ function stnInit() {
     m.position.set(...PCEM.WHEEL.pivot);
     SHIPM.mesh.add(m);
     STN.wheel = m;
-  }
-  {
-    /* the OOD on the open bridge: there unless the player has the watch there himself */
-    const a = new GX.Acc();
-    a.add(PCEM.OOD.parts, null);
-    STN.ood = new THREE.Mesh(a.geometry(), PCEM.material);
-    SHIPM.mesh.add(STN.ood);
   }
   RADIO.add('CTU 75.4', 'PCE 842 TAKE PATROL STATION ABLE OFF THE PT BASE. REPORT ALL CONTACTS.');
   for (const id in STN.F) stnDraw(STN.F[id]);
@@ -28455,7 +28442,7 @@ function tpArm() {
 }
 /* the position the torpedoman is at ('hh', 'port', 'stbd', 'rack') or null */
 function tpTp() {
-  if (camMode != 1 || SHIP.stn !== 6) return null;
+  if (camMode != 1 || SHIP.stn !== 5) return null;
   const i = tpAt();
   return i >= 0 && tpList()[i] ? tpList()[i].tp : null;
 }
@@ -28573,7 +28560,7 @@ function dcStep(dt) {
    ===================================================================================================================== */
 const tpXF = (f) => 27.75 - 0.6096 * f,
   tpFX = (x) => (27.75 - x) / 0.6096;
-const tpList = () => PCEM.STN[6];
+const tpList = () => PCEM.STN[5];
 const tpIdx = (tp) => tpList().findIndex((s) => s.tp === tp);
 const TPNAME = { hh: 'HEDGEHOG', port: 'PORT K-GUNS', stbd: 'STARBOARD K-GUNS', rack: 'RACKS' };
 /* the deck under the torpedoman's feet (model y), with the ladder down at the break of the forecastle (frame 62.8) */
@@ -28666,7 +28653,7 @@ function tpGo(i) {
 }
 /* J: to the weapon the latest order needs */
 function tpJump() {
-  if (camMode != 1 || SHIP.stn !== 6) return;
+  if (camMode != 1 || SHIP.stn !== 5) return;
   if (FM.use('walk')) return note('HARDCORE: WALK THERE - W A S D, SHIFT RUNS');
   const o = ASW.O.filter((o) => o.k && (o.st === 'open' || o.st === 'info')).pop();
   if (!o) return note('NO ORDERS');
@@ -28904,8 +28891,8 @@ function aswFired(tp) {
 function aswStep(dt, here) {
   const sub = PT.on ? PT.L.find((t) => t.kind === 'sub') : null,
     cm = ASW.who === 'comms',
-    stn = cm ? 3 : 6,
-    want = (cm ? SHIP.stn === 3 && COMMS.les && COMMS.les.atk : SHIP.stn === 6) && started && !RPL.on && !!sub;
+    stn = cm ? 3 : 5,
+    want = (cm ? SHIP.stn === 3 && COMMS.les && COMMS.les.atk : SHIP.stn === 5) && started && !RPL.on && !!sub;
   ASW.t += dt;
   /* after a run the score stays up until the player presses T again (a new run) or leaves the station */
   if (ASW.ph === 'done') {
@@ -29123,7 +29110,7 @@ function aswBox(here) {
       'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(520px,90vw);background:rgba(12,20,28,.84);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);pointer-events:none;z-index:20;display:none';
     document.body.appendChild(el);
   }
-  const show = here && SHIP.stn === 6 && !paused;
+  const show = here && SHIP.stn === 5 && !paused;
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
   const now = performance.now();
@@ -29159,7 +29146,7 @@ function aswBox(here) {
 }
 /* the torpedoman's station each frame: walk (Hardcore), fire what he is at, load the Hedgehog, and the attack */
 function tpUpdate(dt, here, trig) {
-  const at6 = here && SHIP.stn === 6;
+  const at6 = here && SHIP.stn === 5;
   if (at6 && FM.use('walk')) tpWalk(dt);
   if (at6) {
     const i = tpAt(),
@@ -29249,7 +29236,6 @@ function stnDraw(f, dt) {
     case 'dcBoard':
       dcBoardDraw(f);
       break;
-    case 'oodGyro':
     case 'qmCompass': {
       /* the compass card turns under the lubber line: the ship's head is at the top */
       const T = [];
@@ -29319,10 +29305,10 @@ function stnRange(d) {
   if (camMode != 1 || !st) return;
   if (st.dev === 'radar') radarRange(d);
   else if (st.dev === 'sonar') sonarRange(d);
-  else if (SHIP.stn === 6) dcDepth(d * 25);
+  else if (SHIP.stn === 5) dcDepth(d * 25);
 }
-/* is the player steering (OOD, Quartermaster or the chase view)? elsewhere the helmsman holds her course */
-const atHelm = () => camMode != 1 || SHIP.stn === 1 || SHIP.stn === 4;
+/* is the player steering (the OOD in the pilothouse, or the chase view)? elsewhere the helmsman holds her course */
+const atHelm = () => camMode != 1 || SHIP.stn === 1;
 function stnUpdate(dt) {
   stnInit();
   if (!STN.init) return;
@@ -29339,7 +29325,6 @@ function stnUpdate(dt) {
     STN.fire0 = f;
     commsUpdate(dt, here);
   }
-  if (STN.ood) STN.ood.visible = !(here && SHIP.stn === 1);
   if (STN.wheel) STN.wheel.rotation.x = SHIP.rud * Math.PI * 3; /* about three turns of the wheel, hard over to hard over */
   /* paint the station's faces about 15 times a second (the radar every frame); the radio only when there is news */
   STN.t += dt;

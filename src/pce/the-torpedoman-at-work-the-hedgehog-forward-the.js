@@ -14,6 +14,6 @@
    ===================================================================================================================== */
 const tpXF = (f) => 27.75 - 0.6096 * f,
   tpFX = (x) => (27.75 - x) / 0.6096;
-const tpList = () => PCEM.STN[6];
+const tpList = () => PCEM.STN[5];
 const tpIdx = (tp) => tpList().findIndex((s) => s.tp === tp);
 const TPNAME = { hh: 'HEDGEHOG', port: 'PORT K-GUNS', stbd: 'STARBOARD K-GUNS', rack: 'RACKS' };

@@ -144,7 +144,7 @@ bool iIs(vec3 c, vec3 k){ return distance(c, k) < 0.012; }
     ...GUNPOS.map(([id, x, y, z]) => ({ id, p: new THREE.Vector3(x, y, z) })),
     ...(moving ? MNT.map((d) => ({ id: d.id, p: new THREE.Vector3().setFromMatrixPosition(d.T).add(new THREE.Vector3(0, 1.2, 0)) })) : []),
   ];
-  return { guns, XF, hb, top, WL, F_STEM, F_END, STN, ER, build, buildInterior, flags, mounts, solid, material, intMaterial, FACES, WHEEL, OOD, Y2, Y3, hd, hm,
+  return { guns, XF, hb, top, WL, F_STEM, F_END, STN, ER, build, buildInterior, flags, mounts, solid, material, intMaterial, FACES, WHEEL, Y2, Y3, hd, hm,
     /* for other craft (PT-105): a 20 mm Oerlikon on its Mk 4 mount with gunner and loader, a twin 40 mm, and a crewman, as parts at their own origins */
     oer20: () => oer20(),
     twin40: (k) => twin40(k),

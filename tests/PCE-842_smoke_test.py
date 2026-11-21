@@ -143,21 +143,21 @@ with sync_playwright() as p:
     check("hull from the plans: 56 m overall, 10.1 m beam", 55.5 < dims[0] < 56.5 and 9.9 < dims[1] < 10.2, f"{dims[0]:.2f} m x {dims[1]:.2f} m")
     check("station interiors and ensigns are on the ship", pg.evaluate("()=>SHIPM.mesh.children.length>=3"))
     names = []
-    for k in range(1, 7):
+    for k in range(1, 6):
         pg.keyboard.press(f"Digit{k}"); pg.wait_for_timeout(250)
-        names.append(pg.evaluate(f"()=>camMode===1&&SHIP.stn==={k}&&SHIP.sub===({k}===6?3:0)"))
-    check("keys 1-6 take each station", all(names), str(names))
-    pg.keyboard.press("Digit5"); pg.wait_for_timeout(200); pg.keyboard.press("Digit5"); pg.wait_for_timeout(200)
-    check("pressing a station key again steps to its second view", pg.evaluate("()=>SHIP.stn===5&&SHIP.sub===1"))
+        names.append(pg.evaluate(f"()=>camMode===1&&SHIP.stn==={k}&&SHIP.sub===({k}===5?3:0)"))
+    check("keys 1-5 take each station", all(names), str(names))
+    pg.keyboard.press("Digit4"); pg.wait_for_timeout(200); pg.keyboard.press("Digit4"); pg.wait_for_timeout(200)
+    check("pressing a station key again steps to its second view", pg.evaluate("()=>SHIP.stn===4&&SHIP.sub===1"))
     # ---- the gunner ----
     fresh()
     check("the three player guns are moving parts", pg.evaluate("()=>GUN.M.map(g=>g.id).sort().join()==='20,3in,40'&&GUN.M.every(g=>g.m.tr.parent===g.m.o&&g.m.el.parent===g.m.tr)"))
     pg.keyboard.press("Digit1"); pg.wait_for_timeout(200)
     cyc = []
     for k in range(4):
-        pg.keyboard.press("Digit5"); pg.wait_for_timeout(250)
+        pg.keyboard.press("Digit4"); pg.wait_for_timeout(250)
         cyc.append(pg.evaluate("()=>GUN.cur&&GUN.cur.id"))
-    check("5 steps through the 3\"/50, the 20 mm and the twin 40 mm", cyc == ["3in", "20", "40", "3in"], str(cyc))
+    check("4 steps through the 3\"/50, the 20 mm and the twin 40 mm", cyc == ["3in", "20", "40", "3in"], str(cyc))
     pg.wait_for_timeout(400)
     check("the player replaces the gun's pointer (his crewman hidden, the others' shown)", pg.evaluate("()=>!gunOf('3in').m.pm.visible&&gunOf('20').m.pm.visible&&gunOf('40').m.pm.visible"))
     sc = pg.evaluate("()=>({fov:cam.fov,ov:$$('gunOv').style.display})")
@@ -193,7 +193,7 @@ with sync_playwright() as p:
        const b=GUN.B[0];let t=0;while(GUN.B.length&&t<60){gunUpdate(0.02);t+=0.02;}return {t,splash:GUN.F.length>f0}}""")
     check("a 3\"/50 shell flies and splashes into the sea", sp["splash"] and 2 < sp["t"] < 20, str(sp))
     pg.evaluate("()=>{SCAM.want=false;SCAM.on=false}")
-    pg.keyboard.press("Digit5"); pg.wait_for_timeout(400)
+    pg.keyboard.press("Digit4"); pg.wait_for_timeout(400)
     pg.evaluate("()=>{const g=GUN.cur;g.elT=0.23;g.trT=0;}"); pg.wait_for_timeout(600)
     r0 = pg.evaluate("()=>GUN.cur.rnd")
     pg.keyboard.down("Space"); pg.wait_for_timeout(1500)
@@ -204,7 +204,7 @@ with sync_playwright() as p:
     check("20 mm: fires from its 60-round drum, with tracer", r1 < r0 and tr > 0, f"{r0} -> {r1} rounds, {tr // 2} tracers")
     dr = pg.evaluate("()=>{const g=GUN.cur;g.rnd=1;g.ft=0;g.rl=0;keys.Space=true;gunUpdate(0.02);gunUpdate(0.2);keys.Space=false;return [g.rnd,g.rl>0]}")
     check("20 mm: an empty drum is changed", dr[0] == 0 and dr[1], str(dr))
-    pg.keyboard.press("Digit5"); pg.wait_for_timeout(400)
+    pg.keyboard.press("Digit4"); pg.wait_for_timeout(400)
     pg.evaluate("()=>{const g=GUN.cur;g.elT=0.1;g.trT=g.tr+0.4;}"); pg.wait_for_timeout(600)
     al = pg.evaluate("()=>{const g=GUN.cur;g.ft=0;g.al=[8,8];keys.Space=true;for(let i=0;i<4;i++)gunUpdate(0.23);keys.Space=false;return g.al}")
     check("twin 40 mm: the barrels fire in turn from their autoloaders", al[0] < 8 and al[1] < 8 and abs(al[0] - al[1]) <= 1, str(al))
@@ -224,7 +224,7 @@ with sync_playwright() as p:
         rc.set(p,q.sub(p).normalize());return rc.intersectObject(m).length>0})}""")
     check("the transom is closed (rays from astern just under the deck edge hit it)", all(tr), str(tr))
     check("sleeve kill zones: 40 mm 0.23 m off misses in Hardcore, kills in game mode; 20 mm needs two hits; the sleeve is re-streamed", kz == [False, True, True, True], str(kz))
-    pg.keyboard.press("Digit5"); pg.wait_for_timeout(400)  # back on a gun (the targets were checked on a fresh page, at the bridge)
+    pg.keyboard.press("Digit4"); pg.wait_for_timeout(400)  # back on a gun (the targets were checked on a fresh page, at the bridge)
     wv = pg.evaluate("()=>{$$('wvMode').value='guns';$$('wvMode').onchange();for(let i=0;i<200;i++)shipPose(0.05);const a=SHIPW.k;$$('wvMode').value='on';$$('wvMode').onchange();return a}")
     check("Wave motion 'off at the guns' holds her level while on a gun", wv < 0.01, f"k={wv:.3f}")
     hc = pg.evaluate("()=>{{const c=$$('hcOn');c.checked=true;c.onchange({target:c});}const t0=SHIP.tel;keys.KeyW=true;shipStep(0.5);keys.KeyW=false;const a=SHIP.tel===t0;$$('wvMode').value='off';$$('wvMode').onchange();for(let i=0;i<100;i++)shipPose(0.05);const b=SHIPW.k>0.99;$$('wvMode').value='on';$$('wvMode').onchange();{const c=$$('hcOn');c.checked=false;c.onchange({target:c});}keys.KeyW=true;shipStep(0.5);keys.KeyW=false;return [a,b,SHIP.tel>t0]}")
@@ -269,7 +269,7 @@ with sync_playwright() as p:
     wk = pg.evaluate("""()=>{const r=[[24.6,0],[25,-4.15],[43.9,-4.35],[57.4,-4.4],[57.6,-3.4],[58.2,-0.4],[62.4,0],[63.7,0],[68.3,0],[69,-2.7],[73,-2.95],[76,-3.2],[79.5,-3],[79.8,0],[83.6,0]];
        return r.every(([f,z])=>tpFree(tpXF(f),z)) && !tpFree(tpXF(35),0) && !tpFree(tpXF(74.8),0)}""")
     check("Hardcore walking: the deck route bow to stern is open, the deckhouse and the 40 mm platform are not", wk)
-    run = pg.evaluate("""()=>{const was=paused;paused=true;ptToggle();SHIP.stn=6;camMode=1;SHIP.sub=3;HH.n=24;let i=0;
+    run = pg.evaluate("""()=>{const was=paused;paused=true;ptToggle();SHIP.stn=5;camMode=1;SHIP.sub=3;HH.n=24;let i=0;
        for(;i<8000;i++){const dt=0.05;let trig=false;const o=ASW.O.filter(o=>o.st==='open').pop();
          if(o){const k=tpIdx(o.k);if(SHIP.sub!==k)tpGo(k);else trig=(i%2===0);}for(const k in DC.dep)DC.dep[k]=ASW.depth;
          shipStep(dt);sonarStep(dt,false,0);shipPose(dt);SHIPM.mesh.updateMatrixWorld(true);ptUpdate(dt);dcStep(dt);STN.fire0=false;tpUpdate(dt,true,trig);

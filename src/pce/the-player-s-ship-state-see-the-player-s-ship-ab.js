@@ -5,7 +5,7 @@ const SHIP = {
   TAU: 25 /* seconds to settle most of the way on a new speed */,
   RMIN: 180 /* turning radius at full rudder, m (first-pass figure) */,
   EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by shipStation() */,
-  stn: 1 /* station 1-6 (PCEM.STN) */,
+  stn: 1 /* station 1-5 (PCEM.STN) */,
   sub: 0 /* which view at that station */,
   look: [0, 0] /* the station's own look direction: yaw (+ to starboard), pitch */,
   YAX: new THREE.Vector3(0, 1, 0),

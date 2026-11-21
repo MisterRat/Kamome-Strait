@@ -17,16 +17,15 @@ SIMS.add({
         /* the mix by station: engines, their muffling (low-pass Hz), blower whine, exhaust, screws, wash, wind */
         MX = {
           0: [0.55, 650, 0.1, 0.7, 0.5, 1.0, 0.8] /* outside, the chase camera */,
-          1: [0.35, 420, 0.05, 0.9, 0.15, 0.85, 1.0] /* the open bridge */,
+          1: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the OOD in the pilothouse */,
           2: [1.6, 2400, 1.0, 0.25, 0.35, 0.12, 0.0] /* the forward engine room */,
           3: [0.45, 320, 0.1, 0.25, 0.15, 0.25, 0.08] /* communications */,
-          4: [0.4, 360, 0.08, 0.35, 0.12, 0.4, 0.25] /* the pilothouse */,
-          5: [
+          4: [
             [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the 3"/50 on the forecastle */,
             [0.65, 650, 0.12, 0.8, 0.3, 0.8, 0.9] /* the 20 mm amidships */,
             [0.5, 600, 0.08, 0.6, 0.9, 0.7, 0.9] /* the 40 mm aft */,
           ],
-          6: [
+          5: [
             [0.3, 450, 0.03, 0.4, 0.1, 1.1, 1.0] /* the Hedgehog forward */,
             [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9] /* the K-guns aft */,
             [0.55, 600, 0.1, 0.6, 0.9, 0.8, 0.9],

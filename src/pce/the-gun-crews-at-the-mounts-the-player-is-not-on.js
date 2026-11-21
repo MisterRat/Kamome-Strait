@@ -14,7 +14,7 @@ function crewStep(dt) {
   if (!planes && !shore) return;
   const V3 = THREE.Vector3,
     REACH = { 20: [1400, 1000], 40: [3600, 3600], '3in': [7000, 12000] },
-    manned = camMode == 1 && SHIP.stn === 5 ? GUN.cur : null;
+    manned = camMode == 1 && SHIP.stn === 4 ? GUN.cur : null;
   for (const g of GUN.M) {
     if (g === manned) continue;
     const s = g.s,

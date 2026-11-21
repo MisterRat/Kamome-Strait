@@ -10,9 +10,9 @@
    Paint: Measure 32 dazzle as photographed on PCE-842 (port side; the starboard side is mirrored until a starboard photo turns up),
    in 5-L light gray, 5-O ocean gray and BK dull black, with 20-B deck blue on the decks. The pattern is painted per pixel by the
    ship's material (PCEM.material) on every part coloured with the KEY colour, so the band edges stay sharp.
-   The six playable stations have their own first-person interiors (rooms face inward, so they cannot be seen from outside):
-   1 OOD open bridge, 2 engine room, 3 radar / radio room (and the sonar in the A/S hut), 4 pilothouse, 5 3"/50 and aft twin 40 mm,
-   6 the depth-charge fantail (and a K-gun).
+   The five playable stations have their own first-person interiors (rooms face inward, so they cannot be seen from outside):
+   1 OOD in the pilothouse, 2 engine room, 3 radar / radio room (and the sonar in the A/S hut), 4 gunner: 3"/50, 20 mm and aft twin
+   40 mm, 5 torpedoman: the Hedgehog, the K-guns and the depth-charge racks.
    ===================================================================================================================== */
 const PCEM = (() => {
   const FR = 0.6096,
@@ -400,8 +400,7 @@ const PCEM = (() => {
   /* live instrument faces: the game paints them (radar, sonar, gauges, telegraphs, compass cards); p is the face's centre (model frame),
      w x h its size, n the way it faces, up the way its top points */
   const FACES = [],
-    WHEEL = { parts: [], pivot: [0, 0, 0] },
-    OOD = { parts: [] };
+    WHEEL = { parts: [], pivot: [0, 0, 0] };
   const face = (id, p, w, h, n, up) => FACES.push({ id, p, w, h, n, up: up || [0, 1, 0] });
   /* collect the parts a function adds into a list of their own */
   const grab = (fn) => {
@@ -412,7 +411,7 @@ const PCEM = (() => {
     P = P0;
     return Q;
   };
-  /* the guns the player can man (station 5) are moving parts, not baked into the hull: d.T places the mount (its rest bearing
+  /* the guns the player can man (station 4) are moving parts, not baked into the hull: d.T places the mount (its rest bearing
      included) in the model frame, d.base stays fixed with the hull, d.train turns about the mount's vertical axis, d.elev is
      built level about the trunnions at d.pivot (in the training frame), d.pm is the crewman the player replaces, d.sight (if any)
      is a sight built about the eye that tilts with the guns (a sight linkage). d.eye is in the training frame, or in the
@@ -657,7 +656,7 @@ const PCEM = (() => {
       C(2.4, 2.4, 0.05, 0x2f3740, x, y + 0.02, 0, 0, 0, 0, 32);
       emit();
       begin();
-      /* the mount is the player's (station 5): its pedestal stays put, the carriage trains and the slide elevates (see MNT) */
+      /* the mount is the player's (station 4): its pedestal stays put, the carriage trains and the slide elevates (see MNT) */
       const base = grab(() => {
         C(0.42, 0.55, 0.85, GUNC, 0, 0.42, 0, 0, 0, 0, 16);
         C(0.62, 0.62, 0.12, GUNC, 0, 0.9, 0, 0, 0, 0, 18);
@@ -923,7 +922,6 @@ const PCEM = (() => {
       C(0.05, 0.07, 1.0, STEEL, XF(28.6), YG + 0.5, 0, 0, 0, 0, 8);
       C(0.17, 0.17, 0.06, DARK, XF(28.6), YG + 1.04, 0, 0, 0, 0.35, 14);
       C(0.15, 0.15, 0.065, DIAL, XF(28.6), YG + 1.045, 0, 0, 0, 0.35, 14);
-      face('oodGyro', [XF(28.6) - 0.035 * Math.sin(0.35), YG + 1.045 + 0.035 * Math.cos(0.35), 0], 0.29, 0.29, [-Math.sin(0.35), Math.cos(0.35), 0], [1, 0, 0]);
       for (const [f, z] of [
         [26.8, -1.3],
         [26.8, -1.0],
@@ -943,12 +941,11 @@ const PCEM = (() => {
         C(0.15, 0.15, 0.03, 0xdedcc0, ob1 + 0.47, YG + 1.82, s * (w3 - 0.15), 0, 0, HP, 14);
       }
       B(1.4, 0.6, 0.6, CANVAS, ob1 - 0.6, YG + 0.3, 0);
-      /* the watch on the open bridge: a lookout in each wing with binoculars, the OOD's talker on the sound-powered phone,
-         and the OOD himself (a moving part: hidden while the player has the watch, see OOD below) */
+      /* the watch on the open bridge: a lookout in each wing with binoculars and a talker on the sound-powered phone (the OOD
+         stands his watch in the pilothouse: the user's, 2026-11-21; the open bridge is no longer a station) */
       man(XF(27.6), YG, -2.35, 1.0, 'stand', 'glass');
       man(XF(27.6), YG, 2.35, -1.0, 'stand', 'glass');
       man(XF(32.3), YG, -1.05, 0.25, 'stand', 'down', true);
-      OOD.parts = grab(() => man(XF(31.7) - 0.18, YG, 0, 0, 'stand', 'down'));
     }
   }
   emit();
@@ -1422,7 +1419,7 @@ const PCEM = (() => {
   }
   emit();
   {
-    /* the after twin 40 mm: the player's (station 5) */
+    /* the after twin 40 mm: the player's (station 4) */
     const g = twin40parts(true);
     mount({
       id: '40',
@@ -1525,7 +1522,7 @@ const PCEM = (() => {
     GUNPOS.push(['20', x, y + 1.2, z]);
   }
   {
-    /* the starboard 20 mm amidships, abaft the bridge: the player's (station 5) */
+    /* the starboard 20 mm amidships, abaft the bridge: the player's (station 4) */
     const g = oer20parts();
     mount({
       id: '20',
@@ -1586,7 +1583,7 @@ const PCEM = (() => {
   };
 
   INTR = true;
-  /* --- 4: the pilothouse (steering station): wheel, two engine-order telegraphs, compass, rudder-angle indicator, voice tubes --- */
+  /* --- 1: the pilothouse (steering station, the OOD's): wheel, two engine-order telegraphs, compass, rudder-angle indicator, voice tubes --- */
   begin();
   {
     const x0 = X_PH1,
@@ -1859,21 +1856,21 @@ const PCEM = (() => {
 
   /* ---------- the stations: eye in the model frame, the way the eye looks (yaw: + to starboard), and a name ---------- */
   const STN = {
-    1: [{ e: [XF(31.7), YG + 1.68, 0], yaw: 0, pitch: -0.06, name: 'OOD - OPEN BRIDGE' }],
+    /* the OOD in the pilothouse, at the wheel and telegraphs (he has the quartermaster's duties too: the user's, 2026-11-21) */
+    1: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' }],
     2: [{ e: [ER.x0 + 1.4, ER.y0 + 1.65, -0.35], yaw: 0.62, pitch: -0.12, fov: 52, name: 'ENGINEERING - FORWARD ENGINE ROOM' }],
     3: [
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -0.61, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADAR', dev: 'radar' },
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -1.61, pitch: 0.08, fov: 38, name: 'COMMUNICATIONS - SONAR', dev: 'sonar' },
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -2.53, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADIO', dev: 'radio' },
     ],
-    4: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'QUARTERMASTER - PILOTHOUSE' }],
     /* the gunner mans a gun (gun: the mount's id): his eye and the way he looks come from the gun itself (see GUN in the game) */
-    5: [
+    4: [
       { gun: '3in', e: [XF(16.0) - 0.63, hd(16.0) + 0.12 + 1.82, -0.6], yaw: 0, pitch: 0, name: 'GUNNER - 3"/50 FORWARD (POINTER)' },
       { gun: '20', e: [XF(44.7), hd(44.7) + 0.12 + 1.63, 3.3], yaw: 1.4, pitch: 0, name: 'GUNNER - 20 MM STARBOARD AMIDSHIPS' },
       { gun: '40', e: [XF(76.3) + 0.6, Y_PLAT + 1.8, 1.0], yaw: PI, pitch: 0, name: 'GUNNER - TWIN 40 MM AFT (POINTER)' },
     ],
-    6: [
+    5: [
       /* the torpedoman's four positions, bow to stern: the Hedgehog, the K-guns each side, the stern racks and their control board */
       { tp: 'hh', e: [XF(24.1), hd(24.1) + 0.12 + 1.65, -1.6], yaw: 0.3, pitch: -0.32, name: 'TORPEDOMAN - HEDGEHOG' },
       { tp: 'port', e: [XF(69.0), hm(69.0) + 0.12 + 1.65, -2.7], yaw: -1.0, pitch: -0.33, name: 'TORPEDOMAN - PORT K-GUNS' },

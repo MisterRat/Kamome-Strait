@@ -8,7 +8,7 @@ function gunFill(G) {
 function gunStation() {
   gunInit();
   const st = PCEM.STN[SHIP.stn] && PCEM.STN[SHIP.stn][SHIP.sub];
-  GUN.cur = SHIP.stn === 5 && st && st.gun ? gunOf(st.gun) : null;
+  GUN.cur = SHIP.stn === 4 && st && st.gun ? gunOf(st.gun) : null;
   GUN.look = false;
   if (GUN.cur) {
     GUN.cur.trT = GUN.cur.tr;

@@ -8,7 +8,7 @@ function aswBox(here) {
       'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(520px,90vw);background:rgba(12,20,28,.84);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);pointer-events:none;z-index:20;display:none';
     document.body.appendChild(el);
   }
-  const show = here && SHIP.stn === 6 && !paused;
+  const show = here && SHIP.stn === 5 && !paused;
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
   const now = performance.now();

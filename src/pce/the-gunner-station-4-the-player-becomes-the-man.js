@@ -1,7 +1,7 @@
 /* =====================================================================================================================
-   THE GUNNER - station 5. The player becomes the man who lays and fires the gun: the 3"/50 forward (the pointer, seated on the
+   THE GUNNER - station 4. The player becomes the man who lays and fires the gun: the 3"/50 forward (the pointer, seated on the
    left of the mount, at his telescope), the 20 mm on the starboard side amidships (the gunner, standing in the shoulder rests,
-   at the cartwheel ring sight) and the twin 40 mm aft (the pointer, seated on the left, at his ring sight). Press 5 again for
+   at the cartwheel ring sight) and the twin 40 mm aft (the pointer, seated on the left, at his ring sight). Press 4 again for
    the next gun. Meanwhile the helmsman holds her course and the engine order stands.
    Laying: move the mouse (the pointer is captured while on the gun; click once if the browser refused, Esc frees it),
    (a controller: the left stick); W / S and A / D still work the engines and the rudder; the 3"/50 and the 40 mm follow at their mounts'

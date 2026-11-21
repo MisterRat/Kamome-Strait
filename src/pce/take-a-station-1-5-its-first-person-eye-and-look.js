@@ -1,9 +1,9 @@
-/* take a station (1-6): its first-person eye and look; pressing the same key again steps to the station's next view */
+/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): its first-person eye and look; pressing the same key again steps to the station's next view */
 function shipStation(n) {
   const list = PCEM.STN[n];
   if (!list) return;
-  if (n === 6 && FM.use('walk') && camMode == 1 && SHIP.stn === 6) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
-  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 6 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
+  if (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
+  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
   SHIP.stn = n;
   const st = list[SHIP.sub];
   SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
@@ -13,7 +13,7 @@ function shipStation(n) {
   camMode = 1;
   SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
   STN.bino = false;
-  if (n === 6) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
+  if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
   gunStation();
   note(st.name);
 }
@@ -51,8 +51,8 @@ function shipStep(dt) {
   SHIP.t += dt;
   /* W / S ring the engines and A / D put the rudder over from every station. Let go of the rudder away from the bridge (a gun, the
      engine room, comms, the fantail) and the helmsman steadies her on the heading she has then */
-  const tp6 = SHIP.stn === 6 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
-    engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 4))) /* Hardcore: only the engine room and the pilothouse work the engines */,
+  const tp6 = SHIP.stn === 5 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
+    engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 1))) /* Hardcore: only the engine room and the pilothouse (the OOD) work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
     hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
     rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */,
