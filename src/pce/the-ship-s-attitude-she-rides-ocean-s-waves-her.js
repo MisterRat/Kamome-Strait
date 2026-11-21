@@ -8,8 +8,9 @@ function shipPose(dt) {
   const wm = FM.use('sea') ? 'on' : WAVE.mode /* Hardcore: the sea always moves her */,
     wk = wm === 'off' || (wm === 'guns' && GUN.cur && camMode == 1) ? 0 : 1;
   SHIPW.k += (wk - SHIPW.k) * Math.min(1, dt * 1.5);
-  pos.y = SHIPM.Y + SHIPW.hv * SHIPW.k;
-  SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k, 'YXZ');
+  sdmStep(dt); /* her battle damage: flooding settles and lists her */
+  pos.y = SHIPM.Y + SHIPW.hv * SHIPW.k - sdmSettle();
+  SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k + sdmList(), 'YXZ');
   q.setFromEuler(SHIP.E);
   axes();
   /* her hull in the sea (OCEAN.hull): a manned ship, so no water anywhere inside her, with her bow wave and wake */
@@ -41,6 +42,7 @@ function shipHUD() {
   hud.innerHTML = MOB
     ? `<b>${kn.toFixed(1)}</b> kn &nbsp;HDG <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>${shipOrder()} &middot; ${rs}`
     : `SPEED <b>${kn.toFixed(1)}</b> kn<br>HEADING <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>ENGINES <b>${shipOrder()}</b><br>RUDDER <b>${rs}</b>`;
+  if (sdmText()) hud.innerHTML += '<br><b style="color:#ff8a5a">' + sdmText() + '</b>' /* her damage */;
   if (GUN.cur && camMode == 1) hud.innerHTML += gunHUD();
   else if (camMode == 1 && !MOB) hud.innerHTML += stnHUD();
   helpBox();

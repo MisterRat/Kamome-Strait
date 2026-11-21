@@ -675,6 +675,7 @@ const SITES = [],
       if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
         boom = end = true;
         T14W.hits++;
+        SIMS.cur.torpedoed();
         note('TORPEDO HIT! (' + T14W.hits + ')');
       } else if (HR(t.x, t.z) > coastSea() - 1.5) boom = end = true; /* into the shallows: it hits the bottom */
       if (boom) {

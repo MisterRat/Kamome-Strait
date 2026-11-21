@@ -818,7 +818,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.12';
+const VERSION = '0.13';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -905,7 +905,8 @@ const HOOKS = {
      ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
      resetEnd()         last thing in a reset: its missions and trainers
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
-     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
+     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
+                        torpedoed() is told when one hits her
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -968,6 +969,7 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
+    torpedoed: () => {},
     label: '',
     fileTag: '',
     word: 'Vehicle',
@@ -1255,6 +1257,7 @@ SIMS.add({
   lookScale: () => (STN.bino ? 7.1 / 65 : 1) /* 7 x 50 binoculars */,
   afloat: true,
   struck: (p) => shipStruck(p),
+  torpedoed: () => sdmHit('torpedo'),
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */
@@ -1440,6 +1443,9 @@ const SHIP = {
 };
 /* returning to base (RETURN TO BASE): on while the helmsman takes her home or she lies at her berth; ph its stage */
 const RTB = { on: false, ph: '', tel: 0, hold: 0 };
+/* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
+   the speed a shallow charge under her stern leaves her */
+const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };
 /* the gunner's state (station 5; see THE GUNNER above the loop) */
 const GUN = {
   M: [] /* the mounts */,
@@ -20749,6 +20755,7 @@ function coastUpdate(dt) {
     const g = s.g;
     if (hit) {
       COAST.hits++;
+      sdmHit('shell');
       gunFx(L, 0xffa040, 6, 16, 0.5, 0, true);
       gunFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
       note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');
@@ -21445,6 +21452,7 @@ const SITES = [],
       if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
         boom = end = true;
         T14W.hits++;
+        SIMS.cur.torpedoed();
         note('TORPEDO HIT! (' + T14W.hits + ')');
       } else if (HR(t.x, t.z) > coastSea() - 1.5) boom = end = true; /* into the shallows: it hits the bottom */
       if (boom) {
@@ -30652,6 +30660,7 @@ function shipReset() {
   }
   SHIP.u = SHIP.r = SHIP.tel = SHIP.rud = 0;
   RTB.on = false; /* not returning to base */
+  sdmReset(); /* her battle damage mended */
   if (typeof RAID === 'object' && RAID) (raidClear(), (RAID.next = 90), (RAID.hits = RAID.kills = 0)) /* var RAID: shipReset runs before THE AIR RAIDS block loads */;
   ENG.ans = 0;
   DC.rack = [8, 8];
@@ -30803,6 +30812,98 @@ if (SIMS.on('pce') && $$('pmRestart')) {
   };
   $$('pmRestart').after(b);
 }
+/* BATTLE DAMAGE, the PCE-842 (Settings > Battle damage, DM.on, on by default): what the hits do to her. Until now they were only
+   counted. Each hit holes her hull (water comes in through the holes), may start a fire and may damage her engines:
+     a 25 mm or machine-gun round (the ground fire, the escort, the raiders)   a small hole; now and then a fire
+     a 12 cm shell (the coast battery)                                         a real hole; often a fire; sometimes the engines
+     a torpedo (the T-14s)                                                     a great hole, the engine room flooding, a fire
+   Damage control fights back: the pumps clear 0.12% of her reserve buoyancy a second, the repair parties shore the holes up and put
+   the fires out (a big fire spreads faster than they can, and reaches the engines). Flooding settles her and lists her and slows
+   her (with the engine damage, SHIP.dmgK); if it takes all her reserve buoyancy she is lost: she goes down and the game ends.
+   Calibrated so that one torpedo sinks her in about three and a half minutes, two 12 cm hits leave her low but afloat, and a
+   strafing run holes her a little. SDM (the ship state piece) holds it; sdmText() for the HUD; a restart mends her. */
+function sdmReset() {
+  Object.assign(SDM, { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 });
+}
+const sdmSay = (txt) => RADIO.add('DAMAGE CONTROL', txt, { own: true });
+/* a hit: kind 'small', 'shell' or 'torpedo' */
+function sdmHit(kind) {
+  if (!DM.on || SDM.lost || !SIMS.on('pce')) return;
+  const r = Math.random;
+  if (kind === 'small') {
+    SDM.holes += 0.04;
+    if (r() < 0.04) SDM.fire = Math.max(SDM.fire, 0.15);
+  } else if (kind === 'shell') {
+    SDM.holes += 0.8;
+    if (r() < 0.35) SDM.fire = Math.max(SDM.fire, 0.35);
+    if (r() < 0.25) {
+      SDM.eng = Math.min(1, SDM.eng + 0.3);
+      sdmSay('BRIDGE, DAMAGE CONTROL. HIT IN THE ENGINE ROOM. ONE ENGINE DAMAGED, SPEED REDUCED.');
+    } else sdmSay('BRIDGE, DAMAGE CONTROL. SHELL HIT, HOLED ABOVE THE WATERLINE. REPAIR PARTIES ON IT.');
+  } else if (kind === 'torpedo') {
+    SDM.holes += 3.5;
+    SDM.eng = Math.min(1, SDM.eng + 0.5);
+    SDM.fire = Math.max(SDM.fire, 0.5);
+    sdmSay('BRIDGE, DAMAGE CONTROL. TORPEDO HIT AMIDSHIPS. ENGINE ROOM FLOODING. ALL PUMPS ON IT.');
+  }
+}
+/* each frame: the water, the fires, the damage control, her settling, her loss */
+function sdmStep(dt) {
+  if (!SIMS.on('pce')) return;
+  if (SDM.lost) {
+    /* she goes down: she settles until her decks are under, then she is gone */
+    SDM.sink += dt;
+    if (SHIPM.mesh && SDM.sink > 40) SHIPM.mesh.visible = false;
+    return;
+  }
+  if (!SDM.holes && !SDM.flood && !SDM.fire) return;
+  SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012) * dt);
+  SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
+  if (SDM.fire > 0) {
+    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - 0.006) * dt)); /* a small one is put out, a big one spreads */
+    if (SDM.fire > 0.6) SDM.eng = Math.min(1, SDM.eng + 0.004 * dt);
+    if ((SDM.smokeT -= dt) <= 0) {
+      SDM.smokeT = 0.35;
+      const p = pos.clone().add(new V((Math.random() - 0.5) * 8, 5 + Math.random() * 2, (Math.random() - 0.5) * 8));
+      fxAdd(p, 0x2e2c2a, 2 + 6 * SDM.fire, 10 + 20 * SDM.fire, 5, 2.5, false);
+      if (Math.random() < 0.5) fxAdd(p, 0xff8a30, 1 + 2 * SDM.fire, 3, 0.4, 0.5, true);
+    }
+    if (SDM.fire === 0) sdmSay('BRIDGE, DAMAGE CONTROL. THE FIRE IS OUT.');
+  }
+  SHIP.dmgK = Math.min(SDM.shaft, (1 - 0.85 * SDM.eng) * (1 - 0.6 * SDM.flood));
+  SDM.msgT -= dt;
+  if (SDM.flood > 0.5 && SDM.msgT <= 0) {
+    SDM.msgT = 60;
+    sdmSay('BRIDGE, DAMAGE CONTROL. SHE IS SETTLING. WATER GAINING ON THE PUMPS.');
+  }
+  if (SDM.flood >= 1) {
+    SDM.lost = true;
+    SHIP.dmgK = 0;
+    sdmSay('BRIDGE, DAMAGE CONTROL. WE CANNOT HOLD HER.');
+    RADIO.add('BRIDGE', 'ABANDON SHIP. ABANDON SHIP.', { own: true });
+    crashed = true;
+    const m = $$('msg');
+    m.innerHTML =
+      'PCE-842 IS LOST<br><small style="font-size:14px;color:#fff">' +
+      (MOB ? 'Tap here to restart' : 'Press Enter, or A / Start on the controller, to restart') +
+      '</small>';
+    m.style.display = 'block';
+  }
+}
+/* how far she has settled (m) and her list (rad), for her attitude */
+function sdmSettle() {
+  return SDM.lost ? Math.min(12, 2.6 + SDM.sink * 0.25) : 2.6 * SDM.flood;
+}
+function sdmList() {
+  return SDM.lost ? Math.min(0.9, 0.25 + SDM.sink * 0.02) : 0.25 * SDM.flood;
+}
+function sdmText() {
+  const l = [];
+  if (SDM.flood > 0.02) l.push('FLOODING ' + Math.round(SDM.flood * 100) + '%');
+  if (SDM.fire > 0) l.push('FIRE');
+  if (SDM.eng > 0) l.push('ENGINES ' + Math.round(SDM.eng * 100) + '%');
+  return l.join(' &middot; ');
+}
 /* the ship's attitude: she rides OCEAN's waves through the shared RIDE module (heave, pitch and roll with the lag of a heavy hull), plus a
    little heel outward in a turn. Places the model; her wake is OCEAN's foam trail (the P-51's painted wake is not used for her). */
 RIDE.init(SHIPW, 24, 4.5, 8); /* her bow and stern samples 24 m out, the sides 4.5 m: about 0.43 of her 56 m and 0.45 of her 10 m beam */
@@ -30813,8 +30914,9 @@ function shipPose(dt) {
   const wm = FM.use('sea') ? 'on' : WAVE.mode /* Hardcore: the sea always moves her */,
     wk = wm === 'off' || (wm === 'guns' && GUN.cur && camMode == 1) ? 0 : 1;
   SHIPW.k += (wk - SHIPW.k) * Math.min(1, dt * 1.5);
-  pos.y = SHIPM.Y + SHIPW.hv * SHIPW.k;
-  SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k, 'YXZ');
+  sdmStep(dt); /* her battle damage: flooding settles and lists her */
+  pos.y = SHIPM.Y + SHIPW.hv * SHIPW.k - sdmSettle();
+  SHIP.E.set(SHIPW.pi * SHIPW.k, SHIP.hdg, SHIPW.ro * SHIPW.k + sdmList(), 'YXZ');
   q.setFromEuler(SHIP.E);
   axes();
   /* her hull in the sea (OCEAN.hull): a manned ship, so no water anywhere inside her, with her bow wave and wake */
@@ -30846,6 +30948,7 @@ function shipHUD() {
   hud.innerHTML = MOB
     ? `<b>${kn.toFixed(1)}</b> kn &nbsp;HDG <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>${shipOrder()} &middot; ${rs}`
     : `SPEED <b>${kn.toFixed(1)}</b> kn<br>HEADING <b>${Math.round(hd).toString().padStart(3, '0')}</b>&deg;<br>ENGINES <b>${shipOrder()}</b><br>RUDDER <b>${rs}</b>`;
+  if (sdmText()) hud.innerHTML += '<br><b style="color:#ff8a5a">' + sdmText() + '</b>' /* her damage */;
   if (GUN.cur && camMode == 1) hud.innerHTML += gunHUD();
   else if (camMode == 1 && !MOB) hud.innerHTML += stnHUD();
   helpBox();
@@ -32344,6 +32447,7 @@ function raidShoot(e, dt) {
   if (RAID.tr.length > 60) RAID.tr.shift();
   if (hit) {
     RAID.hits++;
+    sdmHit('small');
     gunFx(q, 0xffd080, 1.2, 3, 0.15, 0, true);
     if (Math.random() < 0.3) gunFx(q, 0x3a3a38, 1, 4, 0.8, 0.6, false);
   } else gunSplash(q, { splash: 0.18 });
@@ -32505,6 +32609,7 @@ SIMS.add({
       if (shipStruck(_aaS.copy(a).lerp(b, f))) {
         b.copy(_aaS);
         AA.hits = (AA.hits || 0) + 1;
+        sdmHit('small');
         fxAdd(b, 0xffd080, 1.2, 3, 0.15, 0, true);
         return true;
       }
@@ -33731,6 +33836,7 @@ function dcStep(dt) {
         const st = pos.clone().addScaledVector(new V(-Math.sin(SHIP.hdg), 0, -Math.cos(SHIP.hdg)), PCEM.XF(90));
         if (Math.hypot(c.p.x - st.x, c.p.z - st.z) < 45 && SHIP.u < 10 * 0.5144) {
           SHIP.dmgK = Math.min(SHIP.dmgK || 1, 0.6);
+          SDM.shaft = 0.6; /* the battle damage keeps it */
           SHIPW.vr += 0.25;
           ASW.dmg = true;
           note('SHALLOW CHARGE UNDER THE STERN - SHAFTS DAMAGED, SPEED REDUCED');

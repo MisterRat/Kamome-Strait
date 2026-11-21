@@ -67,6 +67,7 @@ function dcStep(dt) {
         const st = pos.clone().addScaledVector(new V(-Math.sin(SHIP.hdg), 0, -Math.cos(SHIP.hdg)), PCEM.XF(90));
         if (Math.hypot(c.p.x - st.x, c.p.z - st.z) < 45 && SHIP.u < 10 * 0.5144) {
           SHIP.dmgK = Math.min(SHIP.dmgK || 1, 0.6);
+          SDM.shaft = 0.6; /* the battle damage keeps it */
           SHIPW.vr += 0.25;
           ASW.dmg = true;
           note('SHALLOW CHARGE UNDER THE STERN - SHAFTS DAMAGED, SPEED REDUCED');

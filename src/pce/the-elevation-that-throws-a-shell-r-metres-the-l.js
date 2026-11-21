@@ -110,6 +110,7 @@ function coastUpdate(dt) {
     const g = s.g;
     if (hit) {
       COAST.hits++;
+      sdmHit('shell');
       gunFx(L, 0xffa040, 6, 16, 0.5, 0, true);
       gunFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
       note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');

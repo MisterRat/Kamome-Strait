@@ -22,3 +22,6 @@ const SHIP = {
 };
 /* returning to base (RETURN TO BASE): on while the helmsman takes her home or she lies at her berth; ph its stage */
 const RTB = { on: false, ph: '', tel: 0, hold: 0 };
+/* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
+   the speed a shallow charge under her stern leaves her */
+const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };

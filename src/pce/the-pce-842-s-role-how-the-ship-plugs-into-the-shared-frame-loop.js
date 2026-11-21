@@ -63,6 +63,7 @@ SIMS.add({
   lookScale: () => (STN.bino ? 7.1 / 65 : 1) /* 7 x 50 binoculars */,
   afloat: true,
   struck: (p) => shipStruck(p),
+  torpedoed: () => sdmHit('torpedo'),
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */

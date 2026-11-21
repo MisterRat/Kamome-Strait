@@ -9,6 +9,7 @@ SIMS.add({
       if (shipStruck(_aaS.copy(a).lerp(b, f))) {
         b.copy(_aaS);
         AA.hits = (AA.hits || 0) + 1;
+        sdmHit('small');
         fxAdd(b, 0xffd080, 1.2, 3, 0.15, 0, true);
         return true;
       }

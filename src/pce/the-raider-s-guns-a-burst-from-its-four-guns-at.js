@@ -28,6 +28,7 @@ function raidShoot(e, dt) {
   if (RAID.tr.length > 60) RAID.tr.shift();
   if (hit) {
     RAID.hits++;
+    sdmHit('small');
     gunFx(q, 0xffd080, 1.2, 3, 0.15, 0, true);
     if (Math.random() < 0.3) gunFx(q, 0x3a3a38, 1, 4, 0.8, 0.6, false);
   } else gunSplash(q, { splash: 0.18 });

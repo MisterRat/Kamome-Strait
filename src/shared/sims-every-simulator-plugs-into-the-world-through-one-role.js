@@ -32,7 +32,8 @@
      ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
      resetEnd()         last thing in a reset: its missions and trainers
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
-     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull
+     afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
+                        torpedoed() is told when one hits her
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -95,6 +96,7 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
+    torpedoed: () => {},
     label: '',
     fileTag: '',
     word: 'Vehicle',
