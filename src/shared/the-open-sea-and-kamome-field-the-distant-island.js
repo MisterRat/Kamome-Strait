@@ -173,8 +173,8 @@
   scene.add(grp);
   /* the moving ones, each with a reason: the bowser fuels the fighters one by one, the jeep inspects the runway */
   const wp = (u, v) => ISL.w(u, v);
-  AFLD.add(MD.fuelTruck(0x56603f), [wp(112, -106), wp(-90, -106), wp(-105, -106), wp(-120, -106), wp(-135, -106), wp(-150, -106), wp(-165, -106)], 4, 12, 'veh', { stops: 9, y: Yp });
-  AFLD.add(MD.jeep(), [wp(-500, -48), wp(500, -48)], 7, 25, 'veh', { y: Yp });
+  AFLD.add(MD.fuelTruckD(0x56603f), [wp(112, -106), wp(-90, -106), wp(-105, -106), wp(-120, -106), wp(-135, -106), wp(-150, -106), wp(-165, -106)], 4, 12, 'veh', { stops: 9, y: Yp });
+  AFLD.add(MD.jeepD(), [wp(-500, -48), wp(500, -48)], 7, 25, 'veh', { y: Yp });
   ISL.bx = ISL.w(140, 100)[0]; /* the beacon */
   ISL.bz = ISL.w(140, 100)[1];
 }

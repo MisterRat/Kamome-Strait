@@ -249,6 +249,7 @@ const VM = (() => {
     g.computeBoundingSphere();
     return g;
   };
+  const DRV = { truck: 'jp-type94-cargo', supply: 'jp-type94-supply', tanker: 'jp-type94-fuel', jeep: 'jp-kurogane', apc: 'jp-ko-hi' };
   const defs = {
     /* the enemy vehicles are the reference-built models (MODELS, the Japanese army vehicles piece) */
     truck: () => MODELS.get('jp-type94-cargo'),
@@ -267,6 +268,8 @@ const VM = (() => {
     has: (t) => !!defs[t],
     isB: (t) => !!BSET[t],
     make: (t, s) => cache[t] || (cache[t] = bake(defs[t](), s, !!BSET[t], t)),
+    /* the same with a driver at the wheel (a convoy vehicle on the move; MODELS.driven): its MODELS name in DRV */
+    makeDriven: (t, s) => (DRV[t] ? cache[t + '#d'] || (cache[t + '#d'] = bake(MODELS.driven(DRV[t]), s, false, t)) : VM.make(t, s)),
     parts: (t) => defs[t](),
     /* the parts at the type's real size (for parked vehicles; nose along +x, wheels on y = 0) */
     fitParts: (t) => (REAL[t] ? GX.fit(defs[t](), null, fitScale(t)) : defs[t]()),
@@ -286,7 +289,9 @@ function mkT(type, x, z, ry, kind) {
     det = VM.has(type),
     m = new THREE.Mesh(
       det
-        ? VM.make(type, s)
+        ? kind === 'veh'
+          ? VM.makeDriven(type, s) /* on the move: a driver at the wheel */
+          : VM.make(type, s)
         : sp.cyl
           ? new THREE.CylinderGeometry(4.5, 4.5, 9, 14)
           : new THREE.BoxGeometry(s[0], s[1], s[2]),

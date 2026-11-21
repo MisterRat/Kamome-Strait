@@ -1,6 +1,6 @@
 # Coral-block mole with timber T-head (home port): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 112.00 m long, 25.09 m wide, 9.07 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 112.00 m long, 25.09 m wide, 9.07 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** coral-block mole (stone jetty) with a timber T-head
 

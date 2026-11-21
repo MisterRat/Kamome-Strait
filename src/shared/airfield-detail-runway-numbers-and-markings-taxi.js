@@ -42,7 +42,10 @@
     fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
     cargoTruckR = () => GX.fit(MODELS.get('us-cckw-cargo'), null, cckw()),
     jeepR = () => GX.fit(MODELS.get('us-willys-mb'), { L: 3.36, W: 1.57, H: 1.77 }),
-    tugR = () => GX.fit(MODELS.get('us-clarktor6'), { L: 2.54, W: 1.32, H: 1.42 });
+    tugR = () => GX.fit(MODELS.get('us-clarktor6'), { L: 2.54, W: 1.32, H: 1.42 }),
+    /* the same with a driver at the wheel (MODELS.driven), for the ones that move: sized by the vehicle alone */
+    fuelTruckD = (c) => GX.fit(MODELS.driven('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
+    jeepD = () => GX.fit(MODELS.driven('us-willys-mb'), null, fitOnce('jeep', MODELS.get('us-willys-mb'), { L: 3.36, W: 1.57, H: 1.77 }));
   /* the line-up: six fighters in front of the apron's east side, two at the hangar doors */
   [
     [-108, 336, 0.1, 0xb7bcc2, 0xb22a24, {}],
@@ -81,9 +84,9 @@
     face: 0,
   });
   /* the jeep is a perimeter patrol: it drives right round the paved area, outside its edge, and keeps going */
-  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true, ground: true }); /* off the pavement: it follows the ground */
+  AFLD.add(jeepD(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true, ground: true }); /* off the pavement: it follows the ground */
   /* the fuel bowser works down the line of fighters, just behind their tails, and stands at each one to fuel it */
-  AFLD.add(fuelTruckR(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
+  AFLD.add(fuelTruckD(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
   AFLD.add(crew(0x8b7d5a), [[-97, 338], [-97, 372]], 1.4, 5, 'walk');
   AFLD.add(crew(0x6f7a8a), [[-97, 398], [-97, 436]], 1.3, 8, 'walk');
   AFLD.add(crew(0xa89b84), [[-172, 160], [-172, 205]], 1.4, 6, 'walk');
@@ -380,7 +383,7 @@
     /* the reference-built ships (MODELS, the cargo ships piece), checked to size here */
     freighterR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-liberty' : 'jp-type2a'), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
     tankerR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-t2' : 'jp-type2tl'), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
-  AFLD.models = { freighter: freighterR, tanker: tankerR, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
+  AFLD.models = { freighter: freighterR, tanker: tankerR, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, fuelTruckD, jeepD, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
   /* soft contact shadows under everything parked */
   {
     const c = document.createElement('canvas');

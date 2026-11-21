@@ -1,6 +1,6 @@
 # Quonset Elephant hut, 40 x 100 ft (Fletcher Field store): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 31.48 m long, 12.99 m wide, 6.26 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 31.48 m long, 12.99 m wide, 6.26 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Stran-Steel Quonset Elephant hut / warehouse, 40 x 100 ft
 

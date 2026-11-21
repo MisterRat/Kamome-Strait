@@ -1,6 +1,6 @@
 # Japanese army light car (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 3.50 m long, 1.55 m wide, 1.95 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 3.50 m long, 1.55 m wide, 1.95 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Kurogane Type 95 scout car
 

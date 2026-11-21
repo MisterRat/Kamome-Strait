@@ -1,6 +1,6 @@
 # Type 96 25 mm twin AA gun in its emplacement: game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.80 m long, 9.80 m wide, 3.14 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 9.80 m long, 9.80 m wide, 3.14 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit
 

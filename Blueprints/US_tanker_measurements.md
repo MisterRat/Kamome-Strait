@@ -1,6 +1,6 @@
 # US tanker (kept for later): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 159.60 m long, 20.70 m wide, 26.07 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 159.60 m long, 20.70 m wide, 26.07 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** T2-SE-A1 tanker, kept for later
 

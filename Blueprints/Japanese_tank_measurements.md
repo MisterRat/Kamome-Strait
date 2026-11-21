@@ -1,6 +1,6 @@
 # Japanese army tank (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 4.34 m long, 2.10 m wide, 2.38 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 4.34 m long, 2.10 m wide, 2.38 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Type 95 Ha-Go light tank
 

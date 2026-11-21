@@ -9,7 +9,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Model | Represents | Length x width x height (m) | Check | Files |
 |---|---|---|---|---|
 | North American P-51D Mustang (the player's aircraft) | North American P-51D Mustang | 9.84 x 11.28 x 3.72 | match | `P-51D_blueprint.png`, `P-51D_measurements.md` |
-| North American P-51D Mustang: the display form (AI copies) | North American P-51D Mustang | 10.04 x 11.28 x 5.04 | match | `P-51D_display_blueprint.png`, `P-51D_display_measurements.md` |
+| North American P-51D Mustang: the display form (AI copies) | North American P-51D Mustang | 10.07 x 11.28 x 5.47 | match | `P-51D_display_blueprint.png`, `P-51D_display_measurements.md` |
 | P-51D Mustang, parked (home airfield) | North American P-51D Mustang (the player's exterior, parked form) | 9.69 x 11.28 x 4.11 | match | `P-51D_parked_blueprint.png`, `P-51D_parked_measurements.md` |
 | P-51D Mustang, parked: the distant form (beyond 1 km) | North American P-51D Mustang (simplified airfield model) | 9.62 x 11.28 x 4.09 | match | `P-51D_distant_blueprint.png`, `P-51D_distant_measurements.md` |
 | Nakajima Ki-84-Ia Hayate (bandit and raider) | Nakajima Ki-84-Ia Hayate ("Frank") | 9.92 x 11.27 x 3.58 | match | `Ki-84_blueprint.png`, `Ki-84_measurements.md` |
@@ -20,7 +20,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Target sled (towed by PT-108) | Gunnery target sled (generic) | 11.70 x 3.50 x 5.73 | no reference yet | `Target_sled_blueprint.png`, `Target_sled_measurements.md` |
 | Battle-practice target raft | Battle-practice target raft with screen (generic) | 12.00 x 5.00 x 8.40 | no reference yet | `Target_raft_blueprint.png`, `Target_raft_measurements.md` |
 | Towed target sleeve | Towed aerial target sleeve (generic) | 9.00 x 1.40 x 1.40 | no reference yet | `Target_sleeve_blueprint.png`, `Target_sleeve_measurements.md` |
-| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.29 x 11.82 x 23.79 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
+| Ukuru-class kaibokan (Japanese coastal escort) | Ukuru-class kaibokan (escort ship) | 79.30 x 11.82 x 23.82 | **check** | `Ukuru-class_blueprint.png`, `Ukuru-class_measurements.md` |
 | Daihatsu landing barge (Japanese harbours) | Daihatsu (Type A) landing barge | 14.94 x 3.35 x 4.18 | match | `Japanese_Daihatsu_barge_blueprint.png`, `Japanese_Daihatsu_barge_measurements.md` |
 | Wooden lighter (Japanese harbours) | wooden cargo lighter (unpowered barge) | 12.00 x 4.20 x 2.40 | close | `Japanese_lighter_blueprint.png`, `Japanese_lighter_measurements.md` |
 | Timber A-frame derrick (home port T-head) | hand-cranked timber A-frame derrick (shear legs) | 11.66 x 4.87 x 11.20 | match | `Japanese_A-frame_derrick_blueprint.png`, `Japanese_A-frame_derrick_measurements.md` |

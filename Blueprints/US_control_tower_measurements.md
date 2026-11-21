@@ -1,6 +1,6 @@
 # Steel-angle control tower (US airfields): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 7.46 m long, 8.04 m wide, 19.25 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 7.46 m long, 8.04 m wide, 19.25 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Bolted steel-angle airfield control tower, open braced frame, cab at 12 m
 

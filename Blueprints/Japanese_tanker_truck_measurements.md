@@ -1,6 +1,6 @@
 # Japanese army tanker truck (enemy target): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 5.40 m long, 1.90 m wide, 2.30 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 5.40 m long, 1.90 m wide, 2.30 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Isuzu Type 94 six-wheeled truck (tanker truck)
 

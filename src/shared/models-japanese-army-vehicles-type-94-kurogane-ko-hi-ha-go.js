@@ -59,11 +59,15 @@
   /* the cab: late-war soft-top cab standing on the rails, its front against the bonnet, windscreen, canvas roof on the cab sides */
   const t94cab = (P, c) => {
     P.push(
-      GX.ext([[0.25, FR1 - 0.02], [1.4, FR1 - 0.02], [1.4, 1.5], [1.32, 2.0], [0.25, 2.0]], 1.72, c),
+      /* the cab open above the doors, as many were (a canvas top on pillars): its driver shows from the side */
+      GX.ext([[0.25, FR1 - 0.02], [1.4, FR1 - 0.02], [1.4, 1.5], [0.25, 1.5]], 1.72, c),
+      GX.ext([[1.3, 1.5], [1.4, 1.5], [1.32, 2.0], [1.24, 2.0]], 1.72, c) /* the front, round the windscreen */,
+      GX.ext([[0.25, 1.5], [0.33, 1.5], [0.33, 2.0], [0.25, 2.0]], 1.72, c) /* the back wall */,
+      part(bx(0.5, 0.42, 1.4), 0x3b3a2b, 0.6, 0.85, 0) /* the bench seat */,
       GX.ext([[0.25, 1.98], [1.32, 1.98], [1.28, 2.18], [0.25, 2.25]], 1.74, CANVAS),
       part(bx(0.04, 0.42, 1.5), GLASS, 1.372, 1.76, 0, 0, 0, 0.159) /* in the cab's raked front */,
     );
-    for (const s of [-1, 1]) P.push(part(bx(0.9, 0.4, 0.02), 0x15191c, 0.72, 1.7, s * 0.865));
+    for (const s of [-1, 1]) P.push(part(bx(0.06, 0.5, 0.06), c, 1.0, 1.75, s * 0.83)) /* the door pillars */;
   };
   /* wooden drop-side bed on three bolsters */
   const t94bed = (P) => {
@@ -117,8 +121,9 @@
     const c = 0x66603d,
       P = [
         GX.ext([[-1.62, 0.42], [1.55, 0.42], [1.69, 0.55], [1.66, 0.74], [1.45, 0.92], [0.95, 1.0], [0.3, 1.02], [0.3, 0.98], [-1.5, 0.98], [-1.66, 0.8]], 1.3, c),
-        /* the folding canvas top, its front edge strapped to the windscreen frame's top rail */
-        GX.ext([[-1.55, 0.96], [0.215, 0.96], [0.262, 1.62], [0.25, 1.66], [-0.15, 1.68], [-1.35, 1.66], [-1.55, 1.5]], 1.34, 0x9a8a62),
+        /* the canvas top folded down on the rear deck (she runs open, so her driver shows) */
+        part(bx(0.42, 0.2, 1.3), 0x9a8a62, -1.38, 1.07, 0),
+        part(bx(0.5, 0.3, 1.1), 0x3d3b2c, -0.3, 0.86, 0) /* the front seats, down in the tub */,
         /* the windscreen frame, standing in the cowl (its foot in the body) up to the top's front edge */
         part(bx(0.06, 0.7, 1.24), 0x4a4632, 0.26, 1.3, 0, 0, 0, -0.08),
         part(bx(0.04, 0.6, 1.16), GLASS, 0.255, 1.3, 0, 0, 0, -0.08),
@@ -129,7 +134,6 @@
       P.push(GX.ext([[-1.55, 0.62], [-1.3, 0.82], [-0.8, 0.82], [-0.55, 0.62], [-0.65, 0.58], [-0.9, 0.72], [-1.25, 0.72], [-1.45, 0.58]], 0.2, c, s * 0.68));
       P.push(...W(1.15, 0.33, s * 0.62, 0.33, 0.18, TYRE, 0x3b3a33, 10), ...W(-1.05, 0.33, s * 0.62, 0.33, 0.18, TYRE, 0x3b3a33, 10));
       P.push(...lamp(1.5, 0.92, s * 0.48));
-      P.push(part(bx(0.75, 0.3, 0.02), 0x15191c, -0.6, 1.3, s * 0.68)) /* open side under the top */;
     }
     P.push(...W(-0.35, 0.72, 0.72, 0.31, 0.16, TYRE, c, 10)); /* the spare on the right side, its inner face on the body side */
     return P;
@@ -146,7 +150,11 @@
       GX.ext([[1.0, F1 - 0.02], [2.12, F1 - 0.02], [2.3, 0.98], [2.3, 1.35], [2.15, 1.45], [1.0, 1.45]], 0.95, c) /* bonnet, sides to the rails */,
       part(bx(0.04, 0.5, 0.8), 0x2e2d29, 2.31, 1.12, 0),
       part(bx(0.12, 0.14, 1.7), DK, 2.33, 0.72, 0) /* bumper on the rail ends */,
-      GX.ext([[-0.05, F1 - 0.02], [1.0, F1 - 0.02], [1.0, 1.45], [0.95, 1.85], [-0.05, 1.85]], 1.82, c) /* cab, on the rails */,
+      /* cab, on the rails: open above the doors under its canvas top, so its driver shows from the side */
+      GX.ext([[-0.05, F1 - 0.02], [1.0, F1 - 0.02], [1.0, 1.4], [-0.05, 1.4]], 1.82, c),
+      GX.ext([[0.9, 1.4], [1.0, 1.4], [0.95, 1.85], [0.86, 1.85]], 1.82, c) /* the front, round the windscreen */,
+      GX.ext([[-0.05, 1.4], [0.03, 1.4], [0.03, 1.85], [-0.05, 1.85]], 1.82, c) /* the back wall */,
+      part(bx(0.45, 0.4, 1.5), 0x3b3a2b, 0.35, 0.9, 0) /* the bench seat */,
       GX.ext([[-0.05, 1.83], [0.95, 1.83], [0.9, 2.12], [-0.05, 2.15]], 1.84, CANVAS),
       part(bx(0.04, 0.38, 1.5), GLASS, 0.97, 1.65, 0, 0, 0, -0.1),
     );
@@ -155,7 +163,7 @@
     /* front axle on springs */
     P.push(part(cyl(0.06, 0.06, 1.44, 8), DK, 1.62, 0.42, 0, Z));
     for (const sz of [-1, 1]) {
-      P.push(part(bx(2.2, 0.48, 0.05), c, -1.2, F1 + 0.56, sz * 0.93), part(bx(0.85, 0.36, 0.02), 0x15191c, 0.45, 1.62, sz * 0.92));
+      P.push(part(bx(2.2, 0.48, 0.05), c, -1.2, F1 + 0.56, sz * 0.93), part(bx(0.06, 0.45, 0.06), c, 0.5, 1.62, sz * 0.88)) /* the door pillars */;
       P.push(part(bx(0.8, F0 - 0.44, 0.1), 0x2e2e2a, 1.62, (F0 + 0.44) / 2, sz * 0.4));
       P.push(GX.ext([[0.95, 0.8], [1.2, 1.0], [2.0, 1.02], [2.25, 0.8], [2.12, 0.72], [1.95, 0.86], [1.3, 0.86], [1.1, 0.78]], 0.47, c, sz * 0.71)); /* mudguard from the bonnet side */
       P.push(...W(1.62, 0.42, sz * 0.72, 0.42, 0.25, TYRE, 0x3b3a33));

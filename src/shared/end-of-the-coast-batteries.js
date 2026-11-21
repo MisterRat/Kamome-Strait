@@ -1817,7 +1817,7 @@ const SITES = [],
       walkJ(0, [[-68, -38], [-14, -10], [0, -2], [0, 60]], 1.2, 10);
       walkJ(1, [[-90, -138], [-30, -80], [40, -80]], 1.4, 7);
       walkJ(1, [[110, -30], [60, -25]], 1.2, 14);
-      AFLD.add(MODELS.get('jp-type94-cargo'), [F.w(-110, -36), F.w(60, -36)], 5, 25, 'veh');
+      AFLD.add(MODELS.drivenAs('jn', 1, 'jp-type94-cargo') /* a sailor at the wheel, in working blues */, [F.w(-110, -36), F.w(60, -36)], 5, 25, 'veh');
     } else {
       /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
          a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
@@ -1860,7 +1860,7 @@ const SITES = [],
       walkU(0, [[-100, -90], [-35, -90], [-10, -40]], 1.4, 6);
       walkU(1, [[20, -35], [75, 0], [75, 130]], 1.3, 15);
       walkU(2, [[-140, -90], [-50, -90], [-40, -50]], 1.2, 9);
-      AFLD.add(M.jeep(), [F.w(-145, -15), F.w(140, -15)], 7, 20, 'veh');
+      AFLD.add(M.jeepD(), [F.w(-145, -15), F.w(140, -15)], 7, 20, 'veh');
       /* the fuel line along the jetty, and the tank farm behind it (four 1,000-barrel tanks) */
       {
         const d0 = F.po - 4,

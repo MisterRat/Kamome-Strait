@@ -80,6 +80,57 @@
     upper(P, S, c, sk, hip, 'head');
     return P;
   }, { name: 'ground crew figure' });
+  /* a seated driver: origin at his hips (on the seat), facing +x; thighs level, shins down to the pedals, his hands on the wheel at
+     hand = [forward, up] from the hips. MODELS.get('driver', side, v, hand) */
+  MODELS.add('driver', (side, v, hand) => {
+    const S = side || 'us',
+      c = U[S][(v || 0) % U[S].length],
+      sk = SKIN[S],
+      P = [],
+      [hx, hy] = hand || [0.45, 0.1],
+      arm = S === 'jn' && c.band ? sk : c.top,
+      sh = 0.55;
+    for (const s of [-1, 1]) {
+      const z = s * 0.1;
+      P.push(limb(0, 0, 0.44, 0.02, z, 0.085, 0.07, c.legs), limb(0.44, 0.02, 0.5, -0.4, z, 0.07, 0.055, c.putt || c.legs));
+      P.push(part(bx(0.26, 0.1, 0.11), c.boots, 0.58, -0.43, z));
+    }
+    upper(P, S, c, sk, 0, 'torso');
+    for (const s of [-1, 1]) {
+      const z = s * 0.22,
+        hz = s * 0.16,
+        ex = hx * 0.45,
+        ey = sh - 0.32;
+      P.push(limb(0, sh, ex, ey, z, 0.055, 0.045, arm), limb(ex, ey, hx, hy, (z + hz) / 2, 0.045, 0.04, arm === sk ? sk : arm));
+      P.push(part(sph(6), sk, hx, hy, hz, 0, 0, 0, 0.05, 0.05, 0.05));
+    }
+    upper(P, S, c, sk, 0, 'head');
+    return P;
+  }, { name: 'seated driver' });
+  /* WHO DRIVES WHAT: each vehicle that moves gets a driver in its seat (hip: his hips on the seat; wheel: the steering wheel's centre;
+     the vehicle's frame, nose +x, the right-hand side at -z). The American vehicles drive on the left of the cab (+z), the Japanese
+     on the right (-z), an army man (MODELS.drivenAs(side, v, name, ...) for another, the navy's at its base). MODELS.driven(name, ...args) -> the model's parts with its driver; a parked vehicle has none. */
+  const SEATS = {
+    'us-willys-mb': ['us', [-0.4, 1.25, 0.35], [0.02, 1.31, 0.35]],
+    'us-cckw-cargo': ['us', [0.7, 1.75, 0.45], [1.22, 1.86, 0.45]],
+    'us-cckw-fuel': ['us', [0.7, 1.75, 0.45], [1.22, 1.86, 0.45]],
+    'us-clarktor6': ['us', [-0.75, 1.08, 0], [-0.4, 1.32, 0]],
+    'jp-kurogane': ['ja', [-0.3, 0.98, -0.3], [0.12, 1.12, -0.3]],
+    'jp-type94-cargo': ['ja', [0.62, 1.06, -0.42], [1.05, 1.32, -0.42]],
+    'jp-type94-supply': ['ja', [0.62, 1.06, -0.42], [1.05, 1.32, -0.42]],
+    'jp-type94-fuel': ['ja', [0.62, 1.06, -0.42], [1.05, 1.32, -0.42]],
+    'jp-ko-hi': ['ja', [0.35, 1.1, -0.42], [0.78, 1.34, -0.42]],
+  };
+  MODELS.drivenAs = (who, v, name, ...a) => {
+    const P = MODELS.get(name, ...a),
+      s = SEATS[name];
+    if (!s) return P;
+    const [side, h, w] = s,
+      M = new THREE.Matrix4().makeTranslation(h[0], h[1], h[2]);
+    for (const q of MODELS.get('driver', who || side, v || 0, [w[0] - h[0], w[1] - h[1]])) P.push(Object.assign({}, q, { m: new THREE.Matrix4().multiplyMatrices(M, q.m) }));
+    return P;
+  };
+  MODELS.driven = (name, ...a) => MODELS.drivenAs(null, 0, name, ...a);
   /* the same figure jointed, for one who walks: CREW_RIG(side, v) -> { root, step(dist, speed) }. Each thigh hangs from its hip, each
      shin (with its boot) from its knee, each upper arm from its shoulder and each forearm (with the hand) from its elbow; root's origin
      is on the ground under the hips. step() poses it for the metres walked so far (dist) at the speed it walks now: a stride of

@@ -1,6 +1,6 @@
 # Daihatsu landing barge (Japanese harbours): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 14.94 m long, 3.35 m wide, 4.18 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.87 build by `tools/blueprint.py` (2026-11-20). Model box: 14.94 m long, 3.35 m wide, 4.18 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** Daihatsu (Type A) landing barge
 
