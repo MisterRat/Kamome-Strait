@@ -10,7 +10,10 @@ SIMS.add({
     { id: 'coach', label: 'Mission coach panel', sel: '#coach', g: 'Instruments', sc: 'none' },
     { id: 'tq', label: 'Engine order gauge', sel: '#tq', g: 'Instruments', sc: 'desk' },
     { id: 'help', label: 'Controls help (H)', sel: '#help', g: 'Instruments' },
-    { id: 'gring', label: 'Sight rings at the guns: where to aim (game mode)', sel: '#gunRing', g: 'Aids' },
+    /* at a gun, where to aim at every enemy in its reach (game mode): each gun's own switch, all on by default */
+    { id: 'ring3in', label: 'The 3-inch gun', g: 'Sight rings' },
+    { id: 'ring40', label: '40 mm', g: 'Sight rings' },
+    { id: 'ring20', label: '20 mm', g: 'Sight rings' },
     { id: 'bandit', label: 'Bandit marker and lead ring', sel: '#bd,#bdt,#lead', g: 'Aids', sc: 'none' },
     { id: 'cross', label: 'Guns', sel: '#cross', g: 'Sight rings', sc: 'none' },
     { id: 'rkring', label: 'Rockets', sel: '#rkip', g: 'Sight rings', sc: 'none' },

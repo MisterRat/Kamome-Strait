@@ -24,7 +24,7 @@ const GAMES = {
     out: 'Kamome_Strait.html',
     sims: ['p51', 'pce'],
     /* the crossovers: pieces that use more than one simulator, loaded after all of them */
-    cross: ['kamome/the-p-51s-fly-cover-over-the-pce.js'],
+    cross: ['kamome/air-support-for-the-pce-when-the-ood-calls-for-it.js'],
   },
 };
 

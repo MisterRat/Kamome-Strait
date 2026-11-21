@@ -824,7 +824,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.04';
+const VERSION = '0.05';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -28025,7 +28025,10 @@ SIMS.add({
     { id: 'coach', label: 'Mission coach panel', sel: '#coach', g: 'Instruments', sc: 'none' },
     { id: 'tq', label: 'Engine order gauge', sel: '#tq', g: 'Instruments', sc: 'desk' },
     { id: 'help', label: 'Controls help (H)', sel: '#help', g: 'Instruments' },
-    { id: 'gring', label: 'Sight rings at the guns: where to aim (game mode)', sel: '#gunRing', g: 'Aids' },
+    /* at a gun, where to aim at every enemy in its reach (game mode): each gun's own switch, all on by default */
+    { id: 'ring3in', label: 'The 3-inch gun', g: 'Sight rings' },
+    { id: 'ring40', label: '40 mm', g: 'Sight rings' },
+    { id: 'ring20', label: '20 mm', g: 'Sight rings' },
     { id: 'bandit', label: 'Bandit marker and lead ring', sel: '#bd,#bdt,#lead', g: 'Aids', sc: 'none' },
     { id: 'cross', label: 'Guns', sel: '#cross', g: 'Sight rings', sc: 'none' },
     { id: 'rkring', label: 'Rockets', sel: '#rkip', g: 'Sight rings', sc: 'none' },
@@ -31366,7 +31369,7 @@ function ptAt(tg) {
 function gunRings() {
   const c = $$('gunRing'),
     G = GUN.cur,
-    on = !!(G && !FM.use('rings') && UI.vis('gring') && camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn && !SCAM.on);
+    on = !!(G && !FM.use('rings') && UI.vis('ring' + G.id) && camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn && !SCAM.on) /* the manned gun's own rings (Settings > Sight rings) */;
   if (!on) {
     if (c.dataset.on) {
       c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -31388,6 +31391,24 @@ function gunRings() {
   if (PT.on) for (const t of PT.L) if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t)]);
   for (const e of EN) if (!e.dying && e.p) L.push([e.p, e.v || (e.fwd ? e.fwd.clone().multiplyScalar(e.sp || 0) : zero)]);
   for (const e of RAID.L) if (e.st !== 'down') L.push([e.p, e.v]);
+  /* the enemies on the water and ashore within the gun's reach: the warships (the T-14s, the escort: not the civilian ships) and the
+     guns and searchlights; their motion measured frame to frame for the lead */
+  {
+    const reach = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13000,
+      now = performance.now() / 1000;
+    for (const t of T) {
+      if (t.dead || !(t.kind === 'aa' || (t.type === 'ship' && t.kind !== 'civ')) || !t.m.visible) continue;
+      const p = t.ringP || (t.ringP = new V()),
+        v = t.ringV || (t.ringV = new V());
+      p.copy(t.c);
+      if (t.kind === 'aa') p.y += 1.5;
+      if (t.ringT && now - t.ringT < 0.5 && now > t.ringT) v.copy(p).sub(t.ringL).divideScalar(now - t.ringT);
+      else v.set(0, 0, 0);
+      (t.ringL || (t.ringL = new V())).copy(p);
+      t.ringT = now;
+      if (p.distanceTo(cam.position) <= reach) L.push([p, v]);
+    }
+  }
   /* the gun's effective range: the 20 mm's was about 1,000 yd (NavWeaps); the 40 mm out to its tracer burn-out and self-destruct, about
      4,000 yd; the 3"/50 as far as it can be ranged. Beyond it the ring turns grey and says OUT OF RANGE */
   const effR = G.id === '20' ? 914 : G.id === '40' ? 3650 : 12000,
@@ -35735,32 +35756,72 @@ function frame(now) {
   if (PHOTO.shot) photoCapture();
 }
 requestAnimationFrame(frame);
-/* CROSSOVER: P-51s fly cover over the PCE-842 (Kamome Strait page only: it needs both simulators). Two Mustangs (the P-51's
-   display form, P51DISP) hold a combat air patrol circle over the ship; when the PCE's raiders come (Settings > Enemy: Planes),
-   each goes after the nearest Frank and, holding it in its sights, has a fair chance of shooting it down every second. Their
-   kills are theirs, not the ship's (RAID.kills is hers). They show on the minimap in blue. */
+/* CROSSOVER: air support for the PCE-842 (Kamome Strait page only: it needs both simulators). She has no standing air cover. When
+   the radar picks up enemy planes (a live raider inside DETECT), Comms reports them to the bridge; the OOD decides whether he wants
+   air support. The player as OOD (on the bridge, or conning from the chase view) gets the choice on screen (Y / N, or the buttons);
+   at another station the AI OOD asks for it. Comms radios Kamome Control, which scrambles two P-51s from Kamome Field (the P-51's
+   display form, P51DISP): they take off a minute later, fly out, go after the raiders and can shoot them down (their kills, not the
+   ship's: RAID.kills is hers), and once the sky has been clear for a while they report and fly home. Declined, the OOD is asked
+   again at the next raid. The fighters show on the minimap in blue. */
 const CAP = (() => {
-  const R = 1800 /* the circle's radius round the ship, m */,
-    ALT = 700 /* above the sea */,
+  const DETECT = 18000 /* the radar's reach for low aircraft, m */,
+    FIELD = new THREE.Vector3(0, 0, 420) /* Kamome Field, where they take off and land */,
+    SCRAMBLE = 60 /* s from the call to wheels up */,
+    R = 1800,
+    ALT = 700,
     V_CAP = 125,
-    V_ATK = 165 /* m/s */,
+    V_ATK = 165,
+    V_GO = 160 /* m/s */,
     TURN = 0.45 /* rad/s */,
+    CLEAR = 45 /* s with no raider before they go home */,
     L = [];
-  let said = false;
+  const S = { st: 'none' /* none, asked, declined, called, out, home */, t: 0, raid: false, clear: 0, box: null };
   const up = new THREE.Vector3(0, 1, 0),
     w = new THREE.Vector3(),
     M = new THREE.Matrix4(),
     tgt = new THREE.Vector3();
+  const brg = (p) => String(Math.round(((((Math.atan2(p.x - pos.x, -(p.z - pos.z)) * 180) / Math.PI) % 360) + 360) % 360) % 360).padStart(3, '0');
+  const live = () => (typeof RAID !== 'undefined' ? RAID.L.filter((e) => e.st !== 'down') : []);
+  /* the OOD's choice on screen */
+  const ask = (e) => {
+    S.st = 'asked';
+    S.t = 0;
+    const b = S.box || (S.box = document.createElement('div'));
+    b.id = 'capAsk';
+    b.style.cssText =
+      'position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:40;background:rgba(10,20,35,.88);color:#e8eef5;border:1px solid #5aa8ff;border-radius:8px;padding:10px 14px;font:bold 15px monospace;text-align:center';
+    b.innerHTML = 'COMMS: ENEMY AIRCRAFT ON RADAR, BEARING ' + brg(e.p) + ', ' + (e.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES.<br>REQUEST AIR SUPPORT?<br>';
+    for (const [t, yes] of [['Request air support (Y)', true], ['Not now (N)', false]]) {
+      const k = document.createElement('button');
+      k.textContent = t;
+      k.style.cssText = 'margin:8px 6px 0;font:bold 14px monospace;padding:4px 10px';
+      k.onclick = () => decide(yes);
+      b.appendChild(k);
+    }
+    document.body.appendChild(b);
+  };
+  const shut = () => S.box && S.box.remove();
+  const decide = (yes) => {
+    shut();
+    if (!yes) {
+      S.st = 'declined';
+      note('OOD: NO AIR SUPPORT FOR NOW');
+      return;
+    }
+    S.st = 'called';
+    S.t = 0;
+    RADIO.add('BRIDGE', 'COMMS, BRIDGE: REQUEST AIR SUPPORT FROM KAMOME CONTROL.', { own: true });
+    note('OOD: REQUEST AIR SUPPORT');
+  };
   const spawn = () => {
     for (let k = 0; k < 2; k++) {
       const D = P51DISP.make({ gear: false }),
-        a = k * Math.PI,
         f = {
           g: D.g,
           prop: D.prop,
-          a,
-          p: new THREE.Vector3(pos.x + R * Math.cos(a), SEA.Y + ALT, pos.z + R * Math.sin(a)),
-          v: new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)).multiplyScalar(V_CAP),
+          a: Math.random() * 6.28,
+          p: FIELD.clone().add(new THREE.Vector3(k * 30, 300, k * 30)),
+          v: tgt.copy(pos).sub(FIELD).setY(0).normalize().multiplyScalar(V_GO).clone(),
           bank: 0,
           tgt: null,
           aim: 0,
@@ -35769,42 +35830,32 @@ const CAP = (() => {
       L.push(f);
     }
   };
-  /* turn the velocity toward w at most TURN rad/s, at speed sp; the bank follows the turn */
+  /* turn the velocity toward dir at most TURN rad/s, toward speed sp; the bank follows the turn */
   const steer = (f, dir, sp, dt) => {
     const v0 = f.v.clone().normalize(),
       ang = Math.acos(Math.max(-1, Math.min(1, v0.dot(dir)))),
       k = ang > 1e-4 ? Math.min(1, (TURN * dt) / ang) : 1,
       v1 = v0.clone().lerp(dir, k).normalize(),
-      side = Math.sign(v0.x * v1.z - v0.z * v1.x);
-    const rate = ang > 1e-4 ? Math.min(ang, TURN * dt) / dt : 0;
+      side = Math.sign(v0.x * v1.z - v0.z * v1.x),
+      rate = ang > 1e-4 ? Math.min(ang, TURN * dt) / dt : 0,
+      s0 = f.v.length();
     f.bank += (Math.atan((sp * rate) / 9.81) * side - f.bank) * Math.min(1, dt * 2);
-    const s0 = f.v.length();
     f.v.copy(v1).multiplyScalar(s0 + (sp - s0) * Math.min(1, dt * 0.5));
   };
   const pose = (f) => {
     f.g.position.copy(f.p);
-    const d = w.copy(f.v).normalize(),
-      u = up.clone().applyAxisAngle(d, -f.bank);
-    M.lookAt(f.p, tgt.copy(f.p).add(d), u);
+    const d = w.copy(f.v).normalize();
+    M.lookAt(f.p, tgt.copy(f.p).add(d), up.clone().applyAxisAngle(d, -f.bank));
     f.g.quaternion.setFromRotationMatrix(M);
   };
-  const tick = (dt) => {
-    const on = SIMS.on('pce') && !crashed;
-    if (!on) {
-      for (const f of L) f.g.visible = false;
-      return;
-    }
-    if (!L.length) spawn();
-    if (!said) {
-      said = true;
-      RADIO.add('CAP', 'TWO P-51S ON STATION OVER YOU, ANGELS TWO. WE HAVE YOUR BACK.');
-    }
-    const live = typeof RAID !== 'undefined' ? RAID.L.filter((e) => e.st !== 'down' && e.p.distanceTo(pos) < 9000) : [];
-    for (const f of L) {
-      f.g.visible = !PHOTO.on || PHOTO.showPlane !== false;
-      f.prop.rotation.z += dt * 60;
-      if (f.tgt && (f.tgt.st === 'down' || !live.includes(f.tgt))) f.tgt = null;
-      if (!f.tgt && live.length) f.tgt = live.reduce((b, e) => (e.p.distanceTo(f.p) < b.p.distanceTo(f.p) ? e : b));
+  const fly = (f, dt, R0) => {
+    f.prop.rotation.z += dt * 60;
+    if (S.st === 'home') {
+      tgt.copy(FIELD).setY(SEA.Y + 300);
+      steer(f, w.copy(tgt).sub(f.p).normalize(), V_GO, dt);
+    } else {
+      if (f.tgt && (f.tgt.st === 'down' || !R0.includes(f.tgt))) f.tgt = null;
+      if (!f.tgt && R0.length) f.tgt = R0.reduce((b, e) => (e.p.distanceTo(f.p) < b.p.distanceTo(f.p) ? e : b));
       if (f.tgt) {
         const e = f.tgt;
         tgt.copy(e.p).addScaledVector(e.v, Math.min(3, e.p.distanceTo(f.p) / 300));
@@ -35819,22 +35870,89 @@ const CAP = (() => {
               e.st = 'down';
               e.sm = 0;
               note('THE P-51S SPLASH A FRANK');
-              RADIO.add('CAP', 'SPLASH ONE FRANK! RETURNING TO STATION.');
+              RADIO.add('PONY FLIGHT', 'SPLASH ONE FRANK!');
             }
           }
         } else f.aim = 0;
+      } else if (f.p.distanceTo(pos) > R * 2.5) {
+        /* on the way out: straight to her */
+        tgt.copy(pos).setY(SEA.Y + ALT);
+        steer(f, w.copy(tgt).sub(f.p).normalize(), V_GO, dt);
       } else {
-        /* the circle: aim a little ahead of our place on it, back up at patrol height */
+        /* on station: a circle round her, a little ahead of our place on it */
         f.a += (V_CAP / R) * dt;
         tgt.set(pos.x + R * Math.cos(f.a + 0.35), SEA.Y + ALT, pos.z + R * Math.sin(f.a + 0.35));
         steer(f, w.copy(tgt).sub(f.p).normalize(), V_CAP, dt);
       }
-      f.p.addScaledVector(f.v, dt);
-      f.p.y = Math.max(f.p.y, SEA.Y + 60);
-      pose(f);
+    }
+    f.p.addScaledVector(f.v, dt);
+    f.p.y = Math.max(f.p.y, SEA.Y + 60);
+    pose(f);
+  };
+  const tick = (dt) => {
+    if (!SIMS.on('pce') || crashed) {
+      for (const f of L) f.g.visible = false;
+      shut();
+      return;
+    }
+    const R0 = live(),
+      seen = R0.find((e) => e.p.distanceTo(pos) < DETECT);
+    S.t += dt;
+    /* a new raid on the radar: Comms reports it, the OOD decides */
+    if (seen && !S.raid) {
+      S.raid = true;
+      RADIO.add('RADAR', 'BRIDGE, COMMS: RADAR CONTACT, ENEMY AIRCRAFT BEARING ' + brg(seen.p) + ', ' + (seen.p.distanceTo(pos) / 1852).toFixed(0) + ' MILES, CLOSING.', { own: true });
+      if (S.st === 'none' || S.st === 'declined') {
+        if (SHIP.stn === 1 || camMode != 1) ask(seen);
+        else decide(true) /* the AI OOD: the player is at another station */;
+      }
+    }
+    if (!R0.length) S.raid = false;
+    /* the call goes out, Control answers, the fighters scramble */
+    if (S.st === 'called' && S.t > 6 && !S.sent) {
+      S.sent = true;
+      RADIO.add('PCE 842', 'KAMOME CONTROL, THIS IS PCE 842. ENEMY AIRCRAFT INBOUND, REQUEST AIR SUPPORT AT MY POSITION. OVER.');
+    }
+    if (S.st === 'called' && S.t > 14 && !S.ack) {
+      S.ack = true;
+      const eta = Math.round((SCRAMBLE + pos.distanceTo(FIELD) / V_GO) / 60);
+      RADIO.add('KAMOME CONTROL', 'PCE 842, KAMOME CONTROL. PONY FLIGHT, TWO P-51S, SCRAMBLING FROM KAMOME FIELD. ETA ' + eta + ' MINUTES. OUT.');
+    }
+    if (S.st === 'called' && S.t > 14 + SCRAMBLE) {
+      S.st = 'out';
+      S.clear = 0;
+      if (!L.length) spawn();
+      for (const f of L) f.g.visible = true;
+    }
+    if (S.st === 'out') {
+      S.clear = R0.length ? 0 : S.clear + dt;
+      if (S.clear > CLEAR && L.every((f) => f.p.distanceTo(pos) < R * 3)) {
+        S.st = 'home';
+        RADIO.add('PONY FLIGHT', 'PCE 842, PONY FLIGHT. NO MORE BANDITS IN SIGHT. RETURNING TO BASE.');
+      }
+    }
+    if (S.st === 'out' || S.st === 'home') for (const f of L) fly(f, dt, R0);
+    if (S.st === 'home' && L.every((f) => f.p.distanceTo(tgt.copy(FIELD).setY(f.p.y)) < 600)) {
+      /* home: they land out of sight */
+      for (const f of L) scene.remove(f.g);
+      L.length = 0;
+      Object.assign(S, { st: 'none', sent: false, ack: false });
     }
   };
   HOOKS.tick.push(tick);
+  /* Y / N answer the OOD's question while it is on the screen */
+  {
+    const R = SIMS.get('pce'),
+      k0 = R.keyFirst;
+    R.keyFirst = (e) => {
+      if (S.st === 'asked' && (e.code === 'KeyY' || e.code === 'KeyN')) {
+        e.preventDefault();
+        decide(e.code === 'KeyY');
+        return true;
+      }
+      return k0(e);
+    };
+  }
   HOOKS.mapDraw.push((g, lw) => {
     if (!SIMS.on('pce')) return;
     g.fillStyle = '#5aa8ff';
@@ -35844,7 +35962,7 @@ const CAP = (() => {
       g.fill();
     }
   });
-  return { L };
+  return { L, S };
 })();
 /* the start screen: a button for each other simulator; it remembers the choice and reloads the page with it */
 (() => {

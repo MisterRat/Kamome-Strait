@@ -246,7 +246,7 @@ with sync_playwright() as p:
     check("any key cuts the shell cam back to the gun", sk)
     ra = pg.evaluate("()=>{PT.on||ptToggle();const g=gunOf('40'),t=PT.L.find(x=>x.kind==='raft'),q=new THREE.Vector3();const ok=gunAim(g,t.p,new THREE.Vector3(),q,null);ptToggle();return ok&&q.y>t.p.y}")
     check("a raft on the water gets an aim point (above it, for the drop)", ra)
-    check("Settings has the sight-rings option (game mode aim rings at the guns)", pg.evaluate("()=>UI.items.some(i=>i.id==='gring'&&UI.applies(i))&&typeof gunRings==='function'"))
+    check("Settings has each gun's sight rings (game mode aim rings for every enemy in its reach)", pg.evaluate("()=>['ring3in','ring40','ring20'].every(id=>UI.items.some(i=>i.id===id&&UI.applies(i)))&&typeof gunRings==='function'"))
     check("Hardcore: no engines from a gun, wave motion always on; game mode: engines from any station", all(hc), str(hc))
     # ---- the other stations at work ----
     fresh()
