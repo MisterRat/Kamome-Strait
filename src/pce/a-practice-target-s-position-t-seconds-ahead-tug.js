@@ -84,9 +84,9 @@ function gunRings() {
     }
   }
   /* the gun's effective range: the 20 mm's was about 1,000 yd (NavWeaps); the 40 mm out to its tracer burn-out and self-destruct, about
-     4,000 yd; the 3"/50 its full range, 14,590 yd (13,340 m). Beyond it the ring is grey (no words) */
+     4,000 yd; the 3"/50 its full range, 14,590 yd (13,340 m). Beyond it no sight ring: only a grey ring on the target itself (the user's,
+     2026-11-21) */
   const effR = G.id === '20' ? 914 : G.id === '40' ? 3650 : 13340,
-    maxR = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13340,
     q = new V(),
     rd = Math.min(W, H) * 0.028;
   g.lineWidth = 2.5;
@@ -96,11 +96,10 @@ function gunRings() {
   for (const [tp, tv, at] of L) {
     const dist = tp.distanceTo(cam.position),
       far = dist > effR;
-    let out = far;
-    if (dist > maxR || !gunAim(G, tp, tv, q, at)) {
-      /* beyond the shell's reach: a grey ring on the target itself (no words: the user's, 2026-11-21, less clutter) */
+    const out = far || !gunAim(G, tp, tv, q, at);
+    if (out) {
+      /* out of range: no sight ring, only a grey ring on the target itself (the user's, 2026-11-21, less clutter) */
       q.copy(tp);
-      out = true;
     } else {
       /* the ring goes where the sight must be laid for the bore to point at the aim point: the sight looks parallel to the bore from the
        pointer's eye, a metre or two to one side of the barrels, so the ring is drawn along the muzzle-to-aim-point line from the eye
