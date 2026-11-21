@@ -29,7 +29,8 @@ PM_TABS.forEach((k) => {
 $$('pmCloseM').onclick = () => pmShow(false);
 $$('pmRestart').onclick = () => {
   pauseMenu(false);
-  reset();
+  if (SIMS.cur.restart) SIMS.cur.restart() /* the simulator's own restart (the PCE: the whole game again) */;
+  else reset();
 };
 $$('pmDocs').onclick = () => pmSetTab(SIMS.cur.docsTab);
 $$('pmTilt').onclick = () => openTset(true);

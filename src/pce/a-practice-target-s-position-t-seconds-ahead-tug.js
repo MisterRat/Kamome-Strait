@@ -9,7 +9,7 @@ function ptAt(tg) {
         d = PTOW.TOW - spd * t;
       if (d >= 0) ptTrail(o, d, v);
       else v.copy(o.trail[0].p).addScaledVector(tb.v, -d / spd);
-      return (v.y = tg.p.y), v;
+      return ((v.y = tg.p.y), v);
     };
   }
   if (!tg || !tg.o || tg.kind === 'sub' || tg.kind === 'ptboat') return null;
@@ -25,7 +25,16 @@ function ptAt(tg) {
 function gunRings() {
   const c = $$('gunRing'),
     G = GUN.cur,
-    on = !!(G && !FM.use('rings') && UI.vis('ring' + G.id) && camMode == 1 && !PHOTO.on && !ROAM.on && !orbitOn && !SCAM.on) /* the manned gun's own rings (Settings > Sight rings) */;
+    on = !!(
+      G &&
+      !FM.use('rings') &&
+      UI.vis('ring' + G.id) &&
+      camMode == 1 &&
+      !PHOTO.on &&
+      !ROAM.on &&
+      !orbitOn &&
+      !SCAM.on
+    ); /* the manned gun's own rings (Settings > Sight rings) */
   if (!on) {
     if (c.dataset.on) {
       c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -44,31 +53,40 @@ function gunRings() {
     L = [],
     zero = GUN.V[1].set(0, 0, 0);
   g.clearRect(0, 0, W, H);
-  if (PT.on) for (const t of PT.L) if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t)]);
+  if (PT.on)
+    for (const t of PT.L)
+      if (t.kind === 'raft' || t.kind === 'sled' || (t.kind === 'sleeve' && !(t.gone > 0))) L.push([t.p, t.kind === 'raft' || !t.v ? zero : t.v, ptAt(t)]);
   for (const e of EN) if (!e.dying && e.p) L.push([e.p, e.v || (e.fwd ? e.fwd.clone().multiplyScalar(e.sp || 0) : zero)]);
   for (const e of RAID.L) if (e.st !== 'down') L.push([e.p, e.v]);
   /* the enemies on the water and ashore within the gun's reach: the warships (the T-14s, the escort: not the civilian ships) and the
      guns and searchlights; their motion measured frame to frame for the lead */
   {
-    const reach = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13000,
+    const reach = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13340,
       now = performance.now() / 1000;
     for (const t of T) {
       if (t.dead || !(t.kind === 'aa' || (t.type === 'ship' && t.kind !== 'civ')) || !t.m.visible) continue;
       const p = t.ringP || (t.ringP = new V()),
         v = t.ringV || (t.ringV = new V());
+      /* steadied (the 3"/50's ring jittered on the warships): the aim point held at her waterline, not riding her pitch and heave, and
+         her speed measured over the frames and smoothed, level (a frame-to-frame speed from a bobbing hull swung the lead about) */
       p.copy(t.c);
-      if (t.kind === 'aa') p.y += 1.5;
-      if (t.ringT && now - t.ringT < 0.5 && now > t.ringT) v.copy(p).sub(t.ringL).divideScalar(now - t.ringT);
-      else v.set(0, 0, 0);
+      p.y = t.kind === 'aa' ? t.c.y + 1.5 : SEA.Y + 2;
+      if (t.ringT && now - t.ringT < 0.5 && now > t.ringT) {
+        const k = Math.min(1, (now - t.ringT) * 1.5),
+          dt = now - t.ringT;
+        v.x += ((p.x - t.ringL.x) / dt - v.x) * k;
+        v.z += ((p.z - t.ringL.z) / dt - v.z) * k;
+        v.y = 0;
+      } else v.set(0, 0, 0);
       (t.ringL || (t.ringL = new V())).copy(p);
       t.ringT = now;
       if (p.distanceTo(cam.position) <= reach) L.push([p, v]);
     }
   }
   /* the gun's effective range: the 20 mm's was about 1,000 yd (NavWeaps); the 40 mm out to its tracer burn-out and self-destruct, about
-     4,000 yd; the 3"/50 as far as it can be ranged. Beyond it the ring turns grey and says OUT OF RANGE */
-  const effR = G.id === '20' ? 914 : G.id === '40' ? 3650 : 12000,
-    maxR = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13000,
+     4,000 yd; the 3"/50 its full range, 14,590 yd (13,340 m). Beyond it the ring turns grey and says OUT OF RANGE */
+  const effR = G.id === '20' ? 914 : G.id === '40' ? 3650 : 13340,
+    maxR = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13340,
     q = new V(),
     rd = Math.min(W, H) * 0.028;
   g.lineWidth = 2.5;

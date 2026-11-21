@@ -31,10 +31,17 @@ const FS = (() => {
   /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
      PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
      are cut into WH (far) and HR (home) like the colonial ports'. */
-  const nav = [mk('navjp', 'naval', 2025, 19175, -Math.PI / 2), mk('navus', 'naval', 1675, 10925, Math.PI / 2)] /* O on the waterline (the sea is at -8) */;
+  const nav = [
+    mk('navjp', 'naval', 2025, 19175, -Math.PI / 2),
+    mk('navus', 'naval', 1675, 10925, Math.PI / 2),
+    /* the US Navy supply depot (the user's, 2026-11-21): 7.2 km east of the PT base (as far as Depot Mikawa is from the IJN base),
+       on the south shore of the islet there */
+    mk('navusd', 'naval', 8959, 11470, Math.PI / 2),
+  ]; /* O on the waterline (the sea is at -8) */
   /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */
   Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
+  Object.assign(nav[2], { navy: 'usdep', R: 450, pu: 140, pi: -150, po: 6, pb: 100, pbo: 25, ph: -5.5 });
   const ssl = (a, b, x) => {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);
@@ -63,11 +70,22 @@ const FS = (() => {
     for (const s of list) {
       if (Math.abs(x - s.O.x) > s.R + 700 || Math.abs(z - s.O.z) > s.R + 700) continue;
       const [u, d] = s.uv(x, z);
-      if (s.kind === 'port' ? Math.abs(u) < 260 + m && d > -210 - m && d < 120 + m : s.kind === 'air' ? Math.abs(u) < 830 + m && d > -1160 - m && d < -470 + m : Math.abs(u) < 260 + m && Math.abs(d) < 210 + m) return true;
+      if (
+        s.kind === 'port'
+          ? Math.abs(u) < 260 + m && d > -210 - m && d < 120 + m
+          : s.kind === 'air'
+            ? Math.abs(u) < 830 + m && d > -1160 - m && d < -470 + m
+            : Math.abs(u) < 260 + m && Math.abs(d) < 210 + m
+      )
+        return true;
     }
     return false;
   };
-  return { list, nav, wt, near, ssl, PORT_H: 1.4 };
+  /* dredged channels (the user's, 2026-11-21): a straight cut [a, b] w metres wide to depth y (world height), its sides sloping over
+     40 m; cut into WH like the pads. The one through the bank between the IJN base and Depot Mikawa's bay (2-6 m of water over it),
+     for the base's freighter (7.8 m draught) and anything else: 12 m deep */
+  const chan = [{ a: [1823, 18476], b: [773, 20634], w: 60, y: -8.15 - 12 }];
+  return { list, nav, chan, wt, near, ssl, PORT_H: 1.4 };
 })();
 function WH0(x, z) {
   const ed = Math.max(Math.abs(x), Math.abs(z));
@@ -127,6 +145,17 @@ function WH(x, z) {
     const w = FS.wt(s, x, z);
     if (w > 0) h += (s.ph - h) * w;
   }
+  for (const c of FS.chan) {
+    /* a dredged channel: the seabed no higher than its floor across its width, sloping back up over 40 m */
+    const ax = c.a[0],
+      az = c.a[1],
+      bx = c.b[0] - ax,
+      bz = c.b[1] - az,
+      L2 = bx * bx + bz * bz,
+      k = Math.max(0, Math.min(1, ((x - ax) * bx + (z - az) * bz) / L2)),
+      dd = Math.hypot(x - ax - bx * k, z - az - bz * k);
+    if (dd < c.w / 2 + 40) h = Math.min(h, c.y + (h - c.y) * FS.ssl(c.w / 2, c.w / 2 + 40, dd));
+  }
   return h;
 }
 function HR(x, z) {
@@ -141,9 +170,7 @@ function HR(x, z) {
   }
   let r = h < 0 ? h * 4 : h;
   const pw = 1 - ss(PL.R * 0.6, PL.R, Math.hypot(x - PL.cx, z - PL.cz));
-  if (pw > 0)
-    r =
-      r * (1 - pw) + (30 + 15 * Math.sin(x * 0.0011 + 1) * Math.cos(z * 0.0013) + 6 * Math.sin((x + z) * 0.0021)) * pw;
+  if (pw > 0) r = r * (1 - pw) + (30 + 15 * Math.sin(x * 0.0011 + 1) * Math.cos(z * 0.0013) + 6 * Math.sin((x + z) * 0.0021)) * pw;
   {
     /* the world beyond the terrain mesh is open sea (there is nothing to see there, so nothing to hit) */
     const ed = Math.max(Math.abs(x), Math.abs(z));

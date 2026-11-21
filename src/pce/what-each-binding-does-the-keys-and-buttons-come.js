@@ -44,5 +44,5 @@ SIMS.add({ id: 'pce', act: {
   },
   pause: () => pauseMenu(true),
   help: () => UI.toggle('help'),
-  restart: () => reset(),
+  restart: () => (SIMS.cur.restart ? SIMS.cur.restart() : reset()),
 } });

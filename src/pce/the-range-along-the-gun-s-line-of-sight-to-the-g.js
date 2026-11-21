@@ -27,23 +27,27 @@ function gunRangefind(G) {
       chk = (t, tp) => {
         w.copy(tp).sub(o);
         const r = w.length();
-        if (r < 60 || r > 13000) return;
+        if (r < 60 || r > 13340) return;
         const ang = Math.acos(Math.max(-1, Math.min(1, w.dot(d) / r)));
-        if (ang < bk) (bk = ang), (bt = t);
+        if (ang < bk) ((bk = ang), (bt = t));
       };
     if (PT.on) for (const t of PT.L) if (t.p && !t.dead && !(t.gone > 0) && t.kind !== 'sub') chk(t, t.p);
     for (const e of EN) if (!e.dying && e.p) chk(e, e.p);
     for (const e of RAID.L) if (e.st !== 'down') chk(e, e.p);
+    /* the enemy warships and shore guns too, at the rings' steadied waterline point (left out, the sight ranged them off the waves
+       and the 3"/50's superelevation and ring jumped about, as the practice targets' once did) */
+    for (const t of T) if (!t.dead && t.ringP && t.ringT && performance.now() / 1000 - t.ringT < 0.5) chk(t, t.ringP);
     if (bt) {
       const q = new V3(),
-        tv = bt.v || (bt.fwd ? bt.fwd.clone().multiplyScalar(bt.sp || 0) : zero);
-      return gunAim(G, bt.p, tv, q, PT.L.includes(bt) && bt.kind !== 'raft' ? ptAt(bt) : null) ? Math.hypot(q.x - o.x, q.z - o.z) : bt.p.distanceTo(o);
+        bp = bt.ringP && T.includes(bt) ? bt.ringP : bt.p,
+        tv = T.includes(bt) ? bt.ringV : bt.v || (bt.fwd ? bt.fwd.clone().multiplyScalar(bt.sp || 0) : zero);
+      return gunAim(G, bp, tv, q, PT.L.includes(bt) && bt.kind !== 'raft' ? ptAt(bt) : null) ? Math.hypot(q.x - o.x, q.z - o.z) : bp.distanceTo(o);
     }
   }
   if (d.y > 0.02) return 0;
   const under = (t) => o.y + d.y * t <= H(o.x + d.x * t, o.z + d.z * t);
   let t = 0;
-  while (t < 13000) {
+  while (t < 13340) {
     const st = t < 2000 ? 8 : 25;
     t += st;
     if (under(t)) {

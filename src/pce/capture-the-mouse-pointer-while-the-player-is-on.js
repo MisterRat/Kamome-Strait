@@ -18,5 +18,5 @@ function gunSightToggle() {
 function gunRange(d) {
   if (!GUN.cur || GUN.cur.s.sight !== 'scope') return;
   if (!FM.use('range')) return note('THE SIGHT-SETTER RANGES FOR YOU (HARDCORE: YOU SET IT)');
-  GUN.rng = Math.max(200, Math.min(13000, GUN.rng + d));
+  GUN.rng = Math.max(200, Math.min(13340, GUN.rng + d) /* the 3"/50's full range */);
 }

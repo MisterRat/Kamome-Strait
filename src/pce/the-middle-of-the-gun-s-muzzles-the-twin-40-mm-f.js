@@ -17,17 +17,26 @@ function gunAim(G, tp, tv, out, at) {
     sv = new THREE.Vector3(),
     tq = new THREE.Vector3(),
     miss = new THREE.Vector3();
+  /* the first guess raised by the range table's elevation for that range: aimed flat at a ship 3 km off or more the first shell fell
+     into the sea short of her and the solver gave up (every surface target beyond about 2.5 km showed OUT OF RANGE) */
+  {
+    const R = Math.hypot(tp.x - o.x, tp.z - o.z);
+    if (R > 500) q.y += R * Math.tan(gunSE(s, R));
+  }
   for (let it = 0; it < 10; it++) {
     sp.copy(o);
     sv.copy(q).sub(o).normalize().multiplyScalar(s.mv).add(vel);
     /* the miss is taken when the shell reaches the target's range (so it also corrects the lead, not just the line) */
     let best = -1,
       h = 0.01,
-      f0 = -1;
+      f0 = -1; /* 1/100 s for the first 2 s, then 1/50 s: within ~10 m at the 3"/50's full range */
     const sp0 = GUN.V[0].copy(sp),
       tq0 = new THREE.Vector3();
     fut(0, tq0);
-    for (let t = h; t < 30; t += h) {
+    for (let t = h; t < 70; t += h) {
+      /* up to 70 s of flight: the 3"/50's longest shots (13.3 km at 43 deg) take about 63 s (30 s, the old limit, stopped the rings
+         at about 10.2 km and called everything beyond it out of range) */
+      h = t < 2 ? 0.01 : 0.02;
       sp0.copy(sp);
       const v = sv.length(),
         k = s.k * Math.exp(-Math.max(0, sp.y) / 9145) * v;

@@ -19,7 +19,11 @@ const SITES = [],
         k0 = near ? near[2] : b.min.y; /* read before translate(), which recomputes the box in place; a distant form sits as its near one */
       g.translate(0, -k0 - s1 / 2, 0); /* base at the model's own zero, the mesh origin in the middle (as the other targets) */
       g.computeBoundingSphere();
-      return [new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })), s1, k0 /* the model's lowest point (a ship: her keel, below her waterline at 0) */];
+      return [
+        new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })),
+        s1,
+        k0 /* the model's lowest point (a ship: her keel, below her waterline at 0) */,
+      ];
     },
     /* Pfar: the same model's distant form, swapped in beyond FAR_AT (a THREE.LOD the renderer switches by camera distance) */
     FAR_AT = 1000,
@@ -31,13 +35,24 @@ const SITES = [],
         const lod = new THREE.LOD();
         lod.addLevel(m, 0);
         lod.addLevel(asMesh(Pfar, null, near)[0], FAR_AT);
-        lod.geometry = m.geometry /* the near form's, for the code that measures a target */;
+        lod.geometry = m.geometry; /* the near form's, for the code that measures a target */
         m = lod;
-      } else if (type === 'ship') GX.far(m, Math.max(0.3, r / 36)) /* a vessel's distant form beyond 1 km (r: about 0.3 of her length) */;
+      } else if (type === 'ship') GX.far(m, Math.max(0.3, r / 36)); /* a vessel's distant form beyond 1 km (r: about 0.3 of her length) */
       /* a ship floats with her own waterline (the model's y = 0) at the sea's design waterline; anything else stands on the ground */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const gb = m.geometry.boundingBox,
-        gA = type === 'ship' || yOff ? null : GROUNDAT(x, z, gb.max.x - gb.min.x, gb.max.z - gb.min.z, ry, false, SURF); /* on the lowest of the surfaces (apron, yard, ground) under its footprint */
+        gA =
+          type === 'ship' || yOff
+            ? null
+            : GROUNDAT(
+                x,
+                z,
+                gb.max.x - gb.min.x,
+                gb.max.z - gb.min.z,
+                ry,
+                false,
+                SURF,
+              ); /* on the lowest of the surfaces (apron, yard, ground) under its footprint */
       m.position.set(x, type === 'ship' ? SEA.WL + k0 + s1 / 2 : (gA ? gA.y : H(x, z)) + s1 / 2 + (yOff || 0), z);
       m.rotation.y = ry;
       scene.add(m);
@@ -122,10 +137,7 @@ const SITES = [],
         g.computeVertexNormals();
       }
       g.computeBoundingSphere();
-      const m = new THREE.Mesh(
-        g,
-        new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
-      );
+      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
       scene.add(m);
       return m;
     };
@@ -183,7 +195,7 @@ const SITES = [],
   drape(-130, 130, -95, 48, cc(CORAL, 26, 14), 1, 1, 0.35); /* the quay: pale coral earth */
   /* the waterfront (1945 Japanese practice, docs/research_1945_bases.md): a narrow coral-block mole with a timber T-head for the small
      craft, the big ships at anchor offshore in the deepest water near by, worked by Daihatsu barges and wooden lighters */
-  const MOLE = { d0: 95, L: 112, W: 8, h: 2.2, tw: 24 } /* from 95 m out (where the shore drops to the sea) to the T-head at 207 m */;
+  const MOLE = { d0: 95, L: 112, W: 8, h: 2.2, tw: 24 }; /* from 95 m out (where the shore drops to the sea) to the T-head at 207 m */
   {
     const P = MODELS.get('jp-mole', MOLE.L, MOLE.W, MOLE.h, MOLE.tw, -6),
       g = new GX.Acc().add(P, null).geometry(),
@@ -206,7 +218,7 @@ const SITES = [],
           worst = Math.max(worst, hf(x, z));
         }
       if (worst < SEA.WL - dr * 0.8) return d;
-      if (worst < bz) (bz = worst), (best = d);
+      if (worst < bz) ((bz = worst), (best = d));
     }
     return best;
   };
@@ -219,7 +231,17 @@ const SITES = [],
       /* her outline for the ships under way to keep clear of (COLL); a shuttle is a mover too */
       if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
       const bb = m.geometry.boundingBox;
-      o.cb = COLL.add({ sea: true, fixed: !o.sh, hl: (bb.max.x - bb.min.x) / 2, r: (bb.max.z - bb.min.z) / 2, mg: 4, x: m.position.x, z: m.position.z, yaw: o.yaw, v: 0 });
+      o.cb = COLL.add({
+        sea: true,
+        fixed: !o.sh,
+        hl: (bb.max.x - bb.min.x) / 2,
+        r: (bb.max.z - bb.min.z) / 2,
+        mg: 4,
+        x: m.position.x,
+        z: m.position.z,
+        yaw: o.yaw,
+        v: 0,
+      });
     }
     if (o.sh) {
       /* a shuttle (a Daihatsu working a ship): alongside her, run in to the T-head, lie there, run back; 4 knots, turning to her course */
@@ -229,10 +251,10 @@ const SITES = [],
         cyc = 2 * (run + S.wait),
         t = (performance.now() / 1000 + S.ph) % cyc;
       let k, back;
-      if (t < S.wait) (k = 0), (back = false);
-      else if (t < S.wait + run) (k = (t - S.wait) / run), (back = false);
-      else if (t < 2 * S.wait + run) (k = 1), (back = true);
-      else (k = 1 - (t - 2 * S.wait - run) / run), (back = true);
+      if (t < S.wait) ((k = 0), (back = false));
+      else if (t < S.wait + run) ((k = (t - S.wait) / run), (back = false));
+      else if (t < 2 * S.wait + run) ((k = 1), (back = true));
+      else ((k = 1 - (t - 2 * S.wait - run) / run), (back = true));
       const e = k * k * (3 - 2 * k);
       m.position.x = S.a[0] + (S.b[0] - S.a[0]) * e;
       m.position.z = S.a[1] + (S.b[1] - S.a[1]) * e;
@@ -254,7 +276,8 @@ const SITES = [],
     m.position.y = o.y0 + o.ride.hv;
     m.rotation.set(o.ride.ro, o.yaw, o.ride.pi, 'YXZ');
     /* a small craft keeps the sea out of her well and off her deck (OCEAN hull, cut just under her waterline) */
-    if (o.hull && typeof OCEAN !== 'undefined') OCEAN.place(o.hull.h || (o.hull.h = OCEAN.hull(o.hull.o)), m.position.x, m.position.z, Math.cos(o.yaw), -Math.sin(o.yaw), 0, SEA.WL + o.ride.hv - 0.4, 0);
+    if (o.hull && typeof OCEAN !== 'undefined')
+      OCEAN.place(o.hull.h || (o.hull.h = OCEAN.hull(o.hull.o)), m.position.x, m.position.z, Math.cos(o.yaw), -Math.sin(o.yaw), 0, SEA.WL + o.ride.hv - 0.4, 0);
   };
   SITE.anch = ANCH;
   {
@@ -280,7 +303,13 @@ const SITES = [],
     m.position.set(x, SEA.WL + k0 + s1 / 2, z);
     m.rotation.y = yaw;
     scene.add(m);
-    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3), hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } } };
+    const o = {
+      m,
+      y0: m.position.y,
+      yaw,
+      ride: RIDE.make(0.43 * len, 0.45 * beam, 3),
+      hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } },
+    };
     ANCH.push(o);
     return o;
   };
@@ -299,7 +328,16 @@ const SITES = [],
   SITE.anchD = { frt: FRT.d, tnk: TNK.d };
   /* a Ukuru-class kaibokan (77.7 m x 9.1 m): the coastal escort that patrols up and down the shore off the port.
      The hull is lofted from stations (flared bow, raked stem, tumblehome-free flush deck with bulwarks); the guns are the same Type 96 25 mm mounts as the bases. */
-  const UK = { L: 78, X0: -39, mounts: [[20.5, 3.0], [20.5, -3.0], [-3, 3.55], [-3, -3.55]] };
+  const UK = {
+    L: 78,
+    X0: -39,
+    mounts: [
+      [20.5, 3.0],
+      [20.5, -3.0],
+      [-3, 3.55],
+      [-3, -3.55],
+    ],
+  };
   const ukuru = () => {
     const P = [],
       L = UK.L,
@@ -308,7 +346,14 @@ const SITES = [],
       GX_ = GX;
     const tt = (x) => (x - X0) / L,
       bowK = (t) => Math.max(0, (t - 0.55) / 0.45),
-      beamF = (t) => (t < 0.12 ? 0.6 + 0.4 * Math.sin((t / 0.12) * Z) : t < 0.6 ? 1 : t > 0.999 ? 0 /* the stem: the sides meet, no gap */ : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.6) / 0.4, 1.7), 0.62))),
+      beamF = (t) =>
+        t < 0.12
+          ? 0.6 + 0.4 * Math.sin((t / 0.12) * Z)
+          : t < 0.6
+            ? 1
+            : t > 0.999
+              ? 0 /* the stem: the sides meet, no gap */
+              : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.6) / 0.4, 1.7), 0.62)),
       W = (x) => 4.55 * beamF(tt(x)),
       deckY = (x) => 3.7 + 0.25 * Math.max(0, 1 - tt(x) / 0.15) + 1.0 * Math.pow(bowK(tt(x)), 2.2),
       flare = (x) => 1 + 0.2 * Math.pow(bowK(tt(x)), 1.3),
@@ -380,12 +425,20 @@ const SITES = [],
       const s0 = S[0],
         keys = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'],
         cols = [RED, RED, DARK, GREY, GREY];
-      for (let q = 0; q < 5; q++) grid([[s0[keys[q]], s0[keys[q + 1]]], [mir(s0[keys[q]]), mir(s0[keys[q + 1]])]], cols[q]);
+      for (let q = 0; q < 5; q++)
+        grid(
+          [
+            [s0[keys[q]], s0[keys[q + 1]]],
+            [mir(s0[keys[q]]), mir(s0[keys[q + 1]])],
+          ],
+          cols[q],
+        );
     }
     const dk = deckY,
       box = (sx, sy, sz, hex, x, y, z, ry) => part(bx(sx, sy, sz), hex, x, y, z, 0, ry || 0, 0),
-      rod = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z, 0, 0, -Z), /* a cylinder lying along +x, centred */
-      wire = (x0, y0, x1, y1, z) => part(bx(Math.hypot(x1 - x0, y1 - y0), 0.02, 0.02), 0x1b1b1b, (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, Math.atan2(y1 - y0, x1 - x0));
+      rod = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z, 0, 0, -Z) /* a cylinder lying along +x, centred */,
+      wire = (x0, y0, x1, y1, z) =>
+        part(bx(Math.hypot(x1 - x0, y1 - y0), 0.02, 0.02), 0x1b1b1b, (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, Math.atan2(y1 - y0, x1 - x0));
     /* portholes along the topside */
     for (let x = -31; x <= 4; x += 3.1) for (const s of [-1, 1]) P.push(box(0.34, 0.3, 0.07, WIN, x, 2.5, s * (sideZ(x, 2.5) + 0.02)));
     for (let x = 22; x <= 33; x += 3.0) for (const s of [-1, 1]) P.push(box(0.3, 0.28, 0.07, WIN, x, 2.55, s * (sideZ(x, 2.55) + 0.02)));
@@ -395,13 +448,21 @@ const SITES = [],
       P.push(part(cyl(0.3, 0.3, 0.12, 10), 0x15171a, 35.2, 3.6, s * (sideZ(35.2, 3.6) + 0.04), Z));
       for (const x of [30, 0, -26, -35]) P.push(part(cyl(0.16, 0.2, 0.5, 8), 0x3a3d40, x, dk(x) + 0.25, s * (W(x) * 0.93)));
     }
-    P.push(box(1.7, 0.7, 1.7, 0x4a4d50, 31.0, dk(31) + 0.35, 0), part(cyl(0.45, 0.55, 0.9, 10), 0x4a4d50, 33, dk(33) + 0.45, 0), part(cyl(0.04, 0.04, 1.9, 6), 0x3a3a3a, 38.4, dk(38.4) + 0.95, 0));
+    P.push(
+      box(1.7, 0.7, 1.7, 0x4a4d50, 31.0, dk(31) + 0.35, 0),
+      part(cyl(0.45, 0.55, 0.9, 10), 0x4a4d50, 33, dk(33) + 0.45, 0),
+      part(cyl(0.04, 0.04, 1.9, 6), 0x3a3a3a, 38.4, dk(38.4) + 0.95, 0),
+    );
     /* 12 cm gun forward on the forecastle */
     {
       const x = 27,
         y = dk(27);
       P.push(part(cyl(1.7, 1.9, 0.5, 16), 0x585d62, x, y + 0.25, 0), part(cyl(1.0, 1.2, 0.5, 12), 0x41454a, x, y + 0.65, 0));
-      P.push(box(2.0, 1.45, 2.3, 0x737a81, x - 0.1, y + 1.5, 0), box(2.1, 0.12, 2.4, GREY3, x - 0.1, y + 2.28, 0), box(0.1, 0.6, 1.2, 0x15171a, x + 0.95, y + 1.55, 0));
+      P.push(
+        box(2.0, 1.45, 2.3, 0x737a81, x - 0.1, y + 1.5, 0),
+        box(2.1, 0.12, 2.4, GREY3, x - 0.1, y + 2.28, 0),
+        box(0.1, 0.6, 1.2, 0x15171a, x + 0.95, y + 1.55, 0),
+      );
       P.push(rod(0.23, 1.6, 0x3a3d40, x + 1.3, y + 1.6, 0), rod(0.12, 4.6, GUN, x + 3.3, y + 1.6, 0), rod(0.17, 0.45, GUN, x + 5.6, y + 1.6, 0));
       P.push(box(0.6, 0.5, 0.9, 0x6b5c40, x - 1.9, y + 0.3, 1.4), box(0.6, 0.5, 0.9, 0x6b5c40, x - 1.9, y + 0.3, -1.4));
     }
@@ -414,33 +475,62 @@ const SITES = [],
       P.push(box(3.6, 0.9, 3.2, 0x757c84, x - 0.6, y + 5.34, 0), box(3.8, 0.1, 3.4, GREY3, x - 0.6, y + 5.83, 0)); /* the compass platform, on the house top */
       P.push(box(3.6, 0.12, 10.6, GREY3, x + 0.6, y + 2.68, 0));
       for (const s of [-1, 1]) {
-        P.push(box(3.6, 0.5, 0.05, GREY2, x + 0.6, y + 2.99, s * 5.27), box(0.05, 0.5, 2.0, GREY2, x + 2.37, y + 2.99, s * 4.3)); /* wing screens, on the wing deck's edges */
-        P.push(part(cyl(0.42, 0.42, 0.6, 12), 0x3d4044, x + 0.6, y + 3.04, s * 4.8), part(cyl(0.4, 0.4, 0.05, 12), 0xd8e4f0, x + 1.03, y + 3.14, s * 4.8, 0, 0, Z)); /* searchlight, standing on the wing deck */
-        for (let k = -1; k <= 1; k++) P.push(box(0.8, 0.55, 0.06, WIN, x + 0.4 + k * 1.9, y + 3.9, s * 2.83), box(0.8, 0.5, 0.06, WIN, x + k * 2.8, y + 1.5, s * 3.53));
+        P.push(
+          box(3.6, 0.5, 0.05, GREY2, x + 0.6, y + 2.99, s * 5.27),
+          box(0.05, 0.5, 2.0, GREY2, x + 2.37, y + 2.99, s * 4.3),
+        ); /* wing screens, on the wing deck's edges */
+        P.push(
+          part(cyl(0.42, 0.42, 0.6, 12), 0x3d4044, x + 0.6, y + 3.04, s * 4.8),
+          part(cyl(0.4, 0.4, 0.05, 12), 0xd8e4f0, x + 1.03, y + 3.14, s * 4.8, 0, 0, Z),
+        ); /* searchlight, standing on the wing deck */
+        for (let k = -1; k <= 1; k++)
+          P.push(box(0.8, 0.55, 0.06, WIN, x + 0.4 + k * 1.9, y + 3.9, s * 2.83), box(0.8, 0.5, 0.06, WIN, x + k * 2.8, y + 1.5, s * 3.53));
         P.push(box(0.05, 1.5, 0.7, 0x3a3d40, x - 0.5, y + 1.0, s * 3.55 + s * 0.02));
       }
       for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.6, 0.85, WIN, x + 4.03, y + 3.9, k * 1.05), box(0.06, 0.55, 0.8, WIN, x + 5.28, y + 1.5, k * 1.2));
-      P.push(part(cyl(0.8, 0.9, 0.9, 10), 0x6a7077, x - 0.6, y + 6.32, 0), box(0.5, 0.35, 1.4, 0x15171a, x - 0.1, y + 6.37, 0), box(0.18, 0.18, 2.6, 0x3a3d40, x - 0.6, y + 6.86, 0)); /* the director on the platform, its rangefinder arms on top */
+      P.push(
+        part(cyl(0.8, 0.9, 0.9, 10), 0x6a7077, x - 0.6, y + 6.32, 0),
+        box(0.5, 0.35, 1.4, 0x15171a, x - 0.1, y + 6.37, 0),
+        box(0.18, 0.18, 2.6, 0x3a3d40, x - 0.6, y + 6.86, 0),
+      ); /* the director on the platform, its rangefinder arms on top */
       P.push(box(1.5, 0.9, 0.12, 0x3a3d40, x + 2.3, y + 5.45, 0), box(0.12, 0.5, 0.12, 0x3a3d40, x + 2.3, y + 4.95, 0)); /* Type 22 radar */
       P.push(box(0.5, 0.3, 0.5, 0x5a5f62, x - 3.4, y + 2.9, 2.0), box(0.5, 0.3, 0.5, 0x5a5f62, x - 3.4, y + 2.9, -2.0));
       /* mast with yard, crow's nest, Type 13 radar and the aerial wires */
       const mx = x - 3.2,
         my = y + 2.64;
       P.push(part(cyl(0.14, 0.26, 14, 8), 0x4a4d50, mx, my + 7, 0));
-      P.push(box(0.1, 0.1, 5.4, 0x4a4d50, mx, my + 10.5, 0), part(cyl(0.75, 0.75, 0.08, 12), 0x3a3d40, mx, my + 8.2, 0), part(cyl(0.7, 0.7, 0.4, 12), 0x5a5f62, mx, my + 8.0, 0));
+      P.push(
+        box(0.1, 0.1, 5.4, 0x4a4d50, mx, my + 10.5, 0),
+        part(cyl(0.75, 0.75, 0.08, 12), 0x3a3d40, mx, my + 8.2, 0),
+        part(cyl(0.7, 0.7, 0.4, 12), 0x5a5f62, mx, my + 8.0, 0),
+      );
       P.push(part(GX_.sph(8), 0xffe9a8, mx, my + 14.08, 0, 0, 0, 0, 0.12, 0.12, 0.12)); /* masthead light, on the truck */
       for (const z of [-0.9, 0.9]) P.push(box(0.08, 1.7, 0.08, 0x3a3d40, mx + 0.08, my + 11.39, z)); /* the Type 13 array's posts, standing on the yard */
       for (let r = 0; r < 4; r++) P.push(box(0.08, 0.06, 2.2, 0x2b2d2f, mx + 0.08, my + 10.85 + r * 0.45, 0));
-      P.push(wire(mx, my + 14, 38.4, dk(38.4) + 1.9, 0), wire(mx, my + 10.5, -38.4, dk(-38.4) + 3.2, 0), wire(mx, my + 10.5, mx - 6, y + 2.6, 2.7), wire(mx, my + 10.5, mx - 6, y + 2.6, -2.7));
+      P.push(
+        wire(mx, my + 14, 38.4, dk(38.4) + 1.9, 0),
+        wire(mx, my + 10.5, -38.4, dk(-38.4) + 3.2, 0),
+        wire(mx, my + 10.5, mx - 6, y + 2.6, 2.7),
+        wire(mx, my + 10.5, mx - 6, y + 2.6, -2.7),
+      );
     }
     /* funnel: hexagonal, as the class's simplified build had it */
     {
       const x = -3,
         y = dk(-3);
       P.push(box(6.5, 1.4, 5.2, 0x7a8189, x, y + 0.7, 0), box(6.7, 0.1, 5.4, GREY3, x, y + 1.45, 0));
-      P.push(part(cyl(1.45, 1.8, 5.0, 6), 0x6a7077, x, y + 3.9, 0), part(cyl(1.5, 1.5, 0.95, 6), 0x1b1c1e, x, y + 6.0, 0), part(cyl(1.58, 1.58, 0.12, 6), 0x303236, x, y + 6.5, 0));
-      P.push(box(0.05, 4.4, 0.5, 0x303236, x + 1.7, y + 3.6, 0), part(cyl(0.14, 0.14, 2.4, 8), 0x3a3d40, x - 1.62, y + 6.2, 0.7), part(cyl(0.12, 0.12, 2.0, 8), 0x3a3d40, x - 1.62, y + 6.0, -0.7)); /* steam pipes, against the funnel's after side */
-      for (const s of [-1, 1]) P.push(part(cyl(0.45, 0.45, 0.8, 10), 0x4a4d50, x - 1.8, y + 1.9, s * 1.9), part(cyl(0.35, 0.5, 0.4, 10), 0x303236, x - 1.8, y + 2.5, s * 1.9));
+      P.push(
+        part(cyl(1.45, 1.8, 5.0, 6), 0x6a7077, x, y + 3.9, 0),
+        part(cyl(1.5, 1.5, 0.95, 6), 0x1b1c1e, x, y + 6.0, 0),
+        part(cyl(1.58, 1.58, 0.12, 6), 0x303236, x, y + 6.5, 0),
+      );
+      P.push(
+        box(0.05, 4.4, 0.5, 0x303236, x + 1.7, y + 3.6, 0),
+        part(cyl(0.14, 0.14, 2.4, 8), 0x3a3d40, x - 1.62, y + 6.2, 0.7),
+        part(cyl(0.12, 0.12, 2.0, 8), 0x3a3d40, x - 1.62, y + 6.0, -0.7),
+      ); /* steam pipes, against the funnel's after side */
+      for (const s of [-1, 1])
+        P.push(part(cyl(0.45, 0.45, 0.8, 10), 0x4a4d50, x - 1.8, y + 1.9, s * 1.9), part(cyl(0.35, 0.5, 0.4, 10), 0x303236, x - 1.8, y + 2.5, s * 1.9));
     }
     /* after deckhouse with the twin 12 cm mount on its roof */
     {
@@ -450,17 +540,39 @@ const SITES = [],
       for (let k = 0; k < 4; k++) for (const s of [-1, 1]) P.push(box(0.8, 0.5, 0.06, WIN, x - 1.5 + k * 2.4, y + 1.4, s * 3.33));
       P.push(box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, 1.4), box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, -1.4));
       const gy = y + 2.44;
-      P.push(part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0), box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.25, 0), box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.05, 0)); /* the gun house, on its base ring */
-      for (const s of [-1, 1]) P.push(rod(0.2, 1.4, 0x3a3d40, x + 1.2, gy + 1.3, s * 0.55), rod(0.11, 4.2, GUN, x + 3.1, gy + 1.3, s * 0.55), rod(0.15, 0.4, GUN, x + 5.2, gy + 1.3, s * 0.55));
+      P.push(
+        part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0),
+        box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.25, 0),
+        box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.05, 0),
+      ); /* the gun house, on its base ring */
+      for (const s of [-1, 1])
+        P.push(
+          rod(0.2, 1.4, 0x3a3d40, x + 1.2, gy + 1.3, s * 0.55),
+          rod(0.11, 4.2, GUN, x + 3.1, gy + 1.3, s * 0.55),
+          rod(0.15, 0.4, GUN, x + 5.2, gy + 1.3, s * 0.55),
+        );
       P.push(box(0.1, 0.55, 1.9, 0x15171a, x + 1.1, gy + 1.4, 0));
-      for (const s of [-1, 1]) P.push(part(cyl(0.55, 0.55, 0.12, 12), 0xa8742e, x + 1.5, y + 1.3, s * 3.42, Z), part(cyl(0.56, 0.56, 0.1, 12), 0x3a3d40, x + 1.5, y + 1.3, s * 3.46, Z));
+      for (const s of [-1, 1])
+        P.push(
+          part(cyl(0.55, 0.55, 0.12, 12), 0xa8742e, x + 1.5, y + 1.3, s * 3.42, Z),
+          part(cyl(0.56, 0.56, 0.1, 12), 0x3a3d40, x + 1.5, y + 1.3, s * 3.46, Z),
+        );
     }
     /* boats on davits, either side abaft the funnel */
     for (const s of [-1, 1]) {
       const x = -11,
         y = dk(-11);
-      P.push(box(5.6, 0.7, 1.5, 0x8c8f91, x, y + 1.6, s * 3.4), box(1.4, 0.65, 1.0, 0x8c8f91, x + 3.2, y + 1.6, s * 3.4, 0.0), box(2.2, 0.45, 1.2, 0x4a4f52, x - 0.4, y + 2.15, s * 3.4), box(5.9, 0.08, 1.7, 0x2b2d2f, x, y + 1.97, s * 3.4));
-      for (const dx of [-2, 2]) P.push(part(cyl(0.07, 0.07, 2.3, 6), 0x303436, x + dx, y + 1.1, s * 3.4 + s * 0.9, -s * 0.35), box(0.12, 0.12, 0.12, 0x303436, x + dx, y + 2.18, s * 3.9)); /* davits, leaning in over the boat to their heads */
+      P.push(
+        box(5.6, 0.7, 1.5, 0x8c8f91, x, y + 1.6, s * 3.4),
+        box(1.4, 0.65, 1.0, 0x8c8f91, x + 3.2, y + 1.6, s * 3.4, 0.0),
+        box(2.2, 0.45, 1.2, 0x4a4f52, x - 0.4, y + 2.15, s * 3.4),
+        box(5.9, 0.08, 1.7, 0x2b2d2f, x, y + 1.97, s * 3.4),
+      );
+      for (const dx of [-2, 2])
+        P.push(
+          part(cyl(0.07, 0.07, 2.3, 6), 0x303436, x + dx, y + 1.1, s * 3.4 + s * 0.9, -s * 0.35),
+          box(0.12, 0.12, 0.12, 0x303436, x + dx, y + 2.18, s * 3.9),
+        ); /* davits, leaning in over the boat to their heads */
     }
     /* stern: depth-charge rails and drums, projectors, throwers, chutes, ensign staff */
     {
@@ -468,8 +580,15 @@ const SITES = [],
         const z = s * 1.2;
         P.push(box(7.4, 0.1, 0.1, 0x2b2d2f, -34.4, dk(-36) + 0.12, z - 0.25), box(7.4, 0.1, 0.1, 0x2b2d2f, -34.4, dk(-36) + 0.12, z + 0.25));
         for (let i = 0; i < 8; i++) P.push(part(cyl(0.3, 0.3, 0.8, 10), i % 3 ? 0x303436 : 0x3a3f42, -37.8 + i * 0.9, dk(-36) + 0.55, z, Z));
-        P.push(part(cyl(0.18, 0.24, 1.0, 8), 0x3a3d40, -31.8, dk(-32) + 0.55, s * 2.7, 0, 0, 0), part(cyl(0.12, 0.14, 0.8, 8), 0x2b2d2f, -31.8, dk(-32) + 1.2, s * 2.9, s * 0.65));
-        for (let i = 0; i < 4; i++) P.push(part(cyl(0.1, 0.14, 0.8, 8), 0x3a3d40, -29.2 + i * 1.4, dk(-28) + 0.5, s * 3.4, s * 0.6), part(cyl(0.2, 0.2, 0.12, 8), 0x2b2d2f, -29.2 + i * 1.4, dk(-28) + 0.08, s * 3.3));
+        P.push(
+          part(cyl(0.18, 0.24, 1.0, 8), 0x3a3d40, -31.8, dk(-32) + 0.55, s * 2.7, 0, 0, 0),
+          part(cyl(0.12, 0.14, 0.8, 8), 0x2b2d2f, -31.8, dk(-32) + 1.2, s * 2.9, s * 0.65),
+        );
+        for (let i = 0; i < 4; i++)
+          P.push(
+            part(cyl(0.1, 0.14, 0.8, 8), 0x3a3d40, -29.2 + i * 1.4, dk(-28) + 0.5, s * 3.4, s * 0.6),
+            part(cyl(0.2, 0.2, 0.12, 8), 0x2b2d2f, -29.2 + i * 1.4, dk(-28) + 0.08, s * 3.3),
+          );
         P.push(box(1.0, 0.5, 0.9, 0x2b2d2f, -39.0, 3.0, s * 0.9));
       }
       const x = -38.3,
@@ -503,7 +622,8 @@ const SITES = [],
     const clearOf = (u0, u1, d0, R, gap) => {
       const P = [];
       for (let u = u0; u <= u1; u += 25) P.push(SITE.w(u, d0), SITE.w(u, d0 + 2 * R));
-      for (let a = 0; a <= Math.PI; a += Math.PI / 8) P.push(SITE.w(u1 + Math.sin(a) * R, d0 + R - Math.cos(a) * R), SITE.w(u0 - Math.sin(a) * R, d0 + R - Math.cos(a) * R));
+      for (let a = 0; a <= Math.PI; a += Math.PI / 8)
+        P.push(SITE.w(u1 + Math.sin(a) * R, d0 + R - Math.cos(a) * R), SITE.w(u0 - Math.sin(a) * R, d0 + R - Math.cos(a) * R));
       for (const o of ANCH) {
         const g = o.m.geometry;
         if (!g.boundingBox) g.computeBoundingBox();
@@ -538,18 +658,41 @@ const SITES = [],
       bar.add(new THREE.Mesh(AA.mount.bar, MAT()));
       tur.add(bar);
       e.m.add(tur);
-      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: 0, pit: 0.5, acq: 0, mag: 30, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(mx, top + 0.9, mz) };
+      const g = {
+        t: e,
+        grp: new THREE.Group(),
+        tur,
+        bar,
+        x: 0,
+        z: 0,
+        nr: 0,
+        bias: new V(0, 0, 0),
+        yaw: 0,
+        pit: 0.5,
+        acq: 0,
+        mag: 30,
+        rl: 0,
+        cd: 0,
+        side: 1,
+        rec: 0,
+        snd: 0,
+        v: new V(0, 0, 0),
+        piv: new V(),
+        site: true,
+        ship: true,
+        loc: new V(mx, top + 0.9, mz),
+      };
       AA.gun.push(g);
       guns.push(g);
     }
     {
-      const wk = shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */;
+      const wk = shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45); /* on the water, just above her waterline */
       e.m.add(wk);
     }
     const tmp = new V();
     e.m.matrixAutoUpdate = true;
     SITE.patrol = { e, s: 0, sp: 8.5 };
-    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: SITE.ryS, v: 0 }) /* she gives way (COLL) */;
+    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: SITE.ryS, v: 0 }); /* she gives way (COLL) */
     SITE.pat = (dt) => {
       const q = SITE.patrol,
         m = e.m;
@@ -596,8 +739,8 @@ const SITES = [],
           x = held ? bd.x : x_,
           z = held ? bd.z : z_,
           yw = held ? bd.yaw : yw_,
-          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
-        if (held) (q.s = s0), (bd.off = o0), (bd.slow = 0);
+          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)); /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */
+        if (held) ((q.s = s0), (bd.off = o0), (bd.slow = 0));
         Object.assign(bd, { x, z, yaw: yw, v: q.sp * Math.abs(bd.slow) });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.matrixAutoUpdate = true; /* the scene is frozen after the build */
@@ -650,8 +793,9 @@ const SITES = [],
     scene.add(o);
     RUN.push({ o, x, z, dx: Math.cos(yw), dz: -Math.sin(yw), r: 0 });
     T14W.fired++;
-    (T14W.log || (T14W.log = [])).push([Math.round(x), Math.round(z), +yw.toFixed(3), Math.round(pos.x), Math.round(pos.z)]) > 20 && T14W.log.shift(); /* for the tests */
-    if (T14W.msgT <= 0 && Math.hypot(pos.x - x, pos.z - z) < 3000) note('TORPEDO WAKES!'), (T14W.msgT = 10);
+    (T14W.log || (T14W.log = [])).push([Math.round(x), Math.round(z), +yw.toFixed(3), Math.round(pos.x), Math.round(pos.z)]) > 20 &&
+      T14W.log.shift(); /* for the tests */
+    if (T14W.msgT <= 0 && Math.hypot(pos.x - x, pos.z - z) < 3000) (note('TORPEDO WAKES!'), (T14W.msgT = 10));
   };
   /* the skipper's estimate of the ship's course and speed, by eye from a low, fast boat: off by about 10 degrees and 24 per cent (one
      standard deviation, times the difficulty's spread); calibrated so that about one attack in four hits a ship holding her course
@@ -669,7 +813,7 @@ const SITES = [],
       t.r += TSP * dt;
       t.o.position.set(t.x, coastSea(), t.z);
       t.o.updateMatrixWorld(true);
-      const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z) /* at her waterline (the hull test's frame starts at the sea) */;
+      const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z); /* at her waterline (the hull test's frame starts at the sea) */
       let end = t.r > TRUN,
         boom = false;
       if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
@@ -680,10 +824,18 @@ const SITES = [],
       } else if (HR(t.x, t.z) > coastSea() - 1.5) boom = end = true; /* into the shallows: it hits the bottom */
       if (boom) {
         const c = p.clone().setY(coastSea());
-        for (let k = 0; k < 6; k++) fxAdd(c.clone().add(new V((Math.random() - 0.5) * 5, 2 + k * 3, (Math.random() - 0.5) * 5)), 0xe9eef0, 4, 14, 2.4, 6, false); /* the water column */
+        for (let k = 0; k < 6; k++)
+          fxAdd(c.clone().add(new V((Math.random() - 0.5) * 5, 2 + k * 3, (Math.random() - 0.5) * 5)), 0xe9eef0, 4, 14, 2.4, 6, false); /* the water column */
         SND.boom(c, 8);
       }
-      if (end) scene.remove(t.o), RUN.splice(i, 1), (T14W.ends || (T14W.ends = [])).push([Math.round(t.r), boom ? (t.r > TRUN ? 'x' : HR(t.x, t.z) > coastSea() - 1.5 ? 'bottom' : 'hit') : 'run out', Math.round(Math.hypot(pos.x - t.x, pos.z - t.z))]) > 20 && T14W.ends.shift();
+      if (end)
+        (scene.remove(t.o),
+          RUN.splice(i, 1),
+          (T14W.ends || (T14W.ends = [])).push([
+            Math.round(t.r),
+            boom ? (t.r > TRUN ? 'x' : HR(t.x, t.z) > coastSea() - 1.5 ? 'bottom' : 'hit') : 'run out',
+            Math.round(Math.hypot(pos.x - t.x, pos.z - t.z)),
+          ]) > 20 && T14W.ends.shift());
     }
   };
   /* n boats in loose line ahead (gap m apart, staggered 12 m to seaward) round a racetrack at sp m/s; returns the per-frame update */
@@ -697,8 +849,8 @@ const SITES = [],
       GT = geo(GP.tur),
       GB = geo(GP.bar),
       FISH = [null, geo(T14.torp(-T14.TZ)), geo([...T14.torp(-T14.TZ), ...T14.torp(T14.TZ)])] /* by fish aboard: none, the port one, both */,
-      RUN = [] /* this group's torpedoes running */;
-    const G = { B, RUN, mag: T14MAG, mag0: T14MAG } /* mag: the torpedoes left at the group's base for reloads */;
+      RUN = []; /* this group's torpedoes running */
+    const G = { B, RUN, mag: T14MAG, mag0: T14MAG }; /* mag: the torpedoes left at the group's base for reloads */
     (T14W.groups || (T14W.groups = [])).push(G);
     FR = F;
     for (let i = 0; i < n; i++) {
@@ -715,14 +867,74 @@ const SITES = [],
       bar.add(new THREE.Mesh(GB, MAT()));
       tur.add(bar);
       e.m.add(tur);
-      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: F.ryS + Math.PI / 2 /* stowed trained forward */, pit: 0.18, acq: 0, mag: 15, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(T14.GX0, T14.gTop() + T14.GBAR + wl, 0) };
+      const g = {
+        t: e,
+        grp: new THREE.Group(),
+        tur,
+        bar,
+        x: 0,
+        z: 0,
+        nr: 0,
+        bias: new V(0, 0, 0),
+        yaw: F.ryS + Math.PI / 2 /* stowed trained forward */,
+        pit: 0.18,
+        acq: 0,
+        mag: 15,
+        rl: 0,
+        cd: 0,
+        side: 1,
+        rec: 0,
+        snd: 0,
+        v: new V(0, 0, 0),
+        piv: new V(),
+        site: true,
+        ship: true,
+        loc: new V(T14.GX0, T14.gTop() + T14.GBAR + wl, 0),
+      };
       AA.gun.push(g);
       /* the two torpedoes in their cradles: one mesh, its shape swapped as they go over the side (one draw call) */
       const fm = new THREE.Mesh(FISH[2], MAT());
       fm.position.y = wl;
       e.m.add(fm);
-      const fish = { n: 2, set(n) { this.n = n; fm.visible = n > 0; if (n) fm.geometry = FISH[n]; } };
-      B.push({ e, g, fish, y0: e.m.position.y, wl, off: i * gap, dz: (i % 2) * 12, ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3), hull: null, bd: COLL.add({ sea: true, hl: 7.5, r: 1.8, mg: 10, maxOff: 40 /* she stays out of the escort's lane */, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0, tclr: 6 }), s: 0, mode: 'track', mt: 0, rearm: 0, x: 0, z: 0, yw: 0, v: sp });
+      const fish = {
+        n: 2,
+        set(n) {
+          this.n = n;
+          fm.visible = n > 0;
+          if (n) fm.geometry = FISH[n];
+        },
+      };
+      B.push({
+        e,
+        g,
+        fish,
+        y0: e.m.position.y,
+        wl,
+        off: i * gap,
+        dz: (i % 2) * 12,
+        ride: RIDE.make(0.43 * 15, 0.45 * 3.6, 3),
+        hull: null,
+        bd: COLL.add({
+          sea: true,
+          hl: 7.5,
+          r: 1.8,
+          mg: 10,
+          maxOff: 40 /* she stays out of the escort's lane */,
+          x: e.m.position.x,
+          z: e.m.position.z,
+          yaw: F.ryS,
+          v: 0,
+          tclr: 6,
+        }),
+        s: 0,
+        mode: 'track',
+        mt: 0,
+        rearm: 0,
+        x: 0,
+        z: 0,
+        yw: 0,
+        v: sp,
+      });
     }
     FR = F0;
     const s0 = Math.random() * per;
@@ -749,7 +961,7 @@ const SITES = [],
       let ok = false;
       for (const k of [0, 0.25, -0.25, 0.5, -0.5, 0.8, -0.8, 1.2, -1.2, 1.7, -1.7, 2.3, -2.3, Math.PI])
         if (deepRun(b.x, b.z, hw + k, 90)) {
-          (hw += k), (ok = true);
+          ((hw += k), (ok = true));
           break;
         }
       if (!ok) v = 0;
@@ -759,7 +971,7 @@ const SITES = [],
       const nx = b.x + Math.cos(b.yw) * b.v * dt,
         nz = b.z - Math.sin(b.yw) * b.v * dt;
       if (COLL.intrudes(b.bd, nx, nz, b.yw)) b.v = 0; /* she holds rather than go into another hull */
-      else (b.x = nx), (b.z = nz);
+      else ((b.x = nx), (b.z = nz));
     };
     return (G.upd = (dt) => {
       const hot = t14Hot();
@@ -767,7 +979,7 @@ const SITES = [],
       for (const b of B) {
         const m = b.e.m;
         if (b.e.dead) {
-          if (b.hull) OCEAN.unhull(b.hull), (b.hull = null);
+          if (b.hull) (OCEAN.unhull(b.hull), (b.hull = null));
           b.bd.v = 0;
           continue;
         }
@@ -783,7 +995,8 @@ const SITES = [],
           z = zt + Math.cos(yt) * b.bd.off;
           yw = yt + b.bd.dyaw;
           v = sp * Math.abs(b.bd.slow);
-          if (COLL.intrudes(b.bd, x, z, yw)) (b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0); /* she holds */
+          if (COLL.intrudes(b.bd, x, z, yw))
+            ((b.s = s0), (b.bd.off = o0), (b.bd.slow = 0), (x = b.bd.x), (z = b.bd.z), (yw = b.bd.yaw), (v = 0)); /* she holds */
           /* fired: back to the base for two more, while it has them (the start of her track, in deep water) */
           if (b.fish.n < 2 && G.mag >= 2) Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v });
           const R = Math.hypot(pos.x - x, pos.z - z);
@@ -808,13 +1021,13 @@ const SITES = [],
               lz = dz + vz * tt,
               hw = Math.atan2(-lz, lx);
             freeMove(b, hw, 15.4, dt);
-            if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin' /* no shot, or too close in: she gives it up */;
+            if (!hot || b.mt > 240 || R > 4500 || R < 500) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
             else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
               /* both fish over the side, one a second after the other, then hard over away from her */
-              t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012) /* the two spread a little, to bracket her */;
+              t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012); /* the two spread a little, to bracket her */
               b.fish.set(1);
               b.f2 = 1;
-              b.fy = b.yw /* the course both fish are aimed on: she holds it until the second is away */;
+              b.fy = b.yw; /* the course both fish are aimed on: she holds it until the second is away */
               Object.assign(b, { mode: 'away', mt: -1, aw: b.yw + (Math.random() < 0.5 ? 2.2 : -2.2) });
             }
           } else if (b.mode === 'reload') {
@@ -823,11 +1036,11 @@ const SITES = [],
               rd = Math.hypot(rx - b.x, rz - b.z);
             if (rd > 25) freeMove(b, Math.atan2(-(rz - b.z), rx - b.x), rd > 200 ? 15.4 : 4, dt);
             else if ((b.rt += dt) > 120 || G.mag < 2) {
-              if (G.mag >= 2) (G.mag -= 2), b.fish.set(2);
+              if (G.mag >= 2) ((G.mag -= 2), b.fish.set(2));
               b.mode = 'rejoin';
             } else freeMove(b, b.yw, 0, dt);
           } else if (b.mode === 'away') {
-            if (b.f2 > 0 && (b.f2 -= dt) <= 0) t14Fish(RUN, b.x, b.z, b.fy - 0.012), b.fish.set(0); /* the second fish a second later */
+            if (b.f2 > 0 && (b.f2 -= dt) <= 0) (t14Fish(RUN, b.x, b.z, b.fy - 0.012), b.fish.set(0)); /* the second fish a second later */
             freeMove(b, b.f2 > 0 ? b.fy : b.aw, 15.4, dt);
             if (b.mt > 30) b.mode = 'rejoin';
           } else {
@@ -837,11 +1050,11 @@ const SITES = [],
             for (let s = 0; s < per; s += 20) {
               const [tx, tz] = trackXZ(b, s),
                 d2 = (tx - b.x) ** 2 + (tz - b.z) ** 2;
-              if (d2 < bd2) (bd2 = d2), (bs = s);
+              if (d2 < bd2) ((bd2 = d2), (bs = s));
             }
             const [tx, tz] = trackXZ(b, bs + 40);
             freeMove(b, Math.atan2(-(tz - b.z), tx - b.x), 12, dt);
-            if (bd2 < 20 * 20) Object.assign(b, { mode: 'track', s: bs }), Object.assign(b.bd, { off: 0, offT: 0, dyaw: 0 });
+            if (bd2 < 20 * 20) (Object.assign(b, { mode: 'track', s: bs }), Object.assign(b.bd, { off: 0, offT: 0, dyaw: 0 }));
           }
           x = b.x;
           z = b.z;
@@ -862,10 +1075,11 @@ const SITES = [],
         m.localToWorld(g.piv);
         g.x = g.piv.x;
         g.z = g.piv.z;
-        if (typeof OCEAN !== 'undefined') OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
+        if (typeof OCEAN !== 'undefined')
+          OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
       }
       t14Torps(RUN, dt);
-    }) /* G.upd: the group each frame (the tests step it too) */;
+    }); /* G.upd: the group each frame (the tests step it too) */
   };
   /* is a racetrack (and m metres round it) water deeper than dmin? (h: the seabed function of that map) */
   const deepOK = (F, u0, u1, d0, R, m, dmin, h) => {
@@ -878,12 +1092,19 @@ const SITES = [],
   };
   {
     /* two lie alongside the mole's east face, the second rafted outboard of the first, bows to seaward */
-    for (const [k, du] of [[0, MOLE.W / 2 + 2.05], [1, MOLE.W / 2 + 2.05 + 3.7]]) {
+    for (const [k, du] of [
+      [0, MOLE.W / 2 + 2.05],
+      [1, MOLE.W / 2 + 2.05 + 3.7],
+    ]) {
       const e = ship(MODELS.get('jp-t14', k), 15, du, MOLE.d0 + 72 - k * 4, 30);
       ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(6.4, 1.6, 3), e, hull: { o: { kind: 't14', cut: 'deck' } } });
     }
     /* and two on patrol inshore of the kaibokan, west of the mole: 18 knots round a 900 m racetrack */
-    for (const [u0, u1, d0] of [[-1150, -250, 260], [-900, -250, 300], [250, 1100, 260]])
+    for (const [u0, u1, d0] of [
+      [-1150, -250, 260],
+      [-900, -250, 300],
+      [250, 1100, 260],
+    ])
       if (deepOK(SITE, u0, u1, d0, 35, 30, 4, HR)) {
         const upd = mkT14s(SITE, u0, u1, d0, 35, 2, 9.3, 45),
           _p = SITE.pat;
@@ -910,19 +1131,36 @@ const SITES = [],
     onMole(MODELS.get('jp-decauville', MOLE.L - 4), 1.2, MOLE.d0, 0);
     onMole(MODELS.get('jp-rail-cart', true), 1.2, MOLE.d0 + 40, 0);
     onMole(MODELS.get('jp-rail-cart', false), 1.2, MOLE.d0 + MOLE.L - 12, 0);
-    [['work', -6, -4, Z], ['stand', 4, -3, -2], ['walk', -2, -30, Math.PI], ['stand', -9, -7, 0.5]] /* all four on the T-head's deck (it runs from L - 10 to L) */.forEach(([pose, du, dd, yaw], k) =>
-      onMole(MODELS.get('crew', 'jn', pose, k), du, MOLE.d0 + MOLE.L + dd, yaw),
-    );
+    [
+      ['work', -6, -4, Z],
+      ['stand', 4, -3, -2],
+      ['walk', -2, -30, Math.PI],
+      ['stand', -9, -7, 0.5],
+    ] /* all four on the T-head's deck (it runs from L - 10 to L) */
+      .forEach(([pose, du, dd, yaw], k) => onMole(MODELS.get('crew', 'jn', pose, k), du, MOLE.d0 + MOLE.L + dd, yaw));
     const [dx, dz] = SITE.w(-30, 62);
     acc.add(MODELS.get('jp-drum-dump', 7, 4), GX.xf(dx, H(dx, dz), dz, SITE.ryA));
     const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }));
     scene.add(m);
   }
-  [['warehouse', -95, -45], ['warehouse', -45, -50], ['warehouse', 10, -52], ['hq', -8, -88], ['bunker', 80, -82]].forEach(([t, u, d]) =>
-    bld(t, u, d, SITE.ryA),
-  );
-  [[65, -25], [90, -25], [115, -25]].forEach(([u, d]) => bld('fuel', u, d, 0));
-  [['truck', -60, 10], ['supply', 55, 15], ['tanker', 100, 12], ['jeep', -20, 20]].forEach(([t, u, d], i) => bld(t, u, d, SITE.ryA + i));
+  [
+    ['warehouse', -95, -45],
+    ['warehouse', -45, -50],
+    ['warehouse', 10, -52],
+    ['hq', -8, -88],
+    ['bunker', 80, -82],
+  ].forEach(([t, u, d]) => bld(t, u, d, SITE.ryA));
+  [
+    [65, -25],
+    [90, -25],
+    [115, -25],
+  ].forEach(([u, d]) => bld('fuel', u, d, 0));
+  [
+    ['truck', -60, 10],
+    ['supply', 55, 15],
+    ['tanker', 100, 12],
+    ['jeep', -20, 20],
+  ].forEach(([t, u, d], i) => bld(t, u, d, SITE.ryA + i));
   /* a perimeter fence (wire on posts) with a guard tower at each corner and at the given u along each long side; in the current frame FR */
   const fenceRect = (U0, U1, D0, D1, mids) => {
     const acc = new GX.Acc();
@@ -933,7 +1171,13 @@ const SITES = [],
       for (let i = 0; i < n; i++) {
         const [ax, az] = FR.w(u0 + ((u1 - u0) * i) / n, d0 + ((d1 - d0) * i) / n),
           [bx2, bz] = FR.w(u0 + ((u1 - u0) * (i + 1)) / n, d0 + ((d1 - d0) * (i + 1)) / n);
-        if (nearRoad((ax + bx2) / 2, (az + bz) / 2, 13) || nearRoad(ax, az, 13) || nearRoad(bx2, bz, 13) || (FR !== SITE && WORLD.RT.near((ax + bx2) / 2, (az + bz) / 2, 9))) continue;
+        if (
+          nearRoad((ax + bx2) / 2, (az + bz) / 2, 13) ||
+          nearRoad(ax, az, 13) ||
+          nearRoad(bx2, bz, 13) ||
+          (FR !== SITE && WORLD.RT.near((ax + bx2) / 2, (az + bz) / 2, 9))
+        )
+          continue;
         const Ls = Math.hypot(bx2 - ax, bz - az),
           yaw = Math.atan2(-(bz - az), bx2 - ax);
         put(
@@ -960,10 +1204,14 @@ const SITES = [],
     const gt = (u, d) => {
       const g = 0x4d5240,
         P = [];
-      for (const sx of [-1, 1])
-        for (const sz of [-1, 1]) P.push(part(bx(0.18, 6.4, 0.18), g, sx, 3.2, sz, sz * 0.05, 0, -sx * 0.05));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(bx(0.18, 6.4, 0.18), g, sx, 3.2, sz, sz * 0.05, 0, -sx * 0.05));
       for (const y of [1.6, 3.4, 5.0])
-        P.push(part(bx(2.1, 0.1, 0.1), g, 0, y, 1), part(bx(2.1, 0.1, 0.1), g, 0, y, -1), part(bx(0.1, 0.1, 2.1), g, 1, y, 0), part(bx(0.1, 0.1, 2.1), g, -1, y, 0));
+        P.push(
+          part(bx(2.1, 0.1, 0.1), g, 0, y, 1),
+          part(bx(2.1, 0.1, 0.1), g, 0, y, -1),
+          part(bx(0.1, 0.1, 2.1), g, 1, y, 0),
+          part(bx(0.1, 0.1, 2.1), g, -1, y, 0),
+        );
       P.push(
         part(bx(3.0, 0.2, 3.0), 0x5a5f4c, 0, 6.5, 0),
         part(bx(2.5, 1.5, 2.5), 0x6a6f58, 0, 7.35, 0),
@@ -975,76 +1223,109 @@ const SITES = [],
       const [x, z] = FR.w(u, d);
       put(P, x, z, FR.ryA);
     };
-    [[U0 + 4, D0 + 4], [U1 - 4, D0 + 4], [U1 - 4, D1 - 4], [U0 + 4, D1 - 4]].concat(...mids.map((u) => [[u, D0 + 4], [u, D1 - 4]])).forEach(([u, d]) => gt(u, d));
+    [
+      [U0 + 4, D0 + 4],
+      [U1 - 4, D0 + 4],
+      [U1 - 4, D1 - 4],
+      [U0 + 4, D1 - 4],
+    ]
+      .concat(
+        ...mids.map((u) => [
+          [u, D0 + 4],
+          [u, D1 - 4],
+        ]),
+      )
+      .forEach(([u, d]) => gt(u, d));
     scene.add(new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true })));
   };
   /* ===== the airbase: a function of a site frame (the home one, and the two far ones) ===== */
   const airbase = (F, DR, seed) => {
     FR = F;
-  drape(-600, 600, DR - 18, DR + 18, RT, 10, 1, 0.3); /* runway 1,200 m x 36 m */
-  drape(-460, 460, DR - 70, DR - 56, cc(CT, 92, 3), 1, 1, 0.28); /* parallel taxiway */
-  for (const u of [-380, 380]) drape(u - 7, u + 7, DR - 56, DR - 18, cc(CT, 3, 8), 1, 1, 0.28); /* the two links to the runway */
-  drape(-300, 300, DR - 150, DR - 70, cc(CT, 60, 14), 1, 1, 0.3); /* the apron */
-  let sd = seed;
-  const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647,
-    bodies = [0x4d5a3c, 0x5d6341, 0x5a5f48, 0x6b6f5a];
-  for (let i = 0; i < 9; i++) {
-    const u = -250 + i * 62,
-      o = { ang: rnd(), stripes: 0 };
-    /* on its wheels on the apron: the apron is draped 0.3 m over the terrain mesh, so stand it on the highest of its three
+    drape(-600, 600, DR - 18, DR + 18, RT, 10, 1, 0.3); /* runway 1,200 m x 36 m */
+    drape(-460, 460, DR - 70, DR - 56, cc(CT, 92, 3), 1, 1, 0.28); /* parallel taxiway */
+    for (const u of [-380, 380]) drape(u - 7, u + 7, DR - 56, DR - 18, cc(CT, 3, 8), 1, 1, 0.28); /* the two links to the runway */
+    drape(-300, 300, DR - 150, DR - 70, cc(CT, 60, 14), 1, 1, 0.3); /* the apron */
+    let sd = seed;
+    const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647,
+      bodies = [0x4d5a3c, 0x5d6341, 0x5a5f48, 0x6b6f5a];
+    for (let i = 0; i < 9; i++) {
+      const u = -250 + i * 62,
+        o = { ang: rnd(), stripes: 0 };
+      /* on its wheels on the apron: the apron is draped 0.3 m over the terrain mesh, so stand it on the highest of its three
        wheel contacts there (the mesh's base goes at the terrain height under its centre, plus yOff) */
-    const ry = FR.ryS + (rnd() - 0.5) * 0.25,
-      [x0, z0] = FR.w(u, DR - 100),
-      top = Math.max(...KI84.CONTACT.map(([cx, cz]) => SURF(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry)))) /* the apron's top (SURF) under each wheel */;
-    target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01, M.ki84(bodies[i % 4], Object.assign({ far: true }, o)));
-  }
-  /* the ground crew at work on the line (IJAAF khaki-tan coveralls, field caps) and a tractor to tow the fighters: one static mesh */
-  {
-    const acc = new GX.Acc(),
-      at = (P, u, d, yaw) => {
-        const [x, z] = FR.w(u, d);
-        acc.add(P, GX.xf(x, GX.standY(P, x, z, FR.ryS + yaw), z, FR.ryS + yaw)); /* on the apron (SURF) */
-      };
-    [[1, 'work', 3.2, 2.2, Math.PI], [1, 'stand', 6, -2.5, 2.2], [4, 'kneel', 2.5, -3.6, 0.4], [4, 'work', 3.4, 2.4, Math.PI], [7, 'stand', -4, 3, -1.2], [7, 'walk', 8, 6, 0.8]].forEach(([i, pose, du, dd, yaw], k) =>
-      at(MODELS.get('crew', 'ja', pose, k), -250 + i * 62 + du, DR - 100 + dd, yaw),
-    );
-    at(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')), -250 + 2 * 62 + 9, DR - 92, 0.6);
-    const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
-    csTree(m);
-    scene.add(m);
-  }
-  /* the base yard behind the apron: bare gravel ground for the hangars, offices and stores (as at the other two bases) */
-  const yc = document.createElement('canvas');
-  yc.width = yc.height = 256;
-  {
-    const g = yc.getContext('2d');
-    g.fillStyle = '#5a5240';
-    g.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 2600; i++) {
-      const v = 62 + Math.random() * 45 | 0;
-      g.fillStyle = 'rgba(' + v + ',' + (v - 8) + ',' + (v - 28) + ',0.5)';
-      g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 2 + Math.random() * 3);
+      const ry = FR.ryS + (rnd() - 0.5) * 0.25,
+        [x0, z0] = FR.w(u, DR - 100),
+        top = Math.max(
+          ...KI84.CONTACT.map(([cx, cz]) => SURF(x0 + cx * Math.cos(ry) + cz * Math.sin(ry), z0 - cx * Math.sin(ry) + cz * Math.cos(ry))),
+        ); /* the apron's top (SURF) under each wheel */
+      target(M.ki84(bodies[i % 4], o), 'plane', 14, 7, u, DR - 100, ry, top - H(x0, z0) + 0.01, M.ki84(bodies[i % 4], Object.assign({ far: true }, o)));
     }
-  }
-  const YT = new THREE.CanvasTexture(yc);
-  YT.wrapS = YT.wrapT = THREE.RepeatWrapping;
-  YT.anisotropy = 8;
-  drape(-330, 330, DR - 295, DR - 165, cc(YT, 66, 26), 1, 1, 0.27);
-  [['hangar', -210], ['hangar', -110], ['hangar', -10]].forEach(([t, u]) => bld(t, u, DR - 215, FR.ryA + Z));
-  [['hq', -250, DR - 270], ['warehouse', 90, DR - 255], ['warehouse', 140, DR - 255], ['bunker', 230, DR - 230]].forEach(([t, u, d]) =>
-    bld(t, u, d, FR.ryA),
-  );
-  [[210, DR - 175], [235, DR - 175]].forEach(([u, d]) => bld('fuel', u, d, 0));
-  [['truck', -160, DR - 150], ['supply', 40, DR - 160], ['tanker', 180, DR - 150], ['jeep', -60, DR - 130], ['apc', 120, DR - 165]].forEach(
-    ([t, u, d], i) => bld(t, u, d, FR.ryA + 0.3 * i),
-  );
-  /* control tower on the yard, in front of the hangars (a target): the reference-built Japanese tower (MODELS 'jp-control-tower') */
-  {
-    const P = MODELS.get('jp-control-tower');
-    target(P, 'tower', 60, 9, 0, DR - 190, FR.ryA);
-  }
-  /* perimeter fence round the whole airfield, with guard towers */
-  fenceRect(-650, 650, DR - 310, DR + 80, [-320, 320]);
+    /* the ground crew at work on the line (IJAAF khaki-tan coveralls, field caps) and a tractor to tow the fighters: one static mesh */
+    {
+      const acc = new GX.Acc(),
+        at = (P, u, d, yaw) => {
+          const [x, z] = FR.w(u, d);
+          acc.add(P, GX.xf(x, GX.standY(P, x, z, FR.ryS + yaw), z, FR.ryS + yaw)); /* on the apron (SURF) */
+        };
+      [
+        [1, 'work', 3.2, 2.2, Math.PI],
+        [1, 'stand', 6, -2.5, 2.2],
+        [4, 'kneel', 2.5, -3.6, 0.4],
+        [4, 'work', 3.4, 2.4, Math.PI],
+        [7, 'stand', -4, 3, -1.2],
+        [7, 'walk', 8, 6, 0.8],
+      ].forEach(([i, pose, du, dd, yaw], k) => at(MODELS.get('crew', 'ja', pose, k), -250 + i * 62 + du, DR - 100 + dd, yaw));
+      at(GX.fit(MODELS.get('jp-tug', 0x6e6142), MODELS.info('jp-tug')), -250 + 2 * 62 + 9, DR - 92, 0.6);
+      const m = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+      csTree(m);
+      scene.add(m);
+    }
+    /* the base yard behind the apron: bare gravel ground for the hangars, offices and stores (as at the other two bases) */
+    const yc = document.createElement('canvas');
+    yc.width = yc.height = 256;
+    {
+      const g = yc.getContext('2d');
+      g.fillStyle = '#5a5240';
+      g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 2600; i++) {
+        const v = (62 + Math.random() * 45) | 0;
+        g.fillStyle = 'rgba(' + v + ',' + (v - 8) + ',' + (v - 28) + ',0.5)';
+        g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 2 + Math.random() * 3);
+      }
+    }
+    const YT = new THREE.CanvasTexture(yc);
+    YT.wrapS = YT.wrapT = THREE.RepeatWrapping;
+    YT.anisotropy = 8;
+    drape(-330, 330, DR - 295, DR - 165, cc(YT, 66, 26), 1, 1, 0.27);
+    [
+      ['hangar', -210],
+      ['hangar', -110],
+      ['hangar', -10],
+    ].forEach(([t, u]) => bld(t, u, DR - 215, FR.ryA + Z));
+    [
+      ['hq', -250, DR - 270],
+      ['warehouse', 90, DR - 255],
+      ['warehouse', 140, DR - 255],
+      ['bunker', 230, DR - 230],
+    ].forEach(([t, u, d]) => bld(t, u, d, FR.ryA));
+    [
+      [210, DR - 175],
+      [235, DR - 175],
+    ].forEach(([u, d]) => bld('fuel', u, d, 0));
+    [
+      ['truck', -160, DR - 150],
+      ['supply', 40, DR - 160],
+      ['tanker', 180, DR - 150],
+      ['jeep', -60, DR - 130],
+      ['apc', 120, DR - 165],
+    ].forEach(([t, u, d], i) => bld(t, u, d, FR.ryA + 0.3 * i));
+    /* control tower on the yard, in front of the hangars (a target): the reference-built Japanese tower (MODELS 'jp-control-tower') */
+    {
+      const P = MODELS.get('jp-control-tower');
+      target(P, 'tower', 60, 9, 0, DR - 190, FR.ryA);
+    }
+    /* perimeter fence round the whole airfield, with guard towers */
+    fenceRect(-650, 650, DR - 310, DR + 80, [-320, 320]);
     FR = SITE;
   };
   airbase(SITE, -750, 4242);
@@ -1084,12 +1365,21 @@ const SITES = [],
   const flat = (F, u0, u1, d0, d1, y, tex, ru, rd, off) => {
     const q = [F.w(u0, d0), F.w(u1, d0), F.w(u1, d1), F.w(u0, d1)],
       g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(q.flatMap((p) => [p[0], y, p[1]]), 3));
+    g.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(
+        q.flatMap((p) => [p[0], y, p[1]]),
+        3,
+      ),
+    );
     g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, ru, 0, ru, rd, 0, rd], 2));
     g.setIndex([0, 1, 2, 0, 2, 3]);
     g.computeBoundingSphere();
-    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex, side: 2, polygonOffset: true, polygonOffsetFactor: -(off || 2), polygonOffsetUnits: -(off || 2) }));
+    const m = new THREE.Mesh(
+      g,
+      new THREE.MeshLambertMaterial({ map: tex, side: 2, polygonOffset: true, polygonOffsetFactor: -(off || 2), polygonOffsetUnits: -(off || 2) }),
+    );
     scene.add(m);
     return m;
   };
@@ -1124,7 +1414,9 @@ const SITES = [],
       P = [part(cyl(0.2, 0.34, h, 6), 0x7d6244, tx / 2, ty / 2, tz / 2, sa * lean, 0, -ca * lean)];
     for (let j = 0; j < 9; j++) {
       const a = (j / 9) * 6.2832 + r * 3;
-      P.push(part(bx(4.4, 0.05, 0.75), j % 2 ? 0x3b8a32 : 0x2f7a2a, tx + Math.cos(a) * 2.0, ty - 0.82, tz + Math.sin(a) * 2.0, 0, -a, -0.42)); /* each frond springs from the crown (its inner end at the trunk's head) and droops */
+      P.push(
+        part(bx(4.4, 0.05, 0.75), j % 2 ? 0x3b8a32 : 0x2f7a2a, tx + Math.cos(a) * 2.0, ty - 0.82, tz + Math.sin(a) * 2.0, 0, -a, -0.42),
+      ); /* each frond springs from the crown (its inner end at the trunk's head) and droops */
     }
     P.push(part(GX.sph(6), 0x5a3a1a, tx, ty - 0.1, tz, 0, 0, 0, 0.32, 0.3, 0.32));
     return P;
@@ -1164,13 +1456,25 @@ const SITES = [],
       const J = [];
       for (let k = 0; k <= 19; k++) for (const s of [-1, 1]) J.push(part(cyl(0.3, 0.3, 11, 6), 0x4a3a2a, 62 + k * 10, wy - 5.4, s * 3.7));
       for (let k = 0; k < 9; k++) for (const s of [-1, 1]) J.push(part(cyl(0.22, 0.26, 0.9, 6), 0x2a2a28, 75 + k * 20, wy + 0.45, s * 3.7));
-      J.push(part(cyl(1.1, 1.5, 8, 8), 0xece8da, 250, wy + 4, 0), part(cyl(1.35, 1.35, 1.2, 8), 0xb02a20, 250, wy + 8.6, 0), part(cyl(0.3, 0.3, 1.6, 6), 0x222222, 250, wy + 9.8, 0));
+      J.push(
+        part(cyl(1.1, 1.5, 8, 8), 0xece8da, 250, wy + 4, 0),
+        part(cyl(1.35, 1.35, 1.2, 8), 0xb02a20, 250, wy + 8.6, 0),
+        part(cyl(0.3, 0.3, 1.6, 6), 0x222222, 250, wy + 9.8, 0),
+      );
       S.acc.add(J, L0);
       use(-135, 135, 36, 70);
       /* four long sheds along the back of the yard (timber walls, rusty and grey iron) */
       FR = F;
       for (let i = 0; i < 4; i++) {
-        target(MODELS.get('jp-godown', 34, 15), 'warehouse', 40, 17, -140 + i * 62, -62, YF); /* a timber godown (the waterfront piece), under the Hinomaru, so a target */
+        target(
+          MODELS.get('jp-godown', 34, 15),
+          'warehouse',
+          40,
+          17,
+          -140 + i * 62,
+          -62,
+          YF,
+        ); /* a timber godown (the waterfront piece), under the Hinomaru, so a target */
         use(-160 + i * 62, -120 + i * 62, -75, -48);
       }
       FR = SITE;
@@ -1241,7 +1545,13 @@ const SITES = [],
   const mkPatrol = (F) => {
     const R = 60;
     let pick = null;
-    for (const [u0, u1, d0] of [[-350, 1500, 420], [-350, 1000, 520], [-500, 500, 520], [-400, 400, 700], [-300, 300, 900]])
+    for (const [u0, u1, d0] of [
+      [-350, 1500, 420],
+      [-350, 1000, 520],
+      [-500, 500, 520],
+      [-400, 400, 700],
+      [-300, 300, 900],
+    ])
       if (seaOK(F, u0, u1, d0, R)) {
         pick = [u0, u1, d0];
         break;
@@ -1269,7 +1579,30 @@ const SITES = [],
       bar.add(new THREE.Mesh(AA.mount.bar, MATu()));
       tur.add(bar);
       e.m.add(tur);
-      const g = { t: e, grp: new THREE.Group(), tur, bar, x: 0, z: 0, nr: 0, bias: new V(0, 0, 0), yaw: 0, pit: 0.5, acq: 0, mag: 30, rl: 0, cd: 0, side: 1, rec: 0, snd: 0, v: new V(0, 0, 0), piv: new V(), site: true, ship: true, loc: new V(mx, top + 0.9, mz) };
+      const g = {
+        t: e,
+        grp: new THREE.Group(),
+        tur,
+        bar,
+        x: 0,
+        z: 0,
+        nr: 0,
+        bias: new V(0, 0, 0),
+        yaw: 0,
+        pit: 0.5,
+        acq: 0,
+        mag: 30,
+        rl: 0,
+        cd: 0,
+        side: 1,
+        rec: 0,
+        snd: 0,
+        v: new V(0, 0, 0),
+        piv: new V(),
+        site: true,
+        ship: true,
+        loc: new V(mx, top + 0.9, mz),
+      };
       AA.gun.push(g);
       guns.push(g);
     }
@@ -1280,7 +1613,7 @@ const SITES = [],
     const tU1 = Math.min(u1, u0 + 900),
       t14 = deepOK(F, u0, tU1, d0 - 180, 35, 30, 6, WH) ? mkT14s(F, u0, tU1, d0 - 180, 35, 2, 9.3, 45) : null;
     const P = { e, vis: true, track: { u0, u1, d0, R }, t14 };
-    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }) /* she gives way (COLL) */;
+    const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }); /* she gives way (COLL) */
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
@@ -1326,8 +1659,8 @@ const SITES = [],
           x = held ? bd.x : x_,
           z = held ? bd.z : z_,
           yw = held ? bd.yaw : yw_,
-          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)) /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */;
-        if (held) (s = s0), (bd.off = o0), (bd.slow = 0);
+          rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8)); /* she rides the waves (RIDE): a 78 m escort, 9.3 m beam */
+        if (held) ((s = s0), (bd.off = o0), (bd.slow = 0));
         Object.assign(bd, { x, z, yaw: yw, v: 8.5 * Math.abs(bd.slow) });
         RIDE.step(rd, x, z, Math.cos(yw), -Math.sin(yw), dt, 0);
         m.position.set(x, y0 + rd.hv, z);
@@ -1380,8 +1713,22 @@ const SITES = [],
     const hh = F.H + 0.18;
     flat(F, -185, 185, -165, 165, hh, GRAVEL, 36, 32, 2);
     FR = F;
-    [['warehouse', -110, -80], ['warehouse', -110, 0], ['warehouse', -40, -95], ['hq', 90, -80], ['bunker', 110, 20], ['warehouse', 20, 85]].forEach(([t, u, d]) => bld(t, u, d, F.ryA));
-    [['truck', -60, 40], ['supply', -20, 30], ['jeep', 30, -20], ['tanker', 60, 60], ['apc', 85, 90], ['truck', -90, 80]].forEach(([t, u, d], i) => bld(t, u, d, F.ryA + 0.4 * i));
+    [
+      ['warehouse', -110, -80],
+      ['warehouse', -110, 0],
+      ['warehouse', -40, -95],
+      ['hq', 90, -80],
+      ['bunker', 110, 20],
+      ['warehouse', 20, 85],
+    ].forEach(([t, u, d]) => bld(t, u, d, F.ryA));
+    [
+      ['truck', -60, 40],
+      ['supply', -20, 30],
+      ['jeep', 30, -20],
+      ['tanker', 60, 60],
+      ['apc', 85, 90],
+      ['truck', -90, 80],
+    ].forEach(([t, u, d], i) => bld(t, u, d, F.ryA + 0.4 * i));
     fenceRect(-160, 160, -140, 140, []);
     FR = SITE;
     for (let i = 0; i < 5; i++) S.at(stack(), -120 + i * 55, 115 + (i % 2) * 10, YA + i * 0.7, hh);
@@ -1399,6 +1746,14 @@ const SITES = [],
     farLamp(F, -140, -118, 1.4);
     farLamp(F, 140, -112, 2.2);
   };
+  /* ----- Depot Mikawa's landing (the user's, 2026-11-21): a timber pier from its shore (the compound stands 300 m inland), where the
+     freighter's Daihatsu brings the cargo from the IJN base. F.landing: the pier head, for the freighter's run (mkCiv) ----- */
+  const mikawaLanding = (F) => {
+    let ds = 170;
+    while (ds < 700 && WH(...F.w(0, ds)) > SEA.WL) ds += 5;
+    F.shoreD = ds;
+    F.landing = [-5, ds + 76];
+  }; /* (where; the pier itself is built after the naval bases, with pierF: see below) */
   /* ----- the far enemy airbase: the home airbase layout, two guns and two searchlights, palms round the fence and a patrol ship offshore ----- */
   const farAirbase = (F, seed) => {
     const r = rng(seed),
@@ -1429,7 +1784,13 @@ const SITES = [],
       sea = new Uint8Array(N * N),
       ok = new Uint8Array(N * N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) sea[j * N + i] = HR(O0 + (i + 0.5) * C, O0 + (j + 0.5) * C) < -14 ? 1 : 0;
-    const NB = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    const NB = [
+      [0, 0],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
     for (let j = 0; j < N; j++)
       for (let i = 0; i < N; i++) {
         let k = 1;
@@ -1442,14 +1803,16 @@ const SITES = [],
       }
     const cell = (p) => [Math.max(0, Math.min(N - 1, Math.floor((p[0] - O0) / C))), Math.max(0, Math.min(N - 1, Math.floor((p[1] - O0) / C)))];
     const ctr = (i, j) => [O0 + (i + 0.5) * C, O0 + (j + 0.5) * C];
-    const los = (p, q) => {
+    /* clear water from p to q, at least lim deep (the seabed below lim; default: water at all), looked at every 50 m */
+    const los = (p, q, lim) => {
       const L = Math.hypot(q[0] - p[0], q[1] - p[1]),
-        n = Math.ceil(L / 150);
-      for (let k = 0; k <= n; k++) if (HR(p[0] + ((q[0] - p[0]) * k) / n, p[1] + ((q[1] - p[1]) * k) / n) > -9) return false;
+        n = Math.ceil(L / 50),
+        b = lim == null ? -9 : lim;
+      for (let k = 0; k <= n; k++) if (HR(p[0] + ((q[0] - p[0]) * k) / n, p[1] + ((q[1] - p[1]) * k) / n) > b) return false;
       return true;
     };
     /* the nearest open cell that can be seen from point p */
-    const near = (c, p) => {
+    const near = (c, p, lim) => {
       let best = null,
         bd = 1e12;
       for (let dj = -12; dj <= 12; dj++)
@@ -1458,7 +1821,7 @@ const SITES = [],
             j = c[1] + dj;
           if (i < 0 || j < 0 || i >= N || j >= N || !ok[j * N + i]) continue;
           const d = di * di + dj * dj;
-          if (d < bd && los(p, ctr(i, j))) {
+          if (d < bd && los(p, ctr(i, j), lim)) {
             bd = d;
             best = [i, j];
           }
@@ -1466,10 +1829,11 @@ const SITES = [],
       return best;
     };
     /* the waypoints between two open-water points (excluding both), or null if there is no sea route */
-    const route = (a, b) => {
-      if (los(a, b)) return [];
-      const s0 = near(cell(a), a),
-        g0 = near(cell(b), b);
+    /* lim: the least depth for the ship (her draught), as in los */
+    const route = (a, b, lim) => {
+      if (los(a, b, lim)) return [];
+      const s0 = near(cell(a), a, lim),
+        g0 = near(cell(b), b, lim);
       if (!s0 || !g0) return null;
       const par = new Int32Array(N * N).fill(-2),
         q = [s0[1] * N + s0[0]];
@@ -1497,8 +1861,8 @@ const SITES = [],
         i = 0;
       while (i < cells.length) {
         let j = cells.length - 1;
-        while (j > i && !los(cur, cells[j])) j--;
-        if (los(cur, b)) break;
+        while (j > i && !los(cur, cells[j], lim)) j--;
+        if (los(cur, b, lim)) break;
         out.push(cells[j]);
         cur = cells[j];
         i = j + 1;
@@ -1520,11 +1884,13 @@ const SITES = [],
           worst = Math.max(worst, WH(x, z));
         }
       if (worst < SEA.WL - dr * 0.8) return d;
-      if (worst < bz) (bz = worst), (best = d);
+      if (worst < bz) ((bz = worst), (best = d));
     }
     return best;
   };
-  const mkCiv = (parts, len, FA, FB, u, phase, dr) => {
+  /* o.jA, o.jB: the [u, d] each end's Daihatsu runs to (default a colonial harbour's jetty head) */
+  const mkCiv = (parts, len, FA, FB, u, phase, dr, o) => {
+    o = o || {};
     const dA = anchorFar(FA, u, len, dr || 8),
       dB = anchorFar(FB, u, len, dr || 8),
       p0 = FA.w(u, dA),
@@ -1532,11 +1898,20 @@ const SITES = [],
     let p1 = null,
       p2 = null,
       mid = null;
+    const lim = SEA.WL - (dr || 8) * 0.9; /* deep enough for her all the way (90% of her draught under the keel line) */
+    /* o.via [p, q]: she goes through that straight water (a dredged channel, narrower than the lane finder's grid sees) */
+    const viaRoute = (a, b) => {
+      if (!o.via) return LANES.route(a, b, lim);
+      const [v0, v1] = o.via,
+        r1 = LANES.route(a, v0, lim),
+        r2 = LANES.route(v1, b, lim);
+      return r1 && r2 && LANES.los(v0, v1, lim) ? [...r1, v0, v1, ...r2] : null;
+    };
     for (const off of [900, 600, 400]) {
       const a = FA.w(u, dA + off),
         b = FB.w(u, dB + off);
-      if (!LANES.los(p0, a) || !LANES.los(b, p3)) continue;
-      const r = LANES.route(a, b);
+      if (!LANES.los(p0, a, lim) || !LANES.los(b, p3, lim)) continue;
+      const r = viaRoute(a, b);
       if (r) {
         p1 = a;
         p2 = b;
@@ -1564,8 +1939,8 @@ const SITES = [],
     {
       const [bm, bs1, bk0] = asMesh(MODELS.get('jp-daihatsu'));
       scene.add(bm);
-      c.bg = { m: bm, y0: SEA.WL + bk0 + bs1 / 2, ride: RIDE.make(6.4, 1.5, 3), yaw: FA.ryS, u, dA, dB, FA, FB };
-      bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(-9, 245)));
+      c.bg = { m: bm, y0: SEA.WL + bk0 + bs1 / 2, ride: RIDE.make(6.4, 1.5, 3), yaw: FA.ryS, u, dA, dB, FA, FB, jA: o.jA || [-9, 245], jB: o.jB || [-9, 245] };
+      bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
     /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts */
     c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
@@ -1638,7 +2013,7 @@ const SITES = [],
         dd = atB ? B.dB : B.dA,
         tl = moving ? -1 : (atB ? tt - c.dock - c.L / c.v : tt) / c.dock,
         P0 = F.w(B.u + Math.sign(B.u) * -(0.07 * c.len + 3), dd - 15) /* alongside her, on the jetty side */,
-        P1 = F.w(-9, 245) /* the jetty head */;
+        P1 = F.w(...(atB ? B.jB : B.jA)); /* the jetty head (or the landing) */
       let k = 1;
       if (tl >= 0) k = tl < 0.15 ? 0 : tl < 0.4 ? (tl - 0.15) / 0.25 : tl < 0.6 ? 1 : tl < 0.85 ? 1 - (tl - 0.6) / 0.25 : 0;
       const e = k * k * (3 - 2 * k),
@@ -1652,7 +2027,17 @@ const SITES = [],
       B.m.position.set(bx, B.y0 + B.ride.hv, bz);
       B.m.rotation.set(B.ride.ro, B.yaw, B.ride.pi, 'YXZ');
       B.m.matrixAutoUpdate = true;
-      if (typeof OCEAN !== 'undefined') OCEAN.place(B.hh || (B.hh = OCEAN.hull({ kind: 'rect', cut: 'deck', hl: 6.8, hw: 1.4 })), bx, bz, Math.cos(B.yaw), -Math.sin(B.yaw), 0, SEA.WL + B.ride.hv - 0.4, 0); /* the sea kept out of her well */
+      if (typeof OCEAN !== 'undefined')
+        OCEAN.place(
+          B.hh || (B.hh = OCEAN.hull({ kind: 'rect', cut: 'deck', hl: 6.8, hw: 1.4 })),
+          bx,
+          bz,
+          Math.cos(B.yaw),
+          -Math.sin(B.yaw),
+          0,
+          SEA.WL + B.ride.hv - 0.4,
+          0,
+        ); /* the sea kept out of her well */
     }
   };
   /* ----- build everything ----- */
@@ -1680,7 +2065,7 @@ const SITES = [],
     const seed = Math.round(Math.abs(F.O.x) + Math.abs(F.O.z)) % 100000;
     if (F.kind === 'port') farBuild(F, () => void harbour(F, true, seed));
     else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), mkPatrol(F)));
-    else farBuild(F, () => (compound(F, seed), mkPatrol(F)));
+    else farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F)));
   }
   {
     const ports = FS.list.filter((f) => f.kind === 'port');
@@ -1700,24 +2085,30 @@ const SITES = [],
     m.position.set(x, SEA.WL + k0 + s1 / 2, z);
     m.rotation.y = yaw;
     scene.add(m);
-    const o = { m, y0: m.position.y, yaw, ride: RIDE.make(0.43 * len, 0.45 * beam, 3), hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } } };
+    const o = {
+      m,
+      y0: m.position.y,
+      yaw,
+      ride: RIDE.make(0.43 * len, 0.45 * beam, 3),
+      hull: { o: { kind: 'rect', cut: 'deck', hl: len * 0.46, hw: beam * 0.42 } },
+    };
     ANCH.push(o);
     return o;
   };
   /* a timber pier on piles from d0 out to d1, w wide, centred on u: plank deck, two rows of piles every 6 m, edge beams, bollards (COLL keeps ships off it) */
-  const bedF = (F) => (Math.max(Math.abs(F.O.x), Math.abs(F.O.z)) > 13000 ? WH : HR) /* the seabed itself (H stops at the painted water) */;
+  const bedF = (F) => (Math.max(Math.abs(F.O.x), Math.abs(F.O.z)) > 13000 ? WH : HR); /* the seabed itself (H stops at the painted water) */
   const pierF = (F, S, u, d0, d1, w, wy) => {
     flat(F, u - w / 2, u + w / 2, d0, d1, wy, PLANK, Math.max(1, w / 4), (d1 - d0) / 5, 3);
     const bed = bedF(F),
       L = d1 - d0,
-      at = (x, s) => bed(...F.w(u + s * (w / 2 - 0.3), d0 + x)) - 1.2 - wy /* each pile driven into the bed */;
+      at = (x, s) => bed(...F.w(u + s * (w / 2 - 0.3), d0 + x)) - 1.2 - wy; /* each pile driven into the bed */
     let ab = 0;
     for (const dd of [0, 4, 8]) for (const s of [-1, 0, 1]) ab = Math.min(ab, bed(...F.w(u + (s * w) / 2, d0 + dd)) - wy);
     const [ox, oz] = F.w(u, d0);
     S.acc.add(MODELS.get('naval-pier', L, w, at, ab - 0.6, false), GX.xf(ox, wy, oz, F.ryS));
     const [cx, cz] = F.w(u, (d0 + d1) / 2);
     COLL.add({ sea: true, fixed: true, x: cx, z: cz, yaw: F.ryS, hl: L / 2, r: w / 2, v: 0 });
-    SURF.wet(F.w(u - w / 2, d0), F.w(u + w / 2, d1)) /* the crews walk out on its deck */;
+    SURF.wet(F.w(u - w / 2, d0), F.w(u + w / 2, d1)); /* the crews walk out on its deck */
   };
   /* a yard surface in frame F at height y, on a 10 m grid that rides up over the drawn ground wherever that stands higher (the 100 m
      terrain triangles cross the pad's edges), so nothing on it is ever buried */
@@ -1755,7 +2146,7 @@ const SITES = [],
     return m;
   };
   const naval = (F) => {
-    const r = rng(F.navy === 'jp' ? 4242 : 4343),
+    const r = rng(F.navy === 'jp' ? 4242 : F.navy === 'usdep' ? 4444 : 4343),
       S = siteAcc(F),
       YS = F.ryS,
       YA = F.ryA,
@@ -1816,15 +2207,36 @@ const SITES = [],
       const sideU = MW / 2 + 1.9;
       mooredF(F, MODELS.get('jp-t14'), -sideU, Md0 + 85, YS, 15, 3.6);
       mooredF(F, MODELS.get('jp-t14'), sideU, Md0 + 110, YS + Math.PI, 15, 3.6);
-      /* a freighter at anchor in deep water off the mole (outer-island practice), her cargo run in to the T-head by the Daihatsu */
+      /* her freighter runs between the base and Depot Mikawa (the user's, 2026-11-21): anchored off each, her Daihatsu taking the cargo
+         to the mole's T-head here and to the depot's landing there (mkCiv) */
       {
-        const dA = anchorD(F, 60, 137, 7.8, 250, WH);
-        FR = F;
-        const e = target(M.freighter('jp'), 'ship', 150, 137 * 0.3, 60, dA, YS);
-        FR = SITE;
-        ANCH.push({ m: e.m, y0: e.m.position.y, yaw: YS, ride: RIDE.make(0.43 * 137, 0.45 * 18.2, 9), e });
-        const o = mooredF(F, MODELS.get('jp-daihatsu'), 60 - 9.1 - 2.4, dA - 20, YS, 14.9, 3.35);
-        o.sh = { a: F.w(60 - 9.1 - 2.4, dA - 20), b: F.w(-MT / 2 - 2.2, Md0 + ML - 4), wait: 60, ph: 20 };
+        const MK = FS.list.find((s) => s.id === 'cv1');
+        const CH = FS.chan[0];
+        if (MK && MK.landing)
+          mkCiv(M.freighter('jp'), 137, F, MK, 60, 0, 7.8, {
+            jA: [-MT / 2 - 2.2, Md0 + ML - 4],
+            jB: MK.landing,
+            via: [CH.a, CH.b],
+          }); /* through the dredged channel */
+        /* the channel's buoys: red to port going in from the sea (left of a -> b), green to starboard, every 400 m */
+        {
+          const ax = CH.a[0],
+            az = CH.a[1],
+            L = Math.hypot(CH.b[0] - ax, CH.b[1] - az),
+            fx = (CH.b[0] - ax) / L,
+            fz = (CH.b[1] - az) / L,
+            P = [];
+          for (let s = 0; s <= L; s += 400)
+            for (const sd of [-1, 1]) {
+              const off = (CH.w / 2 + 6) * sd,
+                x = ax + fx * s - fz * off,
+                z = az + fz * s + fx * off,
+                c = sd < 0 ? 0xb8302a : 0x2f7a3a;
+              P.push(part(cyl(0.9, 1.1, 1.6, 10), c, x, SEA.WL + 0.5, z), part(cyl(0.12, 0.5, 2.2, 8), c, x, SEA.WL + 2.4, z));
+            }
+          const m = new THREE.Mesh(new GX.Acc().add(P, null).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+          scene.add(m);
+        }
       }
       mooredF(F, MODELS.get('jp-lighter'), MT / 2 + 2.6, Md0 + ML - 6, YS, 12, 4);
       /* guns and light */
@@ -1837,21 +2249,153 @@ const SITES = [],
       COAST.port(F, r, taken, use);
       pat = mkPatrol(F);
       /* the base at work: navy hands walking between the godowns, the HQ, the barracks and out along the mole; a Type 94 truck on the yard */
-      const walkJ = (v, path, sp, wait) => AFLD.add(CREW_RIG('jn', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
-      walkJ(0, [[0, -30], [0, 140]], 1.3, 12);
-      walkJ(1, [[85, -100], [30, -40], [16, -10]], 1.4, 8);
-      walkJ(0, [[-68, -38], [-14, -10], [0, -2], [0, 60]], 1.2, 10);
-      walkJ(1, [[-90, -138], [-30, -80], [40, -80]], 1.4, 7);
-      walkJ(1, [[110, -30], [60, -25]], 1.2, 14);
+      const walkJ = (v, path, sp, wait) =>
+        AFLD.add(
+          CREW_RIG('jn', v),
+          path.map(([u, d]) => F.w(u, d)),
+          sp,
+          wait,
+          'walk',
+        );
+      walkJ(
+        0,
+        [
+          [0, -30],
+          [0, 140],
+        ],
+        1.3,
+        12,
+      );
+      walkJ(
+        1,
+        [
+          [85, -100],
+          [30, -40],
+          [16, -10],
+        ],
+        1.4,
+        8,
+      );
+      walkJ(
+        0,
+        [
+          [-68, -38],
+          [-14, -10],
+          [0, -2],
+          [0, 60],
+        ],
+        1.2,
+        10,
+      );
+      walkJ(
+        1,
+        [
+          [-90, -138],
+          [-30, -80],
+          [40, -80],
+        ],
+        1.4,
+        7,
+      );
+      walkJ(
+        1,
+        [
+          [110, -30],
+          [60, -25],
+        ],
+        1.2,
+        14,
+      );
       AFLD.add(MODELS.drivenAs('jn', 1, 'jp-type94-cargo') /* a sailor at the wheel, in working blues */, [F.w(-110, -36), F.w(60, -36)], 5, 25, 'veh');
+    } else if (F.navy === 'usdep') {
+      /* THE US NAVY SUPPLY DEPOT (the user's, 2026-11-21): on the south shore of the islet 7.2 km east of the PT-boat base, as far
+         from it as Depot Mikawa is from the IJN base. A coral yard behind a fence; two big Quonset store huts and a row of small ones
+         (office, quarters); a tank farm; stacked stores; a 10 m supply pier out to deep water; the Stars and Stripes; trucks, a
+         jeep on its rounds, sailors at work. */
+      flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
+      const wy = pad + 0.6;
+      pierF(F, S, 0, F.po - 4, 170, 10, wy); /* the supply pier */
+      use(-14, 14, -6, 180);
+      for (const [u, d] of [
+        [-75, -95],
+        [-25, -95],
+      ]) {
+        S.at(MODELS.get('us-quonset', 'elephant'), u, d, YA, gy); /* the store huts */
+        use(u - 20, u + 20, d - 18, d + 18);
+      }
+      for (let i = 0; i < 4; i++) {
+        const u = 40 + i * 22;
+        S.at(MODELS.get('us-quonset', 'std'), u, -105, YA, gy);
+        use(u - 8, u + 8, -113, -97);
+      }
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-fuel-tank'), -120 + (i % 2) * 11, -45 - (i >> 1) * 11, YA, gy); /* the tank farm */
+      use(-130, -100, -62, -36);
+      for (let i = 0; i < 6; i++) S.at(stack(), -60 + (i % 3) * 14, -40 - ((i >> 1) & 1) * 12 - (i > 2 ? 0 : 0), YA + i * 0.5, gy); /* stores on the yard */
+      use(-68, -24, -60, -32);
+      S.at(FLG.pole('us', 12, 2.8, 0, 0, 0, 0), 20, -30, YA);
+      S.at(M.cargoTruck(), 60, -40, YA - 0.1);
+      S.at(M.cargoTruck(), 75, -42, YA + 0.05);
+      S.at(M.fuelTruck(0x6b7350), -95, -25, YS);
+      use(50, 85, -50, -32);
+      FR = F;
+      fenceRect(-F.pu + 8, F.pu - 8, F.pi + 12, -2, []);
+      FR = SITE;
+      const walkU = (v, path, sp, wait) =>
+        AFLD.add(
+          CREW_RIG('us', v),
+          path.map(([u, d]) => F.w(u, d)),
+          sp,
+          wait,
+          'walk',
+        );
+      walkU(
+        0,
+        [
+          [-75, -75],
+          [-10, -20],
+          [0, 0],
+          [0, 150],
+        ],
+        1.3,
+        10,
+      );
+      walkU(
+        1,
+        [
+          [-25, -75],
+          [-50, -45],
+        ],
+        1.3,
+        12,
+      );
+      walkU(
+        2,
+        [
+          [50, -90],
+          [20, -35],
+          [-110, -30],
+        ],
+        1.2,
+        9,
+      );
+      walkU(
+        1,
+        [
+          [95, -90],
+          [95, -30],
+        ],
+        1.4,
+        14,
+      );
+      AFLD.add(M.jeepD(), [F.w(-120, -12), F.w(120, -12)], 7, 20, 'veh');
     } else {
       /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
          a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
       flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
       const wy = pad + 0.6;
-      for (const u of [-75, -25]) pierF(F, S, u, F.po - 4, 140, 6, wy) /* out past where the 100 m home mesh meets the water */;
-      pierF(F, S, 75, F.po - 4, 150, 8, wy) /* the PCE's berth (56 m alongside its outer end) */;
-      pierF(F, S, 135, F.po - 4, 55, 4, wy) /* the fuel jetty */;
+      for (const u of [-75, -25]) pierF(F, S, u, F.po - 4, 140, 6, wy); /* out past where the 100 m home mesh meets the water */
+      pierF(F, S, 75, F.po - 4, 150, 8, wy); /* the PCE's berth (56 m alongside its outer end) */
+      pierF(F, S, 135, F.po - 4, 55, 4, wy); /* the fuel jetty */
       use(-80, -20, 0, 130);
       use(70, 140, 0, 110);
       /* PT boats alongside the finger piers, bows out */
@@ -1874,18 +2418,77 @@ const SITES = [],
         const o = ANCH[ANCH.length - 1];
         o.cb.fixed = false;
         o.sh = { a: F.w(-25 - 3 - 3.3, 108), b: F.w(-25 - 3 - 3.3, 900), wait: 150, ph: 40, v: 5.1 };
-        o.wk = shipWakeMesh(24.4 / 78, 0.4) /* the same painted wake as the fleet's PT boats */;
+        o.wk = shipWakeMesh(24.4 / 78, 0.4); /* the same painted wake as the fleet's PT boats */
         o.wk.visible = false;
         o.m.add(o.wk);
       }
       /* the base at work: sailors between the huts, the shop, the tank farm and out on the piers; the jeep on its rounds */
-      const walkU = (v, path, sp, wait) => AFLD.add(CREW_RIG('us', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
-      walkU(0, [[-117, -55], [-75, -2], [-75, 85]], 1.4, 8);
-      walkU(1, [[-25, -30], [-25, 100]], 1.3, 10);
-      walkU(2, [[45, -28], [105, -42]], 1.2, 12);
-      walkU(0, [[-100, -90], [-35, -90], [-10, -40]], 1.4, 6);
-      walkU(1, [[20, -35], [75, 0], [75, 130]], 1.3, 15);
-      walkU(2, [[-140, -90], [-50, -90], [-40, -50]], 1.2, 9);
+      const walkU = (v, path, sp, wait) =>
+        AFLD.add(
+          CREW_RIG('us', v),
+          path.map(([u, d]) => F.w(u, d)),
+          sp,
+          wait,
+          'walk',
+        );
+      walkU(
+        0,
+        [
+          [-117, -55],
+          [-75, -2],
+          [-75, 85],
+        ],
+        1.4,
+        8,
+      );
+      walkU(
+        1,
+        [
+          [-25, -30],
+          [-25, 100],
+        ],
+        1.3,
+        10,
+      );
+      walkU(
+        2,
+        [
+          [45, -28],
+          [105, -42],
+        ],
+        1.2,
+        12,
+      );
+      walkU(
+        0,
+        [
+          [-100, -90],
+          [-35, -90],
+          [-10, -40],
+        ],
+        1.4,
+        6,
+      );
+      walkU(
+        1,
+        [
+          [20, -35],
+          [75, 0],
+          [75, 130],
+        ],
+        1.3,
+        15,
+      );
+      walkU(
+        2,
+        [
+          [-140, -90],
+          [-50, -90],
+          [-40, -50],
+        ],
+        1.2,
+        9,
+      );
       AFLD.add(M.jeepD(), [F.w(-145, -15), F.w(140, -15)], 7, 20, 'veh');
       /* the fuel line along the jetty, and the tank farm behind it (four 1,000-barrel tanks) */
       {
@@ -1898,7 +2501,8 @@ const SITES = [],
         const [ox, oz] = F.w(0, 0);
         S.acc.add(P, GX.xf(ox, 0, oz, YS));
       }
-      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-fuel-tank'), 112 + i * 11, -55, YA + Math.PI / 2, gy) /* four 1,000-barrel gasoline tanks, ladders to the jetty side */;
+      for (let i = 0; i < 4; i++)
+        S.at(MODELS.get('us-fuel-tank'), 112 + i * 11, -55, YA + Math.PI / 2, gy); /* four 1,000-barrel gasoline tanks, ladders to the jetty side */
       use(105, 160, -65, -45);
       /* Quonset huts: two rows (quarters, mess, stores); the boat shop is an Elephant hut */
       for (let i = 0; i < 4; i++)
@@ -1931,6 +2535,24 @@ const SITES = [],
     return pat;
   };
   for (const F of FS.nav) farBuild(F, () => naval(F));
+  /* Depot Mikawa's landing pier, added to the depot's own far site (so it shows and hides with it) */
+  {
+    const MK = FS.list.find((s) => s.id === 'cv1'),
+      fr = FARS.find((q) => q.F === MK);
+    if (MK && MK.shoreD && fr) {
+      scene.add = function (...a) {
+        fr.mine.push(...a);
+        return _sceneAdd.apply(this, a);
+      };
+      try {
+        const S = siteAcc(MK);
+        pierF(MK, S, 0, MK.shoreD - 8, MK.shoreD + 80, 6, SEA.Y + 2.6);
+        S.flush();
+      } finally {
+        delete scene.add;
+      }
+    }
+  }
   SITE.far = FARS;
   SITE.SEA = LANES; /* the sea-lane finder */
   SITE.civ = CIV;
