@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.103';
+const VERSION = '0.104';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -21361,6 +21361,8 @@ var ROE = (() => {
    vehicles near the call. Guns only: no drop tanks, no bombs. They disengage and fly home when low on ammunition (under 15%) or fuel
    (enough to get home and 10 minutes over), when damaged past half, or after five minutes with nothing to fight; at their field they
    land (gone). They can be shot down (every gun and the player's weapons strike them: hurt).
+   One call a caller at a time (the user's, 2026-11-21): a caller whose flight is still answering (not broken off for home nor shot
+   down; a pair handed to the bandits or raiders counts until those are gone) cannot call again until it has.
    P-51D: six .50s, 1,880 rounds (about 24 s of fire), 269 US gal inside (about 3 hours cruising; combat burns three times as fast);
    cruise 150 m/s. Ki-84-Ia: two 20 mm and two 12.7 mm (about 15 s of fire), about 2 hours inside; cruise 140 m/s.
    The fields: American, Fletcher Field and Kamome Field; Japanese, Airbases Yamamoto, Onishi, Fukudome and Kakuta (one with all its
@@ -21368,7 +21370,7 @@ var ROE = (() => {
 var AIRSUP = (() => {
   const V3 = THREE.Vector3,
     L = [],
-    CALL = new Map() /* a caller's last call (10 minutes between) */,
+    HAND = [] /* Japanese fighters handed to the game's own (bandits, raiders): still answering their caller */,
     SCRAMBLE = 90,
     AREA = 3000,
     SPEC = {
@@ -21406,11 +21408,27 @@ var AIRSUP = (() => {
     return { g: b.g, prop: b.prop };
   };
   const radio = (who, s) => typeof RADIO !== 'undefined' && RADIO.add(who, s);
+  const busy = (who) => {
+    if (L.some((u) => u.who === who && !u.down && u.st !== 'rtb')) return true;
+    const now = performance.now() / 1000;
+    for (let i = HAND.length - 1; i >= 0; i--) {
+      const h = HAND[i],
+        e = h.e;
+      const live =
+        now < h.end &&
+        (h.raid
+          ? typeof RAID !== 'undefined' && RAID.L.includes(e) && e.st !== 'down'
+          : typeof EN !== 'undefined' && EN.includes(e) && !e.dying);
+      if (!live) HAND.splice(i, 1);
+      else if (h.who === who) return true;
+    }
+    return false;
+  };
   /* a call: side 'us' or 'jp', p the place, who says it (the caller's name) */
   const call = (side, p, who) => {
     if (!started || crashed || typeof P51DISP === 'undefined') return false;
-    const now = performance.now() / 1000;
-    if (now - (CALL.get(who) || -1e9) < 600) return false;
+    /* one call a caller: while its flight is still answering (not yet broken off for home, nor down), no other */
+    if (busy(who)) return false;
     /* a flight of ours already on its way or there: no second call */
     if (L.some((u) => u.side === side && !u.down && u.st !== 'rtb' && u.area.distanceTo(p) < 6000)) return false;
     /* and no more than two flights of a side up at once (a fight would otherwise call flight after flight) */
@@ -21418,7 +21436,6 @@ var AIRSUP = (() => {
     const F = fields(side).filter((f) => canSend(side, f));
     if (!F.length) return false;
     const f = F.reduce((a, b) => (b.p.distanceTo(p) < a.p.distanceTo(p) ? b : a));
-    CALL.set(who, now);
     const S = SPEC[side],
       eta = Math.round((SCRAMBLE + f.p.distanceTo(p) / S.V + 40) / 60);
     for (let k = 0; k < 2; k++) {
@@ -21577,13 +21594,16 @@ var AIRSUP = (() => {
         /* a Japanese pair that has the player within reach: the game's own fighters take over */
         if (u.side === 'jp' && started && !crashed && u.p.distanceTo(pos) < 5000) {
           if (SIMS.cur.afloat && typeof raidSpawn === 'function' && typeof ENEMY !== 'undefined' && ENEMY.has('planes')) {
-            raidOne(u);
+            const e = raidOne(u);
+            if (e) HAND.push({ e, raid: true, who: u.who, end: performance.now() / 1000 + u.fuel });
             scene.remove(u.g);
             L.splice(i, 1);
             continue;
           }
           if (!SIMS.cur.afloat && typeof banditAt === 'function') {
-            banditAt(u.p.clone()).scr = true;
+            const e = banditAt(u.p.clone());
+            e.scr = true;
+            HAND.push({ e, raid: false, who: u.who, end: performance.now() / 1000 + u.fuel });
             scene.remove(u.g);
             L.splice(i, 1);
             continue;
@@ -21654,6 +21674,7 @@ var AIRSUP = (() => {
     const add = RAID.L.slice(n0);
     if (add.length > 1) for (const e of add.slice(1)) ((e.st = 'down'), scene.remove(e.b.g), RAID.L.splice(RAID.L.indexOf(e), 1));
     if (add[0]) add[0].p.copy(u.p);
+    return add[0];
   };
   HOOKS.tick.push((dt) => {
     if (started && !paused) tick(dt);
@@ -21670,7 +21691,7 @@ var AIRSUP = (() => {
   const clear = () => {
     for (const u of L) scene.remove(u.g);
     L.length = 0;
-    CALL.clear();
+    HAND.length = 0;
   };
   /* who is calling: the named place nearest (a base, a port, a depot, an airbase), else the unit */
   const NAMES = {
