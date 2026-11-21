@@ -58,6 +58,7 @@ shared/models-ground-crews-usaaf-ijaaf-ijnas.js
 shared/models-us-airfield-buildings-butler-quonset-tower-psp.js
 shared/models-japanese-waterfront-daihatsu-lighter-derrick-mole-godown.js
 shared/models-us-landing-craft-lcm-3.js
+shared/models-us-submarine-roncador-ss-301.js
 shared/models-japanese-type-t14-motor-torpedo-boat-gyoraitei.js
 shared/the-ki-84-hayate-the-nakajima-ki-84-ia-frank-arm.js
 shared/end-of-the-ki-84-hayate.js

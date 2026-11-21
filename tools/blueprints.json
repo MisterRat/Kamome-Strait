@@ -1715,6 +1715,68 @@
   ]
  },
  {
+  "id": "us-roncador",
+  "file": "US_SS-301_Roncador",
+  "title": "USS Roncador (SS-301), Balao-class submarine, 1945",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('us-roncador'));",
+  "type": "Balao-class fleet submarine (Cramp, commissioned 27 March 1945)",
+  "ref": [
+   [
+    "Length",
+    95.0,
+    "311 ft 8 in overall (NavSource; the 1945 Booklet of General Plans: 311 ft 9 in)"
+   ],
+   [
+    "Beam",
+    8.31,
+    "27 ft 3 in (NavSource; the booklet's deck plan)"
+   ],
+   [
+    "Draught",
+    4.65,
+    "15 ft 3 in (NavSource)"
+   ]
+  ],
+  "notes": [
+   "From her own Booklet of General Plans, 1945 (References/Balao Class): the outboard profile (1/8 in = 1 ft), the main deck plan and the typical sections. The user's choice (2026-11-21): the American submarine, mid-1944 to mid-1945.",
+   "Fit as drawn: the 5\"/25 aft of the bridge fairing, the 40 mm on the forward gun deck, a 20 mm on the after one; No. 1 and No. 2 periscopes raised, the SJ radar mast; the limber holes along her sides; two screws, the stern planes and the rudder under the tail.",
+   "Paint from the builder's photograph (Delaware River, 1945): light grey sides, dark deck and fairing tops, black below the waterline."
+  ]
+ },
+ {
+  "id": "us-roncador-distant",
+  "file": "US_SS-301_Roncador_distant",
+  "title": "USS Roncador (SS-301): the distant form",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('us-roncador', { far: true }));",
+  "type": "Balao-class fleet submarine, distant form",
+  "ref": [
+   [
+    "Length",
+    95.0,
+    "311 ft 8 in overall (NavSource; the 1945 Booklet of General Plans: 311 ft 9 in)"
+   ],
+   [
+    "Beam",
+    8.31,
+    "27 ft 3 in (NavSource; the booklet's deck plan)"
+   ],
+   [
+    "Draught",
+    4.65,
+    "15 ft 3 in (NavSource)"
+   ]
+  ],
+  "notes": [
+   "The same builder at lower detail: 18 hull stations (56 near), no limber holes, rails, seats or small fittings."
+  ]
+ },
+ {
   "id": "driver-us",
   "file": "US_seated_driver",
   "title": "US driver, seated (every moving American vehicle)",
