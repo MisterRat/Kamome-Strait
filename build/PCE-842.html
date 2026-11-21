@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.88';
+const VERSION = '0.89';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -21770,6 +21770,7 @@ const ENEMY = {
   },
 };
 function enemySync() {
+  if (!SIMS.on('pce')) return; /* a page with several simulators: her enemies (and the ground fire they set) only while she is played */
   $$('enMode').value = ENEMY.mode;
   AA.on = ENEMY.has('shore');
   store.set('aa', AA.on);
@@ -21778,16 +21779,21 @@ function enemySync() {
   $$('enNote').textContent =
     ENEMY.mode === 'none'
       ? 'No enemies: patrol and practice in peace.'
-      : (ENEMY.has('planes') ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). ' : '') +
-        (ENEMY.has('shore') ? 'Shore: the ports\' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. ' : '') +
+      : (ENEMY.has('planes')
+          ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
+          : '') +
+        (ENEMY.has('shore')
+          ? "Shore: the ports' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
+          : '') +
         (ENEMY.has('ships') || ENEMY.has('subs') ? 'Still being built: the Ukuru-class escort as an enemy (ships) and the submarines (subs).' : '');
 }
-$$('enMode').onchange = (e) => {
-  ENEMY.mode = e.target.value;
-  store.set('enemy', ENEMY.mode);
-  enemySync();
-  note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
-};
+if ($$('enMode'))
+  $$('enMode').onchange = (e) => {
+    ENEMY.mode = e.target.value;
+    store.set('enemy', ENEMY.mode);
+    enemySync();
+    note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
+  };
 enemySync();
 /* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
@@ -24127,7 +24133,10 @@ function scamStart() {
     SCAM.hold = pass.t + 2.5;
   } else {
     /* otherwise where it comes down, with the nearest surface target */
-    for (const c of [...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []), ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c)]) {
+    for (const c of [
+      ...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []),
+      ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c),
+    ]) {
       const d = c.distanceTo(SCAM.L);
       if (d < bd) {
         bd = d;
@@ -24176,7 +24185,7 @@ function scamCam(dt) {
   }
   return true;
 }
-{
+if (SIMS.on('pce')) {
   const c = $$('scOn');
   c.checked = SCAM.want;
   c.onchange = () => {
@@ -24948,12 +24957,13 @@ function raidHit(a, b, s) {
 /* the Wave motion setting follows Hardcore (the Hardcore tab holds the Game / Hardcore switch) */
 function modeSync() {
   const w = $$('wvMode');
+  if (!w) return; /* not her page (another simulator is played) */
   w.disabled = FM.use('sea');
   w.title = FM.use('sea') ? 'Always on in Hardcore' : '';
   if (typeof hcSync === 'function') hcSync();
 }
 modeSync();
-{
+if ($$('wvMode')) {
   const w = $$('wvMode');
   w.value = WAVE.mode;
   w.onchange = () => {

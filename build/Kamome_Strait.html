@@ -776,7 +776,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <script>
 /* KAMOME STRAIT: one world, several simulators. Each simulator's page sits above in its own <template id="sim-<id>">
    (inert: nothing in it runs or takes an id until chosen). This picks one, from ?sim=<id> or the last one played, and puts
-   its page here (the others hidden after it); every simulator's code then loads below and SIMS.pick = KS_SIM makes the chosen one the one being played.
+   its page here; every simulator's code then loads below and SIMS.pick = KS_SIM makes the chosen one the one being played.
    Switching simulators reloads the page (see the start screen's switch), so each visit runs exactly one. A new simulator
    adds its template, its pieces and its role: nothing here names one. */
 var KS_SIM = (function () {
@@ -789,13 +789,7 @@ var KS_SIM = (function () {
       id = null;
     }
   if (!ok(id)) id = document.querySelector('template[id^="sim-"]').id.slice(4);
-  /* the chosen page first (it wins every lookup by id), then the others hidden: a simulator's own pieces wire up their
-     page's controls as they load, whichever simulator is played (to do: unique ids for every simulator's own elements) */
-  const off = document.createElement('div');
-  off.hidden = true;
-  off.id = 'ksOff';
-  for (const t of document.querySelectorAll('template[id^="sim-"]')) if (t.id !== 'sim-' + id) off.appendChild(t.content.cloneNode(true));
-  document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true), off);
+  document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true));
   document.documentElement.dataset.sim = id;
   return id;
 })();
@@ -824,7 +818,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.07';
+const VERSION = '0.08';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: Kamome Strait. Its saved settings are its own (rule C), and each simulator's are kept apart: 'kamomep51', 'kamomepce' */
 const GAME = { id: 'kamome', name: 'Kamome Strait', key: 'kamome' + KS_SIM };
@@ -28355,6 +28349,7 @@ const ENEMY = {
   },
 };
 function enemySync() {
+  if (!SIMS.on('pce')) return; /* a page with several simulators: her enemies (and the ground fire they set) only while she is played */
   $$('enMode').value = ENEMY.mode;
   AA.on = ENEMY.has('shore');
   store.set('aa', AA.on);
@@ -28363,16 +28358,21 @@ function enemySync() {
   $$('enNote').textContent =
     ENEMY.mode === 'none'
       ? 'No enemies: patrol and practice in peace.'
-      : (ENEMY.has('planes') ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). ' : '') +
-        (ENEMY.has('shore') ? 'Shore: the ports\' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. ' : '') +
+      : (ENEMY.has('planes')
+          ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
+          : '') +
+        (ENEMY.has('shore')
+          ? "Shore: the ports' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
+          : '') +
         (ENEMY.has('ships') || ENEMY.has('subs') ? 'Still being built: the Ukuru-class escort as an enemy (ships) and the submarines (subs).' : '');
 }
-$$('enMode').onchange = (e) => {
-  ENEMY.mode = e.target.value;
-  store.set('enemy', ENEMY.mode);
-  enemySync();
-  note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
-};
+if ($$('enMode'))
+  $$('enMode').onchange = (e) => {
+    ENEMY.mode = e.target.value;
+    store.set('enemy', ENEMY.mode);
+    enemySync();
+    note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
+  };
 enemySync();
 /* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
@@ -31576,7 +31576,10 @@ function scamStart() {
     SCAM.hold = pass.t + 2.5;
   } else {
     /* otherwise where it comes down, with the nearest surface target */
-    for (const c of [...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []), ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c)]) {
+    for (const c of [
+      ...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []),
+      ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c),
+    ]) {
       const d = c.distanceTo(SCAM.L);
       if (d < bd) {
         bd = d;
@@ -31625,7 +31628,7 @@ function scamCam(dt) {
   }
   return true;
 }
-{
+if (SIMS.on('pce')) {
   const c = $$('scOn');
   c.checked = SCAM.want;
   c.onchange = () => {
@@ -32397,12 +32400,13 @@ function raidHit(a, b, s) {
 /* the Wave motion setting follows Hardcore (the Hardcore tab holds the Game / Hardcore switch) */
 function modeSync() {
   const w = $$('wvMode');
+  if (!w) return; /* not her page (another simulator is played) */
   w.disabled = FM.use('sea');
   w.title = FM.use('sea') ? 'Always on in Hardcore' : '';
   if (typeof hcSync === 'function') hcSync();
 }
 modeSync();
-{
+if ($$('wvMode')) {
   const w = $$('wvMode');
   w.value = WAVE.mode;
   w.onchange = () => {

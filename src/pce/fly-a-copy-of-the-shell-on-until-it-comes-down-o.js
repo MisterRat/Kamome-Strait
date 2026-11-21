@@ -44,7 +44,10 @@ function scamStart() {
     SCAM.hold = pass.t + 2.5;
   } else {
     /* otherwise where it comes down, with the nearest surface target */
-    for (const c of [...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []), ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c)]) {
+    for (const c of [
+      ...(PT.on ? PT.L.filter((t) => t.kind === 'raft' || t.kind === 'sled').map((t) => t.p) : []),
+      ...T.filter((t) => t.type === 'ship' && !t.dead).map((t) => t.c),
+    ]) {
       const d = c.distanceTo(SCAM.L);
       if (d < bd) {
         bd = d;
@@ -93,7 +96,7 @@ function scamCam(dt) {
   }
   return true;
 }
-{
+if (SIMS.on('pce')) {
   const c = $$('scOn');
   c.checked = SCAM.want;
   c.onchange = () => {

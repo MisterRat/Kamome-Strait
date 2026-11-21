@@ -1,7 +1,7 @@
 <script>
 /* KAMOME STRAIT: one world, several simulators. Each simulator's page sits above in its own <template id="sim-<id>">
    (inert: nothing in it runs or takes an id until chosen). This picks one, from ?sim=<id> or the last one played, and puts
-   its page here (the others hidden after it); every simulator's code then loads below and SIMS.pick = KS_SIM makes the chosen one the one being played.
+   its page here; every simulator's code then loads below and SIMS.pick = KS_SIM makes the chosen one the one being played.
    Switching simulators reloads the page (see the start screen's switch), so each visit runs exactly one. A new simulator
    adds its template, its pieces and its role: nothing here names one. */
 var KS_SIM = (function () {
@@ -14,13 +14,7 @@ var KS_SIM = (function () {
       id = null;
     }
   if (!ok(id)) id = document.querySelector('template[id^="sim-"]').id.slice(4);
-  /* the chosen page first (it wins every lookup by id), then the others hidden: a simulator's own pieces wire up their
-     page's controls as they load, whichever simulator is played (to do: unique ids for every simulator's own elements) */
-  const off = document.createElement('div');
-  off.hidden = true;
-  off.id = 'ksOff';
-  for (const t of document.querySelectorAll('template[id^="sim-"]')) if (t.id !== 'sim-' + id) off.appendChild(t.content.cloneNode(true));
-  document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true), off);
+  document.currentScript.replaceWith(document.getElementById('sim-' + id).content.cloneNode(true));
   document.documentElement.dataset.sim = id;
   return id;
 })();
