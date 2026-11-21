@@ -100,6 +100,12 @@ function drillBox(here) {
     show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
+  /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
+  const left = SHIP.stn === 1;
+  if (el.dataset.left !== String(left)) {
+    el.dataset.left = String(left);
+    Object.assign(el.style, left ? { left: '12px', top: '160px', transform: 'none', width: 'min(440px,42vw)' } : { left: '50%', top: '96px', transform: 'translateX(-50%)', width: 'min(540px,92vw)' });
+  }
   const now = performance.now();
   if (now - DRILL.boxT < 80) return;
   DRILL.boxT = now;

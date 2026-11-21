@@ -87,7 +87,7 @@ function dcStep(dt) {
         const sub = PT.L.find((t) => t.kind === 'sub');
         if (sub) {
           const yd = Math.round(sub.p.distanceTo(c.p) / 0.9144);
-          if (ASW.ph === 'run') ASW.best = Math.min(ASW.best, yd);
+          if (ASW.ph === 'run' || ASW.drill) ASW.best = Math.min(ASW.best, yd); /* the torpedoman's run, or the OOD's attack drill */
           DC.lastTxt = yd < 25 ? 'WITHIN LETHAL RANGE (' + yd + ' YD)' : yd < 60 ? 'CLOSE - ' + yd + ' YD' : 'MISSED BY ' + yd + ' YD';
           note('PRACTICE ATTACK: ' + DC.lastTxt);
           if (yd < 60) RADIO.add('EXERCISE SUB', 'CHARGE ' + yd + ' YDS FROM ME. ' + (yd < 25 ? 'YOU GOT ME.' : 'CLOSE.'));

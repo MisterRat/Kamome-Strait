@@ -12,7 +12,10 @@ SIMS.add({
   ['d-mob', 'OOD Drill: Man Overboard', 'A man goes over the side at standard speed: the Williamson turn back to him, then stop alongside. Assessed.', 1, 0, false, 'mob'],
   ['d-fix', 'OOD Drill: Navigation Fix', 'Bearings on three landmarks with the binoculars; your fix is checked against her true position. Assessed.', 1, 0, false, 'fix'],
   ['d-recog', 'OOD Drill: Recognition', 'Challenge a closing boat by light and read her reply; tell two aircraft apart. Friend or enemy? Assessed.', 1, 0, false, 'recog'],
+  ['d-asw', 'OOD Drill: Antisubmarine Attack', 'Con the attack on the exercise sub yourself from sonar\'s reports; order the Hedgehog and the pattern on time. Assessed.', 1, 0, true, 'asw-ood'],
+  ['d-along', 'OOD Drill: Coming Alongside', 'From 700 m off PT Base Halsey: bring her in and stop alongside her pier, parallel and gently. Assessed.', 1, 0, false, 'along'],
   ['d-bells', 'Engineering Drill: Answer the Bells', 'The engine room: answer ten engine orders on the throttle, quickly and the right way. Assessed.', 2, 0, false, 'bells'],
+  ['d-smoke', 'Engineering Drill: Make Smoke', 'Light off the smoke generator on the bridge\'s order and keep the screen thick for a minute. Assessed.', 2, 0, false, 'smoke'],
   ['d-dc', 'Engineering Drill: Damage Control', 'Four casualties in the engine room: burst pipes, holes, fires, a list, the cooling water. Assessed.', 2, 0, false, 'dc'],
 ],
   /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */

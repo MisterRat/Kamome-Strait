@@ -116,7 +116,7 @@ function hhStep(dt) {
       if (hit) {
         HH.hits++;
         aswEv('hit', b.p);
-        if (ASW.ph === 'run') ASW.hh++;
+        if (ASW.ph === 'run' || ASW.drill) ASW.hh++;
         const top = new V(b.p.x, OCEAN.Y, b.p.z);
         for (let j = 0; j < 6; j++) gunFx(new V(b.p.x + (Math.random() - 0.5) * 5, OCEAN.Y + j * 2, b.p.z + (Math.random() - 0.5) * 5), 0xeef3f4, 4, 14, 3, 9 * (1 - j * 0.1), false);
         gunFx(top, 0xf6f8f8, 12, 30, 2.5, 0, false);

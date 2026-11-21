@@ -446,7 +446,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Gunnery practice</td><td>One for each gun (the 3&Prime;/50, the 20 mm and the twin 40 mm): puts out the practice targets and takes you to that gun.</td></tr>
 <tr><td>Antisubmarine attack run</td><td>Takes you to the torpedoman's station with the exercise submarine out. The OOD runs in on him and phones the orders; you fire the Hedgehog, the K-guns and the racks. One run, then the debrief and the pattern plot stay up until you press T again or leave the station.</td></tr>
 <tr><td>Sonar watch</td><td>The communications station with the exercise submarine out: find him on the sonar and the radar.</td></tr>
-<tr><td>Training drills</td><td>The OOD's and the engineer's drills (below), each assessed at the end: Man Overboard, Navigation Fix, Recognition, Answer the Bells, Damage Control.</td></tr>
+<tr><td>Training drills</td><td>The OOD's and the engineer's drills (below), each assessed at the end: Man Overboard, Navigation Fix, Recognition, Antisubmarine Attack, Coming Alongside; Answer the Bells, Make Smoke, Damage Control.</td></tr>
 </table>
 <h2>The stations (keys 1 to 5; press again for the next view there)</h2>
 <table class="t2">
@@ -462,7 +462,10 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Man overboard (OOD)</td><td>A man goes over the side at standard speed. The Williamson turn: rudder full toward his side at once; at 60&deg; off, full the other way; steady on the reciprocal and he is fine on the bow. Slow, and stop with him alongside (within 30 m, under 1.5 kn). Assessed on the rudder, the shift, the steadying, the time and the approach; run him down and the drill fails.</td></tr>
 <tr><td>Navigation fix (OOD)</td><td>Bearings on three landmarks: lay the middle of the view on each (X: binoculars) and press Space. The lines are crossed (a running fix) and the fix compared with her true position. Assessed on the error, the cocked hat and the time.</td></tr>
 <tr><td>Recognition (OOD)</td><td>A boat closes: Space challenges her by light; read her lamp's reply against the day's code. Then two aircraft: a P-51 or a Ki-84? Q friend (hold fire), E enemy (guns free). Assessed on each call and how soon.</td></tr>
+<tr><td>Antisubmarine attack (OOD)</td><td>Con the attack yourself: sonar reports the exercise sub's bearing, range and Doppler every 8 s (the plot shows where it puts him; not in Hardcore). Steer him onto the bow, slow to about 2/3, Space fires the Hedgehog (best with him 250 yd ahead, dead on the bow), R rolls the pattern (racks and K-guns; the charges sink 8 ft a second, so order it while he is still ahead by her run in that time). Sonar loses him inside 150 yd. Assessed on the result and the timing of each weapon.</td></tr>
+<tr><td>Coming alongside (OOD)</td><td>From 700 m off PT Base Halsey (about 5 kn), bring her in and stop starboard side to the outer end of her pier: parallel (within 8&deg;), her side within 6 m of it, under 0.5 kn for five seconds. Back her with S. Touching the pier over 2 kn, or grounding, fails. The berth plan shows her from above inside 330 m.</td></tr>
 <tr><td>Answer the bells (Engineering)</td><td>The bridge rings ten engine orders; W / S move your throttle lever a sector at a time. Assessed on the time to answer (smart within 4 s) and answers that went the wrong way first.</td></tr>
+<tr><td>Make smoke (Engineering)</td><td>On MAKE SMOKE, Space lights off the smoke generator aft; Q / E keep the fog oil flow in the green band, which wanders; SECURE SMOKE after a minute, Space shuts it down. Assessed on how soon you lit and secured it and how much of the minute the screen was thick.</td></tr>
 <tr><td>Damage control (Engineering)</td><td>Four casualties: a burst pipe (Q / E find its valve, Space shuts it; then the wrench, Space in the green), a hole (two timbers, Space in the green; then Space for the pumps), a fire (Q / E keep the hose on it), a list (Q / E open the port or starboard tanks, bring her upright, shut them), the cooling water (Space: the standby strainer). Assessed on each job's time, slips and how bad it got.</td></tr>
 <tr><td>In action</td><td>When she is hit while you are in the engine room, the repairs are yours, the same jobs: shore the holes and pump, fight the fire, mend the engines, counter-flood the list. Away from the engine room the repair parties do it.</td></tr>
 <tr><td>Hardcore</td><td>Narrower windows and no markers; the water and the fire grow while you work and a job only partly mends her; in the engine room in action the repair parties leave it all to you.</td></tr>
@@ -562,7 +565,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.112';
+const VERSION = '0.113';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -22088,7 +22091,10 @@ SIMS.add({
   ['d-mob', 'OOD Drill: Man Overboard', 'A man goes over the side at standard speed: the Williamson turn back to him, then stop alongside. Assessed.', 1, 0, false, 'mob'],
   ['d-fix', 'OOD Drill: Navigation Fix', 'Bearings on three landmarks with the binoculars; your fix is checked against her true position. Assessed.', 1, 0, false, 'fix'],
   ['d-recog', 'OOD Drill: Recognition', 'Challenge a closing boat by light and read her reply; tell two aircraft apart. Friend or enemy? Assessed.', 1, 0, false, 'recog'],
+  ['d-asw', 'OOD Drill: Antisubmarine Attack', 'Con the attack on the exercise sub yourself from sonar\'s reports; order the Hedgehog and the pattern on time. Assessed.', 1, 0, true, 'asw-ood'],
+  ['d-along', 'OOD Drill: Coming Alongside', 'From 700 m off PT Base Halsey: bring her in and stop alongside her pier, parallel and gently. Assessed.', 1, 0, false, 'along'],
   ['d-bells', 'Engineering Drill: Answer the Bells', 'The engine room: answer ten engine orders on the throttle, quickly and the right way. Assessed.', 2, 0, false, 'bells'],
+  ['d-smoke', 'Engineering Drill: Make Smoke', 'Light off the smoke generator on the bridge\'s order and keep the screen thick for a minute. Assessed.', 2, 0, false, 'smoke'],
   ['d-dc', 'Engineering Drill: Damage Control', 'Four casualties in the engine room: burst pipes, holes, fires, a list, the cooling water. Assessed.', 2, 0, false, 'dc'],
 ],
   /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */
@@ -28545,6 +28551,12 @@ function drillBox(here) {
     show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
+  /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
+  const left = SHIP.stn === 1;
+  if (el.dataset.left !== String(left)) {
+    el.dataset.left = String(left);
+    Object.assign(el.style, left ? { left: '12px', top: '160px', transform: 'none', width: 'min(440px,42vw)' } : { left: '50%', top: '96px', transform: 'translateX(-50%)', width: 'min(540px,92vw)' });
+  }
   const now = performance.now();
   if (now - DRILL.boxT < 80) return;
   DRILL.boxT = now;
@@ -29507,6 +29519,377 @@ DRILLS.push({
     );
   },
 });
+/* ---- OOD DRILL: ANTISUBMARINE ATTACK. The exercise submarine is about 1,400 yd ahead; sonar (the AI operator) reports him every
+   few seconds: bearing, range and Doppler. The OOD cons the attack himself: steer to put him fine on the bow, slow to attack speed,
+   and order the weapons; the torpedomen (AI) carry the orders out at the depth sonar gives.
+     Space  FIRE HEDGEHOG: its 24 bombs land in a ring about 250 yd ahead of her: fire with him 200 to 300 yd ahead, dead on the bow
+     R      FIRE THE PATTERN: the stern racks and both K-guns, over about 14 s: order it as her stern comes over him
+   The pattern's best moment: the charges sink about 8 ft a second, so the first, off the stern, must go while he is still ahead by
+   her run in that time. Sonar loses him inside about 150 yd (the beam passes over him): from there the OOD runs on his last bearing and his timing.
+   Assessed on the result (a Hedgehog hit or a charge within 25 yd: a kill; within 60: damaged) and on the timing of each weapon.
+   Normal: the plot shows where sonar puts him; Hardcore: the reports only ---- */
+DRILLS.push({
+  id: 'asw-ood',
+  stn: 1,
+  title: 'Antisubmarine attack',
+  what: 'Con the attack on the exercise sub from sonar reports: steer, slow, fire the Hedgehog (Space) and the pattern (R) on time.',
+  start(D) {
+    if (!PT.on) ptToggle();
+    const sub = PT.L.find((t) => t.kind === 'sub');
+    D.sub = sub;
+    aswPlace(sub, 1280);
+    sub.o.d = [30.5, 45.7, 61][Math.floor(Math.random() * 3)];
+    D.depth = Math.round(sub.o.d / 0.3048 / 25) * 25;
+    COMMS.est = { p: sub.p.clone(), v: sub.v.clone(), t: SHIP.t, src: 'ai' };
+    Object.assign(ASW, { drill: true, best: 1e9, hh: 0 });
+    HH.n = 24;
+    DC.rack = [8, 8];
+    DC.kg = [2, 2];
+    DC.kl = [1, 1, 1, 1];
+    for (const k of ['rack', 'port', 'stbd']) ((DC.dep[k] = D.depth), (DC.arm[k] = true));
+    SHIP.tel = Math.max(SHIP.tel, 0.45);
+    D.rep = 0;
+    D.pat = null;
+    drillSay('SONAR', 'BRIDGE, SONAR. CONTACT BEARING ' + raidBrg(sub.p) + ', RANGE ' + Math.round(sub.p.distanceTo(pos) / 0.9144 / 50) * 50 + ' YARDS. CLASSIFIED SUBMARINE. DEPTH ABOUT ' + D.depth + ' FEET.');
+  },
+  stop() {
+    ASW.drill = false;
+  },
+  /* where he really is, relative to her: ahead (along her course) and across (to starboard), in yards */
+  rel(D) {
+    const fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
+      dx = D.sub.p.x - pos.x,
+      dz = D.sub.p.z - pos.z;
+    return { al: (dx * fw.x + dz * fw.z) / 0.9144, cr: (dx * -fw.z + dz * fw.x) / 0.9144 };
+  },
+  step(D, dt) {
+    const sub = D.sub,
+      r = Math.hypot(sub.p.x - pos.x, sub.p.z - pos.z) / 0.9144;
+    /* sonar's reports: every 8 s while he is outside about 150 yd */
+    if (r > 150 && (D.rep -= dt) <= 0) {
+      D.rep = 8;
+      /* Doppler: his own motion toward or away from her (the set takes out her own) */
+      const close = sub.v.dot(new THREE.Vector3(pos.x - sub.p.x, 0, pos.z - sub.p.z).normalize()),
+        dop = Math.abs(close) < 0.4 ? 'NO' : close > 0 ? 'UP' : 'DOWN';
+      COMMS.est = { p: sub.p.clone(), v: sub.v.clone(), t: SHIP.t, src: 'ai' };
+      D.last = { b: raidBrg(sub.p), r: Math.round(r / 25) * 25, dop, t: D.t };
+      drillSay('SONAR', 'BEARING ' + D.last.b + ', RANGE ' + D.last.r + ', ' + dop + ' DOPPLER.');
+    }
+    if (r <= 150 && !D.lostSaid) ((D.lostSaid = true), drillSay('SONAR', 'LOST CONTACT, RANGE 150. HE IS UNDER THE BOW.'));
+    /* the pattern the torpedomen roll: rack, starboard K-gun, port K-gun, rack */
+    if (D.pat) {
+      const t = D.t - D.pat.t0;
+      for (const [k, at] of [
+        ['rack', 0],
+        ['stbd', 4],
+        ['port', 8],
+        ['rack', 14],
+      ])
+        if (t >= at && !D.pat[k + at]) ((D.pat[k + at] = 1), dcFire(k));
+    }
+    /* done: both weapons fired and gone off, or he is well astern and nothing more will come, or ten minutes */
+    const spent = D.hhT !== undefined && D.pat && D.t - D.pat.t0 > 32 && !HH.L.length && !HH.q.length && !DC.L.length,
+      past = this.rel(D).al < -900;
+    if (spent || past || D.t > 600) this.finish(D);
+  },
+  key(D, code, rep) {
+    if (code !== 'Space' && code !== 'KeyR') return false;
+    if (rep) return true;
+    if (code === 'Space' && D.hhT === undefined) {
+      if (hhFire()) ((D.hhT = D.t), (D.hhRel = this.rel(D)), drillSay('BRIDGE', 'FIRE HEDGEHOG!'));
+    } else if (code === 'KeyR' && !D.pat) {
+      /* the best moment: the first charge, off the stern (about 30 m abaft her middle), reaching his depth as she passes over:
+         he should be ahead of her middle by her run in those seconds, less the stern's 30 m */
+      D.pat = { t0: D.t, rel: this.rel(D), best: (SHIP.u * (D.depth / 8) - 30) / 0.9144 };
+      drillSay('BRIDGE', 'FIRE THE PATTERN! SET ' + D.depth + ' FEET.');
+    }
+    return true;
+  },
+  finish(D) {
+    const yd = ASW.best,
+      v = ASW.hh > 0 || yd <= 25 ? 'KILL' : yd <= 60 ? 'DAMAGED' : 'MISSED',
+      H = D.hhRel,
+      Pt = D.pat && D.pat.rel;
+    ASW.drill = false;
+    let s = v === 'KILL' ? 60 : v === 'DAMAGED' ? 35 : 0;
+    /* the Hedgehog: he 200 to 300 yd ahead and on the bow; the pattern: her stern (about 50 yd abaft the bridge) over him */
+    if (H) s += drillMark(Math.abs(H.al - 250), 40, 200, 12) * (Math.abs(H.cr) < 40 ? 1 : 0.4) + 8;
+    if (Pt) s += drillMark(Math.abs(Pt.al - D.pat.best), 25, 200, 12) * (Math.abs(Pt.cr) < 50 ? 1 : 0.4) + 8;
+    drillSay('EXERCISE SUB', v === 'KILL' ? 'YOU GOT ME. SURFACING. EXERCISE COMPLETE.' : v === 'DAMAGED' ? 'CLOSE. I WOULD BE DAMAGED. SURFACING.' : 'YOU MISSED. SURFACING. EXERCISE COMPLETE.');
+    drillEnd(D, s, [
+      'RESULT: <b>' + v + '</b>' + (ASW.hh ? ' (' + ASW.hh + ' HEDGEHOG HITS)' : '') + (yd < 1e8 ? ' &middot; NEAREST CHARGE ' + yd + ' YD' : ''),
+      'HEDGEHOG: ' + (H ? 'FIRED WITH HIM ' + Math.round(H.al) + ' YD AHEAD, ' + Math.round(Math.abs(H.cr)) + ' YD ' + (H.cr < 0 ? 'TO PORT' : 'TO STARBOARD') + ' (BEST: 250 AHEAD, DEAD ON THE BOW)' : '<b style="color:#ff8a6a">NOT FIRED</b>'),
+      'PATTERN: ' + (Pt ? 'ORDERED WITH HIM ' + Math.round(Pt.al) + ' YD ' + (Pt.al >= 0 ? 'AHEAD' : 'ASTERN') + ' (BEST AT HER SPEED AND HIS DEPTH: ' + Math.round(D.pat.best) + ' ' + (D.pat.best >= 0 ? 'AHEAD' : 'ASTERN') + ')' : '<b style="color:#ff8a6a">NOT ORDERED</b>'),
+    ]);
+    if (PT.on) ptToggle();
+  },
+  box(D) {
+    const L = D.last;
+    return (
+      'SONAR: ' + (L ? 'BEARING <b>' + L.b + '</b>, RANGE <b>' + L.r + '</b> YD, ' + L.dop + ' DOPPLER <span style="color:#9aa">(' + Math.round(D.t - L.t) + ' S AGO)</span>' : '...') +
+      (D.lostSaid ? ' &middot; <b style="color:#ff8a6a">LOST: UNDER THE BOW</b>' : '') +
+      '<br>DEPTH SET ' + D.depth + ' FT &middot; HEDGEHOG ' + (D.hhT === undefined ? '<b>Space</b>' : 'FIRED') + ' &middot; PATTERN ' + (D.pat ? 'ROLLING' : '<b>R</b>') + ' &middot; STEER <b>A / D</b>, SPEED <b>W / S</b> (ATTACK SPEED ABOUT 2/3)'
+    );
+  },
+  draw(D, g, w, h) {
+    /* the plot, ship's head up: her, the Hedgehog's landing ring 250 yd ahead, and where sonar last put him (Hardcore: nothing) */
+    const cx = w / 2,
+      cy = h * 0.8,
+      sc = (h * 0.75) / 1400;
+    g.strokeStyle = '#2c4250';
+    for (const R of [250, 500, 1000]) {
+      g.beginPath();
+      g.arc(cx, cy, R * sc, Math.PI, 2 * Math.PI);
+      g.stroke();
+    }
+    g.fillStyle = '#9fc3d6';
+    g.fillRect(cx - 2, cy - 8, 4, 16);
+    g.strokeStyle = 'rgba(255,210,122,.6)';
+    g.beginPath();
+    g.arc(cx, cy - 250 * sc, 13 * sc * 3, 0, Math.PI * 2);
+    g.stroke();
+    if (!D.hc && D.last) {
+      const E = subEst();
+      if (E) {
+        const fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
+          dx = (E.p.x - pos.x) / 0.9144,
+          dz = (E.p.z - pos.z) / 0.9144,
+          al = dx * fw.x + dz * fw.z,
+          cr = dx * -fw.z + dz * fw.x;
+        g.fillStyle = '#ff8a6a';
+        g.beginPath();
+        g.arc(cx + cr * sc, cy - al * sc, 4, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    g.fillStyle = '#6a7a84';
+    g.font = '10px monospace';
+    g.fillText('250', cx + 3, cy - 250 * sc - 3);
+    g.fillText('500', cx + 3, cy - 500 * sc - 3);
+    g.fillText('1000 YD', cx + 3, cy - 1000 * sc - 3);
+  },
+});
+/* ---- OOD DRILL: COMING ALONGSIDE. She is put about 700 m off PT Base Halsey, heading in at about 5 kn; her berth is the outer end of
+   her own pier (its east side, 56 m alongside). Bring her in and stop alongside: parallel to the pier (within 8 deg), her middle
+   abreast the berth's (within 15 m), close to it (her side within 6 m of the pier), stopped (under 0.5 kn) for five seconds while the
+   lines go over. Touch the pier faster than 2 kn, or put her aground, and the drill fails. Assessed on the time, the speed she met
+   the pier with, how close and how square she lay, and where along the berth. Normal: markers on the berth's ends ---- */
+const BERTH = { u: 75 + 4 + 5.04 + 1 /* the pier's east edge, her half beam, a metre of fenders */, d0: 94, d1: 150 };
+DRILLS.push({
+  id: 'along',
+  stn: 1,
+  title: 'Coming alongside',
+  what: 'Bring her in from 700 m off PT Base Halsey and stop alongside her pier: parallel, close, stopped. Gently.',
+  start(D) {
+    const F = FS.nav.find((s) => s.navy === 'us');
+    D.F = F;
+    /* her starting place, out to sea of the berth and a little to the east of its line; heading in (along -S) */
+    const [x, z] = F.w(BERTH.u + 25, 700);
+    pos.set(x, pos.y, z);
+    SHIP.hdg = Math.atan2(F.S.x, F.S.z);
+    SHIP.hold = SHIP.hdg;
+    SHIP.u = 0.3 * SHIP.VMAX;
+    SHIP.tel = 0.3;
+    ENG.ans = 0.3;
+    SHIP.r = SHIP.rud = 0;
+    SHIP.aground = false;
+    if (SHIPM.hull) OCEAN.clearTrail(SHIPM.hull);
+    D.rings = [];
+    if (!D.hc)
+      for (const d of [BERTH.d0, BERTH.d1]) {
+        const r = ptRingSprite(),
+          [bx, bz] = F.w(BERTH.u, d);
+        r.position.set(bx, SEA.WL + 3, bz);
+        scene.add(r);
+        D.rings.push(r);
+      }
+    D.vMax = 0;
+    drillSay('CAPTAIN', 'TAKE HER IN. STARBOARD SIDE TO, THE OUTER END OF OUR PIER. GENTLY.');
+  },
+  stop(D) {
+    for (const r of D.rings || []) scene.remove(r);
+  },
+  /* her middle in the base's frame: u along the coast, d out to sea; her heading against the pier's line */
+  at(D) {
+    const [u, d] = D.F.uv(pos.x, pos.z),
+      fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
+      along = fw.x * -D.F.S.x + fw.z * -D.F.S.z /* 1: bow in */,
+      ang = Math.acos(Math.min(1, Math.abs(along))) * (180 / Math.PI),
+      gap = u - BERTH.u /* her side from where it should lie (0: against the fenders) */;
+    return { u, d, ang, gap, kn: Math.abs(SHIP.u) / 0.5144, mid: d - (BERTH.d0 + BERTH.d1) / 2 };
+  },
+  step(D, dt) {
+    const A = this.at(D);
+    /* touching: her side reaches the pier's edge alongside it (or her bow its end) */
+    const touch = (A.gap < -0.6 && A.d < BERTH.d1 + 28 && A.d > 0) || SHIP.aground;
+    if (touch) {
+      D.vMax = Math.max(D.vMax, A.kn);
+      if (A.kn > 2 || SHIP.aground) {
+        drillSay('CAPTAIN', SHIP.aground ? 'YOU HAVE PUT HER AGROUND.' : 'YOU HAVE HIT THE PIER AT ' + A.kn.toFixed(1) + ' KNOTS. DAMAGE TO THE PIER AND TO HER BOW.');
+        return drillEnd(D, 0, ['<b style="color:#ff8a6a">' + (SHIP.aground ? 'AGROUND' : 'STRUCK THE PIER AT ' + A.kn.toFixed(1) + ' KN') + '</b>: COME IN SLOWER, AND STOP HER WITH THE ENGINES ASTERN.']);
+      }
+      SHIP.u *= 0.5; /* the fenders take her way off */
+    }
+    const ok = A.ang < 8 && Math.abs(A.mid) < 15 && A.gap < 6 && A.gap > -1 && A.kn < 0.5;
+    if (ok) {
+      if ((D.hold = (D.hold || 0) + dt) > 5) {
+        drillSay('BOATSWAIN', 'ALL LINES DOUBLED UP. SHE IS FAST ALONGSIDE.');
+        D.fin = A;
+        return this.finish(D);
+      }
+    } else D.hold = 0;
+    if (D.t > 900) return drillEnd(D, 10, ['<b style="color:#ff8a6a">FIFTEEN MINUTES AND SHE IS NOT ALONGSIDE.</b>']);
+  },
+  finish(D) {
+    const A = D.fin;
+    const s = drillMark(D.t, 180, 600, 30) + drillMark(D.vMax, 0.3, 2, 20) + drillMark(Math.max(0, A.gap), 1, 6, 20) + drillMark(A.ang, 1.5, 8, 15) + drillMark(Math.abs(A.mid), 2, 15, 15);
+    drillEnd(D, s, [
+      'ALONGSIDE IN <b>' + fmtT(D.t) + '</b> &middot; MET THE PIER AT ' + (D.vMax ? D.vMax.toFixed(1) + ' KN' : 'NOTHING (STOPPED CLEAR OF IT)'),
+      'LYING ' + Math.max(0, A.gap).toFixed(1) + ' M OFF THE FENDERS, ' + A.ang.toFixed(1) + '&deg; OFF PARALLEL, HER MIDDLE ' + Math.abs(A.mid).toFixed(0) + ' M ' + (A.mid > 0 ? 'SEAWARD OF' : 'INSHORE OF') + ' THE BERTH\'S',
+    ]);
+  },
+  box(D) {
+    const A = this.at(D),
+      toGo = A.d - (BERTH.d0 + BERTH.d1) / 2;
+    return (
+      'THE BERTH: <b>' + Math.max(0, Math.round(toGo)) + ' M</b> TO GO &middot; SPEED <b>' + A.kn.toFixed(1) + ' KN</b> &middot; ' + (A.gap > 0 ? Math.round(A.gap) + ' M OFF THE PIER\'S LINE' : '<b style="color:#ff8a6a">INSIDE THE PIER\'S LINE</b>') + ' &middot; ' + Math.round(A.ang) + '&deg; OFF PARALLEL' +
+      '<br>STOP HER WITH HER SIDE WITHIN 6 M OF THE PIER, PARALLEL, UNDER 0.5 KN (BACK HER: <b>S</b>). OVER 2 KN AGAINST THE PIER FAILS.'
+    );
+  },
+  draw(D, g, w, h) {
+    /* the berth plan from above: the shore on the right, the pier running out to the left, her outline (sideways x 2) */
+    const k = (w - 20) / 340,
+      k2 = k * 2,
+      cy = h * 0.42,
+      X = (d) => w - 10 - d * k,
+      Y = (u) => cy + (u - BERTH.u) * k2;
+    g.fillStyle = '#3d3424';
+    g.fillRect(w - 10, 0, 10, h);
+    g.fillStyle = '#7a6040';
+    g.fillRect(X(150), Y(71), 150 * k, 8 * k2); /* the pier: 8 m wide, centred 75 m along the coast */
+    g.strokeStyle = 'rgba(143,227,154,.7)';
+    g.strokeRect(X(BERTH.d1), Y(BERTH.u - 5.04), (BERTH.d1 - BERTH.d0) * k, 10.08 * k2);
+    const A = this.at(D);
+    if (A.d < 330 && Math.abs(A.gap) < 60) {
+      const a = SHIP.hdg - Math.atan2(D.F.S.x, D.F.S.z);
+      g.save();
+      g.translate(X(A.d), Y(A.u));
+      g.rotate(a);
+      g.fillStyle = '#9fc3d6';
+      g.beginPath();
+      g.moveTo(28 * k, 0);
+      g.lineTo(18 * k, -5 * k2);
+      g.lineTo(-28 * k, -5 * k2);
+      g.lineTo(-28 * k, 5 * k2);
+      g.lineTo(18 * k, 5 * k2);
+      g.closePath();
+      g.fill();
+      g.restore();
+    } else {
+      g.fillStyle = '#9aa';
+      g.font = '12px monospace';
+      g.fillText('THE PLAN SHOWS HER INSIDE 330 M', 20, h - 12);
+    }
+  },
+});
+/* ---- ENGINEERING DRILL: MAKE SMOKE. The bridge orders a smoke screen at standard speed. The engineer lights off the smoke generator
+   aft (Space) and keeps the screen thick: the fog oil's flow (Q / E) must sit in the band the burner wants, and the band wanders as
+   the load and the air change (too lean: thin smoke; too rich: oil wasted, a wet white smudge). After a minute the bridge orders
+   SECURE SMOKE (Space shuts it down). Assessed on how soon it was lit and shut down and how much of the minute the screen was thick;
+   the smoke pours off her stern. Hardcore: a narrower band that wanders faster ---- */
+DRILLS.push({
+  id: 'smoke',
+  stn: 2,
+  title: 'Make smoke',
+  what: 'The bridge orders a smoke screen: light off the generator (Space), keep the fog oil flow (Q / E) in the band, secure on order.',
+  start(D) {
+    SHIP.tel = Math.max(SHIP.tel, 0.7);
+    D.ph = 'wait';
+    D.wait = 3 + Math.random() * 4;
+    D.f = 0.2;
+    D.c = 0.5;
+    D.cv = 0;
+    D.good = 0;
+    D.lay = 0;
+    D.puffT = 0;
+    D.oil = 0;
+  },
+  step(D, dt) {
+    if (D.ph === 'wait') {
+      if ((D.wait -= dt) <= 0) ((D.ph = 'order'), (D.t0 = D.t), drillSay('BRIDGE', 'ENGINE ROOM, BRIDGE. MAKE SMOKE! MAKE SMOKE!'));
+      return;
+    }
+    if (D.ph === 'on' || D.ph === 'secure') {
+      /* the band wanders */
+      if (Math.random() < dt * 0.4) D.cv = (Math.random() - 0.5) * (D.hc ? 0.16 : 0.09);
+      D.c = Math.max(0.2, Math.min(0.85, D.c + D.cv * dt));
+      const half = D.hc ? 0.09 : 0.14,
+        off = Math.abs(D.f - D.c);
+      D.dens = Math.max(0, 1 - Math.max(0, off - half * 0.5) / half);
+      D.oil += D.f * dt;
+      if (D.ph === 'on') {
+        D.lay += dt;
+        if (D.dens > 0.7) D.good += dt;
+        if (D.lay > 60) ((D.ph = 'secure'), (D.t1 = D.t), drillSay('BRIDGE', 'SECURE SMOKE.'));
+      } else if (D.t - D.t1 > 30) return this.finish(D);
+      /* the smoke off her stern: white fog-oil smoke, thick or thin, drifting astern and rising slowly */
+      if ((D.puffT -= dt) <= 0) {
+        D.puffT = 0.12;
+        const p = SHIPM.mesh.localToWorld(new THREE.Vector3(PCEM.XF(91), 2.2, 0));
+        if (D.dens > 0.05) fxAdd(p, D.f > D.c + 0.1 ? 0xf2f2ee : 0xd8d8d4, 2 + 4 * D.dens, 12 + 30 * D.dens, 20, 0.4, false);
+      }
+    } else if (D.t - D.t0 > 30) return this.finish(D);
+  },
+  finish(D) {
+    const lit = D.tOn === undefined ? 30 : D.tOn - D.t0,
+      sec = D.tOff === undefined ? 30 : D.tOff - D.t1,
+      thick = D.lay ? D.good / Math.min(60, D.lay) : 0;
+    drillEnd(D, drillMark(lit, 4, 20, 20) + thick * 65 + (D.tOff === undefined ? 0 : drillMark(sec, 4, 20, 15)), [
+      'LIT OFF ' + (D.tOn === undefined ? '<b style="color:#ff8a6a">NEVER</b>' : lit.toFixed(1) + ' S AFTER THE ORDER') + ' &middot; SECURED ' + (D.tOff === undefined ? '<b style="color:#ff8a6a">NOT ON ORDER</b>' : sec.toFixed(1) + ' S AFTER THE ORDER'),
+      'THE SCREEN THICK <b>' + Math.round(thick * 100) + '%</b> OF THE MINUTE &middot; FOG OIL BURNED ' + ((D.oil * 80) / 3600).toFixed(1) + ' GAL',
+    ]);
+  },
+  key(D, code, rep) {
+    if (code !== 'Space' && code !== 'KeyQ' && code !== 'KeyE') return false;
+    if (code === 'KeyQ' || code === 'KeyE') {
+      if (D.ph === 'on' || D.ph === 'secure') D.f = Math.max(0, Math.min(1, D.f + (code === 'KeyE' ? 0.02 : -0.02)));
+      return true;
+    }
+    if (rep) return true;
+    if (D.ph === 'order') ((D.ph = 'on'), (D.tOn = D.t), note('SMOKE GENERATOR LIT OFF'), SND.tone(120, 160, 0.6, 0.1, 'sawtooth'));
+    else if (D.ph === 'secure' && D.tOff === undefined) ((D.tOff = D.t), note('SMOKE SECURED'), this.finish(D));
+    return true;
+  },
+  box(D) {
+    if (D.ph === 'wait') return 'STAND BY AT THE SMOKE GENERATOR.';
+    if (D.ph === 'order') return '<b style="font-size:16px;color:#ffd27a">MAKE SMOKE!</b> <b>Space</b>: LIGHT OFF THE GENERATOR.';
+    return (
+      (D.ph === 'secure' ? '<b style="font-size:16px;color:#ffd27a">SECURE SMOKE!</b> <b>Space</b>: SHUT IT DOWN.' : 'LAYING THE SCREEN: ' + Math.max(0, 60 - Math.round(D.lay)) + ' S TO GO') +
+      '<br>FOG OIL FLOW <b>Q / E</b> &middot; SMOKE <b style="color:' + (D.dens > 0.7 ? '#8fe39a' : '#ff8a6a') + '">' + (D.dens > 0.7 ? 'THICK' : D.f > D.c ? 'TOO RICH' : 'THIN') + '</b>'
+    );
+  },
+  draw(D, g, w, h) {
+    if (D.ph !== 'on' && D.ph !== 'secure') return;
+    const x0 = 30,
+      bw = w - 60,
+      half = D.hc ? 0.09 : 0.14;
+    g.fillStyle = '#1c2a33';
+    g.fillRect(x0, 60, bw, 18);
+    g.fillStyle = '#2f7d3f';
+    g.fillRect(x0 + bw * (D.c - half), 60, bw * half * 2, 18);
+    g.fillStyle = '#ffd27a';
+    g.fillRect(x0 + bw * D.f - 2, 54, 4, 30);
+    g.fillStyle = '#b8c4c8';
+    g.font = '12px monospace';
+    g.fillText('LEAN', x0, 100);
+    g.textAlign = 'right';
+    g.fillText('RICH', x0 + bw, 100);
+    g.textAlign = 'left';
+    g.fillText('FOG OIL FLOW (KEEP IT IN THE GREEN)', x0, 46);
+    g.fillStyle = 'rgba(220,220,214,' + (0.15 + 0.7 * (D.dens || 0)) + ')';
+    g.fillRect(x0, 112, bw * (D.dens || 0), 14);
+  },
+});
 /* the Comms box: what the operator needs, and the instructor */
 function commsBox(here) {
   let el = $$('commsBox');
@@ -29684,7 +30067,7 @@ function dcStep(dt) {
         const sub = PT.L.find((t) => t.kind === 'sub');
         if (sub) {
           const yd = Math.round(sub.p.distanceTo(c.p) / 0.9144);
-          if (ASW.ph === 'run') ASW.best = Math.min(ASW.best, yd);
+          if (ASW.ph === 'run' || ASW.drill) ASW.best = Math.min(ASW.best, yd); /* the torpedoman's run, or the OOD's attack drill */
           DC.lastTxt = yd < 25 ? 'WITHIN LETHAL RANGE (' + yd + ' YD)' : yd < 60 ? 'CLOSE - ' + yd + ' YD' : 'MISSED BY ' + yd + ' YD';
           note('PRACTICE ATTACK: ' + DC.lastTxt);
           if (yd < 60) RADIO.add('EXERCISE SUB', 'CHARGE ' + yd + ' YDS FROM ME. ' + (yd < 25 ? 'YOU GOT ME.' : 'CLOSE.'));
@@ -30005,7 +30388,7 @@ function hhStep(dt) {
       if (hit) {
         HH.hits++;
         aswEv('hit', b.p);
-        if (ASW.ph === 'run') ASW.hh++;
+        if (ASW.ph === 'run' || ASW.drill) ASW.hh++;
         const top = new V(b.p.x, OCEAN.Y, b.p.z);
         for (let j = 0; j < 6; j++) gunFx(new V(b.p.x + (Math.random() - 0.5) * 5, OCEAN.Y + j * 2, b.p.z + (Math.random() - 0.5) * 5), 0xeef3f4, 4, 14, 3, 9 * (1 - j * 0.1), false);
         gunFx(top, 0xf6f8f8, 12, 30, 2.5, 0, false);
