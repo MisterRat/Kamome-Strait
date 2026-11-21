@@ -32,4 +32,4 @@ const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
   MAG = Object.assign({}, MAG0);
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
-const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };
+const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0 /* seconds of the player's pumps */, cf: 0 /* counter-flooded: how much of the list is taken off */ };

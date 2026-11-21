@@ -19,7 +19,7 @@ function helpBox() {
             gun === '3in' ? '<b>Page Up / Down</b> sight range (Hardcore)' : 'Rings: lead for 100, 200, 300 knots',
             '<b>' + kbText('targets') + '</b> practice targets &middot; <b>Esc</b> frees the mouse',
           ];
-    else if (camMode == 1 && stn === 2) l = ['<b>W / S</b> engines &middot; <b>A / D</b> rudder', 'Red needle: the order &middot; black: the answer', 'Gauges: rpm, shaft, oil, water, exhaust, fuel, air, knots'];
+    else if (camMode == 1 && stn === 2) l = ['<b>W / S</b> engines &middot; <b>A / D</b> rudder', 'Red needle: the order &middot; black: the answer', 'Gauges: rpm, shaft, oil, water, exhaust, fuel, air, knots', '<b>' + kbText('targets') + '</b> training drills'];
     else if (camMode == 1 && stn === 3)
       l = [
         dev === 'radar' ? '<b>Q / E</b> cursor &middot; <b>R / F</b> strobe &middot; <b>Space</b> report &middot; <b>Page Up / Down</b> scale' : dev === 'sonar' ? '<b>Q / E</b> train &middot; <b>Z / X</b> cuts &middot; <b>Space</b> report &middot; <b>U / B / N</b> Doppler' : '<b>Space</b> acknowledge &middot; <b>B</b> route to the bridge',
@@ -36,7 +36,7 @@ function helpBox() {
       l = [
         '<b>Rudder</b> ' + (pad ? 'right stick' : 'A / D') + ' &middot; <b>Engines</b> ' + (pad ? t('thrUp') + ' / ' + t('thrDn') : 'W / S'),
         pad ? '' : '<b>Stations</b> 1 OOD &middot; 2 Eng &middot; 3 Comms &middot; 4 Guns &middot; 5 DC',
-        camMode == 1 && stn === 1 ? '<b>' + kbText('gSight') + '</b> binoculars' : '',
+        camMode == 1 && stn === 1 ? '<b>' + kbText('gSight') + '</b> binoculars &middot; <b>' + kbText('targets') + '</b> training drills' : '',
       ];
     l.push('<b>' + t('camera') + '</b> ' + (camMode == 1 ? 'chase view' : 'to station') + ' &middot; <b>' + t('pause') + '</b> menu');
     return '<b style="color:var(--acc)">CONTROLS</b> (' + kbText('help') + ' hides)<br>' + l.filter(Boolean).join('<br>');

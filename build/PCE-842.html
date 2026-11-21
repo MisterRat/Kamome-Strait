@@ -446,15 +446,26 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Gunnery practice</td><td>One for each gun (the 3&Prime;/50, the 20 mm and the twin 40 mm): puts out the practice targets and takes you to that gun.</td></tr>
 <tr><td>Antisubmarine attack run</td><td>Takes you to the torpedoman's station with the exercise submarine out. The OOD runs in on him and phones the orders; you fire the Hedgehog, the K-guns and the racks. One run, then the debrief and the pattern plot stay up until you press T again or leave the station.</td></tr>
 <tr><td>Sonar watch</td><td>The communications station with the exercise submarine out: find him on the sonar and the radar.</td></tr>
+<tr><td>Training drills</td><td>The OOD's and the engineer's drills (below), each assessed at the end: Man Overboard, Navigation Fix, Recognition, Answer the Bells, Damage Control.</td></tr>
 </table>
 <h2>The stations (keys 1 to 5; press again for the next view there)</h2>
 <table class="t2">
-<tr><td><b>1</b> OOD</td><td>The pilothouse: conn the ship (W / S rings the engines, A / D the rudder) at the wheel, the telegraphs and the compass; X for the binoculars.</td></tr>
-<tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines.</td></tr>
+<tr><td><b>1</b> OOD</td><td>The pilothouse: conn the ship (W / S rings the engines, A / D the rudder) at the wheel, the telegraphs and the compass; X for the binoculars. T: the OOD's training drills.</td></tr>
+<tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines. T: the engineer's training drills; in action, the repairs come to you here (below).</td></tr>
 <tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
 <tr><td><b>4</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 4 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
 <tr><td><b>5</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
 <tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
+</table>
+<h2>Training drills (T at the OOD's or the engineer's station; Q / E choose, Space begins)</h2>
+<table class="t2">
+<tr><td>Man overboard (OOD)</td><td>A man goes over the side at standard speed. The Williamson turn: rudder full toward his side at once; at 60&deg; off, full the other way; steady on the reciprocal and he is fine on the bow. Slow, and stop with him alongside (within 30 m, under 1.5 kn). Assessed on the rudder, the shift, the steadying, the time and the approach; run him down and the drill fails.</td></tr>
+<tr><td>Navigation fix (OOD)</td><td>Bearings on three landmarks: lay the middle of the view on each (X: binoculars) and press Space. The lines are crossed (a running fix) and the fix compared with her true position. Assessed on the error, the cocked hat and the time.</td></tr>
+<tr><td>Recognition (OOD)</td><td>A boat closes: Space challenges her by light; read her lamp's reply against the day's code. Then two aircraft: a P-51 or a Ki-84? Q friend (hold fire), E enemy (guns free). Assessed on each call and how soon.</td></tr>
+<tr><td>Answer the bells (Engineering)</td><td>The bridge rings ten engine orders; W / S move your throttle lever a sector at a time. Assessed on the time to answer (smart within 4 s) and answers that went the wrong way first.</td></tr>
+<tr><td>Damage control (Engineering)</td><td>Four casualties: a burst pipe (Q / E find its valve, Space shuts it; then the wrench, Space in the green), a hole (two timbers, Space in the green; then Space for the pumps), a fire (Q / E keep the hose on it), a list (Q / E open the port or starboard tanks, bring her upright, shut them), the cooling water (Space: the standby strainer). Assessed on each job's time, slips and how bad it got.</td></tr>
+<tr><td>In action</td><td>When she is hit while you are in the engine room, the repairs are yours, the same jobs: shore the holes and pump, fight the fire, mend the engines, counter-flood the list. Away from the engine room the repair parties do it.</td></tr>
+<tr><td>Hardcore</td><td>Narrower windows and no markers; the water and the fire grow while you work and a job only partly mends her; in the engine room in action the repair parties leave it all to you.</td></tr>
 </table>
 <div class="cols">
 <div><h2>Gunnery</h2>
@@ -551,7 +562,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.111';
+const VERSION = '0.112';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -781,6 +792,8 @@ SIMS.add({
   },
   /* at communications the operator's own keys */
   keyStation: (e) => {
+    /* the OOD's and the engineer's training drills (and the engineer's repair jobs in action); their keys repeat (the hose) */
+    if (started && !paused && camMode == 1 && (SHIP.stn === 1 || SHIP.stn === 2) && drillKey(e.code, e.repeat)) return e.preventDefault(), true;
     if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
     e.preventDefault();
     return true;
@@ -1005,7 +1018,7 @@ const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
   MAG = Object.assign({}, MAG0);
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
-const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };
+const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0 /* seconds of the player's pumps */, cf: 0 /* counter-flooded: how much of the list is taken off */ };
 /* the gunner's state (station 4; see THE GUNNER above the loop) */
 const GUN = {
   M: [] /* the mounts */,
@@ -1031,7 +1044,7 @@ const STN = {
   bino: false /* the OOD's binoculars */,
   fire0: false,
 };
-const ENG = { ans: 0 /* the engine room's answer, -0.5 .. 1 */, rung: 0, ringT: 0, lagT: 0, heat: 0.3 };
+const ENG = { ans: 0 /* the engine room's answer, -0.5 .. 1 */, rung: 0, ringT: 0, lagT: 0, heat: 0.3, man: null /* the player's throttle lever (a telegraph sector), in the Answer the Bells drill */ };
 const DC = { depth: 100 /* ft */, rack: [8, 8], kg: [2, 2], dep: { rack: 100, port: 100, stbd: 100 } /* each position's pistol depth setting, ft */, arm: { rack: false, port: false, stbd: false } /* safety forks out */, kl: [1, 1, 1, 1] /* K-guns loaded: port fwd, port aft, stbd fwd, stbd aft */, kt: [0, 0, 0, 0] /* their crews' reload timers */, next: 0, nk: 0, L: [], lastTxt: '' };
 /* the torpedoman walking the deck (Hardcore), the Hedgehog, and the attack run the OOD cons (see THE TORPEDOMAN AT WORK) */
 const TPW = { p: new THREE.Vector2() /* model x, z */, at: 3, bob: 0, ob: [] },
@@ -7575,14 +7588,15 @@ const PCEM = (() => {
       [X_RR1, W_PH],
     ];
     prism(ph, Y2, Y3, KEY, DECK);
-    /* pilothouse windows: five across the front and the angled corners, two each side (dark from outside) */
+    /* pilothouse windows: five across the front and the angled corners, two each side (dark from outside); 0.8 m deep (they were
+       0.42: the user's, 2026-11-21, a better view for the OOD, who now stands his watch in here) */
     {
       const yw = Y2 + 1.55;
       const pane = (w, h, x, y, z, ry) => add(new THREE.PlaneGeometry(w, h), WIN, x, y, z, 0, ry, 0);
-      for (let i = -1; i <= 1; i++) pane(0.62, 0.42, X_PH0 + 0.012, yw, i * 0.78, HP);
+      for (let i = -1; i <= 1; i++) pane(0.72, 0.8, X_PH0 + 0.012, yw, i * 0.78, HP);
       for (const s of [-1, 1]) {
-        pane(0.5, 0.42, X_PH0 - 0.3665, yw, s * (W_PH - 0.3665), HP - s * (PI / 4)); /* 12 mm proud of the angled corner */
-        for (const d of [0.9, 1.7]) pane(0.5, 0.42, X_PH0 - 0.75 - d, yw, s * (W_PH + 0.012), s > 0 ? 0 : PI);
+        pane(0.5, 0.8, X_PH0 - 0.3665, yw, s * (W_PH - 0.3665), HP - s * (PI / 4)); /* 12 mm proud of the angled corner */
+        for (const d of [0.9, 1.7]) pane(0.5, 0.8, X_PH0 - 0.75 - d, yw, s * (W_PH + 0.012), s > 0 ? 0 : PI);
         B(0.8, 1.85, 0.05, STEEL, XF(31.5), Y2 + 0.95, s * (W_PH + 0.02));
       }
     }
@@ -8344,13 +8358,13 @@ const PCEM = (() => {
       y0 = Y2 + 0.01,
       y1 = Y3 - 0.14,
       w = W_PH - 0.06,
-      wy0 = Y2 + 1.34,
-      wy1 = Y2 + 1.76;
+      wy0 = Y2 + 1.15,
+      wy1 = Y2 + 1.95 /* the windows 0.8 m deep (the user's, 2026-11-21: a better view) */;
     /* the rounded front is drawn as a flat inner wall with the three windows; the corner windows in the side walls */
     room(x0, x1, y0, y1, -w, w, INT_W, INT_F, INT_C, [
-      ['x1', w - 1.09, w - 0.47, wy0, wy1],
-      ['x1', w - 0.31, w + 0.31, wy0, wy1],
-      ['x1', w + 0.47, w + 1.09, wy0, wy1],
+      ['x1', w - 1.14, w - 0.42, wy0, wy1],
+      ['x1', w - 0.36, w + 0.36, wy0, wy1],
+      ['x1', w + 0.42, w + 1.14, wy0, wy1],
       ['z0', x1 - x0 - 2.7, x1 - x0 - 2.2, wy0, wy1],
       ['z1', x1 - x0 - 2.7, x1 - x0 - 2.2, wy0, wy1],
       ['z0', x1 - x0 - 1.9, x1 - x0 - 1.4, wy0, wy1],
@@ -8358,8 +8372,8 @@ const PCEM = (() => {
     ]);
     /* window frames (seen from inside) */
     for (let i = -1; i <= 1; i++) {
-      B(0.04, 0.05, 0.66, STEEL, x1 - 0.02, wy0 - 0.02, i * 0.78);
-      B(0.04, 0.05, 0.66, STEEL, x1 - 0.02, wy1 + 0.02, i * 0.78);
+      B(0.04, 0.05, 0.76, STEEL, x1 - 0.02, wy0 - 0.02, i * 0.78);
+      B(0.04, 0.05, 0.76, STEEL, x1 - 0.02, wy1 + 0.02, i * 0.78);
     }
     /* steering stand and wheel (brass hub, eight spokes with handles): the wheel turns with the helm (WHEEL, a moving part) */
     const xs = x1 - 0.75;
@@ -22060,7 +22074,7 @@ function coachHide() {
   coachEl.style.display = 'none';
 }
 const fmtT = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out] (the shared mission menu shows them) */
+/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out, the training drill (optional)] (the shared mission menu shows them) */
 SIMS.add({
   id: 'pce',
   missions: [
@@ -22070,6 +22084,12 @@ SIMS.add({
   ['gun40', 'Gunnery Practice: Twin 40 mm', 'The twin 40 mm aft against the towed sleeves and the target sled.', 4, 2, true],
   ['asw', 'Antisubmarine Attack Run', 'The torpedoman\'s station with the exercise submarine out: the OOD runs in on him and phones the orders. Hedgehog, K-guns and racks. Scored.', 5, -1, true],
   ['sonar', 'Sonar Watch', 'Communications, with the exercise submarine out: find him on the sonar and the radar.', 3, 1, true],
+  /* the training drills (the user's, 2026-11-21): the last field is the drill (TRAINING DRILLS); T at the station lists them all */
+  ['d-mob', 'OOD Drill: Man Overboard', 'A man goes over the side at standard speed: the Williamson turn back to him, then stop alongside. Assessed.', 1, 0, false, 'mob'],
+  ['d-fix', 'OOD Drill: Navigation Fix', 'Bearings on three landmarks with the binoculars; your fix is checked against her true position. Assessed.', 1, 0, false, 'fix'],
+  ['d-recog', 'OOD Drill: Recognition', 'Challenge a closing boat by light and read her reply; tell two aircraft apart. Friend or enemy? Assessed.', 1, 0, false, 'recog'],
+  ['d-bells', 'Engineering Drill: Answer the Bells', 'The engine room: answer ten engine orders on the throttle, quickly and the right way. Assessed.', 2, 0, false, 'bells'],
+  ['d-dc', 'Engineering Drill: Damage Control', 'Four casualties in the engine room: burst pipes, holes, fires, a list, the cooling water. Assessed.', 2, 0, false, 'dc'],
 ],
   /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */
   missionPick: (it, first) => {
@@ -22083,6 +22103,7 @@ SIMS.add({
     SHIP.sub = it[4] < 0 ? 0 : (it[4] - 1 + list.length) % Math.max(1, list.length);
     shipStation(it[3]);
     note(it[1].toUpperCase());
+    if (it[6]) drillStart(it[6]);
   },
 });
 /* the mission menu: built from the current simulator's missions (its role's missions: [id, title, what it is, ...]); picking one
@@ -24363,7 +24384,7 @@ function helpBox() {
             gun === '3in' ? '<b>Page Up / Down</b> sight range (Hardcore)' : 'Rings: lead for 100, 200, 300 knots',
             '<b>' + kbText('targets') + '</b> practice targets &middot; <b>Esc</b> frees the mouse',
           ];
-    else if (camMode == 1 && stn === 2) l = ['<b>W / S</b> engines &middot; <b>A / D</b> rudder', 'Red needle: the order &middot; black: the answer', 'Gauges: rpm, shaft, oil, water, exhaust, fuel, air, knots'];
+    else if (camMode == 1 && stn === 2) l = ['<b>W / S</b> engines &middot; <b>A / D</b> rudder', 'Red needle: the order &middot; black: the answer', 'Gauges: rpm, shaft, oil, water, exhaust, fuel, air, knots', '<b>' + kbText('targets') + '</b> training drills'];
     else if (camMode == 1 && stn === 3)
       l = [
         dev === 'radar' ? '<b>Q / E</b> cursor &middot; <b>R / F</b> strobe &middot; <b>Space</b> report &middot; <b>Page Up / Down</b> scale' : dev === 'sonar' ? '<b>Q / E</b> train &middot; <b>Z / X</b> cuts &middot; <b>Space</b> report &middot; <b>U / B / N</b> Doppler' : '<b>Space</b> acknowledge &middot; <b>B</b> route to the bridge',
@@ -24380,7 +24401,7 @@ function helpBox() {
       l = [
         '<b>Rudder</b> ' + (pad ? 'right stick' : 'A / D') + ' &middot; <b>Engines</b> ' + (pad ? t('thrUp') + ' / ' + t('thrDn') : 'W / S'),
         pad ? '' : '<b>Stations</b> 1 OOD &middot; 2 Eng &middot; 3 Comms &middot; 4 Guns &middot; 5 DC',
-        camMode == 1 && stn === 1 ? '<b>' + kbText('gSight') + '</b> binoculars' : '',
+        camMode == 1 && stn === 1 ? '<b>' + kbText('gSight') + '</b> binoculars &middot; <b>' + kbText('targets') + '</b> training drills' : '',
       ];
     l.push('<b>' + t('camera') + '</b> ' + (camMode == 1 ? 'chase view' : 'to station') + ' &middot; <b>' + t('pause') + '</b> menu');
     return '<b style="color:var(--acc)">CONTROLS</b> (' + kbText('help') + ' hides)<br>' + l.filter(Boolean).join('<br>');
@@ -25455,13 +25476,16 @@ if (SIMS.on('pce')) {
    Calibrated so that one torpedo sinks her in about three and a half minutes, two 12 cm hits leave her low but afloat, and a
    strafing run holes her a little. SDM (the ship state piece) holds it; sdmText() for the HUD; a restart mends her. */
 function sdmReset() {
-  Object.assign(SDM, { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 });
+  Object.assign(SDM, { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0, cf: 0 });
+  if (typeof DCX !== 'undefined' && DCX) DCX.L.length = 0; /* var DCX: a restart can come before its piece loads */
 }
 const sdmSay = (txt) => RADIO.add('DAMAGE CONTROL', txt, { own: true });
 /* a hit: kind 'small', 'shell' or 'torpedo' */
 function sdmHit(kind) {
   if (!DM.on || SDM.lost || !SIMS.on('pce')) return;
-  const r = Math.random;
+  const r = Math.random,
+    f0 = SDM.fire,
+    e0 = SDM.eng;
   if (kind === 'small') {
     SDM.holes += 0.04;
     if (r() < 0.04) SDM.fire = Math.max(SDM.fire, 0.15);
@@ -25478,6 +25502,8 @@ function sdmHit(kind) {
     SDM.fire = Math.max(SDM.fire, 0.5);
     sdmSay('BRIDGE, DAMAGE CONTROL. TORPEDO HIT AMIDSHIPS. ENGINE ROOM FLOODING. ALL PUMPS ON IT.');
   }
+  /* the player in the engine room: the repairs are his jobs (DAMAGE CONTROL AT STATION 2) */
+  dcxFromHit(kind, SDM.fire > f0, SDM.eng > e0);
 }
 /* each frame: the water, the fires, the damage control, her settling, her loss */
 function sdmStep(dt) {
@@ -25489,10 +25515,14 @@ function sdmStep(dt) {
     return;
   }
   if (!SDM.holes && !SDM.flood && !SDM.fire) return;
-  SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012) * dt);
-  SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
+  /* Hardcore with the player in the engine room on his jobs: he is the repair party, so nothing is shored or put out but by him
+     (DAMAGE CONTROL AT STATION 2); the pumps he started (SDM.pump) clear the water faster */
+  const own = dcxManned();
+  SDM.pump = Math.max(0, (SDM.pump || 0) - dt);
+  SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012 - (SDM.pump > 0 ? 0.004 : 0)) * dt);
+  if (!own) SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
   if (SDM.fire > 0) {
-    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - 0.006) * dt)); /* a small one is put out, a big one spreads */
+    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - (own ? 0 : 0.006)) * dt)); /* a small one is put out, a big one spreads */
     if (SDM.fire > 0.6) SDM.eng = Math.min(1, SDM.eng + 0.004 * dt);
     if ((SDM.smokeT -= dt) <= 0) {
       SDM.smokeT = 0.35;
@@ -25527,7 +25557,7 @@ function sdmSettle() {
   return SDM.lost ? Math.min(12, 2.6 + SDM.sink * 0.25) : 2.6 * SDM.flood;
 }
 function sdmList() {
-  return SDM.lost ? Math.min(0.9, 0.25 + SDM.sink * 0.02) : 0.25 * SDM.flood;
+  return SDM.lost ? Math.min(0.9, 0.25 + SDM.sink * 0.02) : 0.25 * SDM.flood * (1 - (SDM.cf || 0)) /* counter-flooded: the engineer's job */;
 }
 function sdmText() {
   const l = [];
@@ -27581,7 +27611,9 @@ function engStep(dt) {
   }
   /* the engineer answers in a second or two */
   ENG.lagT += dt;
-  if (ENG.lagT > 1.4) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, SHIP.tel - ENG.ans));
+  /* the player at the throttle (the Answer the Bells drill): the engines follow his lever, not the order */
+  if (ENG.man != null) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, TELV[ENG.man] - ENG.ans));
+  else if (ENG.lagT > 1.4) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, SHIP.tel - ENG.ans));
   const load = Math.abs(ENG.ans);
   ENG.heat += (0.3 + 0.7 * load - ENG.heat) * Math.min(1, dt / 60);
 }
@@ -28411,6 +28443,1070 @@ const LES = {
     ];
   },
 };
+/* =====================================================================================================================
+   TRAINING DRILLS (the user's, 2026-11-21): the OOD's (station 1) and the engineer's (station 2), each assessed at the end like
+   the torpedoman's attack runs. T at either station opens its list of drills (Q / E choose, Space begins); the missions menu
+   starts them too. A drill runs while the player stays at its station (leave it and the drill is broken off); the AI keeps every
+   other station. At the end the debrief stays up (the grade, the measures behind it) until T is pressed again or the player
+   leaves. Each drill is an entry in DRILLS: { id, stn, title, what, start(D), step(D, dt), key(D, code) -> used, box(D) -> html,
+   draw(D, g, w, h) (its picture, optional) }. It ends itself with drillEnd(D, score 0-100, lines).
+   Normal: quick, forgiving. Hardcore: the real thing (narrower windows, the damage grows while you work, no markers).
+   ===================================================================================================================== */
+var DRILLS = [];
+var DRILL = { on: null /* the drill running */, menu: false, sel: 0, D: null /* its state */, deb: null /* the last debrief */, boxT: 0 };
+const drillSay = (who, txt) => RADIO.add(who, txt, { own: true });
+const drillHC = () => FM.use('orders') || FM.use('aa') || FM.use('walk') || FM.use('eng'); /* Hardcore: any of its options */
+const drillList = () => DRILLS.filter((d) => d.stn === SHIP.stn);
+/* T at station 1 or 2: the list (or close it); with a debrief up, the list again */
+function drillToggle() {
+  if (DRILL.on) return drillAbort('DRILL ENDED');
+  if (DRILL.menu) return (DRILL.menu = false), note('DRILLS CLOSED');
+  if (!drillList().length) return false;
+  DRILL.deb = null;
+  DRILL.menu = true;
+  DRILL.sel = Math.min(DRILL.sel, drillList().length - 1);
+  note('TRAINING DRILLS - Q / E CHOOSE, SPACE BEGINS');
+  return true;
+}
+function drillStart(id) {
+  const d = DRILLS.find((x) => x.id === id);
+  if (!d) return;
+  if (SHIP.stn !== d.stn || camMode != 1) shipStation(d.stn);
+  DRILL.menu = false;
+  DRILL.deb = null;
+  DRILL.on = d;
+  DRILL.D = { t: 0, hc: drillHC(), ev: [] };
+  d.start(DRILL.D);
+  SND.tone(880, 880, 0.25, 0.1, 'square');
+  note('DRILL: ' + d.title.toUpperCase());
+}
+function drillAbort(msg) {
+  const d = DRILL.on;
+  if (d && d.stop) d.stop(DRILL.D);
+  DRILL.on = null;
+  DRILL.D = null;
+  note(msg || 'DRILL BROKEN OFF');
+}
+/* the end of a drill: its grade and what it was measured on */
+function drillEnd(D, score, lines) {
+  const d = DRILL.on;
+  if (d && d.stop) d.stop(D);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const v = score >= 85 ? 'EXCELLENT' : score >= 60 ? 'SATISFACTORY' : 'UNSATISFACTORY';
+  DRILL.deb = { title: d.title, score, v, lines, hc: D.hc };
+  DRILL.on = null;
+  DRILL.D = null;
+  SND.tone(660, 990, 0.3, 0.12, 'sine');
+  note(d.title.toUpperCase() + ': ' + v + ' (' + score + ')');
+  drillSay(d.stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', d.title.toUpperCase() + ' COMPLETE. ' + v + '.');
+}
+/* the station's keys while a drill (or its list) is up: true when used */
+function drillKey(code, rep) {
+  if (code === 'KeyT') return rep || drillToggle() !== false;
+  if (DRILL.menu) {
+    const L = drillList();
+    if (code === 'KeyQ' || code === 'KeyE') return rep || ((DRILL.sel = (DRILL.sel + (code === 'KeyE' ? 1 : -1) + L.length) % L.length), true);
+    if (code === 'Space') return rep || (drillStart(L[DRILL.sel].id), true);
+    return false;
+  }
+  if (DRILL.on && DRILL.on.key) return DRILL.on.key(DRILL.D, code, rep) === true;
+  if (dcxLive()) return dcxKey(code, rep);
+  return false;
+}
+/* each frame */
+function drillStep(dt, here) {
+  if (DRILL.on || DRILL.menu || DRILL.deb) {
+    const d = DRILL.on,
+      away = !here || (d ? SHIP.stn !== d.stn : SHIP.stn !== 1 && SHIP.stn !== 2);
+    if (away && (d || DRILL.menu || DRILL.deb)) {
+      if (d) drillAbort('DRILL BROKEN OFF - YOU LEFT YOUR STATION');
+      DRILL.menu = false;
+      DRILL.deb = null;
+    }
+  }
+  if (DRILL.on && started && !paused && !crashed) {
+    DRILL.D.t += dt;
+    DRILL.on.step(DRILL.D, dt);
+  }
+  drillBox(here);
+}
+/* the drill box: the instructor's word, the drill's own picture, the debrief */
+function drillBox(here) {
+  let el = $$('drillBox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'drillBox';
+    el.style.cssText =
+      'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.86);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
+    el.innerHTML = '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
+    document.body.appendChild(el);
+  }
+  const live = !DRILL.on && !DRILL.menu && dcxLive() /* in action: the engineer's repair jobs */,
+    show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
+  el.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const now = performance.now();
+  if (now - DRILL.boxT < 80) return;
+  DRILL.boxT = now;
+  const tx = $$('drillTx'),
+    cv = $$('drillCv'),
+    T = '<b>' + kbText('targets') + '</b>';
+  let h = '',
+    pic = null;
+  if (live) {
+    h = '<b style="color:#ff8a6a">DAMAGE CONTROL - ENGINE ROOM</b><br>' + dcxText();
+    pic = { draw: () => dcxDraw(cv.getContext('2d'), cv.width, cv.height) };
+  } else if (DRILL.menu) {
+    h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
+    drillList().forEach((d, i) => {
+      h += '<br>' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title);
+    });
+    h += '<br><span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
+  } else if (DRILL.on) {
+    const d = DRILL.on;
+    h = '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D);
+    if (d.draw) pic = d;
+  } else if (DRILL.deb) {
+    const b = DRILL.deb,
+      col = b.v === 'EXCELLENT' ? '#8fe39a' : b.v === 'SATISFACTORY' ? '#ffd27a' : '#ff8a6a';
+    h =
+      '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
+      '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
+      b.lines.map((l) => '<br>' + l).join('') +
+      '<br><span style="color:#9aa">' + T + ' another drill</span>';
+  }
+  tx.innerHTML = h;
+  cv.style.display = pic ? 'block' : 'none';
+  if (pic) {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    pic.draw(DRILL.D, g, cv.width, cv.height);
+  }
+}
+/* a mark out of full for one measure: full at or better than `good`, nothing at or worse than `bad` */
+const drillMark = (x, good, bad, full) => full * Math.max(0, Math.min(1, (bad - x) / (bad - good)));
+/* a timing bar (the wrench, the shoring maul): a marker sweeps to and fro; Space when it is in the green */
+function drillBar(g, w, h, y, B, label) {
+  const x0 = 20,
+    x1 = w - 20,
+    bw = x1 - x0;
+  g.fillStyle = '#1c2a33';
+  g.fillRect(x0, y, bw, 14);
+  g.fillStyle = '#2f7d3f';
+  g.fillRect(x0 + bw * (B.c - B.w / 2), y, bw * B.w, 14);
+  g.fillStyle = '#ffd27a';
+  g.fillRect(x0 + bw * B.x - 2, y - 3, 4, 20);
+  g.fillStyle = '#b8c4c8';
+  g.font = '12px monospace';
+  g.fillText(label, x0, y - 6);
+}
+/* the bar's marker: a smooth sweep, faster in Hardcore */
+const barMake = (D, w) => ({ x: 0, dir: 1, c: 0.25 + Math.random() * 0.5, w: D.hc ? w * 0.55 : w, sp: D.hc ? 1.25 : 0.8 });
+function barStep(B, dt) {
+  B.x += B.dir * B.sp * dt;
+  if (B.x > 1) (B.x = 1), (B.dir = -1);
+  if (B.x < 0) (B.x = 0), (B.dir = 1);
+}
+const barHit = (B) => Math.abs(B.x - B.c) <= B.w / 2;
+/* ---- ENGINEERING DRILL: ANSWER THE BELLS. The bridge rings a string of engine orders on the telegraph; the player is the throttleman:
+   W / S move the engine room's answering lever a sector at a time (BACK FULL to FLANK) and the engines follow it. Each order is
+   timed from its bell to the moment the answer matches it: within 4 s is smart, within 8 s acceptable (Hardcore: 3 and 6), and a
+   lever put the wrong way first is counted. Ten orders. While the player holds the lever the engine room's own answer (engStep) is
+   his, not the AI's ---- */
+const TELV = [-0.5, -0.25, -0.1, 0, 0.2, 0.45, 0.7, 0.9, 1] /* a value in each telegraph sector (telIdx) */;
+DRILLS.push({
+  id: 'bells',
+  stn: 2,
+  title: 'Answer the bells',
+  what: 'The bridge rings ten engine orders. Answer each with W / S on the throttle lever, quickly and the right way.',
+  start(D) {
+    D.n = 0;
+    D.res = [];
+    D.wait = 3;
+    ENG.man = telIdx(ENG.ans); /* the lever, where the engines are now */
+    D.prev = ENG.man;
+  },
+  stop() {
+    ENG.man = null;
+  },
+  ring(D) {
+    /* a new order: never the same sector, mostly ahead, now and then astern or stop */
+    let i;
+    do i = Math.random() < 0.7 ? 4 + Math.floor(Math.random() * 5) : Math.floor(Math.random() * 4);
+    while (i === telIdx(SHIP.tel));
+    SHIP.tel = TELV[i];
+    D.o = { i, t0: D.t, wrong: false, from: ENG.man };
+    D.n++;
+  },
+  step(D, dt) {
+    if (!D.o) {
+      if ((D.wait -= dt) <= 0) this.ring(D);
+      return;
+    }
+    const o = D.o,
+      lim = D.hc ? [3, 6] : [4, 8];
+    if (ENG.man === o.i) {
+      const s = D.t - o.t0;
+      D.res.push({ s, wrong: o.wrong });
+      note(s <= lim[0] ? 'ANSWERED - SMART' : s <= lim[1] ? 'ANSWERED' : 'ANSWERED - SLOW');
+      D.o = null;
+      D.wait = 4 + Math.random() * 6;
+      if (D.n >= 10) this.finish(D);
+    } else if (D.t - o.t0 > 20) {
+      D.res.push({ s: 20, wrong: o.wrong, miss: true });
+      note('NOT ANSWERED');
+      ENG.man = o.i; /* the chief takes the lever */
+      D.o = null;
+      D.wait = 4;
+      if (D.n >= 10) this.finish(D);
+    }
+  },
+  finish(D) {
+    const lim = D.hc ? [3, 6] : [4, 8],
+      R = D.res,
+      smart = R.filter((r) => !r.miss && r.s <= lim[0]).length,
+      ok = R.filter((r) => !r.miss && r.s > lim[0] && r.s <= lim[1]).length,
+      slow = R.filter((r) => !r.miss && r.s > lim[1]).length,
+      miss = R.filter((r) => r.miss).length,
+      wrong = R.filter((r) => r.wrong).length,
+      avg = R.reduce((a, r) => a + r.s, 0) / R.length;
+    drillEnd(D, smart * 10 + ok * 7 + slow * 3 - wrong * 3, [
+      'ORDERS ' + R.length + ': <b>' + smart + '</b> SMART, ' + ok + ' ACCEPTABLE, ' + slow + ' SLOW' + (miss ? ', <b style="color:#ff8a6a">' + miss + ' NOT ANSWERED</b>' : ''),
+      'AVERAGE ' + avg.toFixed(1) + ' S TO ANSWER (SMART WITHIN ' + lim[0] + ' S)' + (wrong ? ' &middot; <b style="color:#ff8a6a">' + wrong + ' TIMES THE WRONG WAY FIRST</b>' : ''),
+    ]);
+  },
+  key(D, code, rep) {
+    if (code !== 'KeyW' && code !== 'KeyS' && code !== 'ArrowUp' && code !== 'ArrowDown') return false;
+    if (rep) return true;
+    const up = code === 'KeyW' || code === 'ArrowUp',
+      was = ENG.man;
+    ENG.man = Math.max(0, Math.min(8, ENG.man + (up ? 1 : -1)));
+    SND.tone(420, 400, 0.08, 0.06, 'square');
+    if (D.o && Math.abs(ENG.man - D.o.i) > Math.abs(was - D.o.i)) D.o.wrong = true;
+    return true;
+  },
+  box(D) {
+    const o = D.o;
+    return (
+      (o ? 'BELL: <b style="font-size:17px;color:#ffd27a">' + TEL[o.i].replace('\n', ' ') + '</b> &middot; ' + (D.t - o.t0).toFixed(1) + ' S' : 'STAND BY FOR THE NEXT BELL') +
+      '<br>YOUR LEVER: <b>' + TEL[ENG.man].replace('\n', ' ') + '</b> &middot; ORDER ' + D.n + '/10 &middot; <b>W / S</b> MOVE THE LEVER'
+    );
+  },
+  draw(D, g, w, h) {
+    /* the two dials side by side: the bridge's order and the answer */
+    for (const [k, lab, i] of [
+      [0, 'BRIDGE ORDER', D.o ? D.o.i : telIdx(SHIP.tel)],
+      [1, 'YOUR ANSWER', ENG.man],
+    ]) {
+      const cx = w * (0.28 + k * 0.44),
+        cy = h * 0.62,
+        r = h * 0.48;
+      g.strokeStyle = '#6a7a84';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+      g.stroke();
+      for (let j = 0; j < 9; j++) {
+        const a = Math.PI + ((j + 0.5) / 9) * Math.PI;
+        g.fillStyle = j === i ? (k ? '#8fe39a' : '#ffd27a') : '#55636b';
+        g.font = (j === i ? 'bold ' : '') + '10px monospace';
+        g.textAlign = 'center';
+        g.fillText(TEL[j].replace('\n', ' '), cx + Math.cos(a) * r * 0.78, cy + Math.sin(a) * r * 0.78 + 4);
+      }
+      const a = Math.PI + ((i + 0.5) / 9) * Math.PI;
+      g.strokeStyle = k ? '#8fe39a' : '#ffd27a';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.lineTo(cx + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.55);
+      g.stroke();
+      g.fillStyle = '#b8c4c8';
+      g.font = '11px monospace';
+      g.fillText(lab, cx, h - 4);
+    }
+    g.textAlign = 'left';
+  },
+});
+/* =====================================================================================================================
+   DAMAGE CONTROL AT STATION 2 (the user's, 2026-11-21): the engineer's repair jobs, as quick mini-games. Used by the Damage
+   Control drill and, in action, whenever her battle damage (SDM) brings a job while the player is in the engine room; away from
+   it the repair parties (the AI) do the work as before.
+     pipe   a burst pipe: find its valve (Q / E, Space shuts it), then the wrench: three good turns (Space in the green)
+     flood  a hole: two timbers wedged home (Space in the green), then the pumps (Space)
+     fire   the hose: keep the nozzle (Q / E) on the flames until they are out
+     list   counter-flooding: Q / E open the port or starboard tank valves; bring her upright and shut them
+     cool   the cooling water: the sea strainer clogs; shift to the standby strainer (Space) before the engines cook
+   Normal: a finished job is a finished repair. Hardcore, the real system: the water and the fire keep growing while you work,
+   the windows are narrow, a slip costs, a job only partly mends her (the holes, the fire and the engines in SDM), and while the
+   player has the engine room the repair parties leave it to him.
+   ===================================================================================================================== */
+var DCX = { L: [] /* the jobs waiting, the first being worked: { k, ph, t, ... } */, msgT: 0 };
+const DCX_NAME = { pipe: 'BURST PIPE', flood: 'FLOODING', fire: 'FIRE', list: 'LIST', cool: 'COOLING WATER' };
+const DCX_PIPES = ['FIRE MAIN', 'LUBE OIL', 'SALT WATER', 'FUEL OIL'];
+/* a new job; o: { hc } (the drill's or the game's Hardcore) */
+function dcxAdd(k, hc) {
+  if (DCX.L.some((j) => j.k === k)) return;
+  const j = { k, ph: 0, t: 0, hc: !!hc, err: 0, peak: 0 };
+  if (k === 'pipe') ((j.pipe = Math.floor(Math.random() * 4)), (j.sel = 0), (j.turns = 0));
+  if (k === 'flood') ((j.water = 0.15), (j.tim = 0));
+  if (k === 'fire') ((j.fire = 0.5), (j.fx = Math.random()), (j.nz = 0.5), (j.fv = 0.15));
+  if (k === 'list') ((j.L = (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 4)), (j.v = 0), (j.ok = 0));
+  if (k === 'cool') ((j.temp = 82), (j.peak = 82));
+  if (k === 'pipe' || k === 'flood') j.bar = barMake({ hc: j.hc }, 0.22);
+  DCX.L.push(j);
+  SND.tone(520, 380, 0.4, 0.1, 'sawtooth');
+  return j;
+}
+/* the live jobs (in action) are shown when the player is in the engine room and no drill is running */
+const dcxLive = () => SHIP.stn === 2 && camMode == 1 && !DRILL.on && DCX.L.length > 0;
+/* Hardcore and the player in the engine room with jobs: he is the damage control party (sdmStep leaves the repairs to him) */
+const dcxManned = () => dcxLive() && drillHC();
+/* each frame: the job being worked; returns it when it is done (the caller scores it) */
+function dcxStep(dt) {
+  const j = DCX.L[0];
+  if (!j) return null;
+  j.t += dt;
+  const hc = j.hc;
+  if (j.bar) barStep(j.bar, dt);
+  if (j.k === 'pipe') {
+    if (hc) j.spill = (j.spill || 0) + dt; /* the water pours in until it is shut */
+  } else if (j.k === 'flood') {
+    if (j.ph < 2) j.water = Math.min(1, j.water + (hc ? 0.012 : 0.005) * dt);
+    else if ((j.water -= (hc ? 0.03 : 0.08) * dt) <= 0) return dcxDone(j);
+  } else if (j.k === 'fire') {
+    j.fx = Math.max(0.05, Math.min(0.95, j.fx + j.fv * dt));
+    if (Math.random() < dt * 0.5) j.fv = (Math.random() - 0.5) * (hc ? 0.5 : 0.3);
+    const on = Math.abs(j.nz - j.fx) < 0.09;
+    j.fire = Math.max(0, Math.min(1, j.fire + (on ? -(hc ? 0.09 : 0.16) : hc ? 0.05 : 0.02) * dt));
+    j.peak = Math.max(j.peak, j.fire);
+    if (j.fire <= 0) return dcxDone(j);
+    if (j.fire >= 1 && hc) return dcxDone(j, true); /* out of hand: the compartment is closed off and smothered */
+  } else if (j.k === 'list') {
+    j.L += (j.v * 0.9 + Math.sin(j.t * 0.7) * 0.15) * dt;
+    if (Math.abs(j.L) < 1 && j.v === 0) {
+      if ((j.ok += dt) > 3) return dcxDone(j);
+    } else j.ok = 0;
+    j.peak = Math.max(j.peak, Math.abs(j.L));
+  } else if (j.k === 'cool') {
+    if (j.ph === 0) j.temp += (hc ? 1.3 : 0.9) * dt;
+    else if ((j.temp -= 2.5 * dt) <= 72) return dcxDone(j);
+    j.peak = Math.max(j.peak, j.temp);
+    if (j.temp >= 100) return dcxDone(j, true); /* the engines are stopped to save them */
+  }
+  return null;
+}
+function dcxDone(j, failed) {
+  DCX.L.shift();
+  j.failed = !!failed;
+  SND.tone(failed ? 300 : 660, failed ? 200 : 990, 0.25, 0.1, failed ? 'sawtooth' : 'sine');
+  note(DCX_NAME[j.k] + (failed ? ' - NOT HELD' : ' - DONE'));
+  if (j.onDone) j.onDone(j);
+  return j;
+}
+/* the keys for the job being worked: true when used */
+function dcxKey(code, rep) {
+  const j = DCX.L[0];
+  if (!j) return false;
+  const Q = code === 'KeyQ',
+    E = code === 'KeyE',
+    SP = code === 'Space';
+  if (!Q && !E && !SP) return false;
+  if (j.k === 'fire') {
+    if (Q || E) j.nz = Math.max(0, Math.min(1, j.nz + (E ? 0.035 : -0.035)));
+    return true;
+  }
+  if (rep) return true;
+  if (j.k === 'pipe') {
+    if (j.ph === 0) {
+      if (Q || E) j.sel = (j.sel + (E ? 1 : -1) + 4) % 4;
+      else if (j.sel === j.pipe) ((j.ph = 1), note('VALVE SHUT - NOW THE WRENCH'), SND.tone(300, 260, 0.2, 0.08, 'square'));
+      else ((j.err += 1), (j.t += j.hc ? 6 : 3), note('WRONG VALVE - THAT IS THE ' + DCX_PIPES[j.sel]));
+    } else if (SP) {
+      if (barHit(j.bar)) ((j.turns += 1), SND.tone(200, 180, 0.12, 0.12, 'square'), (j.bar.c = 0.2 + Math.random() * 0.6));
+      else ((j.err += 1), j.hc && j.turns > 0 && (j.turns -= 1), SND.tone(140, 120, 0.15, 0.08, 'sawtooth'));
+      if (j.turns >= 3) dcxFinish(j);
+    }
+  } else if (j.k === 'flood') {
+    if (j.ph === 0 && SP) {
+      if (barHit(j.bar)) ((j.tim += 1), SND.tone(160, 150, 0.12, 0.12, 'square'), (j.bar.c = 0.2 + Math.random() * 0.6));
+      else ((j.err += 1), SND.tone(140, 120, 0.15, 0.08, 'sawtooth'));
+      if (j.tim >= 2) ((j.ph = 1), note('SHORED - START THE PUMPS'));
+    } else if (j.ph === 1 && SP) ((j.ph = 2), note('PUMPS ON'), SND.tone(90, 110, 0.6, 0.12, 'sawtooth'));
+  } else if (j.k === 'list') {
+    if (Q || E) j.v = Math.max(-3, Math.min(3, j.v + (E ? 1 : -1)));
+  } else if (j.k === 'cool') {
+    if (SP && j.ph === 0) ((j.ph = 1), (j.resp = j.t), note('SHIFTED TO THE STANDBY STRAINER'), SND.tone(300, 320, 0.2, 0.08, 'square'));
+  }
+  return true;
+}
+/* a job's last step done: it is scored by whoever set it */
+function dcxFinish(j) {
+  if (DCX.L[0] === j) dcxDone(j);
+}
+/* the words for the job being worked */
+function dcxText() {
+  const j = DCX.L[0];
+  if (!j) return 'ALL JOBS DONE.';
+  const more = DCX.L.length > 1 ? ' <span style="color:#9aa">(' + (DCX.L.length - 1) + ' MORE WAITING)</span>' : '';
+  const H = '<b style="font-size:16px;color:#ff8a6a">' + DCX_NAME[j.k] + '</b>' + more + '<br>';
+  if (j.k === 'pipe')
+    return H + (j.ph === 0 ? 'BURST: THE <b>' + DCX_PIPES[j.pipe] + '</b> LINE. <b>Q / E</b> FIND ITS VALVE, <b>Space</b> SHUT IT.' : 'THE WRENCH: <b>Space</b> WHEN THE MARKER IS IN THE GREEN. TURNS ' + j.turns + '/3.');
+  if (j.k === 'flood')
+    return H + (j.ph === 0 ? 'SHORE THE HOLE: <b>Space</b> IN THE GREEN TO DRIVE EACH TIMBER HOME. TIMBERS ' + j.tim + '/2.' : j.ph === 1 ? '<b>Space</b>: START THE PUMPS.' : 'PUMPING OUT. WATER ' + Math.round(j.water * 100) + '%.');
+  if (j.k === 'fire') return H + 'THE HOSE: <b>Q / E</b> KEEP THE NOZZLE ON THE FLAMES. FIRE ' + Math.round(j.fire * 100) + '%.';
+  if (j.k === 'list') return H + 'COUNTER-FLOOD: <b>Q / E</b> OPEN THE PORT / STARBOARD TANKS. BRING HER UPRIGHT, THEN SHUT THEM. LIST ' + Math.abs(j.L).toFixed(1) + '&deg; ' + (j.L < 0 ? 'PORT' : 'STBD') + '.';
+  if (j.k === 'cool') return H + (j.ph === 0 ? 'THE ENGINES ARE HEATING: THE SEA STRAINER IS CLOGGED. <b>Space</b>: SHIFT TO THE STANDBY STRAINER.' : 'COOLING DOWN.') + ' WATER OUT ' + Math.round(j.temp) + '&deg;C.';
+  return H;
+}
+/* the job's picture */
+function dcxDraw(g, w, h) {
+  const j = DCX.L[0];
+  if (!j) return;
+  g.font = '12px monospace';
+  g.textAlign = 'left';
+  if (j.k === 'pipe') {
+    /* four lines across the bulkhead, each with its valve wheel; the burst one sprays */
+    for (let i = 0; i < 4; i++) {
+      const x = 40 + i * ((w - 80) / 3),
+        sel = j.ph === 0 && i === j.sel;
+      g.strokeStyle = '#6a7a84';
+      g.lineWidth = 8;
+      g.beginPath();
+      g.moveTo(x, 10);
+      g.lineTo(x, h - 40);
+      g.stroke();
+      g.strokeStyle = sel ? '#ffd27a' : i === j.pipe && j.ph > 0 ? '#8fe39a' : '#b8c4c8';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.arc(x, 55, 13, 0, Math.PI * 2);
+      g.stroke();
+      g.fillStyle = sel ? '#ffd27a' : '#b8c4c8';
+      g.textAlign = 'center';
+      g.fillText(DCX_PIPES[i], x, h - 24);
+      if (i === j.pipe && j.ph === 0)
+        for (let k = 0; k < 14; k++) {
+          g.fillStyle = 'rgba(190,220,255,' + (0.4 + Math.random() * 0.5) + ')';
+          g.fillRect(x + 6 + Math.random() * 40, 85 + (Math.random() - 0.5) * 30, 3, 3);
+        }
+    }
+    g.textAlign = 'left';
+    if (j.ph === 1) {
+      g.fillStyle = 'rgba(11,18,24,.85)';
+      g.fillRect(0, h - 38, w, 38);
+      drillBar(g, w, h, h - 18, j.bar, 'WRENCH - TURN ' + (j.turns + 1) + ' OF 3');
+    }
+  } else if (j.k === 'flood') {
+    g.fillStyle = '#1d4766';
+    g.fillRect(0, h * (1 - j.water * 0.8), w, h);
+    g.fillStyle = '#5a4630';
+    for (let i = 0; i < j.tim; i++) g.fillRect(w * 0.42 + i * 26, 20, 14, h * 0.5);
+    g.fillStyle = '#0b0f12';
+    g.beginPath();
+    g.arc(w * 0.5, h * 0.4, 18, 0, Math.PI * 2);
+    g.fill();
+    if (j.ph === 0) drillBar(g, w, h, h - 18, j.bar, 'DRIVE TIMBER ' + (j.tim + 1) + ' OF 2');
+  } else if (j.k === 'fire') {
+    const fx = 20 + j.fx * (w - 40),
+      nx = 20 + j.nz * (w - 40);
+    for (let k = 0; k < 30 * j.fire + 4; k++) {
+      g.fillStyle = 'rgba(255,' + Math.floor(90 + Math.random() * 120) + ',30,' + (0.3 + Math.random() * 0.5) + ')';
+      g.fillRect(fx + (Math.random() - 0.5) * (30 + 60 * j.fire), h - 20 - Math.random() * 70 * (0.3 + j.fire), 5, 5);
+    }
+    g.strokeStyle = 'rgba(200,230,255,.8)';
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(nx, 0);
+    g.lineTo(nx, h - 30);
+    g.stroke();
+    g.fillStyle = '#9fc3d6';
+    g.fillRect(nx - 8, 0, 16, 10);
+  } else if (j.k === 'list') {
+    const a = (j.L * Math.PI) / 180;
+    g.save();
+    g.translate(w / 2, h * 0.62);
+    g.rotate(a);
+    g.fillStyle = '#6a7a84';
+    g.fillRect(-90, -10, 180, 30);
+    g.fillRect(-20, -45, 40, 35);
+    g.restore();
+    g.strokeStyle = '#2f7d3f';
+    g.beginPath();
+    g.moveTo(w / 2, 6);
+    g.lineTo(w / 2, h - 6);
+    g.stroke();
+    g.fillStyle = '#b8c4c8';
+    g.fillText('PORT TANKS ' + (j.v < 0 ? 'OPEN ' + -j.v : 'SHUT'), 10, 16);
+    g.textAlign = 'right';
+    g.fillText('STBD TANKS ' + (j.v > 0 ? 'OPEN ' + j.v : 'SHUT'), w - 10, 16);
+    g.textAlign = 'left';
+  } else if (j.k === 'cool') {
+    const f = Math.max(0, Math.min(1, (j.temp - 60) / 45));
+    g.fillStyle = '#1c2a33';
+    g.fillRect(40, h - 30, w - 80, 16);
+    g.fillStyle = j.temp > 92 ? '#ff6a4a' : j.temp > 85 ? '#ffd27a' : '#8fe39a';
+    g.fillRect(40, h - 30, (w - 80) * f, 16);
+    g.fillStyle = '#b8c4c8';
+    g.fillText('COOLING WATER OUT ' + Math.round(j.temp) + ' C   (ALARM 85, STOP ENGINES 100)', 40, h - 38);
+  }
+}
+/* ---- ENGINEERING DRILL: DAMAGE CONTROL. Four casualties in the engine room, one after another (drawn from a burst pipe, a hole,
+   a fire, a list and the cooling water: the jobs of DAMAGE CONTROL AT STATION 2). Each job is marked out of 25: its time against
+   the par, its mistakes, and for the fire, the list and the cooling water how far it got; a job not held scores nothing ---- */
+const DC_PAR = { pipe: 14, flood: 16, fire: 15, list: 18, cool: 6 };
+DRILLS.push({
+  id: 'dc',
+  stn: 2,
+  title: 'Damage control',
+  what: 'Four casualties in the engine room: burst pipes, holes, fires, a list, the cooling water. Work each one to the end.',
+  start(D) {
+    DCX.L.length = 0;
+    const K = ['pipe', 'flood', 'fire', 'list', 'cool'].sort(() => Math.random() - 0.5);
+    D.q = K.slice(0, 4);
+    D.done = [];
+    D.wait = 3;
+  },
+  stop() {
+    DCX.L.length = 0;
+  },
+  step(D, dt) {
+    if (!DCX.L.length) {
+      if (D.done.length >= 4) return this.finish(D);
+      if ((D.wait -= dt) <= 0) {
+        const j = dcxAdd(D.q[D.done.length], D.hc);
+        j.onDone = (j) => {
+          D.done.push(j);
+          D.wait = 5;
+        };
+        drillSay('ENGINE ROOM', 'CASUALTY: ' + DCX_NAME[j.k] + '!');
+      }
+      return;
+    }
+    dcxStep(dt);
+  },
+  finish(D) {
+    let sc = 0;
+    const lines = D.done.map((j) => {
+      let m = 0;
+      if (!j.failed) {
+        m = drillMark(j.t, DC_PAR[j.k], DC_PAR[j.k] * 3, 17) + Math.max(0, 8 - 3 * j.err);
+        if (j.k === 'fire') m -= 6 * Math.max(0, j.peak - 0.5);
+        if (j.k === 'list') m -= Math.max(0, j.peak - 9);
+        if (j.k === 'cool') m -= 0.6 * Math.max(0, j.peak - 85);
+      }
+      m = Math.max(0, Math.min(25, m));
+      sc += m;
+      const extra = j.k === 'fire' ? ', PEAK ' + Math.round(j.peak * 100) + '%' : j.k === 'cool' ? ', PEAK ' + Math.round(j.peak) + '&deg;C' : j.k === 'list' ? ', WORST ' + j.peak.toFixed(1) + '&deg;' : '';
+      return DCX_NAME[j.k] + ': ' + (j.failed ? '<b style="color:#ff8a6a">NOT HELD</b>' : fmtT(j.t) + ' (PAR ' + fmtT(DC_PAR[j.k]) + ')' + (j.err ? ', ' + j.err + ' SLIPS' : '') + extra) + ' &middot; <b>' + Math.round(m) + '</b>/25';
+    });
+    drillEnd(D, sc, lines);
+  },
+  key(D, code, rep) {
+    return dcxKey(code, rep);
+  },
+  box(D) {
+    return DCX.L.length ? dcxText() : D.done.length >= 4 ? 'ALL CASUALTIES DEALT WITH.' : 'STAND BY... (' + D.done.length + '/4 DONE)';
+  },
+  draw(D, g, w, h) {
+    dcxDraw(g, w, h);
+  },
+});
+/* ---- in action: her battle damage brings the jobs to the player when he is in the engine room (sdmHit calls this) ---- */
+function dcxFromHit(kind, fire, eng) {
+  if (SHIP.stn !== 2 || camMode != 1 || DRILL.on || !DM.on) return;
+  const hc = drillHC(),
+    add = (k, f) => {
+      const j = dcxAdd(k, hc);
+      if (j) j.onDone = (j) => !j.failed && f(j);
+    };
+  if (kind !== 'small')
+    add('flood', () => {
+      SDM.holes = Math.max(0, SDM.holes - (hc ? 0.6 : 1.5));
+      SDM.pump = hc ? 20 : 40; /* the pumps the player started */
+    });
+  if (fire)
+    add('fire', () => {
+      SDM.fire = hc ? SDM.fire * 0.3 : 0;
+      if (SDM.fire < 0.05) SDM.fire = 0;
+    });
+  if (eng) add('pipe', () => (SDM.eng = Math.max(0, SDM.eng - (hc ? 0.15 : 0.3))));
+  if (DCX.msgT <= 0) ((DCX.msgT = 20), drillSay('ENGINE ROOM', 'DAMAGE IN THE ENGINE ROOM. YOU HAVE THE REPAIRS.'));
+}
+/* each frame in action: the jobs at station 2; leave it and the repair parties take them over */
+function dcxLiveStep(dt) {
+  DCX.msgT = Math.max(0, DCX.msgT - dt);
+  if (DRILL.on) return;
+  if (SHIP.stn !== 2 || camMode != 1) {
+    if (DCX.L.length) DCX.L.length = 0;
+    return;
+  }
+  /* a heavy list: counter-flood */
+  if (SDM.flood > 0.15 && !SDM.cf && !DCX.L.some((j) => j.k === 'list') && started && !SDM.lost) {
+    const j = dcxAdd('list', drillHC());
+    j.L = (SDM.lst || 1) * (4 + 20 * sdmList());
+    j.onDone = (j) => !j.failed && (SDM.cf = drillHC() ? 0.6 : 0.85);
+  }
+  if (DCX.L.length && started && !paused) dcxStep(dt);
+}
+/* ---- OOD DRILL: MAN OVERBOARD. A man goes over the side while she steams at standard speed. The Williamson turn brings her
+   back down her own track to him: the rudder full over toward the side he fell from, at once (it swings her stern, and her
+   screws, away from him); when she has come 60 deg off her course, the rudder full the other way; steady on the reciprocal of the
+   old course, and he is fine on the bow. Then slow, and stop with him close alongside (within 30 m, under 1.5 kn; Hardcore 20 m
+   and 1 kn) for three seconds while the line is passed. Assessed on the rudder (how soon, and the right way), where the rudder was
+   shifted, how close she steadied on the reciprocal, the time to recover him and the approach. Run him down and the drill fails.
+   Normal: a marker ring stays on him; Hardcore: only the man in his kapok jacket ---- */
+DRILLS.push({
+  id: 'mob',
+  stn: 1,
+  title: 'Man overboard',
+  what: 'A man goes over the side at standard speed. Williamson turn back down your track, then stop with him alongside.',
+  start(D) {
+    const fw = new THREE.Vector3(-Math.sin(SHIP.hdg), 0, -Math.cos(SHIP.hdg)),
+      rt = new THREE.Vector3(Math.cos(SHIP.hdg), 0, -Math.sin(SHIP.hdg));
+    SHIP.tel = Math.max(SHIP.tel, 0.7);
+    SHIP.u = Math.max(SHIP.u, 0.7 * SHIP.VMAX);
+    ENG.ans = Math.max(ENG.ans, 0.7);
+    D.side = Math.random() < 0.5 ? 1 : -1; /* 1 starboard */
+    D.h0 = SHIP.hdg;
+    D.man = pos.clone().addScaledVector(rt, D.side * 7).addScaledVector(fw, -18);
+    /* the man: a head and shoulders in an orange kapok jacket */
+    const g = new THREE.Group(),
+      M = (c) => new THREE.MeshLambertMaterial({ color: c });
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.5, 10), M(0xe8742a)));
+    const hd = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), M(0xc69070));
+    hd.position.y = 0.36;
+    g.add(hd);
+    if (!D.hc) {
+      const r = ptRingSprite();
+      r.position.y = 1;
+      g.add(r);
+    }
+    scene.add(g);
+    D.g = g;
+    D.ph = 'turn'; /* turn: putting the rudder over and swinging 60 deg; shift: swinging back to the reciprocal; app: the approach */
+    D.dev = 0;
+    D.maxDev = 0;
+    drillSay('LOOKOUT', 'MAN OVERBOARD, ' + (D.side > 0 ? 'STARBOARD' : 'PORT') + ' SIDE! MAN OVERBOARD!');
+  },
+  stop(D) {
+    if (D.g) scene.remove(D.g);
+  },
+  step(D, dt) {
+    D.g.position.set(D.man.x, OCEAN.h(D.man.x, D.man.z, OCEAN.U.uTime.value) - 0.15, D.man.z);
+    const dev = angW(SHIP.hdg - D.h0) * -1 /* + to starboard */,
+      dx = D.man.x - pos.x,
+      dz = D.man.z - pos.z,
+      d = Math.hypot(dx, dz),
+      kn = Math.abs(SHIP.u) / 0.5144;
+    D.minD = Math.min(D.minD || 1e9, d);
+    /* the rudder: the first time it is put well over, which way and how soon */
+    if (D.rudT === undefined && Math.abs(SHIP.rud) > 0.5) ((D.rudT = D.t), (D.rudOK = Math.sign(SHIP.rud) === D.side));
+    if (D.ph === 'turn') {
+      if (Math.abs(dev) > D.maxDev) D.maxDev = Math.abs(dev);
+      /* the shift: the rudder put the other way */
+      if (D.rudT !== undefined && Math.sign(SHIP.rud) === -Math.sign(dev) && Math.abs(SHIP.rud) > 0.4 && Math.abs(dev) > 0.15) {
+        D.shift = Math.abs(dev);
+        D.ph = 'shift';
+        note('RUDDER SHIFTED AT ' + Math.round((D.shift * 180) / Math.PI) + ' DEG OFF');
+      }
+    } else if (D.ph === 'shift') {
+      /* steadied on (near) the reciprocal: the heading's error when the swing has all but stopped */
+      const rec = Math.abs(angW(SHIP.hdg - (D.h0 + Math.PI)));
+      if (rec < 0.6 && Math.abs(SHIP.r) < 0.02) {
+        D.recErr = rec;
+        D.ph = 'app';
+        note('STEADY ON ' + String(Math.round(((((D.h0 + Math.PI) * -180) / Math.PI) % 360 + 360) % 360)).padStart(3, '0') + ' - THE RECIPROCAL');
+      }
+    }
+    /* run him down: close aboard at speed */
+    if (d < 7 && kn > 3) {
+      drillSay('LOOKOUT', 'WE HAVE RUN HIM DOWN! HE WENT UNDER THE STERN!');
+      return drillEnd(D, 0, ['<b style="color:#ff8a6a">YOU RAN HIM DOWN</b> (' + kn.toFixed(1) + ' KN, ' + Math.round(d) + ' M). SLOW WELL BEFORE YOU REACH HIM.']);
+    }
+    /* the pickup: alongside, slow, for three seconds */
+    const near = D.hc ? 20 : 30,
+      slow = D.hc ? 1 : 1.5;
+    if (d < near && kn < slow) {
+      D.hold = (D.hold || 0) + dt;
+      if (D.hold > 3) {
+        D.pick = { d, kn, t: D.t };
+        drillSay('BOATSWAIN', 'LINE OVER - WE HAVE HIM. MAN RECOVERED!');
+        return this.finish(D);
+      }
+    } else D.hold = 0;
+    if (D.t > 900) return drillEnd(D, 10, ['<b style="color:#ff8a6a">FIFTEEN MINUTES AND HE IS STILL IN THE WATER.</b> THE WILLIAMSON TURN BRINGS HER BACK IN ABOUT FIVE.']);
+  },
+  finish(D) {
+    const deg = (a) => (a * 180) / Math.PI,
+      rT = D.rudT === undefined ? 99 : D.rudT,
+      sh = D.shift === undefined ? 0 : deg(D.shift),
+      rec = D.recErr === undefined ? 45 : deg(D.recErr),
+      P = D.pick;
+    let s = 0;
+    s += D.rudOK ? drillMark(rT, 3, 15, 15) : 0;
+    s += D.shift === undefined ? 0 : drillMark(Math.abs(sh - 60), 8, 35, 15);
+    s += drillMark(rec, 3, 25, 15);
+    s += drillMark(P.t, 300, 780, 35);
+    s += drillMark(P.kn, 0.4, 1.5, 10) + drillMark(P.d, 10, 30, 10);
+    drillEnd(D, s, [
+      'RUDDER: ' + (D.rudOK ? 'THE RIGHT WAY, ' : '<b style="color:#ff8a6a">THE WRONG WAY</b> (TOWARD HIS SIDE FIRST), ') + rT.toFixed(1) + ' S AFTER THE CRY',
+      'SHIFTED AT ' + (D.shift === undefined ? '<b style="color:#ff8a6a">NEVER</b>' : Math.round(sh) + '&deg; OFF (60&deg; IS RIGHT)') + ' &middot; STEADIED ' + (D.recErr === undefined ? '<b style="color:#ff8a6a">NOT ON THE RECIPROCAL</b>' : Math.round(rec) + '&deg; FROM THE RECIPROCAL'),
+      'RECOVERED IN <b>' + fmtT(P.t) + '</b> &middot; ALONGSIDE AT ' + Math.round(P.d) + ' M, ' + P.kn.toFixed(1) + ' KN',
+    ]);
+  },
+  box(D) {
+    const dx = D.man.x - pos.x,
+      dz = D.man.z - pos.z,
+      d = Math.hypot(dx, dz),
+      brg = raidBrg({ x: D.man.x, z: D.man.z }),
+      dev = Math.round((angW(SHIP.hdg - D.h0) * -180) / Math.PI);
+    const step =
+      D.ph === 'turn'
+        ? D.rudT === undefined
+          ? 'RUDDER <b>FULL TOWARD HIS SIDE</b> (' + (D.side > 0 ? '<b>D</b> STARBOARD' : '<b>A</b> PORT') + '), NOW.'
+          : 'SWINGING: <b>' + Math.abs(dev) + '&deg;</b> OFF. AT <b>60&deg;</b> PUT THE RUDDER FULL THE OTHER WAY.'
+        : D.ph === 'shift'
+          ? 'COME ROUND TO THE <b>RECIPROCAL</b> AND STEADY: ' + Math.abs(Math.round((angW(SHIP.hdg - (D.h0 + Math.PI)) * 180) / Math.PI)) + '&deg; TO GO.'
+          : 'HE SHOULD BE FINE ON THE BOW. <b>SLOW</b> (W / S) AND STOP WITH HIM CLOSE ALONGSIDE: UNDER ' + (D.hc ? '1' : '1.5') + ' KN, WITHIN ' + (D.hc ? 20 : 30) + ' M.';
+    return (
+      '<b style="color:#ffd27a">MAN OVERBOARD, ' + (D.side > 0 ? 'STARBOARD' : 'PORT') + '</b> &middot; HE BEARS ' + brg + '&deg;, ' + Math.round(d) + ' M' +
+      '<br>' + step
+    );
+  },
+});
+/* ---- OOD DRILL: NAVIGATION FIX (the quartermaster's work, now the OOD's). Three landmarks are named; take a bearing on each:
+   lay the middle of the view (X: the binoculars) on it and press Space. The three lines of position are crossed on the chart
+   (carried on for her run between the bearings, as a running fix is) and the fix compared with where she really was. Assessed on
+   the fix's error, the size of the cocked hat (the small triangle three lines make) and the time. Normal: a marker ring on each
+   landmark; Hardcore: find them yourself ---- */
+/* the landmarks a navigator here would know from the chart: the bases, the airfields, the depots */
+function navMarks() {
+  const L = [];
+  for (const s of FS.nav) L.push({ name: s.title.toUpperCase(), x: s.O.x, z: s.O.z });
+  for (const s of FS.list) if (s.title) L.push({ name: s.title.toUpperCase(), x: s.O.x, z: s.O.z });
+  L.push({ name: 'FLETCHER FIELD', x: 0, z: 0 });
+  if (typeof ISL !== 'undefined') L.push({ name: 'KAMOME FIELD', x: ISL.F.x, z: ISL.F.z });
+  if (typeof SITE !== 'undefined') L.push({ name: 'THE HOME PORT', x: SITE.O.x, z: SITE.O.z });
+  return L;
+}
+/* the bearing (deg, true) of the middle of the view */
+const viewBrg = () => {
+  const d = cam.getWorldDirection(new THREE.Vector3());
+  return (((Math.atan2(d.x, -d.z) * 180) / Math.PI) % 360 + 360) % 360;
+};
+DRILLS.push({
+  id: 'fix',
+  stn: 1,
+  title: 'Navigation fix',
+  what: 'Take bearings on three landmarks (X for the binoculars, Space for each bearing). Your fix is checked against her position.',
+  start(D) {
+    /* three landmarks in sight range, as well spread round her as can be (the best cut is near 60 deg apart) */
+    const M = navMarks()
+      .map((m) => ({ ...m, r: Math.hypot(m.x - pos.x, m.z - pos.z), b: Math.atan2(m.x - pos.x, -(m.z - pos.z)) }))
+      .filter((m) => m.r > 1500 && m.r < 26000)
+      .sort((a, b) => a.r - b.r)
+      .slice(0, 7);
+    let best = null,
+      bs = -1;
+    for (let i = 0; i < M.length; i++)
+      for (let j = i + 1; j < M.length; j++)
+        for (let k = j + 1; k < M.length; k++) {
+          const T = [M[i], M[j], M[k]],
+            sep = (a, b) => Math.abs(Math.sin(a.b - b.b)),
+            s = Math.min(sep(T[0], T[1]), sep(T[1], T[2]), sep(T[0], T[2])) - (T[0].r + T[1].r + T[2].r) / 2e5;
+          if (s > bs) ((bs = s), (best = T));
+        }
+    D.L = best || M.slice(0, 3);
+    if (D.L.length < 3) return drillEnd(D, 0, ['<b style="color:#ff8a6a">NOT ENOUGH LANDMARKS IN SIGHT.</b> CLOSE THE COAST (WITHIN ABOUT 25 KM OF THREE OF THEM) AND TRY AGAIN.']);
+    D.i = 0;
+    D.took = [];
+    D.rings = [];
+    if (!D.hc)
+      for (const m of D.L) {
+        const r = ptRingSprite();
+        r.position.set(m.x, 30, m.z);
+        scene.add(r);
+        D.rings.push(r);
+      }
+    drillSay('CAPTAIN', 'GIVE ME A FIX. BEARINGS ON ' + D.L.map((m) => m.name).join(', ') + '.');
+  },
+  stop(D) {
+    for (const r of D.rings || []) scene.remove(r);
+  },
+  step(D, dt) {
+    D.rings.forEach((r, i) => (r.visible = i === D.i));
+    if (D.t > 600) this.finish(D);
+  },
+  key(D, code, rep) {
+    if (code !== 'Space') return false;
+    if (rep || D.i >= 3) return true;
+    const b = viewBrg();
+    D.took.push({ b, p: pos.clone(), t: D.t });
+    SND.tone(880, 880, 0.1, 0.08, 'sine');
+    note(D.L[D.i].name + ' BEARS ' + String(Math.round(b)).padStart(3, '0'));
+    D.i++;
+    if (D.i >= 3) this.finish(D);
+    return true;
+  },
+  finish(D) {
+    if (D.took.length < 3) return drillEnd(D, 0, ['<b style="color:#ff8a6a">TEN MINUTES AND NO FIX.</b>']);
+    /* each line of position carried on by her run since it was taken (a running fix: the navigator knows his course and speed) */
+    const P = pos.clone(),
+      lines = D.took.map((k, i) => {
+        const m = D.L[i],
+          a = (k.b * Math.PI) / 180,
+          u = { x: Math.sin(a), z: -Math.cos(a) } /* along the line, from her toward the mark */,
+          run = { x: P.x - k.p.x, z: P.z - k.p.z };
+        return { x: m.x + run.x, z: m.z + run.z, u };
+      });
+    /* the fix: the point nearest all three lines (least squares) */
+    let a11 = 0,
+      a12 = 0,
+      a22 = 0,
+      b1 = 0,
+      b2 = 0;
+    for (const l of lines) {
+      const nx = -l.u.z,
+        nz = l.u.x,
+        c = nx * l.x + nz * l.z;
+      a11 += nx * nx;
+      a12 += nx * nz;
+      a22 += nz * nz;
+      b1 += nx * c;
+      b2 += nz * c;
+    }
+    const det = a11 * a22 - a12 * a12,
+      fx = (b1 * a22 - b2 * a12) / det,
+      fz = (a11 * b2 - a12 * b1) / det,
+      err = Math.hypot(fx - P.x, fz - P.z);
+    /* the cocked hat: the largest distance between the lines' crossings */
+    const X = [];
+    for (let i = 0; i < 3; i++)
+      for (let j = i + 1; j < 3; j++) {
+        const A = lines[i],
+          B = lines[j],
+          dd = A.u.x * B.u.z - A.u.z * B.u.x;
+        if (Math.abs(dd) < 1e-6) continue;
+        const t = ((B.x - A.x) * B.u.z - (B.z - A.z) * B.u.x) / dd;
+        X.push({ x: A.x + A.u.x * t, z: A.z + A.u.z * t });
+      }
+    let hat = 0;
+    for (let i = 0; i < X.length; i++) for (let j = i + 1; j < X.length; j++) hat = Math.max(hat, Math.hypot(X[i].x - X[j].x, X[i].z - X[j].z));
+    D.res = { fx, fz, err, hat, lines, P };
+    const errs = D.took.map((k, i) => {
+      const m = D.L[i],
+        tb = (((Math.atan2(m.x - k.p.x, -(m.z - k.p.z)) * 180) / Math.PI) % 360 + 360) % 360;
+      return Math.abs(((k.b - tb + 540) % 360) - 180);
+    });
+    const s = drillMark(err, 60, 600, 60) + drillMark(hat, 60, 500, 15) + drillMark(D.took[2].t, 60, 300, 25);
+    drillEnd(D, s, [
+      'FIX <b>' + Math.round(err) + ' M</b> FROM HER TRUE POSITION &middot; COCKED HAT ' + Math.round(hat) + ' M',
+      'BEARINGS OFF BY ' + errs.map((e, i) => D.L[i].name + ' ' + e.toFixed(1) + '&deg;').join(', '),
+      'THREE BEARINGS IN ' + fmtT(D.took[2].t),
+    ]);
+  },
+  box(D) {
+    const m = D.L[D.i];
+    return (
+      (m ? 'BEARING ON <b style="font-size:16px;color:#ffd27a">' + m.name + '</b> (' + (D.i + 1) + ' OF 3)' + (D.hc ? '' : ' - THE RING MARKS IT') : 'PLOTTING...') +
+      '<br>THE MIDDLE OF YOUR VIEW BEARS <b>' + String(Math.round(viewBrg())).padStart(3, '0') + '&deg;</b> &middot; <b>' + kbText('gSight') + '</b> BINOCULARS &middot; <b>Space</b> TAKE THE BEARING' +
+      (D.took.length ? '<br><span style="color:#9aa">' + D.took.map((k, i) => D.L[i].name + ' ' + String(Math.round(k.b)).padStart(3, '0') + '&deg;').join(' &middot; ') + '</span>' : '')
+    );
+  },
+  draw(D, g, w, h) {
+    /* the chart: her position (dead reckoning), the landmarks, the lines of position */
+    const sc = Math.min(w, h * 3) / 2 / 26000,
+      cx = w / 2,
+      cy = h / 2,
+      X = (x) => cx + (x - pos.x) * sc,
+      Z = (z) => cy + (z - pos.z) * sc;
+    g.fillStyle = '#10202b';
+    g.fillRect(0, 0, w, h);
+    g.font = '10px monospace';
+    D.L.forEach((m, i) => {
+      g.fillStyle = i === D.i ? '#ffd27a' : '#b8c4c8';
+      g.fillRect(X(m.x) - 3, Z(m.z) - 3, 6, 6);
+      g.fillText(m.name, X(m.x) + 5, Z(m.z) - 4);
+    });
+    g.strokeStyle = 'rgba(143,227,154,.8)';
+    D.took.forEach((k, i) => {
+      const m = D.L[i],
+        a = (k.b * Math.PI) / 180;
+      g.beginPath();
+      g.moveTo(X(m.x), Z(m.z));
+      g.lineTo(X(m.x - Math.sin(a) * 30000), Z(m.z + Math.cos(a) * 30000));
+      g.stroke();
+    });
+    g.fillStyle = '#9fc3d6';
+    g.beginPath();
+    g.arc(cx, cy, 3, 0, Math.PI * 2);
+    g.fill();
+  },
+});
+/* ---- OOD DRILL: RECOGNITION. Three contacts, one at a time. First a motor torpedo boat closing her: challenge her by light
+   (Space flashes the day's challenge) and read her reply off her signal lamp (Morse): the day's reply, she is a friend; anything
+   else, or nothing, she is not. Then two aircraft crossing ahead: look at them (X: the binoculars) and tell a P-51 from a Ki-84.
+   Q: FRIEND - HOLD FIRE; E: ENEMY - GUNS FREE. Each contact is marked out of 33: right or wrong, and how soon (and for the boat,
+   whether she was challenged before she was called). Normal: the signalman reads her lamp aloud; Hardcore: read it yourself ---- */
+const MORSE = { A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..' };
+/* a lamp's flashes for a group of letters, repeated: [[on, seconds], ...] */
+function morseSeq(txt) {
+  const S = [];
+  for (const ch of txt) {
+    for (const c of MORSE[ch]) S.push([1, c === '.' ? 0.35 : 1.05], [0, 0.35]);
+    S[S.length - 1][1] = 1.2;
+  }
+  S[S.length - 1][1] = 3;
+  return S;
+}
+const RLET = 'ABDGHKMNRSUW';
+const rLet = () => RLET[Math.floor(Math.random() * RLET.length)];
+DRILLS.push({
+  id: 'recog',
+  stn: 1,
+  title: 'Recognition',
+  what: 'Challenge a closing boat by light and read her reply; then tell two aircraft apart. Q friend (hold fire), E enemy (guns free).',
+  start(D) {
+    D.ch = rLet() + rLet();
+    do D.rp = rLet() + rLet();
+    while (D.rp === D.ch);
+    D.q = [{ k: 'boat', foe: Math.random() < 0.5 }, { k: 'air', foe: Math.random() < 0.5 }, { k: 'air', foe: Math.random() < 0.5 }];
+    D.n = 0;
+    D.res = [];
+    D.wait = 2;
+    drillSay('SIGNALMAN', "TODAY'S CHALLENGE " + D.ch.split('').join(' ') + ', REPLY ' + D.rp.split('').join(' ') + '.');
+  },
+  stop(D) {
+    this.clear(D);
+  },
+  clear(D) {
+    const c = D.c;
+    if (!c) return;
+    scene.remove(c.m);
+    if (c.hull) OCEAN.unhull(c.hull);
+    D.c = null;
+  },
+  spawn(D) {
+    const it = D.q[D.n],
+      V = THREE.Vector3,
+      off = (Math.random() - 0.5) * 1.6,
+      a = -SHIP.hdg + off /* bearing (rad, compass) off her bow */,
+      dir = new V(Math.sin(a), 0, -Math.cos(a));
+    const c = { ...it, t0: D.t, said: false };
+    if (it.k === 'boat') {
+      c.m = PTB.build('105');
+      c.p = pos.clone().addScaledVector(dir, 3200);
+      c.v = dir.clone().multiplyScalar(-15 * 0.5144);
+      c.rp = it.foe ? (Math.random() < 0.4 ? '' : rLet() + rLet()) : D.rp; /* a foe answers wrong, or not at all */
+      if (c.rp === D.rp) c.rp = 'AX';
+      /* her signal lamp: a bright point on her bridge */
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 32;
+      const g = cv.getContext('2d'),
+        gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      gr.addColorStop(0, 'rgba(255,255,240,1)');
+      gr.addColorStop(1, 'rgba(255,255,200,0)');
+      g.fillStyle = gr;
+      g.fillRect(0, 0, 32, 32);
+      c.lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), sizeAttenuation: false, depthTest: false, transparent: true }));
+      c.lamp.scale.set(0.03, 0.03, 1);
+      c.lamp.position.set(0, 4, 0);
+      c.lamp.visible = false;
+      c.m.add(c.lamp);
+      drillSay('LOOKOUT', 'SMALL CRAFT BEARING ' + raidBrg(c.p) + ', CLOSING FAST.');
+    } else {
+      /* an aircraft crossing ahead from one side to the other, 3 km out, 800 m up */
+      const rt = new V(Math.cos(SHIP.hdg), 0, -Math.sin(SHIP.hdg)),
+        fw = new V(-Math.sin(SHIP.hdg), 0, -Math.cos(SHIP.hdg)),
+        s = Math.random() < 0.5 ? 1 : -1;
+      c.m = it.foe ? buildEnemy().g : P51DISP.make({ gear: false }).g;
+      c.p = pos.clone().addScaledVector(fw, 2600).addScaledVector(rt, s * 3500).setY(OCEAN.Y + 800);
+      c.v = rt.clone().multiplyScalar(-s * 120);
+      drillSay('LOOKOUT', 'AIRCRAFT BEARING ' + raidBrg(c.p) + ', LOW, CROSSING.');
+    }
+    scene.add(c.m);
+    D.c = c;
+  },
+  step(D, dt) {
+    if (!D.c) {
+      if (D.n >= 3) return this.finish(D);
+      if ((D.wait -= dt) <= 0) this.spawn(D);
+      return;
+    }
+    const c = D.c;
+    c.p.addScaledVector(c.v, dt);
+    const r = Math.hypot(c.p.x - pos.x, c.p.z - pos.z);
+    if (c.k === 'boat') {
+      if (r < 700) c.v.set(0, 0, 0); /* she stops off our bow and waits */
+      c.m.position.set(c.p.x, OCEAN.Y + 0.5, c.p.z);
+      c.m.rotation.y = Math.atan2(c.p.z - pos.z, -(c.p.x - pos.x));
+      OCEAN.place(c.hull || (c.hull = OCEAN.hull({ kind: 'pt', cut: 'deck' })), c.p.x, c.p.z, Math.cos(c.m.rotation.y), -Math.sin(c.m.rotation.y), c.v.length(), c.m.position.y, 0);
+      /* her reply on the lamp, a few seconds after our challenge, over and over */
+      if (c.chT !== undefined && D.t - c.chT > 3 && c.rp) {
+        if (!c.seq) ((c.seq = morseSeq(c.rp)), (c.si = 0), (c.st = 0), (c.read = ''));
+        c.st += dt;
+        while (c.st > c.seq[c.si][1]) {
+          c.st -= c.seq[c.si][1];
+          c.si = (c.si + 1) % c.seq.length;
+          if (c.si === 0 && c.read.length < c.rp.length) c.read = c.rp;
+        }
+        c.lamp.visible = c.seq[c.si][0] === 1;
+        if (!D.hc && !c.said && c.si === 0 && c.read) ((c.said = true), drillSay('SIGNALMAN', 'SHE REPLIES ' + c.rp.split('').join(' ') + '.'));
+      }
+      if (c.chT !== undefined && !c.rp && !c.said && D.t - c.chT > 15 && !D.hc) ((c.said = true), drillSay('SIGNALMAN', 'NO REPLY TO OUR CHALLENGE.'));
+      if (D.t - c.t0 > 150) this.call(D, null);
+    } else {
+      c.m.position.copy(c.p);
+      c.m.rotation.set(0, Math.atan2(-c.v.x, -c.v.z), 0); /* the aircraft models face -z */
+      if (D.t - c.t0 > 60) this.call(D, null);
+    }
+  },
+  call(D, foe) {
+    const c = D.c,
+      t = D.t - c.t0,
+      ok = foe === c.foe;
+    let s = ok ? 25 + drillMark(t, c.k === 'boat' ? 25 : 10, 70, 8) : 0;
+    if (c.k === 'boat' && c.chT === undefined) s = Math.max(0, s - 15);
+    D.res.push({ k: c.k, foe: c.foe, said: foe, t, ok, ch: c.chT !== undefined, s });
+    note(foe === null ? 'NO CALL MADE' : ok ? 'CORRECT' : 'WRONG');
+    if (foe !== null) drillSay('CAPTAIN', ok ? 'VERY WELL.' : c.foe ? 'SHE WAS HOSTILE. WE WOULD HAVE TAKEN THE FIRST BLOW.' : 'THAT WAS A FRIEND. CHECK FIRE, CHECK FIRE.');
+    this.clear(D);
+    D.n++;
+    D.wait = 5;
+  },
+  finish(D) {
+    const nm = (r) => (r.k === 'boat' ? 'THE BOAT' : 'AN AIRCRAFT') + ' (' + (r.foe ? 'ENEMY' : 'FRIEND') + ')';
+    drillEnd(
+      D,
+      D.res.reduce((a, r) => a + r.s, 0) + 1,
+      D.res.map((r) => nm(r) + ': ' + (r.said === null ? '<b style="color:#ff8a6a">NO CALL</b>' : r.ok ? 'CALLED RIGHT' : '<b style="color:#ff8a6a">CALLED ' + (r.said ? 'ENEMY' : 'FRIEND') + '</b>') + ' IN ' + r.t.toFixed(0) + ' S' + (r.k === 'boat' ? (r.ch ? ', CHALLENGED' : ', <b style="color:#ff8a6a">NOT CHALLENGED</b>') : '') + ' &middot; <b>' + Math.round(r.s) + '</b>/33'),
+    );
+  },
+  key(D, code, rep) {
+    if (code !== 'Space' && code !== 'KeyQ' && code !== 'KeyE') return false;
+    if (rep || !D.c) return true;
+    const c = D.c;
+    if (code === 'Space') {
+      if (c.k === 'boat' && c.chT === undefined) ((c.chT = D.t), drillSay('SIGNALMAN', 'CHALLENGING: ' + D.ch.split('').join(' ') + '.'), SND.tone(1200, 1200, 0.2, 0.05, 'sine'));
+      return true;
+    }
+    this.call(D, code === 'KeyE');
+    return true;
+  },
+  box(D) {
+    const c = D.c,
+      card = "TODAY: CHALLENGE <b>" + D.ch + '</b> &middot; REPLY <b>' + D.rp + '</b>';
+    if (!c) return card + '<br>STAND BY FOR THE NEXT CONTACT (' + D.n + '/3)';
+    return (
+      card +
+      '<br>' + (c.k === 'boat' ? 'A <b>BOAT</b>' : 'AN <b>AIRCRAFT</b>') + ' BEARING ' + raidBrg(c.p) + '&deg;, ' + (Math.hypot(c.p.x - pos.x, c.p.z - pos.z) / 1000).toFixed(1) + ' KM' +
+      (c.k === 'boat'
+        ? '<br>' + (c.chT === undefined ? '<b>Space</b> CHALLENGE HER BY LIGHT' : 'HER LAMP: ' + (D.hc ? 'READ IT (MORSE BELOW)' : c.read ? '<b>' + c.read + '</b>' : c.rp ? 'FLASHING...' : D.t - c.chT > 15 ? '<b>NO REPLY</b>' : 'WATCHING...'))
+        : '<br>' + kbText('gSight') + ' BINOCULARS: A <b>P-51</b> (FRIEND) OR A <b>KI-84 FRANK</b> (ENEMY)?') +
+      '<br><b>Q</b> FRIEND - HOLD FIRE &middot; <b>E</b> ENEMY - GUNS FREE' +
+      (D.hc && c.k === 'boat' ? '<br><span style="color:#9aa;font-size:11px">' + Object.entries(MORSE).filter(([k]) => RLET.includes(k) || k === 'X' || k === 'A').map(([k, v]) => k + ' ' + v).join(' &middot; ') + '</span>' : '')
+    );
+  },
+});
 /* the Comms box: what the operator needs, and the instructor */
 function commsBox(here) {
   let el = $$('commsBox');
@@ -29377,7 +30473,9 @@ function stnUpdate(dt) {
     tpUpdate(dt, here, f);
     STN.fire0 = f;
     commsUpdate(dt, here);
+    dcxLiveStep(dt);
   }
+  drillStep(dt, here);
   if (STN.wheel) STN.wheel.rotation.x = SHIP.rud * Math.PI * 3; /* about three turns of the wheel, hard over to hard over */
   /* paint the station's faces about 15 times a second (the radar every frame); the radio only when there is news */
   STN.t += dt;

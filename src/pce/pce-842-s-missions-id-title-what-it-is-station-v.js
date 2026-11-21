@@ -1,4 +1,4 @@
-/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out] (the shared mission menu shows them) */
+/* PCE-842's missions: [id, title, what it is, station, view there, practice targets out, the training drill (optional)] (the shared mission menu shows them) */
 SIMS.add({
   id: 'pce',
   missions: [
@@ -8,6 +8,12 @@ SIMS.add({
   ['gun40', 'Gunnery Practice: Twin 40 mm', 'The twin 40 mm aft against the towed sleeves and the target sled.', 4, 2, true],
   ['asw', 'Antisubmarine Attack Run', 'The torpedoman\'s station with the exercise submarine out: the OOD runs in on him and phones the orders. Hedgehog, K-guns and racks. Scored.', 5, -1, true],
   ['sonar', 'Sonar Watch', 'Communications, with the exercise submarine out: find him on the sonar and the radar.', 3, 1, true],
+  /* the training drills (the user's, 2026-11-21): the last field is the drill (TRAINING DRILLS); T at the station lists them all */
+  ['d-mob', 'OOD Drill: Man Overboard', 'A man goes over the side at standard speed: the Williamson turn back to him, then stop alongside. Assessed.', 1, 0, false, 'mob'],
+  ['d-fix', 'OOD Drill: Navigation Fix', 'Bearings on three landmarks with the binoculars; your fix is checked against her true position. Assessed.', 1, 0, false, 'fix'],
+  ['d-recog', 'OOD Drill: Recognition', 'Challenge a closing boat by light and read her reply; tell two aircraft apart. Friend or enemy? Assessed.', 1, 0, false, 'recog'],
+  ['d-bells', 'Engineering Drill: Answer the Bells', 'The engine room: answer ten engine orders on the throttle, quickly and the right way. Assessed.', 2, 0, false, 'bells'],
+  ['d-dc', 'Engineering Drill: Damage Control', 'Four casualties in the engine room: burst pipes, holes, fires, a list, the cooling water. Assessed.', 2, 0, false, 'dc'],
 ],
   /* free play (trn.mode), reset only the first time; the practice targets out (or in) as the mission wants them, then the station and the view there */
   missionPick: (it, first) => {
@@ -21,5 +27,6 @@ SIMS.add({
     SHIP.sub = it[4] < 0 ? 0 : (it[4] - 1 + list.length) % Math.max(1, list.length);
     shipStation(it[3]);
     note(it[1].toUpperCase());
+    if (it[6]) drillStart(it[6]);
   },
 });

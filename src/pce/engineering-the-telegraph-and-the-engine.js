@@ -12,7 +12,9 @@ function engStep(dt) {
   }
   /* the engineer answers in a second or two */
   ENG.lagT += dt;
-  if (ENG.lagT > 1.4) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, SHIP.tel - ENG.ans));
+  /* the player at the throttle (the Answer the Bells drill): the engines follow his lever, not the order */
+  if (ENG.man != null) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, TELV[ENG.man] - ENG.ans));
+  else if (ENG.lagT > 1.4) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, SHIP.tel - ENG.ans));
   const load = Math.abs(ENG.ans);
   ENG.heat += (0.3 + 0.7 * load - ENG.heat) * Math.min(1, dt / 60);
 }

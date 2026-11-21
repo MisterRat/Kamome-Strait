@@ -1,6 +1,6 @@
 # PCE-842: the distant form (AI copies beyond 1 km): game model measured against the references
 
-Measured from the PCE-842 0.89 build by `tools/blueprint.py` (2026-11-20). Model box: 56.24 m long, 10.64 m wide, 23.46 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.111 build by `tools/blueprint.py` (2026-11-21). Model box: 56.24 m long, 10.64 m wide, 23.46 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** PCE-842 class patrol craft escort, USN 1943-45
 

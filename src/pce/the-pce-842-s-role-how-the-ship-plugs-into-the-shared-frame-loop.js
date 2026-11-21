@@ -16,6 +16,8 @@ SIMS.add({
   },
   /* at communications the operator's own keys */
   keyStation: (e) => {
+    /* the OOD's and the engineer's training drills (and the engineer's repair jobs in action); their keys repeat (the hose) */
+    if (started && !paused && camMode == 1 && (SHIP.stn === 1 || SHIP.stn === 2) && drillKey(e.code, e.repeat)) return e.preventDefault(), true;
     if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
     e.preventDefault();
     return true;

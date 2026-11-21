@@ -15,7 +15,9 @@ function stnUpdate(dt) {
     tpUpdate(dt, here, f);
     STN.fire0 = f;
     commsUpdate(dt, here);
+    dcxLiveStep(dt);
   }
+  drillStep(dt, here);
   if (STN.wheel) STN.wheel.rotation.x = SHIP.rud * Math.PI * 3; /* about three turns of the wheel, hard over to hard over */
   /* paint the station's faces about 15 times a second (the radar every frame); the radio only when there is news */
   STN.t += dt;

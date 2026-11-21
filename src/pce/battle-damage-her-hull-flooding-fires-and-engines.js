@@ -9,13 +9,16 @@
    Calibrated so that one torpedo sinks her in about three and a half minutes, two 12 cm hits leave her low but afloat, and a
    strafing run holes her a little. SDM (the ship state piece) holds it; sdmText() for the HUD; a restart mends her. */
 function sdmReset() {
-  Object.assign(SDM, { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 });
+  Object.assign(SDM, { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0, cf: 0 });
+  if (typeof DCX !== 'undefined' && DCX) DCX.L.length = 0; /* var DCX: a restart can come before its piece loads */
 }
 const sdmSay = (txt) => RADIO.add('DAMAGE CONTROL', txt, { own: true });
 /* a hit: kind 'small', 'shell' or 'torpedo' */
 function sdmHit(kind) {
   if (!DM.on || SDM.lost || !SIMS.on('pce')) return;
-  const r = Math.random;
+  const r = Math.random,
+    f0 = SDM.fire,
+    e0 = SDM.eng;
   if (kind === 'small') {
     SDM.holes += 0.04;
     if (r() < 0.04) SDM.fire = Math.max(SDM.fire, 0.15);
@@ -32,6 +35,8 @@ function sdmHit(kind) {
     SDM.fire = Math.max(SDM.fire, 0.5);
     sdmSay('BRIDGE, DAMAGE CONTROL. TORPEDO HIT AMIDSHIPS. ENGINE ROOM FLOODING. ALL PUMPS ON IT.');
   }
+  /* the player in the engine room: the repairs are his jobs (DAMAGE CONTROL AT STATION 2) */
+  dcxFromHit(kind, SDM.fire > f0, SDM.eng > e0);
 }
 /* each frame: the water, the fires, the damage control, her settling, her loss */
 function sdmStep(dt) {
@@ -43,10 +48,14 @@ function sdmStep(dt) {
     return;
   }
   if (!SDM.holes && !SDM.flood && !SDM.fire) return;
-  SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012) * dt);
-  SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
+  /* Hardcore with the player in the engine room on his jobs: he is the repair party, so nothing is shored or put out but by him
+     (DAMAGE CONTROL AT STATION 2); the pumps he started (SDM.pump) clear the water faster */
+  const own = dcxManned();
+  SDM.pump = Math.max(0, (SDM.pump || 0) - dt);
+  SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012 - (SDM.pump > 0 ? 0.004 : 0)) * dt);
+  if (!own) SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
   if (SDM.fire > 0) {
-    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - 0.006) * dt)); /* a small one is put out, a big one spreads */
+    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - (own ? 0 : 0.006)) * dt)); /* a small one is put out, a big one spreads */
     if (SDM.fire > 0.6) SDM.eng = Math.min(1, SDM.eng + 0.004 * dt);
     if ((SDM.smokeT -= dt) <= 0) {
       SDM.smokeT = 0.35;
@@ -81,7 +90,7 @@ function sdmSettle() {
   return SDM.lost ? Math.min(12, 2.6 + SDM.sink * 0.25) : 2.6 * SDM.flood;
 }
 function sdmList() {
-  return SDM.lost ? Math.min(0.9, 0.25 + SDM.sink * 0.02) : 0.25 * SDM.flood;
+  return SDM.lost ? Math.min(0.9, 0.25 + SDM.sink * 0.02) : 0.25 * SDM.flood * (1 - (SDM.cf || 0)) /* counter-flooded: the engineer's job */;
 }
 function sdmText() {
   const l = [];
