@@ -20,3 +20,5 @@ const SHIP = {
   hold: 0 /* the heading the helmsman holds while the player is at a gun */,
   aground: false,
 };
+/* returning to base (RETURN TO BASE): on while the helmsman takes her home or she lies at her berth; ph its stage */
+const RTB = { on: false, ph: '', tel: 0, hold: 0 };

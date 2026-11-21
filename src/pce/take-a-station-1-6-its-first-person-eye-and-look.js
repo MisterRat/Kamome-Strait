@@ -27,6 +27,7 @@ function shipReset() {
     SHIP.hdg = 0;
   }
   SHIP.u = SHIP.r = SHIP.tel = SHIP.rud = 0;
+  RTB.on = false; /* not returning to base */
   if (typeof RAID === 'object' && RAID) (raidClear(), (RAID.next = 90), (RAID.hits = RAID.kills = 0)) /* var RAID: shipReset runs before THE AIR RAIDS block loads */;
   ENG.ans = 0;
   DC.rack = [8, 8];
@@ -52,11 +53,16 @@ function shipStep(dt) {
     engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 4))) /* Hardcore: only the engine room and the pilothouse work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
     hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
-    atGun = (!atHelm() || ASW.ph !== 'idle') && !hand;
+    rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */,
+    atGun = ((!atHelm() || ASW.ph !== 'idle') && !hand) || rtb;
   if (ASW.ph !== 'idle') {
     /* the OOD cons the ship through the attack run */
     SHIP.tel = ASW.tel;
     SHIP.hold = ASW.hold;
+  }
+  if (rtb) {
+    SHIP.tel = RTB.tel;
+    SHIP.hold = RTB.hold;
   }
   if (hand && !atHelm()) SHIP.hold = SHIP.hdg;
   SHIP.tel = Math.min(1, Math.max(-0.5, SHIP.tel + ord * 0.4 * dt));

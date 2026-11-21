@@ -175,6 +175,7 @@ Built files in `build/` only; the released games in `C:\Code\Arcade` are untouch
 | PCE-842 0.89, Kamome 0.08 | Phase 4 complete: the Kamome page carries only the chosen simulator's page (the PCE wires her six own elements only when played); her enemy setting no longer turns off the P-51's ground fire in the Kamome page. |
 | P-51 5.70, PCE-842 0.90, Kamome 0.09 | Phase 5: distant forms for every AI vessel (GX.far: fleet PCEs and PTs, T-14s, the escort, freighters, moored boats), swapped in beyond 1 km; the player's ship keeps full detail. Blueprints PCE-842_distant, PT-105_distant. Quick checks 24/24; page errors none. |
 | P-51 5.71, PCE-842 0.91, Kamome 0.10 | Phase 5 complete: distant forms for the flying Ki-84s (the builder's far) and P-51 copies; the Ki-84's pixel proof (0 pixels). Quick checks 24/24; page errors none. |
+| PCE-842 0.92, Kamome 0.11 | Deferred list: the PCE's return to her berth (pause menu Return to base; the helmsman brings her alongside and she is made fast). Quick checks 24/24; page errors none. |
 
 Notes from step 2:
 - `HOOKS` (`src/shared/hooks-...js`) is the pattern for every new module: shared code calls `HOOKS.<name>` handlers, a game's own piece registers them. Add hooks there, never game names in shared code.
@@ -246,7 +247,7 @@ The end goal is a large multiplayer game, and more simulators will join later (f
    - **US PT-boat base:** coral yard, two 6 m finger piers with three PT boats (107, 108, 110), the PCE's 8 m pier (her berth), a 4 m fuel jetty piped to four 1,000-barrel bolted tanks, eight Quonset huts, an Elephant-hut boat shop, the flag, a jeep and trucks. Friendly: nothing is a target, no AA.
    - **The player's PCE is based here (user, 2026-11-20):** the allied fleet's PCE-842 patrol line is now found round a point 1.7 km off the US base (AFLD.addShip takes a centre), so the PCE game starts on patrol off it; the radio orders read 'off the PT base'.
    - **The bases at work (5.61 / 0.79):** US: six sailors walking (CREW_RIG 'us') between the huts, the shop, the tank farm and out on the piers; the jeep on its rounds; PT-110 runs out 900 m and back at 10 knots with her wake (a shuttle, `o.sh` with a speed). IJN: five navy hands (CREW_RIG 'jn') between the godowns, the HQ, the barracks and out along the mole; a Type 94 truck on the yard; a Type 2A freighter at anchor in deep water off the mole, her cargo run in to the T-head by the Daihatsu. SURF now sees decks over the water (`SURF.wet`: piers and the mole), so the crews walk on them.
-   - **Still to do:** the PCE's return to her berth (the player's ship).
+   - *Her return to her berth (2026-11-20, PCE 0.92):* the pause menu's **Return to base** (her game): the helmsman (the AI conn, the player's OOD being on hold) takes her to a point 700 m off her pier, in along it at a slowing speed, stops her alongside with a touch astern, and her lines warp her in: made fast at her berth (the outer 56 m of the PCE's 8 m pier, bow to the shore; 10-28 m of water under her). Any engine order or rudder casts her off or ends the run; a restart clears it. From her patrol start: about 11 minutes. RTB in the ship state, the run in `pce/return-to-base-...`.
 
 ## 10. Open questions for the user
 
