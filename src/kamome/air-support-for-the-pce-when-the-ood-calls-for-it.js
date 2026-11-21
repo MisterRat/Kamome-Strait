@@ -1,11 +1,11 @@
 /* CROSSOVER: air support for the PCE-842 (Kamome Strait page only: it needs both simulators). She has no standing air cover. When
    the radar picks up enemy planes (a live raider inside DETECT), Comms reports them to the bridge; the OOD decides whether he wants
-   air support. The OOD is the AI's for now (the player's OOD is on hold, like the other stations nobody mans): he asks for it. Comms radios Kamome Control, which scrambles two P-51s from Kamome Field (the P-51's
+   air support. The OOD is the AI's for now (the player's OOD is on hold, like the other stations nobody mans): he asks for it. Comms radios Kamome Control, which scrambles two P-51s from Fletcher Field (the P-51's
    display form, P51DISP): they take off a minute later, fly out, go after the raiders and can shoot them down (their kills, not the
    ship's: RAID.kills is hers), and once the sky has been clear for a while they report and fly home. The fighters show on the minimap in blue. */
 const CAP = (() => {
   const DETECT = 18000 /* the radar's reach for low aircraft, m */,
-    FIELD = new THREE.Vector3(0, 0, 420) /* Kamome Field, where they take off and land */,
+    FIELD = new THREE.Vector3(0, 0, 420) /* Fletcher Field, where they take off and land */,
     SCRAMBLE = 60 /* s from the call to wheels up */,
     R = 1800,
     ALT = 700,
@@ -26,6 +26,7 @@ const CAP = (() => {
   const decide = () => {
     S.st = 'called';
     S.t = 0;
+    S.who = 'PCE 842';
     RADIO.add('BRIDGE', 'COMMS, BRIDGE: REQUEST AIR SUPPORT FROM KAMOME CONTROL.', { own: true });
     note('OOD: REQUEST AIR SUPPORT');
   };
@@ -127,12 +128,17 @@ const CAP = (() => {
     /* the call goes out, Control answers, the fighters scramble */
     if (S.st === 'called' && S.t > 6 && !S.sent) {
       S.sent = true;
-      RADIO.add('PCE 842', 'KAMOME CONTROL, THIS IS PCE 842. ENEMY AIRCRAFT INBOUND, REQUEST AIR SUPPORT AT MY POSITION. OVER.');
+      RADIO.add(
+        S.who,
+        'KAMOME CONTROL, THIS IS ' +
+          S.who +
+          (S.who === 'PCE 842' ? '. ENEMY AIRCRAFT INBOUND, REQUEST AIR SUPPORT AT MY POSITION. OVER.' : '. UNDER AIR ATTACK, REQUEST AIR SUPPORT. OVER.'),
+      );
     }
     if (S.st === 'called' && S.t > 14 && !S.ack) {
       S.ack = true;
       const eta = Math.round((SCRAMBLE + pos.distanceTo(FIELD) / V_GO) / 60);
-      RADIO.add('KAMOME CONTROL', 'PCE 842, KAMOME CONTROL. PONY FLIGHT, TWO P-51S, SCRAMBLING FROM KAMOME FIELD. ETA ' + eta + ' MINUTES. OUT.');
+      RADIO.add('KAMOME CONTROL', S.who + ', KAMOME CONTROL. PONY FLIGHT, TWO P-51S, SCRAMBLING FROM FLETCHER FIELD. ETA ' + eta + ' MINUTES. OUT.');
     }
     if (S.st === 'called' && S.t > 14 + SCRAMBLE) {
       S.st = 'out';
@@ -165,5 +171,11 @@ const CAP = (() => {
       g.fill();
     }
   });
-  return { L, S };
+  /* a call from a naval base under fire (BASEAIR: PT Base Halsey, raiders shooting near it): the same flight, called by the base */
+  const call = (who) => {
+    if (S.st !== 'none' || !SIMS.on('pce')) return;
+    Object.assign(S, { st: 'called', t: 0, who, sent: false, ack: false });
+    note(who + ': REQUESTING AIR SUPPORT');
+  };
+  return { L, S, call };
 })();

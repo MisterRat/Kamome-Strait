@@ -61,6 +61,12 @@ function spawnEnemy() {
     c.y = Math.max(pos.y + (Math.random() - 0.5) * 300, H(c.x, c.z) + 200);
     if (c.y - pos.y < 350 || k == 9) p = c;
   }
+  banditAt(p);
+  note('BANDIT!');
+  SND.beep(880, 0.15);
+}
+/* a bandit at p, turned toward the player (spawnEnemy's, and the fighters an enemy base scrambles: BASEAIR) */
+function banditAt(p) {
   const b = buildEnemy();
   Object.assign(b, {
     p,
@@ -90,8 +96,7 @@ function spawnEnemy() {
   b.g.position.copy(p);
   scene.add(b.g);
   EN.push(b);
-  note('BANDIT!');
-  SND.beep(880, 0.15);
+  return b;
 }
 function clearEnemies() {
   EN.forEach((e) => scene.remove(e.g));

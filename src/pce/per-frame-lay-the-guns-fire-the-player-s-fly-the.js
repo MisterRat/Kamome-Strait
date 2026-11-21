@@ -57,15 +57,19 @@ function gunUpdate(dt) {
       for (let i = 0; i < 2; i++) {
         if (g.al[i] <= s.auto - 4) {
           g.feedT[i] += dt;
-          if (g.feedT[i] >= s.feed * rldK()) {
+          if (g.feedT[i] >= s.feed * rldK() && MAG[g.id] > 0) {
+            /* a clip from the magazine (MAG) */
+            const n = Math.min(4, MAG[g.id]);
             g.feedT[i] = 0;
-            g.al[i] += 4;
+            g.al[i] += n;
+            MAG[g.id] -= n;
           }
         } else g.feedT[i] = 0;
       }
     if (s.mag && g.rl > 0 && (g.rl -= dt) <= 0) {
       g.rl = 0;
-      g.rnd = s.mag;
+      g.rnd = Math.min(s.mag, MAG[g.id]); /* a drum filled from the magazine (MAG) */
+      MAG[g.id] -= g.rnd;
     }
   }
   SHIPM.mesh.updateMatrixWorld(true);
@@ -80,10 +84,19 @@ function gunUpdate(dt) {
     if (!trig && GUN.trig0 && SCAM.want && GUN.B.some((b) => b.own)) scamStart();
     GUN.trig0 = trig;
     G.ft = Math.max(-0.001, G.ft - dt);
-    if (trig && (G.cut || (s.mag && G.rl > 0) || (s.auto && G.al[0] + G.al[1] === 0)) && SHIP.t - (GUN.blkT || 0) > 1.5) {
+    const dry = MAG[G.id] <= 0 && (s.mag ? G.rnd <= 0 : s.auto ? G.al[0] + G.al[1] === 0 : true); /* her magazine empty and nothing ready */
+    if (trig && (G.cut || dry || (s.mag && G.rl > 0) || (s.auto && G.al[0] + G.al[1] === 0)) && SHIP.t - (GUN.blkT || 0) > 1.5) {
       /* say why the gun is not firing */
       GUN.blkT = SHIP.t;
-      note(G.cut ? 'CUTOUT - THE LINE OF FIRE IS ON THE SHIP' : s.mag ? 'CHANGING DRUM' : 'LOADERS FILLING THE AUTOLOADERS');
+      note(
+        G.cut
+          ? 'CUTOUT - THE LINE OF FIRE IS ON THE SHIP'
+          : dry
+            ? 'MAGAZINE EMPTY - REARM AT A US BASE'
+            : s.mag
+              ? 'CHANGING DRUM'
+              : 'LOADERS FILLING THE AUTOLOADERS',
+      );
     }
     if (trig && !G.cut) {
       let n = 0;
@@ -104,7 +117,11 @@ function gunUpdate(dt) {
           G.bar = 1 - b;
           G.ft += s.dt / 2;
           continue;
-        } else gunFire(G, 0);
+        } else {
+          if (MAG[G.id] <= 0) break; /* a round from the magazine for each shot (hand loaded) */
+          MAG[G.id]--;
+          gunFire(G, 0);
+        }
         G.ft += s.dt * (s.hand ? rldK() : 1);
       }
     }

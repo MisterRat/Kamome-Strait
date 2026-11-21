@@ -25,6 +25,7 @@ function raidShoot(e, dt) {
     if (q.y <= OCEAN.Y) break;
   }
   RAID.tr.push({ a: o.clone(), b: q.clone(), t: 0 });
+  BASEAIR.usFire(q); /* near PT Base Halsey, the base calls for fighters */
   if (RAID.tr.length > 60) RAID.tr.shift();
   if (hit) {
     RAID.hits++;

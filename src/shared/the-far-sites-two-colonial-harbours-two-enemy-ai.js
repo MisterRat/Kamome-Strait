@@ -27,6 +27,9 @@ const FS = (() => {
     mk('air2', 'air', 28360, 33250, 0),
     mk('cv1', 'conv', 1472, 26239, 3.534, -300),
     mk('cv2', 'conv', -19632, -19023, 6.087, -300),
+    /* the IJN base's fighter strip (the user's, 2026-11-21): west-south-west of Port Ugaki, about as far from it (10.8 km) as PT Base
+       Halsey is from Fletcher Field (11.0 km), on the low ground there; its runway east - west. Inland: no escort patrol */
+    Object.assign(mk('air3', 'air', -8185, 21792, -Math.PI / 2), { inland: true }),
   ];
   /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
      PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
@@ -42,6 +45,12 @@ const FS = (() => {
   Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[2], { navy: 'usdep', R: 450, pu: 140, pi: -150, po: 6, pb: 100, pbo: 25, ph: -5.5 });
+  /* their names (the briefing map's): the Japanese after IJN admirals, as the map's other sites; the American after US Navy admirals */
+  nav[0].title = 'Port Ugaki';
+  list.find((s) => s.id === 'air3').title = 'Airbase Kakuta';
+  nav[1].title = 'PT Base Halsey';
+  nav[2].title = 'Depot Nimitz';
+  nav[1].store = 2; /* full loads of ammunition for the ships it serves (the PCE); the supply ship brings more */
   const ssl = (a, b, x) => {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);

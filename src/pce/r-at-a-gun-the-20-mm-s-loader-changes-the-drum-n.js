@@ -4,8 +4,10 @@ function gunReload() {
   if (!G || camMode != 1) return false;
   const s = G.s;
   if (s.mag) {
-    if (G.rl > 0) return note('CHANGING DRUM'), true;
-    if (G.rnd >= s.mag) return note('DRUM FULL'), true;
+    if (G.rl > 0) return (note('CHANGING DRUM'), true);
+    if (G.rnd >= s.mag) return (note('DRUM FULL'), true);
+    if (MAG[G.id] <= 0) return (note('NO DRUMS LEFT - REARM AT A US BASE'), true);
+    MAG[G.id] += G.rnd; /* the part-used drum goes back below to be refilled */
     G.rnd = 0;
     G.rl = s.reload * rldK();
     note('CHANGING DRUM');

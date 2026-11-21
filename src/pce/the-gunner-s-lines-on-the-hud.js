@@ -9,6 +9,7 @@ function gunHUD() {
   if (s.mag) st = G.rl > 0 ? 'NEW DRUM ' + Math.ceil(G.rl) + 's' : G.cut ? st : G.rnd + ' / ' + s.mag;
   if (s.auto) st = (G.cut ? 'CUTOUT &middot; ' : '') + 'LOADED ' + G.al[0] + ' &middot; ' + G.al[1];
   if (s.sight === 'scope' && !G.cut && G.ft > 0.15) st = 'LOADING';
+  st += ' &middot; MAGAZINE ' + (MAG[G.id] > 0 ? MAG[G.id] : '<span style="color:#ff8a6a">EMPTY</span>');
   const rng = s.sight === 'scope' ? '<br>SIGHT <b>' + Math.round(GUN.rng / 0.9144 / 50) * 50 + '</b> yd' + (FM.use('range') ? ' (you set it)' : '') : '';
   return MOB
     ? `<br>${s.name}: ${Math.round(brg).toString().padStart(3, '0')}&deg; ${el.toFixed(0)}&deg; ${st}`

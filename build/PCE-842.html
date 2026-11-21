@@ -552,7 +552,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.98';
+const VERSION = '0.99';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -991,6 +991,14 @@ const SHIP = {
 };
 /* returning to base (RETURN TO BASE): on while the helmsman takes her home or she lies at her berth; ph its stage */
 const RTB = { on: false, ph: '', tel: 0, hold: 0 };
+/* her magazines (the user's, 2026-11-21: the PCE resupplies like everyone else): the rounds below decks that the ready-use ammunition
+   is filled from, shared by all her guns of a kind (only the manned mount of each fires). 3"/50: 1,400 (NavWeaps: 200 - 300 ready
+   use and about 1,200 in the magazine a gun); 40 mm: 6,000 for her three twin mounts and 20 mm: 10,000 for her four guns (estimates,
+   about 1,000 a barrel and 2,400 a gun, the escorts' allowance of the time); Hedgehog: 72 bombs besides the 24 on the spigots (three
+   reloads, estimated); depth charges: 36 besides the 16 in the racks and the 4 in the K-guns (56 in all: the racks' 40, 20 each in
+   HyperWar's figures, and 16 for the K-guns, estimated). Filled again alongside any American base (rearming) */
+const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
+  MAG = Object.assign({}, MAG0);
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
 const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1 };
@@ -1915,6 +1923,9 @@ const FS = (() => {
     mk('air2', 'air', 28360, 33250, 0),
     mk('cv1', 'conv', 1472, 26239, 3.534, -300),
     mk('cv2', 'conv', -19632, -19023, 6.087, -300),
+    /* the IJN base's fighter strip (the user's, 2026-11-21): west-south-west of Port Ugaki, about as far from it (10.8 km) as PT Base
+       Halsey is from Fletcher Field (11.0 km), on the low ground there; its runway east - west. Inland: no escort patrol */
+    Object.assign(mk('air3', 'air', -8185, 21792, -Math.PI / 2), { inland: true }),
   ];
   /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
      PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
@@ -1930,6 +1941,12 @@ const FS = (() => {
   Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[2], { navy: 'usdep', R: 450, pu: 140, pi: -150, po: 6, pb: 100, pbo: 25, ph: -5.5 });
+  /* their names (the briefing map's): the Japanese after IJN admirals, as the map's other sites; the American after US Navy admirals */
+  nav[0].title = 'Port Ugaki';
+  list.find((s) => s.id === 'air3').title = 'Airbase Kakuta';
+  nav[1].title = 'PT Base Halsey';
+  nav[2].title = 'Depot Nimitz';
+  nav[1].store = 2; /* full loads of ammunition for the ships it serves (the PCE); the supply ship brings more */
   const ssl = (a, b, x) => {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);
@@ -13897,6 +13914,7 @@ function note(x) {
 }
 function damage(t, d) {
   if (t.dead) return;
+  if (typeof BASEAIR !== 'undefined') BASEAIR.hit(t); /* a naval base under fire calls for fighters */
   t.hp -= d;
   if (t.hp <= 0) killT(t);
 }
@@ -14063,6 +14081,12 @@ function spawnEnemy() {
     c.y = Math.max(pos.y + (Math.random() - 0.5) * 300, H(c.x, c.z) + 200);
     if (c.y - pos.y < 350 || k == 9) p = c;
   }
+  banditAt(p);
+  note('BANDIT!');
+  SND.beep(880, 0.15);
+}
+/* a bandit at p, turned toward the player (spawnEnemy's, and the fighters an enemy base scrambles: BASEAIR) */
+function banditAt(p) {
   const b = buildEnemy();
   Object.assign(b, {
     p,
@@ -14092,8 +14116,7 @@ function spawnEnemy() {
   b.g.position.copy(p);
   scene.add(b.g);
   EN.push(b);
-  note('BANDIT!');
-  SND.beep(880, 0.15);
+  return b;
 }
 function clearEnemies() {
   EN.forEach((e) => scene.remove(e.g));
@@ -20214,7 +20237,7 @@ const SITES = [],
     WH(F.O.x, F.O.z); /* make sure the pad height is known */
     const seed = Math.round(Math.abs(F.O.x) + Math.abs(F.O.z)) % 100000;
     if (F.kind === 'port') farBuild(F, () => void harbour(F, true, seed));
-    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), mkPatrol(F)));
+    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)));
     else farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F)));
   }
   {
@@ -20476,7 +20499,14 @@ const SITES = [],
          anchored west of the base's piers, clear of the PCE's berth and PT-110's lane */
       {
         const NB = FS.nav.find((s) => s.navy === 'us');
-        if (NB) mkCiv(M.freighter('us'), 134.6, NB, F, -150, 300, 8.5, { jA: [-25 + 3 + 2.4, 128], jB: [-5 - 2.4, 160], boat: 'us-lcm3', us: true });
+        if (NB)
+          mkCiv(M.freighter('us'), 134.6, NB, F, -150, 300, 8.5, {
+            jA: [-25 + 3 + 2.4, 128],
+            jB: [-5 - 2.4, 160],
+            boat: 'us-lcm3',
+            us: true,
+            onA: () => (NB.store = Math.min(3, (NB.store || 0) + 1)) /* a full load of ammunition into the base's store (the PCE rearms from it) */,
+          });
       }
       use(-14, 14, -6, 180);
       for (const [u, d] of [
@@ -20757,6 +20787,61 @@ const SITES = [],
     };
   }
 }
+/* the naval bases call for fighters when they come under fire (the user's, 2026-11-21: each naval base can call for air support when
+   under fire). Port Ugaki (the IJN base): a hit on anything of it (damage()) and it calls Airbase Kakuta, its fighter strip; a minute
+   later two Ki-84s take off there and come for the attacker: the P-51 meets them as bandits (EN), the PCE as a raid (RAID). Our radio
+   intelligence hears the call. One call in ten minutes; none if Kakuta's parked fighters have all been destroyed. PT Base Halsey (the
+   US base): raiders shooting within 3 km of it and it calls Kamome Control for P-51s from Fletcher Field (the air support crossover,
+   CAP: on the Kamome Strait page, where both simulators are). The current simulator brings the Ki-84s on (its role's scramble(p)). */
+/* var: reset() and damage() may run before this piece has (typeof on a const not yet set throws) */
+var BASEAIR = (() => {
+  const DELAY = 60 /* s from the call to the fighters in the air */,
+    AGAIN = 600; /* s before the base calls again */
+  let t = 0,
+    due = -1,
+    last = -1e9;
+  const jp = () => FS.nav.find((s) => s.navy === 'jp'),
+    us = () => FS.nav.find((s) => s.navy === 'us'),
+    field = () => FS.list.find((s) => s.id === 'air3');
+  /* Kakuta's fighters still on the field (its parked Ki-84s, targets of their own) */
+  const fightersLeft = (A) => T.some((q) => q.type === 'plane' && !q.dead && Math.hypot(q.c.x - A.O.x, q.c.z - A.O.z) < A.R + 500);
+  return {
+    /* a target hit: is it Port Ugaki's? */
+    hit(q) {
+      const B = jp(),
+        A = field();
+      if (!B || !A || !q || !q.c || due >= 0 || t - last < AGAIN) return;
+      if (Math.hypot(q.c.x - B.O.x, q.c.z - B.O.z) > B.R + 300) return;
+      last = t;
+      if (!fightersLeft(A)) return note('INTERCEPT: ' + B.title.toUpperCase() + ' CALLS ' + A.title.toUpperCase() + ' - NO ANSWER');
+      due = t + DELAY;
+      note('INTERCEPT: ' + B.title.toUpperCase() + ' IS CALLING ' + A.title.toUpperCase() + ' FOR FIGHTERS');
+      if (typeof RADIO !== 'undefined')
+        RADIO.add('INTERCEPT', B.title.toUpperCase() + ' UNDER ATTACK, CALLING ' + A.title.toUpperCase() + ' FOR FIGHTERS. EXPECT FRANKS IN ABOUT A MINUTE.');
+    },
+    /* enemy aircraft shooting at p: within 3 km of PT Base Halsey, it calls for P-51s */
+    usFire(p) {
+      const B = us();
+      if (!B || Math.hypot(p.x - B.O.x, p.z - B.O.z) > 3000) return;
+      if (typeof CAP !== 'undefined' && CAP.call) CAP.call(B.title.toUpperCase());
+    },
+    tick(dt) {
+      t += dt;
+      if (due >= 0 && t >= due) {
+        due = -1;
+        const A = field();
+        if (!A || !fightersLeft(A) || !SIMS.cur.scramble) return;
+        const [x, z] = A.w(0, -750);
+        SIMS.cur.scramble(new THREE.Vector3(x, A.H + 150, z));
+      }
+    },
+    reset() {
+      due = -1;
+      last = -1e9;
+    },
+  };
+})();
+HOOKS.tick.push((dt) => BASEAIR.tick(dt));
 /* ---------- aftermath: burning wrecks, smoke columns, craters and scorch marks that last for the rest of the flight ---------- */
 const AF = {
   g: null,
@@ -21145,8 +21230,10 @@ function reset() {
     roamExit(true);
   } catch (e) {}
   for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
-  SIMS.cur.resetBegin() /* its own weapons and systems */;
-  if (SITE.t14w) for (const g of SITE.t14w.groups || []) (g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2)); /* the torpedo boats' bases restocked, their tubes full */
+  SIMS.cur.resetBegin(); /* its own weapons and systems */
+  if (typeof BASEAIR !== 'undefined') BASEAIR.reset(); /* no call for fighters pending */
+  if (SITE.t14w)
+    for (const g of SITE.t14w.groups || []) ((g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2))); /* the torpedo boats' bases restocked, their tubes full */
   killed = 0;
   paused = false;
   invT = 0;
@@ -24062,6 +24149,7 @@ function shipReset() {
   DC.kg = [2, 2];
   DC.kl = [1, 1, 1, 1];
   SHIP.dmgK = 1;
+  Object.assign(MAG, MAG0); /* her magazines full */
   SHIP.aground = false;
   {
     const st = PCEM.STN[SHIP.stn][SHIP.sub];
@@ -24207,6 +24295,54 @@ if (SIMS.on('pce') && $$('pmRestart')) {
   };
   $$('pmRestart').after(b);
 }
+/* rearming (the user's, 2026-11-21: a return to any American naval base resupplies all ammunition): lying stopped within the US
+   naval base or the US supply depot (under 1 1/2 knots inside its yard and 300 m off it), her magazines are filled again over about
+   1 1/2 minutes (game mode: half), then her ready-use ammunition: the racks, the K-guns, the Hedgehog's spigots, the drum and the
+   40 mm's autoloaders. The naval base issues it from its store (FS.nav .store, in full loads; the Liberty ship's every call brings one
+   more, up to three); the supply depot has all it needs */
+const REARM = { at: null, msgT: 0 };
+function rearmStep(dt) {
+  const sp = Math.hypot(vel.x, vel.z),
+    B = sp < 0.75 && !crashed ? FS.nav.find((s) => (s.navy === 'us' || s.navy === 'usdep') && Math.hypot(pos.x - s.O.x, pos.z - s.O.z) < s.R + 300) : null;
+  if (B !== REARM.at) {
+    REARM.at = B;
+    REARM.done = false;
+  }
+  if (!B || REARM.done) return;
+  const K = Object.keys(MAG0),
+    full = K.every((k) => MAG[k] >= MAG0[k]);
+  if (!full) {
+    if (B.store !== undefined && B.store <= 0) {
+      if (performance.now() - REARM.msgT > 20000)
+        ((REARM.msgT = performance.now()), note(B.title.toUpperCase() + ' IS OUT OF AMMUNITION - WAIT FOR THE SUPPLY SHIP'));
+      return;
+    }
+    if (!REARM.on) ((REARM.on = true), note('ALONGSIDE ' + B.title.toUpperCase() + ' - REARMING'));
+    const f = dt / (90 * rldK());
+    let used = 0;
+    for (const k of K) {
+      const n = Math.min(MAG0[k] - MAG[k], Math.ceil(MAG0[k] * f));
+      MAG[k] += n;
+      used += n / MAG0[k] / K.length;
+    }
+    if (B.store !== undefined) B.store = Math.max(0, B.store - used);
+    return;
+  }
+  /* the magazines full: the ready-use ammunition too */
+  DC.rack = [8, 8];
+  DC.kl = [1, 1, 1, 1];
+  DC.kg = [2, 2];
+  HH.n = 24;
+  HH.loading = false;
+  for (const g of GUN.M) {
+    if (g.s.mag) ((g.rnd = g.s.mag), (g.rl = 0));
+    if (g.s.auto) g.al = [g.s.auto, g.s.auto];
+  }
+  REARM.done = true;
+  if (REARM.on) note('REARMED - MAGAZINES FULL');
+  REARM.on = false;
+}
+if (SIMS.on('pce')) HOOKS.tick.push((dt) => rearmStep(dt));
 /* Restart (the pause menu, the restart key): the whole game again, not just the ship back at her start (the user, 2026-11-21: reset()
    only moved her; the enemies, her damage, the magazines, the targets and the clock went on). The page is loaded afresh and the same
    patrol or mission started again: the one picked last is kept for the reload in sessionStorage (this tab only; nothing remembered
@@ -24617,8 +24753,10 @@ function gunReload() {
   if (!G || camMode != 1) return false;
   const s = G.s;
   if (s.mag) {
-    if (G.rl > 0) return note('CHANGING DRUM'), true;
-    if (G.rnd >= s.mag) return note('DRUM FULL'), true;
+    if (G.rl > 0) return (note('CHANGING DRUM'), true);
+    if (G.rnd >= s.mag) return (note('DRUM FULL'), true);
+    if (MAG[G.id] <= 0) return (note('NO DRUMS LEFT - REARM AT A US BASE'), true);
+    MAG[G.id] += G.rnd; /* the part-used drum goes back below to be refilled */
     G.rnd = 0;
     G.rl = s.reload * rldK();
     note('CHANGING DRUM');
@@ -24873,15 +25011,19 @@ function gunUpdate(dt) {
       for (let i = 0; i < 2; i++) {
         if (g.al[i] <= s.auto - 4) {
           g.feedT[i] += dt;
-          if (g.feedT[i] >= s.feed * rldK()) {
+          if (g.feedT[i] >= s.feed * rldK() && MAG[g.id] > 0) {
+            /* a clip from the magazine (MAG) */
+            const n = Math.min(4, MAG[g.id]);
             g.feedT[i] = 0;
-            g.al[i] += 4;
+            g.al[i] += n;
+            MAG[g.id] -= n;
           }
         } else g.feedT[i] = 0;
       }
     if (s.mag && g.rl > 0 && (g.rl -= dt) <= 0) {
       g.rl = 0;
-      g.rnd = s.mag;
+      g.rnd = Math.min(s.mag, MAG[g.id]); /* a drum filled from the magazine (MAG) */
+      MAG[g.id] -= g.rnd;
     }
   }
   SHIPM.mesh.updateMatrixWorld(true);
@@ -24896,10 +25038,19 @@ function gunUpdate(dt) {
     if (!trig && GUN.trig0 && SCAM.want && GUN.B.some((b) => b.own)) scamStart();
     GUN.trig0 = trig;
     G.ft = Math.max(-0.001, G.ft - dt);
-    if (trig && (G.cut || (s.mag && G.rl > 0) || (s.auto && G.al[0] + G.al[1] === 0)) && SHIP.t - (GUN.blkT || 0) > 1.5) {
+    const dry = MAG[G.id] <= 0 && (s.mag ? G.rnd <= 0 : s.auto ? G.al[0] + G.al[1] === 0 : true); /* her magazine empty and nothing ready */
+    if (trig && (G.cut || dry || (s.mag && G.rl > 0) || (s.auto && G.al[0] + G.al[1] === 0)) && SHIP.t - (GUN.blkT || 0) > 1.5) {
       /* say why the gun is not firing */
       GUN.blkT = SHIP.t;
-      note(G.cut ? 'CUTOUT - THE LINE OF FIRE IS ON THE SHIP' : s.mag ? 'CHANGING DRUM' : 'LOADERS FILLING THE AUTOLOADERS');
+      note(
+        G.cut
+          ? 'CUTOUT - THE LINE OF FIRE IS ON THE SHIP'
+          : dry
+            ? 'MAGAZINE EMPTY - REARM AT A US BASE'
+            : s.mag
+              ? 'CHANGING DRUM'
+              : 'LOADERS FILLING THE AUTOLOADERS',
+      );
     }
     if (trig && !G.cut) {
       let n = 0;
@@ -24920,7 +25071,11 @@ function gunUpdate(dt) {
           G.bar = 1 - b;
           G.ft += s.dt / 2;
           continue;
-        } else gunFire(G, 0);
+        } else {
+          if (MAG[G.id] <= 0) break; /* a round from the magazine for each shot (hand loaded) */
+          MAG[G.id]--;
+          gunFire(G, 0);
+        }
         G.ft += s.dt * (s.hand ? rldK() : 1);
       }
     }
@@ -25818,26 +25973,35 @@ function raidBrg(p) {
     .toString()
     .padStart(3, '0');
 }
-function raidSpawn() {
-  const h = raidHome(),
+function raidSpawn(from) {
+  /* from: a point the section comes from (fighters an enemy base has scrambled from their airfield, BASEAIR); else the raid's own way */
+  const h = from || raidHome(),
     d = new THREE.Vector3(h.x - pos.x, 0, h.z - pos.z);
+  const rng = from ? d.length() : RAIDV.RNG;
   if (d.lengthSq() < 1) d.set(0, 0, -1);
   d.normalize();
   const side = new THREE.Vector3(-d.z, 0, d.x);
   for (let k = 0; k < 2; k++) {
     const b = buildEnemy(),
-      p = new THREE.Vector3(pos.x, OCEAN.Y + RAIDV.ALT + k * 40, pos.z).addScaledVector(d, RAIDV.RNG + k * 60).addScaledVector(side, k * 90);
+      p = new THREE.Vector3(pos.x, OCEAN.Y + RAIDV.ALT + k * 40, pos.z).addScaledVector(d, rng + k * 60).addScaledVector(side, k * 90);
     b.g.position.copy(p);
     scene.add(b.g);
     const e = { b, p, v: d.clone().multiplyScalar(-RAIDV.CRU), st: 'in', hp: 1, dmg: 0, runs: 0, t: 0, fire: 0, ft: 0, bank: 0, lag: k * 7, k };
     e.fwd = e.v.clone().normalize();
     RAID.L.push(e);
   }
-  RADIO.add('LOOKOUT', 'TWO BOGIES BEARING ' + raidBrg(RAID.L[0].p) + ', ANGELS FIVE, CLOSING. SINGLE ENGINE, LOOK LIKE FRANKS.');
-  note('AIRCRAFT INBOUND - BEARING ' + raidBrg(RAID.L[0].p));
+  RADIO.add('LOOKOUT', 'TWO BOGIES BEARING ' + raidBrg(RAID.L[RAID.L.length - 1].p) + ', ANGELS FIVE, CLOSING. SINGLE ENGINE, LOOK LIKE FRANKS.');
+  note('AIRCRAFT INBOUND - BEARING ' + raidBrg(RAID.L[RAID.L.length - 1].p));
   SND.tone(620, 620, 0.5, 0.35, 'square');
   SND.tone(620, 620, 0.5, 0.35, 'square', 0.7);
 }
+/* fighters an enemy base has scrambled (BASEAIR): a section from their airfield, as a raid (if enemy planes are on) */
+SIMS.add({
+  id: 'pce',
+  scramble: (p) => {
+    if (typeof ENEMY !== 'undefined' && ENEMY.has('planes') && !crashed) raidSpawn(p);
+  },
+});
 /* steer e's velocity toward the direction w, at most RAIDV.G g of turn; speed toward sp. Banks the model into the turn */
 function raidSteer(e, w, sp, dt) {
   const v = e.v,
@@ -25903,6 +26067,7 @@ function raidShoot(e, dt) {
     if (q.y <= OCEAN.Y) break;
   }
   RAID.tr.push({ a: o.clone(), b: q.clone(), t: 0 });
+  BASEAIR.usFire(q); /* near PT Base Halsey, the base calls for fighters */
   if (RAID.tr.length > 60) RAID.tr.shift();
   if (hit) {
     RAID.hits++;
@@ -26147,6 +26312,7 @@ function gunHUD() {
   if (s.mag) st = G.rl > 0 ? 'NEW DRUM ' + Math.ceil(G.rl) + 's' : G.cut ? st : G.rnd + ' / ' + s.mag;
   if (s.auto) st = (G.cut ? 'CUTOUT &middot; ' : '') + 'LOADED ' + G.al[0] + ' &middot; ' + G.al[1];
   if (s.sight === 'scope' && !G.cut && G.ft > 0.15) st = 'LOADING';
+  st += ' &middot; MAGAZINE ' + (MAG[G.id] > 0 ? MAG[G.id] : '<span style="color:#ff8a6a">EMPTY</span>');
   const rng = s.sight === 'scope' ? '<br>SIGHT <b>' + Math.round(GUN.rng / 0.9144 / 50) * 50 + '</b> yd' + (FM.use('range') ? ' (you set it)' : '') : '';
   return MOB
     ? `<br>${s.name}: ${Math.round(brg).toString().padStart(3, '0')}&deg; ${el.toFixed(0)}&deg; ${st}`
@@ -27939,21 +28105,31 @@ function tpUpdate(dt, here, trig) {
     /* loading the Hedgehog by hand: 24 bombs in about 3 minutes, a bomb every 7.5 s (game mode: half) */
     if (tp === 'hh' && HH.loading && HH.n < 24 && !HH.q.length) {
       HH.ld += dt;
-      if (HH.ld > 7.5 * rldK()) {
+      if (MAG.hh <= 0) ((HH.loading = false), note('NO HEDGEHOG BOMBS LEFT - REARM AT A US BASE'));
+      else if (HH.ld > 7.5 * rldK()) {
         HH.ld = 0;
         HH.n++;
+        MAG.hh--;
         SND.burst(1800, 400, 0.06, 0.2, 0.7);
-        if (HH.n === 24) (HH.loading = false), note('HEDGEHOG LOADED');
+        if (HH.n === 24) ((HH.loading = false), note('HEDGEHOG LOADED'));
       }
     }
   }
   /* the K-gun crews reload a fired gun in about a minute (game mode: half) */
   for (let i = 0; i < 4; i++)
-    if (!DC.kl[i] && (DC.kt[i] = (DC.kt[i] || 0) + dt) >= 60 * rldK()) {
+    if (!DC.kl[i] && MAG.dc > 0 && (DC.kt[i] = (DC.kt[i] || 0) + dt) >= 60 * rldK()) {
       DC.kl[i] = 1;
+      MAG.dc--; /* from the spare charges (MAG) */
       DC.kt[i] = 0;
       DC.kg = [DC.kl[0] + DC.kl[1], DC.kl[2] + DC.kl[3]];
     }
+  /* the rack crew roll spare charges onto a rack that has fired, one every 20 s each (game mode: half) */
+  for (let s = 0; s < 2; s++)
+    if (DC.rack[s] < 8 && MAG.dc > 0 && (DC.rt = DC.rt || [0, 0])[s] + dt >= 20 * rldK()) {
+      DC.rt[s] = 0;
+      DC.rack[s]++;
+      MAG.dc--;
+    } else if (DC.rack[s] < 8 && MAG.dc > 0) DC.rt[s] += dt;
   kgArbors();
   hhStep(dt);
   aswStep(dt, here);
@@ -27979,8 +28155,9 @@ function dcBoardDraw(f) {
   g.fillText('RACKS  P ' + DC.rack[0] + '   S ' + DC.rack[1], W / 2, 196);
   g.fillText('K-GUNS P ' + DC.kg[0] + '   S ' + DC.kg[1], W / 2, 246);
   g.font = '22px monospace';
+  g.fillText('SPARE CHARGES ' + MAG.dc + ' \u00b7 HEDGEHOG BOMBS ' + MAG.hh, W / 2, 288);
   g.fillStyle = '#9fd0a0';
-  g.fillText(DC.lastTxt || (DC.L.length ? 'CHARGES SINKING: ' + DC.L.length : 'READY'), W / 2, 318);
+  g.fillText(DC.lastTxt || (DC.L.length ? 'CHARGES SINKING: ' + DC.L.length : 'READY'), W / 2, 332);
 }
 /* ---------- the faces ---------- */
 function stnDraw(f, dt) {

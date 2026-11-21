@@ -35,6 +35,7 @@ function shipReset() {
   DC.kg = [2, 2];
   DC.kl = [1, 1, 1, 1];
   SHIP.dmgK = 1;
+  Object.assign(MAG, MAG0); /* her magazines full */
   SHIP.aground = false;
   {
     const st = PCEM.STN[SHIP.stn][SHIP.sub];

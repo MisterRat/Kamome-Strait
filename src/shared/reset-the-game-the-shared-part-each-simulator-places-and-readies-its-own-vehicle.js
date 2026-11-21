@@ -4,8 +4,10 @@ function reset() {
     roamExit(true);
   } catch (e) {}
   for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
-  SIMS.cur.resetBegin() /* its own weapons and systems */;
-  if (SITE.t14w) for (const g of SITE.t14w.groups || []) (g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2)); /* the torpedo boats' bases restocked, their tubes full */
+  SIMS.cur.resetBegin(); /* its own weapons and systems */
+  if (typeof BASEAIR !== 'undefined') BASEAIR.reset(); /* no call for fighters pending */
+  if (SITE.t14w)
+    for (const g of SITE.t14w.groups || []) ((g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2))); /* the torpedo boats' bases restocked, their tubes full */
   killed = 0;
   paused = false;
   invT = 0;

@@ -2096,7 +2096,7 @@ const SITES = [],
     WH(F.O.x, F.O.z); /* make sure the pad height is known */
     const seed = Math.round(Math.abs(F.O.x) + Math.abs(F.O.z)) % 100000;
     if (F.kind === 'port') farBuild(F, () => void harbour(F, true, seed));
-    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), mkPatrol(F)));
+    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)));
     else farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F)));
   }
   {
@@ -2358,7 +2358,14 @@ const SITES = [],
          anchored west of the base's piers, clear of the PCE's berth and PT-110's lane */
       {
         const NB = FS.nav.find((s) => s.navy === 'us');
-        if (NB) mkCiv(M.freighter('us'), 134.6, NB, F, -150, 300, 8.5, { jA: [-25 + 3 + 2.4, 128], jB: [-5 - 2.4, 160], boat: 'us-lcm3', us: true });
+        if (NB)
+          mkCiv(M.freighter('us'), 134.6, NB, F, -150, 300, 8.5, {
+            jA: [-25 + 3 + 2.4, 128],
+            jB: [-5 - 2.4, 160],
+            boat: 'us-lcm3',
+            us: true,
+            onA: () => (NB.store = Math.min(3, (NB.store || 0) + 1)) /* a full load of ammunition into the base's store (the PCE rearms from it) */,
+          });
       }
       use(-14, 14, -6, 180);
       for (const [u, d] of [
