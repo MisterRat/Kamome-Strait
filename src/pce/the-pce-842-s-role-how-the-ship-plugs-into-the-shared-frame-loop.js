@@ -65,6 +65,7 @@ SIMS.add({
   struck: (p) => shipStruck(p),
   torpedoed: () => sdmHit('torpedo'),
   coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
+  shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the Ships setting: the Ukuru escorts and the T-14s fight her */,
   shelled: () => sdmHit('shell'),
   orbitDist: 85,
   docsTab: 'ctl',

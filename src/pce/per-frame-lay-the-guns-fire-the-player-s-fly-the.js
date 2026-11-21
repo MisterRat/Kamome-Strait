@@ -147,7 +147,7 @@ function gunUpdate(dt) {
       dead = true;
     }
     if (!dead && ptHit(b.a, b.p, s)) dead = true;
-    if (!dead && raidHit(b.a, b.p, s)) dead = true;
+    if (!dead && raidHit(b.a, b.p, s, b.own)) dead = true;
     /* the air-support fighters (AIRSUP, either side): a kill zone as the raiders' (the VT fuze's, or 6 m) */
     if (!dead)
       for (const u of AIRSUP.L)

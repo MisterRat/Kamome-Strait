@@ -131,9 +131,9 @@ var ROE = (() => {
      Enemy setting, the P-51's Ground Fire). The rounds fly (gravity), tracers show, and each is tested against its own target; the
      big guns' shells burst near an aircraft (time and VT fuzes). The Japanese 25 mm guns and coast guns have their own code. ----- */
   const GT = {
-    20: { air: 1400, surf: 1000, rps: 4, sp: 0.006, dmg: 1.5, mv: 830 },
-    40: { air: 3600, surf: 3600, rps: 2, sp: 0.004, dmg: 4, mv: 880 },
-    50: { air: 1300, surf: 900, rps: 6, sp: 0.007, dmg: 0.6, mv: 870 },
+    20: { air: 1400, surf: 1000, rps: 4, sp: 0.006, dmg: 1.5, mv: 830, kr: 0.047 },
+    40: { air: 3600, surf: 3600, rps: 2, sp: 0.004, dmg: 4, mv: 880, kr: 0.069 },
+    50: { air: 1300, surf: 900, rps: 6, sp: 0.007, dmg: 0.6, mv: 870, kr: 0.035 },
     '3in': { air: 5000, surf: 9000, rps: 0.3, sp: 0.0025, dmg: 14, mv: 823, prox: 15 },
     '5in': { air: 7000, surf: 14000, rps: 0.25, sp: 0.0025, dmg: 40, mv: 792, prox: 20 },
     '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15 },
@@ -159,6 +159,8 @@ var ROE = (() => {
     ],
   };
   const war = () => started && !crashed && SIMS.cur.coastOn();
+  /* the enemy warships fight (the role's shipsOn: the PCE's Ships setting, the P-51's Ground Fire) */
+  const navy = () => started && !crashed && SIMS.cur.shipsOn();
   const post = new WeakMap();
   const mkGuns = (L) =>
     L.map((g) => (Array.isArray(g) ? { id: g[0], p: new V3(g[1], g[2], g[3]) } : g)).map((g) => ({
@@ -185,7 +187,7 @@ var ROE = (() => {
       if (q.side === 'us' && q.rk === 'pce') at(q.m, 'us', 'pce', PCEM.guns(true), () => q.dead);
       else if (q.side === 'us' && q.rk === 'pt') at(q.m, 'us', 'pt', FIT.pt, () => q.dead);
       else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
-      else if (q.side !== 'us' && q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat' && q.r >= 10) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead);
+      else if (q.side !== 'us' && q.esc) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead) /* the Ukurus (not the freighters and tankers at anchor) */;
     }
     if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed, true);
     POSTS = L;
@@ -207,25 +209,48 @@ var ROE = (() => {
     const s = g.s;
     let best = null,
       bd = 1e9;
+    if (P.kind === 'escort' && !navy()) return null; /* the escorts fight only with the Ships setting */
     /* the player's vehicle first (the Japanese) */
     if (P.side === 'jp' && started && !crashed) {
       const d = pos.distanceTo(o);
-      if (SIMS.cur.afloat ? war() && d < s.surf : d < s.air && pos.y > H(pos.x, pos.z) + 20) return { k: 'player', p: pos, v: vel, air: !SIMS.cur.afloat };
+      if (SIMS.cur.afloat ? (P.kind === 'escort' ? navy() : war()) && d < s.surf : d < s.air && pos.y > H(pos.x, pos.z) + 20) return { k: 'player', p: pos, v: vel, air: !SIMS.cur.afloat };
     }
     for (const a of aircraft(P.side)) {
       const d = a.p.distanceTo(o);
       if (d < s.air && d < bd && a.p.y > o.y + 20) ((bd = d), (best = { ...a, air: true }));
     }
-    if (best || !war()) return best;
+    if (best || !(war() || navy())) return best;
     for (const pass of [true, false])
       for (const q of T) {
         if (q.dead || q.m.visible === false || (P.side === 'us' ? q.side === 'us' : q.side !== 'us')) continue;
         if (pass !== armed(q) || (q.type !== 'ship' && s.dmg > 20 && q.kind !== 'aa')) continue;
+        if (!(q.type === 'ship' && q.side !== 'us' ? navy() : war())) continue; /* the enemy's ships with Ships on, the rest with Shore */
         const d = q.c.distanceTo(o);
         if (d < s.surf && d < bd) ((bd = d), (best = { k: 't', q, p: q.c, v: q.ringV || new V3() }));
       }
     return best;
   };
+  /* THE LAYERS' ERROR (the user's, 2026-11-21: the AI gunners were too accurate). A crew does not know its target's course and speed:
+     it judges them by eye (or a rough plot), and its aim wanders as it tracks. Each gun keeps its own estimate, judged afresh every
+     1.5 to 3 s: the speed off by about a quarter, the course by about 10 deg, and a tracking error of about 6 mrad against aircraft
+     (4 against ships) of the range. US Navy 1944-45 figures for scale: some thousands of 20 mm rounds, and over a thousand 40 mm, for
+     each aircraft brought down. aimErr(g, R, air, v) -> { v: the velocity the crew leads with, off: the aim's offset (world) } */
+  const gs = () => Math.random() + Math.random() + Math.random() - 1.5;
+  const aimErr = (g, R, air, v) => {
+    const now = performance.now() / 1000;
+    let e = g.ae;
+    if (!e || now > e.t) {
+      e = g.ae = e || { off: new V3(), v: new V3() };
+      e.t = now + 1.5 + Math.random() * 1.5;
+      e.k = 1 + gs() * 0.5 /* speed: about +-25% */;
+      e.a = gs() * 0.35 /* course: about +-10 deg */;
+      e.u = new V3(gs(), gs() * (air ? 1 : 0.15), gs()).multiplyScalar(2 * (air ? 0.006 : 0.004));
+    }
+    e.off.copy(e.u).multiplyScalar(R);
+    e.v.copy(v).multiplyScalar(e.k).applyAxisAngle(UP, e.a);
+    return e;
+  };
+  const UP = new V3(0, 1, 0);
   const RND = [],
     MAXR = 400,
     tp = new Float32Array(MAXR * 6),
@@ -268,13 +293,15 @@ var ROE = (() => {
         o.copy(g.p).applyMatrix4(P.m.matrixWorld);
         const R = T0.p.distanceTo(o),
           tof = R / s.mv,
-          aim = T0.p.clone().addScaledVector(T0.v, tof * 0.95);
+          air = T0.air || T0.k !== 'player' && T0.k !== 't',
+          E = aimErr(g, R, air, T0.v),
+          aim = T0.p.clone().addScaledVector(E.v, tof * 0.95).add(E.off);
         if (T0.k === 'player' && !T0.air) aim.y = coastSea() + 2;
         aim.y += 4.9 * tof * tof;
         const d = aim.sub(o).normalize(),
           gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2 * s.sp * (1 + R / 3000);
         d.x += gz();
-        d.y += gz();
+        d.y += gz() * (air ? 1 : 0.3) /* against a ship the scatter is mostly in range: a small error in elevation is a long one in range */;
         d.z += gz();
         if (RND.length < MAXR) RND.push({ p: o.clone(), v: d.normalize().multiplyScalar(s.mv), t: 0, life: (Math.max(s.air, s.surf) / s.mv) * 1.3, tg: T0, s });
         if (o.distanceTo(cam.position) < 4000) fxAdd(o, 0xffd890, s.dmg > 10 ? 2.5 : 1.1, s.dmg > 10 ? 6 : 3, 0.07, 0, true);
@@ -309,7 +336,10 @@ var ROE = (() => {
           const e = T0.e,
             c = segNear(a, b.p, e.p),
             dd = c.distanceTo(e.p);
-          if (dd < 7 || (s.prox && dd < s.prox && Math.random() < 0.35)) {
+          /* against an aircraft: a round within its kill zone (kr: the PCE's Hardcore zones, from the real rounds per kill: a hit
+             was 7 m before, and the AI guns shot everything down: the user's, 2026-11-21), or a big gun's burst near it (time
+             and VT fuzes: one in ten near enough to do it harm) */
+          if (dd < (s.kr || 0) || (s.prox && dd < s.prox && Math.random() < 0.1)) {
             dead = true;
             fxAdd(c, s.prox ? 0x555555 : 0xffd080, s.prox ? 4 : 1.5, s.prox ? 10 : 4, s.prox ? 1 : 0.2, 0, !s.prox);
             if (T0.k === 'en') damageE(e, s.dmg);
@@ -340,5 +370,5 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reset: () => (RND.length = 0) };
 })();

@@ -10,8 +10,9 @@ function crewStep(dt) {
   if (!SIMS.on('pce') || !started || paused || crashed || (typeof RPL !== 'undefined' && RPL.on) || typeof ENEMY === 'undefined') return;
   gunInit();
   const planes = ENEMY.has('planes'),
-    shore = ENEMY.has('shore');
-  if (!planes && !shore) return;
+    shore = ENEMY.has('shore'),
+    ships = ENEMY.has('ships');
+  if (!planes && !shore && !ships) return;
   const V3 = THREE.Vector3,
     REACH = { 20: [1400, 1000], 40: [3600, 3600], '3in': [7000, 12000] },
     manned = camMode == 1 && SHIP.stn === 4 ? GUN.cur : null;
@@ -29,12 +30,13 @@ function crewStep(dt) {
         for (const e of RAID.L) if (e.st !== 'down' && e.p.distanceTo(mz) < Math.min(rA, bd)) ((bd = e.p.distanceTo(mz)), (best = { p: e.p, v: e.v, e }));
       for (const u of AIRSUP.L)
         if (u.side === 'jp' && u.up && !u.down && u.p.distanceTo(mz) < Math.min(rA, bd)) ((bd = u.p.distanceTo(mz)), (best = { p: u.p, v: u.v, e: u }));
-      if (!best && shore) {
+      if (!best && ships)
         for (const t of T)
           if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.m.visible !== false) {
             const d = t.c.distanceTo(mz);
             if (d < Math.min(rS, bd)) ((bd = d), (best = { p: t.c, t }));
           }
+      if (shore && !(best && best.e)) { /* aircraft first, then the nearest ship or shore gun */
         for (const q of AA.gun)
           if (!q.t.dead && !q.ship) {
             const d = q.piv.distanceTo(mz);
@@ -46,8 +48,6 @@ function crewStep(dt) {
             if (d < Math.min(rS, bd)) ((bd = d), (best = { p: q.p, t: q.t }));
           }
       }
-      if (best && (!g.tg || g.tg.p !== best.p))
-        g.err = new V3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 2).multiplyScalar(bd * 0.004); /* the layers' error */
       g.tg = best;
       g.aimOk = false;
       if (best) {
@@ -63,9 +63,10 @@ function crewStep(dt) {
               .divideScalar(SHIP.t - L0.t);
           best.t.crewL = { p: best.p.clone(), t: SHIP.t };
         }
-        const q = new V3();
-        if (gunAim(g, best.p, tv, q, null)) {
-          q.add(g.err || new V3());
+        const q = new V3(),
+          E = ROE.aimErr(g, bd, !!best.e, tv) /* the layers' error: their judged course and speed, their aim wandering */;
+        if (gunAim(g, best.p, E.v, q, null)) {
+          q.add(E.off);
           /* into the mount's own frame: train (about its vertical, from its rest bearing) and elevation */
           const d = q.sub(mz),
             Qi = new THREE.Quaternion();

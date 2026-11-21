@@ -614,6 +614,7 @@ const SITES = [],
   {
     const d = anchorD(SITE, -175, 78, 3.06, 200, HR),
       e = ship(ukuruR(), 78, -175, d, 140);
+    e.esc = true; /* a warship: her 12 cm guns are manned (ROE's gun posts) */
     ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(33.5, 4.2, 8), e });
   }
   {
@@ -643,7 +644,7 @@ const SITES = [],
       Ls = u1 - u0,
       per = 2 * Ls + 2 * Math.PI * R,
       e = ship(ukuruR(), 78, u0, d0, 140),
-      y0 = e.m.position.y,
+      y0 = (e.esc = true) && e.m.position.y /* a warship: her 12 cm guns are manned */,
       oy = -e.k0 - e.s1 / 2; /* mesh-local y = model y + oy */
     const MAT = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }),
       guns = [];
@@ -783,7 +784,7 @@ const SITES = [],
   const T14W = (SITE.t14w = { hits: 0, msgT: 0, fired: 0 }),
     TSP = 21.6,
     TRUN = 2000;
-  const t14Hot = () => AA.on && SIMS.cur.afloat && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
+  const t14Hot = () => SIMS.cur.shipsOn() && SIMS.cur.afloat && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
   const t14Fish = (RUN, x, z, yw) => {
     const o = new THREE.Object3D();
     const wk = shipWakeMesh(8 / 78, 0.05);
@@ -1578,6 +1579,7 @@ const SITES = [],
       per = 2 * Ls + 2 * Math.PI * R;
     FR = F;
     const e = target(ukuruR(), 'ship', 140, 78 * 0.3, u0, d0, F.ryS);
+    e.esc = true; /* a warship: her 12 cm guns are manned */
     FR = SITE;
     const y0 = e.m.position.y,
       oy = -e.k0 - e.s1 / 2,

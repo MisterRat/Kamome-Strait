@@ -1,6 +1,6 @@
 /* ENEMY (Settings): which enemies the game sends against her. Saved; none by default. Planes: the air raids (THE AIR RAIDS).
    Shore: the P-51 world's ground fire (AA.on: the 25 mm guns and searchlights, laid on the ship) and THE COAST BATTERIES.
-   Ships and subs come into the game as each enemy is built. */
+   Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (the role's shipsOn). Subs come into the game when they are built. */
 const ENEMY = {
   mode: store.get('enemy', 'none'),
   has(k) {
@@ -23,7 +23,10 @@ function enemySync() {
         (ENEMY.has('shore')
           ? "Shore: the ports' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
           : '') +
-        (ENEMY.has('ships') || ENEMY.has('subs') ? 'Still being built: the Ukuru-class escort as an enemy (ships) and the submarines (subs).' : '');
+        (ENEMY.has('ships')
+          ? "Ships: the Ukuru-class escorts' 12 cm guns open fire inside about 12 km, and the T-14 torpedo boats make torpedo runs from about 3 km. "
+          : '') +
+        (ENEMY.has('subs') ? 'Still being built: the submarines (subs).' : '');
 }
 if ($$('enMode'))
   $$('enMode').onchange = (e) => {

@@ -1,8 +1,10 @@
-/* a shell's segment a-b against the raiders: like the sleeves, a kill zone round the aircraft sized to the rounds per kill */
-function raidHit(a, b, s) {
+/* a shell's segment a-b against the raiders: like the sleeves, a kill zone round the aircraft sized to the rounds per kill. own: fired
+   by the player's gun (game mode's larger zones); the AI crews' rounds always use the real figures, Hardcore's (the user's,
+   2026-11-21: the AI gunners shot down every raider) */
+function raidHit(a, b, s, own) {
   for (const e of RAID.L) {
     if (e.st === 'down') continue;
-    const kr = (RAIDKR[Object.keys(GSPEC).find((k) => GSPEC[k] === s)] || [6, 6])[FM.use('aa') ? 0 : 1],
+    const kr = (RAIDKR[Object.keys(GSPEC).find((k) => GSPEC[k] === s)] || [6, 6])[FM.use('aa') || !own ? 0 : 1],
       r = s.vt || kr;
     if (a.distanceToSquared(e.p) > (r + 200) ** 2) continue;
     if (!segHit(a, b, e.p, r)) continue;

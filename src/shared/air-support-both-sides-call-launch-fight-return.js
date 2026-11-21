@@ -19,8 +19,8 @@ var AIRSUP = (() => {
     SCRAMBLE = 90,
     AREA = 3000,
     SPEC = {
-      us: { name: 'P-51', V: 150, VA: 175, ammo: 24, fuel: 3 * 3600, hit: 0.06, dmg: 3, alt: 1500, cs: 'PONY' },
-      jp: { name: 'Ki-84', V: 140, VA: 170, ammo: 15, fuel: 2 * 3600, hit: 0.07, dmg: 5, alt: 1200, cs: 'FRANK' },
+      us: { name: 'P-51', V: 150, VA: 175, ammo: 24, fuel: 3 * 3600, hit: 0.03, dmg: 3, alt: 1500, cs: 'PONY' },
+      jp: { name: 'Ki-84', V: 140, VA: 170, ammo: 15, fuel: 2 * 3600, hit: 0.035, dmg: 5, alt: 1200, cs: 'FRANK' },
     };
   /* the fields: a place on the runway's middle, the runway's heading, the ground */
   const fields = (side) => {
@@ -271,6 +271,8 @@ var AIRSUP = (() => {
           u.fuel -= dt * 2;
           const to = q.sub(u.p),
             d = to.length();
+          /* a hit's chance per second of firing (S.hit / 0.25: about 12% for the P-51s, 14% for the Ki-84s; it was 24% and 28%, and
+             the fighters shot down everything they met: the user's, 2026-11-21), inside 450 m and within about 10 deg of her */
           if (d < 450 && to.normalize().dot(w.copy(u.v).normalize()) > 0.985 && fire(u, B.p, dt, 1)) {
             if (B.en) damageE(B.en, S.dmg);
             else if (B.raid) {
