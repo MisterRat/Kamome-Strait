@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.79';
+const VERSION = '5.80';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -742,6 +742,8 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
+    coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
+    shelled: () => {} /* a coast gun's shell has struck the player's vehicle */,
     torpedoed: () => {},
     label: '',
     fileTag: '',
@@ -9974,6 +9976,7 @@ const AFLD = {
         if (o.hs) o.hs.matrixAutoUpdate = true;
       }
       if (o.ctl) continue; /* the repair routine drives these */
+      if (o.tgt && o.tgt.dead) continue; /* destroyed: it stops where it is (VEH) */
       if (o.hs) {
         /* fuelling: while the truck stands at an aircraft a hose lies from its side to the wing root */
         const sp = o.pts[o.at],
@@ -15297,13 +15300,16 @@ function damage(t, d) {
 }
 function killT(t) {
   t.dead = true;
-  killed++;
-  t.m.scale.y = 0.3;
-  t.m.position.y = t.type === 'ship' || t.y0 === undefined ? H(t.c.x, t.c.z) + t.s1 * 0.15 : t.y0 - t.s1 * 0.35; /* squashed onto the surface it stood on */
-  if (t.type === 'ship') t.m.rotation.z = (t.c.x % 2 > 1 ? 1 : -1) * 0.2; /* a ship settles by the side as it burns */
+  if (t.side !== 'us') killed++; /* an Allied one lost is not a kill */
+  if (t.type === 'ship' && typeof VEH !== 'undefined') VEH.sinkStart(t) /* a ship sinks (VEH) */;
+  else {
+    t.m.scale.y = 0.3;
+    t.m.position.y = t.type === 'ship' || t.y0 === undefined ? H(t.c.x, t.c.z) + t.s1 * 0.15 : t.y0 - t.s1 * 0.35; /* squashed onto the surface it stood on */
+  }
   if (t.lit) t.lit.visible = false; /* the lights go out */
   t.m.traverse((o) => {
     if (o.userData.wake) return void (o.visible = false); /* she is stopped: no wake (and its material is every ship's) */
+    if (t.mov && o.material && o.material.color && !o.isPoints && !o.userData.own) ((o.material = o.material.clone()), (o.userData.own = true)); /* a vehicle's material may be shared with others (the fleet's PCE with the player's): its own copy */
     if (o.material && o.material.color && !o.isPoints) {
       o.userData.c0 = o.material.color.getHex();
       o.material.color.set(0x1a1a1a);
@@ -15311,6 +15317,11 @@ function killT(t) {
   });
   explode(t.c.clone().add(new V(0, t.s1 * 0.5, 0)), t.type == 'fuel' ? 16 : t.type == 'hangar' ? 20 : 9);
   if (t.type == 'fuel' || t.type == 'tanker') blast(t.c, t.type == 'fuel' ? 22 : 14, 40);
+  if (t.side === 'us') {
+    if (t.c.distanceTo(cam.position) < 8000) note(t.type === 'ship' ? 'ALLIED SHIP SUNK' : t.type === 'plane' ? 'ALLIED AIRCRAFT DESTROYED' : 'ALLIED VEHICLE DESTROYED');
+    return;
+  }
+  if (t.mov && t.c.distanceTo(cam.position) > 8000) return; /* an enemy vehicle lost far off (to the Allied guns): no word */
   if (!RPL.on && !RPL.busy) AF.target(t);
   if (t.kind !== 'veh' || trn.mode === 'convoy')
     note(t.kind == 'bld' ? 'BUILDING DESTROYED' : t.kind == 'veh' ? 'VEHICLE DESTROYED' : t.type == 'ship' ? 'SHIP SUNK' : t.type == 'plane' ? 'AIRCRAFT DESTROYED ON THE GROUND' : t.type == 'tower' ? 'CONTROL TOWER DESTROYED' : t.type == 'crane' ? 'CRANE DESTROYED' : t.type == 'aa25' ? 'FLAK GUN DESTROYED' : t.type == 'coast12' ? 'COAST GUN KNOCKED OUT' : t.type == 'sl150' ? 'SEARCHLIGHT DESTROYED' : 'TARGET DESTROYED');
@@ -15571,6 +15582,7 @@ function resetWeapons() {
   T.forEach((t) => {
     t.dead = false;
     t.hp = t.hp0;
+    if (t.sunk) ((t.sunk = false), (t.m.visible = true)); /* a sunk ship afloat again */
     t.m.scale.y = 1;
     t.m.position.y = t.type === 'ship' && t.k0 !== undefined ? SEA.WL + t.k0 + t.s1 / 2 : t.y0 !== undefined ? t.y0 : H(t.c.x, t.c.z) + t.s1 / 2; /* a ship back on her waterline, anything else where it was set down */
     if (t.type === 'ship') t.m.rotation.z = 0;
@@ -20250,7 +20262,7 @@ const COAST = {
           let sea = false;
           for (let k = 20; k <= 250 && !sea; k += 20) {
             const [sx, sz] = F.w(u, d + k);
-            sea = H(sx, sz) < SEA + 0.05;
+            sea = H(sx, sz) < sea0 + 0.05; /* the sea level (SEA is an object: this compared with a string and no battery was ever placed) */
           }
           if (sea) best = [u, d, x, z];
         }
@@ -20261,6 +20273,185 @@ const COAST = {
     }
   };
 }
+/* the guns' ballistics: the same drag law as the PCE's own guns (GSPEC), from the muzzle down to the sea */
+function coastFly(p0, el, yaw, out) {
+  let x = 0,
+    y = p0.y,
+    vx = COAST.MV * Math.cos(el),
+    vy = COAST.MV * Math.sin(el),
+    t = 0;
+  const h = 0.05;
+  while (t < 90) {
+    const v = Math.hypot(vx, vy),
+      k = COAST.K * Math.exp(-Math.max(0, y) / 9145) * v;
+    vx *= 1 - k * h;
+    vy *= 1 - k * h;
+    vy -= 9.81 * h;
+    x += vx * h;
+    y += vy * h;
+    t += h;
+    if (y <= coastSea() + 2 && vy < 0) break;
+  }
+  if (out) (out.r = x), (out.t = t);
+  return x;
+}
+/* the elevation that throws a shell r metres (the lower trajectory), and its time of flight */
+function coastSolve(p0, r, out) {
+  let lo = COAST.EL0,
+    hi = COAST.EL1;
+  const o = {};
+  if (coastFly(p0, hi, 0, o) < r) return null;
+  for (let i = 0; i < 22; i++) {
+    const m = (lo + hi) / 2;
+    if (coastFly(p0, m, 0) < r) lo = m;
+    else hi = m;
+  }
+  coastFly(p0, hi, 0, o);
+  out.el = hi;
+  out.t = o.t;
+  return out;
+}
+const _cg = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+/* the shell effects: the PCE's own where the page has them, else the shared ones */
+const coastFx = (p, col, s0, s1, life, vy, add) => (typeof gunFx === 'function' ? gunFx(p, col, s0, s1, life, vy, add) : fxAdd(p, col, s0, s1, life, vy, add));
+/* the coast guns at work (shared: every page; the user's, 2026-11-21). They fire when the current simulator says the shore enemies
+   are on (its role's coastOn: the PCE's Enemy setting, the P-51's Ground Fire). At the player's ship when she is afloat and in range,
+   else at the nearest Allied ship they can see (targets of opportunity): never at an aircraft (a 12 cm gun laid by hand, +33 deg) */
+function coastUpdate(dt) {
+  const on = SIMS.cur.coastOn() && started && !crashed && trn.mode === 'free';
+  COAST.msgT = Math.max(0, COAST.msgT - dt);
+  if (!on && !COAST.S.length) return;
+  const night = WX.lt || 0,
+    tgt = new THREE.Vector3(pos.x, coastSea() + 3, pos.z),
+    sol = {};
+  for (const g of COAST.G) {
+    g.rec = Math.max(0, g.rec - dt * 1.5);
+    g.bar.position.x = -0.45 * g.rec;
+    if (g.t.dead || !on) continue;
+    /* the target, once a second: the PCE if she is in range and in sight; else (targets of opportunity, RULES OF ENGAGEMENT) the
+       nearest Allied ship it can see in range (a fleet PCE or PT boat, the Liberty) */
+    const maxR = night > 0.35 ? 3000 : 14000;
+    if ((g.vt = (g.vt || 0) - dt) <= 0) {
+      g.vt = 1;
+      const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
+        was = g.tg;
+      g.tg = null;
+      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt);
+      if (!g.sees && typeof ROE !== 'undefined') {
+        const u = ROE.pickAlly(g.p, maxR, false);
+        if (u && aaSees(g.p, new THREE.Vector3(u.p.x, coastSea() + 3, u.p.z))) ((g.tg = u), (g.sees = true));
+      }
+      if (g.tg !== was) g.n = 0; /* a new target: the layers start again */
+    }
+    if (!g.sees) {
+      g.n = 0;
+      continue;
+    }
+    const tp = g.tg ? new THREE.Vector3(g.tg.p.x, coastSea() + 3, g.tg.p.z) : tgt,
+      tv = g.tg ? g.tg.v : vel;
+    /* lead her: where she will be when the shell comes down, from her course and speed now (two passes) */
+    let aim = tp.clone(),
+      ok = true;
+    for (let it = 0; it < 2 && ok; it++) {
+      const r = Math.hypot(aim.x - g.p.x, aim.z - g.p.z);
+      ok = !!coastSolve(g.p, r, sol);
+      if (ok) aim = tp.clone().addScaledVector(tv, sol.t);
+    }
+    if (!ok) continue;
+    const r = Math.hypot(aim.x - g.p.x, aim.z - g.p.z),
+      wy = Math.atan2(-(aim.z - g.p.z), aim.x - g.p.x); /* GX yaw: 0 = +x, + toward -z */
+    /* the layers' error, applied to the aim: range (a fraction) and line (radians) */
+    if (!g.n) {
+      g.er = _cg() * 0.07;
+      g.ed = _cg() * 0.012;
+    }
+    coastSolve(g.p, r * (1 + g.er), sol);
+    const want = wy + g.ed - g.home,
+      dy = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw));
+    g.yaw += Math.max(-0.12 * dt, Math.min(0.12 * dt, dy)); /* hand training, about 7 deg a second */
+    g.el += Math.max(-0.08 * dt, Math.min(0.08 * dt, sol.el - g.el));
+    g.tur.rotation.y = g.yaw;
+    g.bar.rotation.z = g.el;
+    g.cd -= dt;
+    if (g.cd <= 0 && Math.abs(dy) < 0.01 && Math.abs(sol.el - g.el) < 0.004) {
+      g.cd = COAST.RLD * (0.9 + Math.random() * 0.25);
+      g.n++;
+      /* the round: out along the bore, plus the gun's own spread and the layers' (about 2 mils in elevation, 1.5 in line) */
+      const az = g.home + g.yaw + _cg() * 0.0015,
+        e2 = g.el + _cg() * 0.002,
+        dir = new THREE.Vector3(Math.cos(az) * Math.cos(e2), Math.sin(e2), -Math.sin(az) * Math.cos(e2)),
+        mz = g.p.clone().addScaledVector(dir, 4.6);
+      COAST.S.push({ p: mz.clone(), v: dir.multiplyScalar(COAST.MV * (1 + _cg() * 0.0015)), t: 0, g, aimR: r, tg: g.tg });
+      g.rec = 1;
+      coastFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
+      coastFx(mz, 0x9a9890, 4, 22, 3.5, 0.8, false);
+      const d = mz.distanceTo(cam.position);
+      SND.burst(900, 60, 0.7, Math.min(0.9, 2.2 / (1 + d / 400)), 0.8, 'lowpass', Math.min(8, d / 340));
+      if (COAST.msgT <= 0 && !g.tg) {
+        note('SHORE BATTERY FIRING!');
+        if (typeof RADIO !== 'undefined') RADIO.add('LOOKOUT', 'GUN FLASHES ON THE BEACH, BEARING ' + raidBrg(g.p) + '!');
+        COAST.msgT = 40;
+      }
+    }
+  }
+  /* the shells in flight; each splash is spotted from the battery and the next round corrected */
+  const L = new THREE.Vector3(),
+    a = new THREE.Vector3();
+  for (let i = COAST.S.length - 1; i >= 0; i--) {
+    const s = COAST.S[i];
+    a.copy(s.p);
+    const v = s.v.length(),
+      k = COAST.K * Math.exp(-Math.max(0, s.p.y) / 9145) * v;
+    s.v.multiplyScalar(1 - k * dt);
+    s.v.y -= 9.81 * dt;
+    s.p.addScaledVector(s.v, dt);
+    s.t += dt;
+    /* the whistle as it comes down near her */
+    if (!s.wh && s.v.y < 0 && s.p.distanceTo(cam.position) < 900) {
+      s.wh = true;
+      SND.tone(1500, 420, 1.4, 0.25, 'sine');
+    }
+    /* through her hull or superstructure on this step? */
+    let hit = false;
+    for (let j = 1; j <= 6 && !hit && !s.tg; j++) {
+      L.copy(a).lerp(s.p, j / 6);
+      hit = SIMS.cur.afloat && SIMS.cur.struck(L);
+    }
+    let hitA = false;
+    if (s.tg && ROE.hitAlly(s.tg, a, s.p, 30)) ((hitA = true), L.copy(s.p)); /* an Allied ship (counted on her) */
+    const sea = s.p.y <= coastSea(),
+      land = !sea && s.p.y < H(s.p.x, s.p.z);
+    if (!hit && !hitA && !sea && !land && s.t < 90) continue;
+    const g = s.g;
+    if (hitA) {
+      coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
+      coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
+    } else if (hit) {
+      COAST.hits++;
+      SIMS.cur.shelled();
+      coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
+      coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
+      note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');
+      SND.burst(700, 50, 1.2, 1, 0.7);
+    } else if (sea) {
+      if (typeof gunSplash === 'function') gunSplash(s.p, { splash: 1.5 });
+      else fxAdd(s.p, 0xe8eef0, 4, 14, 1.2, 4, false);
+      const md = Math.hypot(s.p.x - pos.x, s.p.z - pos.z);
+      if (md < 40 && COAST.msgT < 30) note('NEAR MISS!');
+    } else if (typeof gunBurst === 'function') gunBurst(s.p, { splash: 1.2, blast: null }, false);
+    else explode(s.p.clone(), 6);
+    /* spotting: the battery sees the splash short / over and left / right, and corrects half the error */
+    if (g && !g.t.dead) {
+      g.er *= 0.45 + Math.random() * 0.2;
+      g.ed *= 0.45 + Math.random() * 0.2;
+      if (Math.abs(g.er) < 0.012) g.er = _cg() * 0.012;
+      if (Math.abs(g.ed) < 0.003) g.ed = _cg() * 0.003; /* the battery's own limit: rangefinding by eye and stadia, hand-cranked laying */
+    }
+    COAST.S.splice(i, 1);
+  }
+}
+
+HOOKS.tick.push((dt) => coastUpdate(dt)); /* every page */
 /* ===== end of THE COAST BATTERIES ===== */
 const SITES = [],
   SITE_OBJ = [];
@@ -20488,6 +20679,7 @@ const SITES = [],
   /* anchored hulls ride the waves where they lie (RIDE); each entry: { m, base y, yaw, ride, e (its target, if any) } */
   const ANCH = [];
   const rideAt = (o, dt) => {
+    if (o.tgt && o.tgt.dead) return; /* sunk (VEH) */
     if (o.e && o.e.dead) return;
     const m = o.m;
     if (!o.cb) {
@@ -22253,10 +22445,24 @@ const SITES = [],
       };
       bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
-    /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts (an American one, o.us, is not) */
-    if (!o.us)
-      c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
-    if (c.t) T.push(c.t);
+    /* a target: it sinks where it is hit and stays down until the flight restarts (the Liberty too, t.side 'us': not the player's kill) */
+    c.t = {
+      m,
+      lit: null,
+      c: m.position,
+      r: len * 0.3,
+      hp: len * 1.6,
+      hp0: len * 1.6,
+      type: 'ship',
+      dead: false,
+      s1,
+      k0,
+      col: 0x555555,
+      kind: 'civ',
+      side: o.us ? 'us' : 'jp',
+      mov: true,
+    };
+    T.push(c.t); /* a target: the Japanese ones the player's, an American one hurt by whoever hits her (every vehicle a target, VEH) */
     m.rotation.y = c.yaw;
     m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */
     return c;
@@ -22281,11 +22487,10 @@ const SITES = [],
   /* RULES OF ENGAGEMENT: a merchant ship runs from any attack: under way when hit (or, an American one, fired on), she turns back for
      the port she left (her place on the other leg of her run); not again for two minutes */
   const civFlee = (c, t) => {
-    const hp = c.t ? c.t.hp : 0,
-      hit = c.t ? !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen : c.underFire && c.underFire > (c.fledAt || 0);
-    if (c.t) c.hpSeen = hp;
+    const hp = c.t.hp,
+      hit = !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen;
+    c.hpSeen = hp;
     if (!hit || t - (c.fledT || -1e9) < 120) return;
-    c.fledAt = performance.now();
     const cyc = 2 * (c.L / c.v + c.dock),
       tt = (((t + c.phase) % cyc) + cyc) % cyc,
       run = c.L / c.v;
@@ -22296,7 +22501,7 @@ const SITES = [],
     c.phase += t2 - tt;
     c.fledT = t;
     c.ctt = undefined; /* her cargo check starts afresh (the jump in her timetable is not a call at a jetty) */
-    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t ? 'THE FREIGHTER TURNS BACK' : 'THE LIBERTY SHIP TURNS BACK');
+    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t.side === 'us' ? 'THE LIBERTY SHIP TURNS BACK' : 'THE FREIGHTER TURNS BACK');
   };
   const updCiv = (c, t, dt) => {
     if (c.t && c.t.dead) {
@@ -22356,7 +22561,7 @@ const SITES = [],
     c.m.children[0].visible = moving;
     /* the Daihatsu: at anchor (the first or the second dock period) she shuttles ship -> jetty -> ship; at sea it waits at the jetty */
     const B = c.bg;
-    if (B) {
+    if (B && !(B.tgt && B.tgt.dead)) {
       const atB = tt >= c.dock + c.L / c.v,
         F = atB ? B.FB : B.FA,
         dd = atB ? B.dB : B.dA,
@@ -22981,13 +23186,13 @@ var BASEAIR = (() => {
     us = () => FS.nav.find((s) => s.navy === 'us'),
     field = () => FS.list.find((s) => s.id === 'air3');
   /* Kakuta's fighters still on the field (its parked Ki-84s, targets of their own) */
-  const fightersLeft = (A) => T.some((q) => q.type === 'plane' && !q.dead && Math.hypot(q.c.x - A.O.x, q.c.z - A.O.z) < A.R + 500);
+  const fightersLeft = (A) => T.some((q) => q.type === 'plane' && !q.dead && q.side !== 'us' && Math.hypot(q.c.x - A.O.x, q.c.z - A.O.z) < A.R + 500);
   return {
     /* a target hit: is it Port Ugaki's? */
     hit(q) {
       const B = jp(),
         A = field();
-      if (!B || !A || !q || !q.c || due >= 0 || t - last < AGAIN) return;
+      if (!B || !A || !q || !q.c || q.side === 'us' || due >= 0 || t - last < AGAIN) return;
       if (Math.hypot(q.c.x - B.O.x, q.c.z - B.O.z) > B.R + 300) return;
       last = t;
       if (!fightersLeft(A)) return note('INTERCEPT: ' + B.title.toUpperCase() + ' CALLS ' + A.title.toUpperCase() + ' - NO ANSWER');
@@ -23019,6 +23224,95 @@ var BASEAIR = (() => {
   };
 })();
 HOOKS.tick.push((dt) => BASEAIR.tick(dt));
+/* every vehicle a target (the user's, 2026-11-21: all vehicles should be targetable and take damage when hit; AI damage). Each moving
+   or moored vehicle the world has that was not a target yet gets an entry in T, so every weapon that strikes T strikes it: the
+   P-51's guns, bombs and rockets, the PCE's shells, the blasts, and the Japanese and Allied guns (RULES OF ENGAGEMENT). They are:
+   the Allied fleet (PCEs, PT boats), the craft at anchor and moored (the PT boats at PT Base Halsey, the Japanese boats and lighters),
+   the merchant ships' boats (a Daihatsu, an LCM), and the vehicles at work on the airfields and bases (trucks, jeeps, the taxiing
+   fighter). t.side says whose it is ('us' or 'jp'): the Allied ones are not the player's kills and no Allied gun picks them (a stray
+   round still hurts them). Hit points: a ship 1.6 a metre of her length (as the merchant ships), a vehicle 8 (as a truck).
+   AI damage: a ship below 60% smokes and, if she is under way on her own (the fleet), slows with her damage; at none she sinks (she
+   settles by the stern over half a minute and is gone); a vehicle burns where it stops (killT). A vehicle that is destroyed stops:
+   its own mover sees t.dead (o.tgt). */
+var VEH = (() => {
+  let done = false;
+  const sink = [];
+  /* whose: by where it is (the Japanese hold everything but Fletcher Field, Kamome Field and the US Navy's bases) */
+  const sideAt = (x, z) =>
+    Math.hypot(x, z) < 4000 ||
+    (typeof ISL !== 'undefined' && Math.hypot(x - ISL.F.x, z - ISL.F.z) < 6000) ||
+    FS.nav.some((s) => s.navy !== 'jp' && Math.hypot(x - s.O.x, z - s.O.z) < s.R + 600)
+      ? 'us'
+      : 'jp';
+  const add = (m, o, f) => {
+    if (!m || T.some((q) => q.m === m)) return null;
+    const bb = new THREE.Box3().setFromObject(m),
+      L = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z),
+      t = Object.assign(
+        { m, lit: null, c: m.position, r: Math.max(1.5, L / 2), dead: false, s1: Math.max(1, bb.max.y - bb.min.y), col: 0x555555, y0: m.position.y, mov: true },
+        f(L),
+      );
+    t.hp0 = t.hp;
+    T.push(t);
+    if (o) o.tgt = t;
+    return t;
+  };
+  const init = () => {
+    if (done || !SITE.civ) return;
+    done = true;
+    if (typeof AFLD !== 'undefined')
+      for (const o of AFLD.a) {
+        if (o.kind === 'ship')
+          (add(o.m, o, () => ({ type: 'ship', kind: 'ally', rk: o.L > 40 ? 'pce' : 'pt', side: 'us', hp: o.L * 1.6, r: o.L * 0.3 })), (o.sp0 = o.sp));
+        else if (o.kind === 'veh' || o.kind === 'plane') {
+          const s = sideAt(o.x, o.z);
+          add(o.m, o, () => ({ type: o.kind === 'plane' ? 'plane' : 'veh', kind: 'veh', rk: 'veh', side: s, hp: o.kind === 'plane' ? 6 : 8 }));
+        }
+      }
+    for (const o of SITE.anch || []) {
+      const s = sideAt(o.m.position.x, o.m.position.z);
+      add(o.m, o, (L) => ({ type: 'ship', kind: s === 'us' ? 'ally' : 'boat', rk: s === 'us' && L > 20 ? 'pt' : 'boat', side: s, hp: L * 1.6, r: L * 0.3 }));
+    }
+    for (const c of SITE.civ)
+      if (c.bg) {
+        const s = c.t ? c.t.side || 'jp' : 'us';
+        add(c.bg.m, c.bg, (L) => ({ type: 'ship', kind: 'civ', rk: 'boat', side: s, hp: L * 1.6, r: L * 0.3 }));
+      }
+  };
+  /* a ship's end: she sinks (killT hands her over) */
+  const sinkStart = (t) => sink.push({ t, y: t.m.position.y, k: 0 });
+  const tick = (dt) => {
+    init();
+    for (let i = sink.length - 1; i >= 0; i--) {
+      const s = sink[i],
+        t = s.t;
+      if (!t.dead) {
+        sink.splice(i, 1);
+        continue;
+      }
+      s.k += dt / 30;
+      t.m.position.y = s.y - (t.s1 + 3) * Math.min(1, s.k * s.k * 1.4);
+      t.m.rotation.z = Math.min(0.35, s.k * 0.6) * (t.c.x % 2 > 1 ? 1 : -1);
+      if (Math.random() < dt * 4 && s.k < 0.8) fxAdd(t.c.clone().setY(s.y + t.s1 * 0.5), 0x2a2826, 4, 16, 3, 2, false);
+      if (s.k >= 1) {
+        t.m.visible = false;
+        t.sunk = true;
+        sink.splice(i, 1);
+      }
+    }
+    /* damaged ships smoke; the fleet's slow with their damage */
+    VEH.sT = (VEH.sT || 0) + dt;
+    if (VEH.sT > 0.3) {
+      VEH.sT = 0;
+      for (const t of T)
+        if (!t.dead && t.type === 'ship' && t.hp0 && t.hp < 0.6 * t.hp0 && t.m.visible !== false && t.c.distanceTo(cam.position) < 6000)
+          fxAdd(t.c.clone().setY(t.c.y + t.s1 * 0.6), 0x2f2d2b, 2, 10, 2.5, 2.5, false);
+      if (typeof AFLD !== 'undefined') for (const o of AFLD.a) if (o.tgt && o.sp0) o.sp = o.sp0 * (0.35 + 0.65 * Math.max(0, o.tgt.hp / o.tgt.hp0));
+    }
+  };
+  HOOKS.tick.push(tick);
+  return { init, sideAt, sinkStart };
+})();
 /* RULES OF ENGAGEMENT (the user's, 2026-11-21).
    Targets of opportunity: every armed unit on both sides engages any enemy in range that it can see: aircraft, ships, boats and
    shore guns. Merchant ships and their boats never fire (a Liberty's Naval Armed Guard does: her 20 mm).
@@ -23033,7 +23327,7 @@ HOOKS.tick.push((dt) => BASEAIR.tick(dt));
    (ROE.allies, ROE.hitAlly). Each unit's own rules are in its own piece (raiders, bandits, T-14s, the merchant ships, the air
    support's P-51s, the PCE's gun crews). var: other pieces may ask before this one has run. */
 var ROE = (() => {
-  const STR = { fighter: 2, pce: 6, pt: 2, escort: 6, t14: 3, aa: 1, coast: 2, merchant: 0.5 };
+  const STR = { fighter: 2, pce: 6, pt: 2, escort: 6, t14: 3, aa: 1, coast: 2, merchant: 0.5, veh: 0, boat: 0 };
   const V3 = THREE.Vector3;
   /* an Allied AI unit (the player's own vehicle is not one: the guns have their own ways at her) */
   const wrap = new WeakMap();
@@ -23043,31 +23337,20 @@ var ROE = (() => {
     return u;
   };
   const allies = () => {
+    if (typeof VEH !== 'undefined') VEH.init();
     const L = [];
-    if (typeof AFLD !== 'undefined')
-      for (const o of AFLD.a)
-        if (o.kind === 'ship' && o.m)
-          L.push(
-            unit(o, () => ({
-              kind: o.L > 40 ? 'pce' : 'pt',
-              air: false,
-              p: o.m.position,
-              r: o.L * 0.45,
-              hurt() {},
-            })),
-          );
-    if (SITE.civ)
-      for (const c of SITE.civ)
-        if (!c.t)
-          L.push(
-            unit(c, () => ({
-              kind: 'merchant',
-              air: false,
-              p: c.m.position,
-              r: c.len * 0.45,
-              hurt: () => (c.underFire = performance.now()) /* she runs (the merchant ships' rule) */,
-            })),
-          );
+    /* every Allied vehicle (VEH: the fleet, the boats at the PT base, the Liberty and her LCM, the vehicles at work) */
+    for (const q of T)
+      if (q.side === 'us' && !q.dead && q.m.visible !== false)
+        L.push(
+          unit(q, () => ({
+            kind: q.rk || (q.kind === 'civ' ? 'merchant' : 'veh'),
+            air: false,
+            p: q.c,
+            r: q.r,
+            hurt: (d) => damage(q, d),
+          })),
+        );
     if (typeof CAP !== 'undefined' && SIMS.on('pce'))
       for (const f of CAP.L)
         if (!f.down)
@@ -23102,7 +23385,7 @@ var ROE = (() => {
     if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ kind: 'fighter', air: true, p: e.p, k: e.hp0 ? e.hp / e.hp0 : 1 });
     if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ kind: 'fighter', air: true, p: e.p, k: e.dmg ? 0.5 : 1 });
     for (const t of T)
-      if (!t.dead && t.type === 'ship' && t.kind !== 'civ' && t.m && t.m.visible !== false)
+      if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.kind !== 'boat' && t.m && t.m.visible !== false)
         L.push({ kind: t.r < 10 ? 't14' : 'escort', air: false, p: t.c, k: t.hp0 ? t.hp / t.hp0 : 1 });
     for (const g of AA.gun) if (!g.t.dead && !g.ship) L.push({ kind: 'aa', air: false, p: g.piv, k: 1 });
     if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) L.push({ kind: 'coast', air: false, p: g.p, k: 1 });
@@ -23129,14 +23412,14 @@ var ROE = (() => {
     let best = null,
       bd = R;
     for (const u of alliesNow()) {
-      if (air === false && u.air) continue;
+      if (air === false && (u.air || !u.o || u.o.type !== 'ship')) continue; /* air false: ships only (the coast guns) */
       const d = u.p.distanceTo(p);
       if (d < bd) ((bd = d), (best = u));
     }
     return best;
   };
   /* a round's segment a-b against an Allied unit: a hit counts on it */
-  const hitAlly = (u, a, b) => {
+  const hitAlly = (u, a, b, dmg = 1) => {
     if (!u || (u.o && u.o.down)) return false;
     const ab = new V3().subVectors(b, a),
       l2 = ab.lengthSq(),
@@ -23145,7 +23428,7 @@ var ROE = (() => {
     const dy = u.air ? 0 : Math.max(0, c.y - (u.p.y + 6)); /* a ship's hull and upperworks: about 6 m above her waterline */
     if (Math.hypot(c.x - u.p.x, (u.air ? c.y - u.p.y : dy) * 1, c.z - u.p.z) > (u.air ? u.r : Math.min(u.r, 8))) return false;
     u.hits++;
-    u.hurt();
+    u.hurt(dmg);
     if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.2, 3, 0.15, 0, true);
     return true;
   };
@@ -23159,17 +23442,31 @@ var ROE = (() => {
   const tl = new THREE.LineSegments(tg, new THREE.LineBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.9 }));
   tl.frustumCulled = false;
   scene.add(tl);
-  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm */
-  const GUNS = { pce: [2500, 4, 0.006, 1], pt: [1500, 6, 0.008, 0.5], merchant: [1500, 3, 0.009, 0.5] };
+  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm.
+     They engage enemy aircraft first; with none in reach, an enemy vessel or shore gun (targets of opportunity) */
+  const GUNS = {
+    pce: [2500, 4, 0.006, 4],
+    pt: [1500, 6, 0.008, 1.5],
+    merchant: [1500, 3, 0.009, 1.5],
+  }; /* damage as the PCE's own 40 mm and 20 mm (GSPEC hit) */
   const air = () => {
     const L = [];
     if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ e, p: e.p, v: e.v || new V3(), en: true });
     if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ e, p: e.p, v: e.v, en: false });
     return L;
   };
+  /* the enemy's vessels and shore guns, for the Allied guns */
+  const surf = () => {
+    const L = [];
+    for (const q of T)
+      if (!q.dead && q.side !== 'us' && (q.type === 'ship' || q.kind === 'aa') && q.m.visible !== false)
+        L.push({ q, p: q.c, v: q.ringV || new V3(), sea: true });
+    return L;
+  };
   const tick = (dt) => {
-    const A = started && !crashed ? air() : [];
-    if (A.length)
+    const A = started && !crashed ? air() : [],
+      S = started && !crashed ? surf() : [];
+    if (A.length || S.length)
       for (const u of alliesNow()) {
         const G = GUNS[u.kind];
         if (!G) continue;
@@ -23181,6 +23478,11 @@ var ROE = (() => {
           const d = a.p.distanceTo(u.p);
           if (d < bd && a.p.y > u.p.y + 20) ((bd = d), (best = a));
         }
+        if (!best)
+          for (const a of S) {
+            const d = a.p.distanceTo(u.p);
+            if (d < bd * 0.8) ((bd = d), (best = a));
+          }
         if (!best) continue;
         u.cd = 1 / G[1];
         const o = u.p.clone().add(new V3(0, 5, 0)),
@@ -23204,7 +23506,21 @@ var ROE = (() => {
       b.p.addScaledVector(b.v, dt);
       let dead = b.t > 3.5;
       const e = b.tg.e;
-      if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
+      if (!dead && b.tg.sea) {
+        const q = b.tg.q;
+        if (q.dead) dead = true;
+        else {
+          const ab = new V3().subVectors(b.p, a),
+            l2 = ab.lengthSq(),
+            k = Math.max(0, Math.min(1, new V3().subVectors(q.c, a).dot(ab) / l2)),
+            c = a.clone().addScaledVector(ab, k);
+          if (Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
+            dead = true;
+            if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.5, 4, 0.2, 0, true);
+            damage(q, b.dmg);
+          } else if (b.p.y < SEA.WL) dead = true;
+        }
+      } else if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
         const ab = new V3().subVectors(b.p, a),
           l2 = ab.lengthSq(),
           t = Math.max(0, Math.min(1, new V3().subVectors(e.p, a).dot(ab) / l2));
@@ -30627,6 +30943,7 @@ function drawCompass(hdg) {
   for (const tt of T) {
     if (
       tt.dead ||
+      tt.side === 'us' /* an Allied vehicle is no target */ ||
       !(
         trn.mode === 'free' ||
         (trn.mode === 'convoy' && tt.kind === 'veh') ||

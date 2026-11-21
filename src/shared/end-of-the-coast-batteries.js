@@ -225,6 +225,7 @@ const SITES = [],
   /* anchored hulls ride the waves where they lie (RIDE); each entry: { m, base y, yaw, ride, e (its target, if any) } */
   const ANCH = [];
   const rideAt = (o, dt) => {
+    if (o.tgt && o.tgt.dead) return; /* sunk (VEH) */
     if (o.e && o.e.dead) return;
     const m = o.m;
     if (!o.cb) {
@@ -1990,10 +1991,24 @@ const SITES = [],
       };
       bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
-    /* under the Hinomaru, so a target: it sinks where it is hit and stays down until the flight restarts (an American one, o.us, is not) */
-    if (!o.us)
-      c.t = { m, lit: null, c: m.position, r: len * 0.3, hp: len * 1.6, hp0: len * 1.6, type: 'ship', dead: false, s1, k0, col: 0x555555, kind: 'civ' };
-    if (c.t) T.push(c.t);
+    /* a target: it sinks where it is hit and stays down until the flight restarts (the Liberty too, t.side 'us': not the player's kill) */
+    c.t = {
+      m,
+      lit: null,
+      c: m.position,
+      r: len * 0.3,
+      hp: len * 1.6,
+      hp0: len * 1.6,
+      type: 'ship',
+      dead: false,
+      s1,
+      k0,
+      col: 0x555555,
+      kind: 'civ',
+      side: o.us ? 'us' : 'jp',
+      mov: true,
+    };
+    T.push(c.t); /* a target: the Japanese ones the player's, an American one hurt by whoever hits her (every vehicle a target, VEH) */
     m.rotation.y = c.yaw;
     m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */
     return c;
@@ -2018,11 +2033,10 @@ const SITES = [],
   /* RULES OF ENGAGEMENT: a merchant ship runs from any attack: under way when hit (or, an American one, fired on), she turns back for
      the port she left (her place on the other leg of her run); not again for two minutes */
   const civFlee = (c, t) => {
-    const hp = c.t ? c.t.hp : 0,
-      hit = c.t ? !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen : c.underFire && c.underFire > (c.fledAt || 0);
-    if (c.t) c.hpSeen = hp;
+    const hp = c.t.hp,
+      hit = !c.t.dead && c.hpSeen !== undefined && hp < c.hpSeen;
+    c.hpSeen = hp;
     if (!hit || t - (c.fledT || -1e9) < 120) return;
-    c.fledAt = performance.now();
     const cyc = 2 * (c.L / c.v + c.dock),
       tt = (((t + c.phase) % cyc) + cyc) % cyc,
       run = c.L / c.v;
@@ -2033,7 +2047,7 @@ const SITES = [],
     c.phase += t2 - tt;
     c.fledT = t;
     c.ctt = undefined; /* her cargo check starts afresh (the jump in her timetable is not a call at a jetty) */
-    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t ? 'THE FREIGHTER TURNS BACK' : 'THE LIBERTY SHIP TURNS BACK');
+    if (c.m.position.distanceTo(cam.position) < 6000) note(c.t.side === 'us' ? 'THE LIBERTY SHIP TURNS BACK' : 'THE FREIGHTER TURNS BACK');
   };
   const updCiv = (c, t, dt) => {
     if (c.t && c.t.dead) {
@@ -2093,7 +2107,7 @@ const SITES = [],
     c.m.children[0].visible = moving;
     /* the Daihatsu: at anchor (the first or the second dock period) she shuttles ship -> jetty -> ship; at sea it waits at the jetty */
     const B = c.bg;
-    if (B) {
+    if (B && !(B.tgt && B.tgt.dead)) {
       const atB = tt >= c.dock + c.L / c.v,
         F = atB ? B.FB : B.FA,
         dd = atB ? B.dB : B.dA,

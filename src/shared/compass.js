@@ -64,6 +64,7 @@ function drawCompass(hdg) {
   for (const tt of T) {
     if (
       tt.dead ||
+      tt.side === 'us' /* an Allied vehicle is no target */ ||
       !(
         trn.mode === 'free' ||
         (trn.mode === 'convoy' && tt.kind === 'veh') ||

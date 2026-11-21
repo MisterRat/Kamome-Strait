@@ -64,7 +64,7 @@ function gunRings() {
     const reach = G.id === '20' ? 4000 : G.id === '40' ? 9000 : 13340,
       now = performance.now() / 1000;
     for (const t of T) {
-      if (t.dead || !(t.kind === 'aa' || (t.type === 'ship' && t.kind !== 'civ')) || !t.m.visible) continue;
+      if (t.dead || t.side === 'us' || !(t.kind === 'aa' || (t.type === 'ship' && t.kind !== 'civ')) || !t.m.visible) continue;
       const p = t.ringP || (t.ringP = new V()),
         v = t.ringV || (t.ringV = new V());
       /* steadied (the 3"/50's ring jittered on the warships): the aim point held at her waterline, not riding her pitch and heave, and

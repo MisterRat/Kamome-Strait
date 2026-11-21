@@ -15,13 +15,13 @@ var BASEAIR = (() => {
     us = () => FS.nav.find((s) => s.navy === 'us'),
     field = () => FS.list.find((s) => s.id === 'air3');
   /* Kakuta's fighters still on the field (its parked Ki-84s, targets of their own) */
-  const fightersLeft = (A) => T.some((q) => q.type === 'plane' && !q.dead && Math.hypot(q.c.x - A.O.x, q.c.z - A.O.z) < A.R + 500);
+  const fightersLeft = (A) => T.some((q) => q.type === 'plane' && !q.dead && q.side !== 'us' && Math.hypot(q.c.x - A.O.x, q.c.z - A.O.z) < A.R + 500);
   return {
     /* a target hit: is it Port Ugaki's? */
     hit(q) {
       const B = jp(),
         A = field();
-      if (!B || !A || !q || !q.c || due >= 0 || t - last < AGAIN) return;
+      if (!B || !A || !q || !q.c || q.side === 'us' || due >= 0 || t - last < AGAIN) return;
       if (Math.hypot(q.c.x - B.O.x, q.c.z - B.O.z) > B.R + 300) return;
       last = t;
       if (!fightersLeft(A)) return note('INTERCEPT: ' + B.title.toUpperCase() + ' CALLS ' + A.title.toUpperCase() + ' - NO ANSWER');

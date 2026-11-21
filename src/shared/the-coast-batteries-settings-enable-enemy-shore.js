@@ -145,7 +145,7 @@ const COAST = {
           let sea = false;
           for (let k = 20; k <= 250 && !sea; k += 20) {
             const [sx, sz] = F.w(u, d + k);
-            sea = H(sx, sz) < SEA + 0.05;
+            sea = H(sx, sz) < sea0 + 0.05; /* the sea level (SEA is an object: this compared with a string and no battery was ever placed) */
           }
           if (sea) best = [u, d, x, z];
         }

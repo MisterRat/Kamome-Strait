@@ -162,6 +162,7 @@ const AFLD = {
         if (o.hs) o.hs.matrixAutoUpdate = true;
       }
       if (o.ctl) continue; /* the repair routine drives these */
+      if (o.tgt && o.tgt.dead) continue; /* destroyed: it stops where it is (VEH) */
       if (o.hs) {
         /* fuelling: while the truck stands at an aircraft a hose lies from its side to the wing root */
         const sp = o.pts[o.at],

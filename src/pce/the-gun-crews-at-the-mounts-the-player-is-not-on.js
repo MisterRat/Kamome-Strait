@@ -29,7 +29,7 @@ function crewStep(dt) {
         for (const e of RAID.L) if (e.st !== 'down' && e.p.distanceTo(mz) < Math.min(rA, bd)) ((bd = e.p.distanceTo(mz)), (best = { p: e.p, v: e.v, e }));
       if (!best && shore) {
         for (const t of T)
-          if (!t.dead && t.type === 'ship' && t.kind !== 'civ' && t.m.visible !== false) {
+          if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.m.visible !== false) {
             const d = t.c.distanceTo(mz);
             if (d < Math.min(rS, bd)) ((bd = d), (best = { p: t.c, t }));
           }

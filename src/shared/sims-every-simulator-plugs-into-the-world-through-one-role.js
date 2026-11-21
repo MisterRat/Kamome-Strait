@@ -96,6 +96,8 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
+    coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
+    shelled: () => {} /* a coast gun's shell has struck the player's vehicle */,
     torpedoed: () => {},
     label: '',
     fileTag: '',

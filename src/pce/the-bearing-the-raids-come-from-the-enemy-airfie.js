@@ -1,7 +1,7 @@
 /* the bearing the raids come from: the enemy airfield (its parked fighters), or the north if it is not in the world */
 function raidHome() {
   if (RAID.home) return RAID.home;
-  const pl = T.filter((t) => t.type === 'plane');
+  const pl = T.filter((t) => t.type === 'plane' && t.side !== 'us');
   if (pl.length) {
     const c = new THREE.Vector3();
     for (const t of pl) c.add(t.c);

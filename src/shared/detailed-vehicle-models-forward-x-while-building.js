@@ -410,13 +410,16 @@ function damage(t, d) {
 }
 function killT(t) {
   t.dead = true;
-  killed++;
-  t.m.scale.y = 0.3;
-  t.m.position.y = t.type === 'ship' || t.y0 === undefined ? H(t.c.x, t.c.z) + t.s1 * 0.15 : t.y0 - t.s1 * 0.35; /* squashed onto the surface it stood on */
-  if (t.type === 'ship') t.m.rotation.z = (t.c.x % 2 > 1 ? 1 : -1) * 0.2; /* a ship settles by the side as it burns */
+  if (t.side !== 'us') killed++; /* an Allied one lost is not a kill */
+  if (t.type === 'ship' && typeof VEH !== 'undefined') VEH.sinkStart(t) /* a ship sinks (VEH) */;
+  else {
+    t.m.scale.y = 0.3;
+    t.m.position.y = t.type === 'ship' || t.y0 === undefined ? H(t.c.x, t.c.z) + t.s1 * 0.15 : t.y0 - t.s1 * 0.35; /* squashed onto the surface it stood on */
+  }
   if (t.lit) t.lit.visible = false; /* the lights go out */
   t.m.traverse((o) => {
     if (o.userData.wake) return void (o.visible = false); /* she is stopped: no wake (and its material is every ship's) */
+    if (t.mov && o.material && o.material.color && !o.isPoints && !o.userData.own) ((o.material = o.material.clone()), (o.userData.own = true)); /* a vehicle's material may be shared with others (the fleet's PCE with the player's): its own copy */
     if (o.material && o.material.color && !o.isPoints) {
       o.userData.c0 = o.material.color.getHex();
       o.material.color.set(0x1a1a1a);
@@ -424,6 +427,11 @@ function killT(t) {
   });
   explode(t.c.clone().add(new V(0, t.s1 * 0.5, 0)), t.type == 'fuel' ? 16 : t.type == 'hangar' ? 20 : 9);
   if (t.type == 'fuel' || t.type == 'tanker') blast(t.c, t.type == 'fuel' ? 22 : 14, 40);
+  if (t.side === 'us') {
+    if (t.c.distanceTo(cam.position) < 8000) note(t.type === 'ship' ? 'ALLIED SHIP SUNK' : t.type === 'plane' ? 'ALLIED AIRCRAFT DESTROYED' : 'ALLIED VEHICLE DESTROYED');
+    return;
+  }
+  if (t.mov && t.c.distanceTo(cam.position) > 8000) return; /* an enemy vehicle lost far off (to the Allied guns): no word */
   if (!RPL.on && !RPL.busy) AF.target(t);
   if (t.kind !== 'veh' || trn.mode === 'convoy')
     note(t.kind == 'bld' ? 'BUILDING DESTROYED' : t.kind == 'veh' ? 'VEHICLE DESTROYED' : t.type == 'ship' ? 'SHIP SUNK' : t.type == 'plane' ? 'AIRCRAFT DESTROYED ON THE GROUND' : t.type == 'tower' ? 'CONTROL TOWER DESTROYED' : t.type == 'crane' ? 'CRANE DESTROYED' : t.type == 'aa25' ? 'FLAK GUN DESTROYED' : t.type == 'coast12' ? 'COAST GUN KNOCKED OUT' : t.type == 'sl150' ? 'SEARCHLIGHT DESTROYED' : 'TARGET DESTROYED');

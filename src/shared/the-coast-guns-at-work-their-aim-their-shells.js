@@ -15,8 +15,13 @@ function coastSolve(p0, r, out) {
   return out;
 }
 const _cg = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+/* the shell effects: the PCE's own where the page has them, else the shared ones */
+const coastFx = (p, col, s0, s1, life, vy, add) => (typeof gunFx === 'function' ? gunFx(p, col, s0, s1, life, vy, add) : fxAdd(p, col, s0, s1, life, vy, add));
+/* the coast guns at work (shared: every page; the user's, 2026-11-21). They fire when the current simulator says the shore enemies
+   are on (its role's coastOn: the PCE's Enemy setting, the P-51's Ground Fire). At the player's ship when she is afloat and in range,
+   else at the nearest Allied ship they can see (targets of opportunity): never at an aircraft (a 12 cm gun laid by hand, +33 deg) */
 function coastUpdate(dt) {
-  const on = typeof ENEMY !== 'undefined' && ENEMY.has('shore') && started && !crashed && trn.mode === 'free';
+  const on = SIMS.cur.coastOn() && started && !crashed && trn.mode === 'free';
   COAST.msgT = Math.max(0, COAST.msgT - dt);
   if (!on && !COAST.S.length) return;
   const night = WX.lt || 0,
@@ -34,7 +39,7 @@ function coastUpdate(dt) {
       const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
         was = g.tg;
       g.tg = null;
-      g.sees = R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt);
+      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt);
       if (!g.sees && typeof ROE !== 'undefined') {
         const u = ROE.pickAlly(g.p, maxR, false);
         if (u && aaSees(g.p, new THREE.Vector3(u.p.x, coastSea() + 3, u.p.z))) ((g.tg = u), (g.sees = true));
@@ -57,7 +62,7 @@ function coastUpdate(dt) {
     }
     if (!ok) continue;
     const r = Math.hypot(aim.x - g.p.x, aim.z - g.p.z),
-      wy = Math.atan2(-(aim.z - g.p.z), aim.x - g.p.x) /* GX yaw: 0 = +x, + toward -z */;
+      wy = Math.atan2(-(aim.z - g.p.z), aim.x - g.p.x); /* GX yaw: 0 = +x, + toward -z */
     /* the layers' error, applied to the aim: range (a fraction) and line (radians) */
     if (!g.n) {
       g.er = _cg() * 0.07;
@@ -66,7 +71,7 @@ function coastUpdate(dt) {
     coastSolve(g.p, r * (1 + g.er), sol);
     const want = wy + g.ed - g.home,
       dy = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw));
-    g.yaw += Math.max(-0.12 * dt, Math.min(0.12 * dt, dy)) /* hand training, about 7 deg a second */;
+    g.yaw += Math.max(-0.12 * dt, Math.min(0.12 * dt, dy)); /* hand training, about 7 deg a second */
     g.el += Math.max(-0.08 * dt, Math.min(0.08 * dt, sol.el - g.el));
     g.tur.rotation.y = g.yaw;
     g.bar.rotation.z = g.el;
@@ -81,13 +86,13 @@ function coastUpdate(dt) {
         mz = g.p.clone().addScaledVector(dir, 4.6);
       COAST.S.push({ p: mz.clone(), v: dir.multiplyScalar(COAST.MV * (1 + _cg() * 0.0015)), t: 0, g, aimR: r, tg: g.tg });
       g.rec = 1;
-      gunFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
-      gunFx(mz, 0x9a9890, 4, 22, 3.5, 0.8, false);
+      coastFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
+      coastFx(mz, 0x9a9890, 4, 22, 3.5, 0.8, false);
       const d = mz.distanceTo(cam.position);
       SND.burst(900, 60, 0.7, Math.min(0.9, 2.2 / (1 + d / 400)), 0.8, 'lowpass', Math.min(8, d / 340));
       if (COAST.msgT <= 0 && !g.tg) {
         note('SHORE BATTERY FIRING!');
-        RADIO.add('LOOKOUT', 'GUN FLASHES ON THE BEACH, BEARING ' + raidBrg(g.p) + '!');
+        if (typeof RADIO !== 'undefined') RADIO.add('LOOKOUT', 'GUN FLASHES ON THE BEACH, BEARING ' + raidBrg(g.p) + '!');
         COAST.msgT = 40;
       }
     }
@@ -113,29 +118,31 @@ function coastUpdate(dt) {
     let hit = false;
     for (let j = 1; j <= 6 && !hit && !s.tg; j++) {
       L.copy(a).lerp(s.p, j / 6);
-      hit = shipStruck(L);
+      hit = SIMS.cur.afloat && SIMS.cur.struck(L);
     }
     let hitA = false;
-    if (s.tg && ROE.hitAlly(s.tg, a, s.p)) ((hitA = true), L.copy(s.p)); /* an Allied ship (counted on her) */
+    if (s.tg && ROE.hitAlly(s.tg, a, s.p, 30)) ((hitA = true), L.copy(s.p)); /* an Allied ship (counted on her) */
     const sea = s.p.y <= coastSea(),
       land = !sea && s.p.y < H(s.p.x, s.p.z);
     if (!hit && !hitA && !sea && !land && s.t < 90) continue;
     const g = s.g;
     if (hitA) {
-      gunFx(L, 0xffa040, 6, 16, 0.5, 0, true);
-      gunFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
+      coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
+      coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
     } else if (hit) {
       COAST.hits++;
-      sdmHit('shell');
-      gunFx(L, 0xffa040, 6, 16, 0.5, 0, true);
-      gunFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
+      SIMS.cur.shelled();
+      coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
+      coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
       note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');
       SND.burst(700, 50, 1.2, 1, 0.7);
     } else if (sea) {
-      gunSplash(s.p, { splash: 1.5 });
+      if (typeof gunSplash === 'function') gunSplash(s.p, { splash: 1.5 });
+      else fxAdd(s.p, 0xe8eef0, 4, 14, 1.2, 4, false);
       const md = Math.hypot(s.p.x - pos.x, s.p.z - pos.z);
       if (md < 40 && COAST.msgT < 30) note('NEAR MISS!');
-    } else gunBurst(s.p, { splash: 1.2, blast: null }, false);
+    } else if (typeof gunBurst === 'function') gunBurst(s.p, { splash: 1.2, blast: null }, false);
+    else explode(s.p.clone(), 6);
     /* spotting: the battery sees the splash short / over and left / right, and corrects half the error */
     if (g && !g.t.dead) {
       g.er *= 0.45 + Math.random() * 0.2;
@@ -146,3 +153,5 @@ function coastUpdate(dt) {
     COAST.S.splice(i, 1);
   }
 }
+
+HOOKS.tick.push((dt) => coastUpdate(dt)); /* every page */

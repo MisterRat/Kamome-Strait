@@ -64,6 +64,8 @@ SIMS.add({
   afloat: true,
   struck: (p) => shipStruck(p),
   torpedoed: () => sdmHit('torpedo'),
+  coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
+  shelled: () => sdmHit('shell'),
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */
@@ -86,7 +88,6 @@ SIMS.add({
      The P-51's weapons, enemies, missions and guidance stay off until the PCE has her own */
   liveLate: (dt) => {
     if (AA.on) updAA(dt);
-    coastUpdate(dt);
   },
   /* the station's eye (SHIP.EYE), turned by the station's own look and the head; at a gun, the gun's sight */
   eye: (P, D) => {

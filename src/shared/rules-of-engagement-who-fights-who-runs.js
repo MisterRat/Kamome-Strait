@@ -12,7 +12,7 @@
    (ROE.allies, ROE.hitAlly). Each unit's own rules are in its own piece (raiders, bandits, T-14s, the merchant ships, the air
    support's P-51s, the PCE's gun crews). var: other pieces may ask before this one has run. */
 var ROE = (() => {
-  const STR = { fighter: 2, pce: 6, pt: 2, escort: 6, t14: 3, aa: 1, coast: 2, merchant: 0.5 };
+  const STR = { fighter: 2, pce: 6, pt: 2, escort: 6, t14: 3, aa: 1, coast: 2, merchant: 0.5, veh: 0, boat: 0 };
   const V3 = THREE.Vector3;
   /* an Allied AI unit (the player's own vehicle is not one: the guns have their own ways at her) */
   const wrap = new WeakMap();
@@ -22,31 +22,20 @@ var ROE = (() => {
     return u;
   };
   const allies = () => {
+    if (typeof VEH !== 'undefined') VEH.init();
     const L = [];
-    if (typeof AFLD !== 'undefined')
-      for (const o of AFLD.a)
-        if (o.kind === 'ship' && o.m)
-          L.push(
-            unit(o, () => ({
-              kind: o.L > 40 ? 'pce' : 'pt',
-              air: false,
-              p: o.m.position,
-              r: o.L * 0.45,
-              hurt() {},
-            })),
-          );
-    if (SITE.civ)
-      for (const c of SITE.civ)
-        if (!c.t)
-          L.push(
-            unit(c, () => ({
-              kind: 'merchant',
-              air: false,
-              p: c.m.position,
-              r: c.len * 0.45,
-              hurt: () => (c.underFire = performance.now()) /* she runs (the merchant ships' rule) */,
-            })),
-          );
+    /* every Allied vehicle (VEH: the fleet, the boats at the PT base, the Liberty and her LCM, the vehicles at work) */
+    for (const q of T)
+      if (q.side === 'us' && !q.dead && q.m.visible !== false)
+        L.push(
+          unit(q, () => ({
+            kind: q.rk || (q.kind === 'civ' ? 'merchant' : 'veh'),
+            air: false,
+            p: q.c,
+            r: q.r,
+            hurt: (d) => damage(q, d),
+          })),
+        );
     if (typeof CAP !== 'undefined' && SIMS.on('pce'))
       for (const f of CAP.L)
         if (!f.down)
@@ -81,7 +70,7 @@ var ROE = (() => {
     if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ kind: 'fighter', air: true, p: e.p, k: e.hp0 ? e.hp / e.hp0 : 1 });
     if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ kind: 'fighter', air: true, p: e.p, k: e.dmg ? 0.5 : 1 });
     for (const t of T)
-      if (!t.dead && t.type === 'ship' && t.kind !== 'civ' && t.m && t.m.visible !== false)
+      if (!t.dead && t.side !== 'us' && t.type === 'ship' && t.kind !== 'civ' && t.kind !== 'boat' && t.m && t.m.visible !== false)
         L.push({ kind: t.r < 10 ? 't14' : 'escort', air: false, p: t.c, k: t.hp0 ? t.hp / t.hp0 : 1 });
     for (const g of AA.gun) if (!g.t.dead && !g.ship) L.push({ kind: 'aa', air: false, p: g.piv, k: 1 });
     if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) L.push({ kind: 'coast', air: false, p: g.p, k: 1 });
@@ -108,14 +97,14 @@ var ROE = (() => {
     let best = null,
       bd = R;
     for (const u of alliesNow()) {
-      if (air === false && u.air) continue;
+      if (air === false && (u.air || !u.o || u.o.type !== 'ship')) continue; /* air false: ships only (the coast guns) */
       const d = u.p.distanceTo(p);
       if (d < bd) ((bd = d), (best = u));
     }
     return best;
   };
   /* a round's segment a-b against an Allied unit: a hit counts on it */
-  const hitAlly = (u, a, b) => {
+  const hitAlly = (u, a, b, dmg = 1) => {
     if (!u || (u.o && u.o.down)) return false;
     const ab = new V3().subVectors(b, a),
       l2 = ab.lengthSq(),
@@ -124,7 +113,7 @@ var ROE = (() => {
     const dy = u.air ? 0 : Math.max(0, c.y - (u.p.y + 6)); /* a ship's hull and upperworks: about 6 m above her waterline */
     if (Math.hypot(c.x - u.p.x, (u.air ? c.y - u.p.y : dy) * 1, c.z - u.p.z) > (u.air ? u.r : Math.min(u.r, 8))) return false;
     u.hits++;
-    u.hurt();
+    u.hurt(dmg);
     if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.2, 3, 0.15, 0, true);
     return true;
   };
@@ -138,17 +127,31 @@ var ROE = (() => {
   const tl = new THREE.LineSegments(tg, new THREE.LineBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.9 }));
   tl.frustumCulled = false;
   scene.add(tl);
-  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm */
-  const GUNS = { pce: [2500, 4, 0.006, 1], pt: [1500, 6, 0.008, 0.5], merchant: [1500, 3, 0.009, 0.5] };
+  /* a gun of each ship: [range, rounds a second, spread (rad), damage]: the PCE's 40 mm, a PT boat's 20 mm and .50s, a Liberty's 20 mm.
+     They engage enemy aircraft first; with none in reach, an enemy vessel or shore gun (targets of opportunity) */
+  const GUNS = {
+    pce: [2500, 4, 0.006, 4],
+    pt: [1500, 6, 0.008, 1.5],
+    merchant: [1500, 3, 0.009, 1.5],
+  }; /* damage as the PCE's own 40 mm and 20 mm (GSPEC hit) */
   const air = () => {
     const L = [];
     if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone) L.push({ e, p: e.p, v: e.v || new V3(), en: true });
     if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down') L.push({ e, p: e.p, v: e.v, en: false });
     return L;
   };
+  /* the enemy's vessels and shore guns, for the Allied guns */
+  const surf = () => {
+    const L = [];
+    for (const q of T)
+      if (!q.dead && q.side !== 'us' && (q.type === 'ship' || q.kind === 'aa') && q.m.visible !== false)
+        L.push({ q, p: q.c, v: q.ringV || new V3(), sea: true });
+    return L;
+  };
   const tick = (dt) => {
-    const A = started && !crashed ? air() : [];
-    if (A.length)
+    const A = started && !crashed ? air() : [],
+      S = started && !crashed ? surf() : [];
+    if (A.length || S.length)
       for (const u of alliesNow()) {
         const G = GUNS[u.kind];
         if (!G) continue;
@@ -160,6 +163,11 @@ var ROE = (() => {
           const d = a.p.distanceTo(u.p);
           if (d < bd && a.p.y > u.p.y + 20) ((bd = d), (best = a));
         }
+        if (!best)
+          for (const a of S) {
+            const d = a.p.distanceTo(u.p);
+            if (d < bd * 0.8) ((bd = d), (best = a));
+          }
         if (!best) continue;
         u.cd = 1 / G[1];
         const o = u.p.clone().add(new V3(0, 5, 0)),
@@ -183,7 +191,21 @@ var ROE = (() => {
       b.p.addScaledVector(b.v, dt);
       let dead = b.t > 3.5;
       const e = b.tg.e;
-      if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
+      if (!dead && b.tg.sea) {
+        const q = b.tg.q;
+        if (q.dead) dead = true;
+        else {
+          const ab = new V3().subVectors(b.p, a),
+            l2 = ab.lengthSq(),
+            k = Math.max(0, Math.min(1, new V3().subVectors(q.c, a).dot(ab) / l2)),
+            c = a.clone().addScaledVector(ab, k);
+          if (Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
+            dead = true;
+            if (typeof fxAdd === 'function') fxAdd(c, 0xffd080, 1.5, 4, 0.2, 0, true);
+            damage(q, b.dmg);
+          } else if (b.p.y < SEA.WL) dead = true;
+        }
+      } else if (!dead && (b.tg.en ? !e.dying : e.st !== 'down')) {
         const ab = new V3().subVectors(b.p, a),
           l2 = ab.lengthSq(),
           t = Math.max(0, Math.min(1, new V3().subVectors(e.p, a).dot(ab) / l2));
