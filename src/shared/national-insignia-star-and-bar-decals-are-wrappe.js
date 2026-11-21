@@ -1,4 +1,4 @@
-/* national insignia (star-and-bar): decals are wrapped onto the real surface so they never clip or float */
+/* national insignia (star-and-bar): shapes wrapped onto the real surface so they never clip or float */
 {
   const wingY = (X, z, sg) => {
     const u = Math.min(1, Math.abs(X) / WSEMI),
@@ -6,46 +6,93 @@
       vz = Math.max(-0.5, Math.min(0.5, (z - zl) / (wzh(u) - zl) - 0.5));
     return WR + sg * 0.5 * (0.38 - 0.24 * u) * (1 - 0.75 * Math.pow(2 * vz, 2)) + u * WD;
   };
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 128;
-  const g = c.getContext('2d'),
-    blue = '#1c3a7a',
-    white = '#f2f2f2';
-  g.fillStyle = blue;
-  g.fillRect(6, 46, 244, 36);
-  g.fillStyle = white;
-  g.fillRect(12, 52, 232, 24);
-  g.fillStyle = blue;
-  g.beginPath();
-  g.arc(128, 64, 60, 0, 7);
-  g.fill();
-  g.fillStyle = white;
-  g.beginPath();
-  for (let i = 0; i < 10; i++) {
+  /* the star-and-bar as shapes, not a picture: drawn on a 256 x 128 sheet (the old decal's layout), cut into regions that do not
+     overlap (the bar's blue border, the white bar, the blue disc round the star, the white star), triangulated, the triangles split
+     until they are small enough to follow the skin, and each corner laid on the surface by the decal's own wrap fn(u, v). Vertex
+     coloured, so a copy of the aircraft (P51DISP) carries the markings in its one mesh. */
+  const blue = 0x1c3a7a,
+    white = 0xf2f2f2,
+    CX = 128,
+    CY = 64,
+    RD = 60;
+  const ring = (n, r) => Array.from({ length: n }, (_, i) => [CX + r * Math.cos((i / n) * 2 * Math.PI), CY + r * Math.sin((i / n) * 2 * Math.PI)]);
+  const star = Array.from({ length: 10 }, (_, i) => {
     const an = -Math.PI / 2 + (i * Math.PI) / 5,
       r = i % 2 ? 15 : 38;
-    g.lineTo(128 + Math.cos(an) * r, 64 + Math.sin(an) * r);
-  }
-  g.closePath();
-  g.fill();
-  const dm = new THREE.MeshLambertMaterial({
-    map: new THREE.CanvasTexture(c),
-    transparent: true,
-    alphaTest: 0.1,
-    side: THREE.DoubleSide,
+    return [CX + Math.cos(an) * r, CY + Math.sin(an) * r];
   });
-  const decal = (nu, nv, fn) => {
-    const gm = new THREE.PlaneGeometry(1, 1, nu, nv),
-      uv = gm.attributes.uv,
-      p = gm.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const q = fn(uv.getX(i), uv.getY(i));
-      p.setXYZ(i, q[0], q[1], q[2]);
+  /* a strip x0..x1, y0..y1 across the disc, less the disc: its left and right pieces */
+  const strip = (x0, y0, x1, y1) => {
+    const xs = (y) => Math.sqrt(RD * RD - (y - CY) * (y - CY)),
+      L = [[x0, y0]],
+      Rr = [[x1, y1]];
+    for (let k = 0; k <= 8; k++) {
+      const y = y0 + ((y1 - y0) * k) / 8;
+      L.push([CX - xs(y), y]);
     }
+    L.push([x0, y1]);
+    for (let k = 0; k <= 8; k++) {
+      const y = y1 - ((y1 - y0) * k) / 8;
+      Rr.push([CX + xs(y), y]);
+    }
+    Rr.push([x1, y0]);
+    return [L, Rr];
+  };
+  const REGIONS = [
+    [white, star, []],
+    [blue, ring(48, RD), [star]],
+    ...strip(12, 52, 244, 76).map((p) => [white, p, []]),
+    ...strip(6, 46, 250, 52).map((p) => [blue, p, []]),
+    ...strip(6, 76, 250, 82).map((p) => [blue, p, []]),
+    [blue, [[6, 52], [12, 52], [12, 76], [6, 76]], []],
+    [blue, [[244, 52], [250, 52], [250, 76], [244, 76]], []],
+  ];
+  const im = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  /* out: the side the marking faces (every triangle is turned to face it, so a copy drawn one-sided keeps it) */
+  const decal = (nu, nv, fn, out) => {
+    const P = [],
+      C = [],
+      col = new THREE.Color(),
+      put = (a) => {
+        const q = fn(a[0] / 256, 1 - a[1] / 128);
+        P.push(q[0], q[1], q[2]);
+        C.push(col.r, col.g, col.b);
+      };
+    const tri = (a, b, c) => {
+      const d = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]),
+        ab = d(a, b),
+        bc = d(b, c),
+        ca = d(c, a),
+        m = Math.max(ab, bc, ca);
+      if (m <= 9) {
+        const A = fn(a[0] / 256, 1 - a[1] / 128),
+          B = fn(b[0] / 256, 1 - b[1] / 128),
+          Cc = fn(c[0] / 256, 1 - c[1] / 128),
+          ux = B[0] - A[0],
+          uy = B[1] - A[1],
+          uz = B[2] - A[2],
+          vx = Cc[0] - A[0],
+          vy = Cc[1] - A[1],
+          vz = Cc[2] - A[2];
+        return (uy * vz - uz * vy) * out[0] + (uz * vx - ux * vz) * out[1] + (ux * vy - uy * vx) * out[2] < 0 ? (put(a), put(c), put(b)) : (put(a), put(b), put(c));
+      }
+      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      if (m === ab) tri(a, mid(a, b), c), tri(mid(a, b), b, c);
+      else if (m === bc) tri(a, b, mid(b, c)), tri(a, mid(b, c), c);
+      else tri(a, b, mid(c, a)), tri(mid(c, a), b, c);
+    };
+    for (const [hex, outer, holes] of REGIONS) {
+      col.setHex(hex);
+      const V2 = (p) => new THREE.Vector2(p[0], p[1]),
+        all = outer.concat(...holes);
+      for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(outer.map(V2), holes.map((h) => h.map(V2)))) tri(all[a], all[b], all[c]);
+    }
+    const gm = new THREE.BufferGeometry();
+    gm.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    gm.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
     gm.computeVertexNormals();
     gm.computeBoundingSphere();
-    return add(gm, dm, 0, 0, 0);
+    return add(gm, im, 0, 0, 0);
   };
   /* fuselage sides: follow the tapering round body */
   [1, -1].forEach((s) => {
@@ -57,20 +104,20 @@
         ph = (v - 0.5) * 2 * f0,
         q = fusPt(z, ph, 0.008);
       return [s * q[0], q[1], z];
-    });
+    }, [s, 0, 0]);
   });
   /* upper left wing: follows taper, dihedral and airfoil thickness */
   decal(16, 8, (u, v) => {
     const X = -4.25 + u * 1.5,
       z = wmid(3.5 / WSEMI) + 0.375 - v * 0.75;
     return [X, wingY(X, z, 1) + 0.012, z];
-  });
+  }, [0, 1, 0]);
   /* lower right wing, inboard of the ordnance stations */
   decal(16, 8, (u, v) => {
     const X = 2.5 - u * 1.5,
       z = wmid(1.75 / WSEMI) + 0.375 - v * 0.75;
     return [X, wingY(X, z, -1) - 0.012, z];
-  });
+  }, [0, -1, 0]);
   /* ---- nose art (chosen in the pause menu): painted decals wrapped onto the cowling, plus a victory tally under the cockpit ---- */
   {
     const NW = 1024,

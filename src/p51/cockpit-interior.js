@@ -1,8 +1,4 @@
-/* ---------- cockpit interior ---------- */
-const ck = new THREE.Group();
-ck.scale.set(0.8, 0.88, 1); /* the cockpit is built roomy; the blueprint says the real one is narrower and sits lower, so it is fitted to the fuselage here */
-ck.position.y = -0.29;
-model.add(ck);
+/* ---------- cockpit interior (its group, ck, is the airframe's: see the cockpit group piece) ---------- */
 const pcv = document.createElement('canvas');
 pcv.width = 1024;
 pcv.height = 640;
@@ -260,13 +256,4 @@ function lamp(c, x, y, lbl, on, col) {
   c.textAlign = 'center';
   c.textBaseline = 'top';
   c.fillText(lbl, x, y + 16);
-}
-function bar(p1, p2, t, mat, par) {
-  const a = new V(p1[0], p1[1], p1[2]),
-    b = new V(p2[0], p2[1], p2[2]),
-    m = new THREE.Mesh(new THREE.BoxGeometry(t, t, a.distanceTo(b)), mat);
-  m.position.copy(a).add(b).multiplyScalar(0.5);
-  m.lookAt(b);
-  (par || ck).add(m);
-  return m;
 }

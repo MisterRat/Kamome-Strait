@@ -136,6 +136,7 @@ SIMS.add({
   hudLate: () => drawADF(),
   /* the start: on the runway's threshold, wings level, gear down */
   spawn: () => {
+    plane.visible = true;
     pos.set(0, 2, 420);
     q.identity();
   },

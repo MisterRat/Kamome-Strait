@@ -10,8 +10,15 @@
     acc.add(P, xf(x, 0.12, z, yaw));
     BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
   };
-  /* a parked P-51D: the scenery model built from the player's factory tables (MODELS 'us-p51d'), nose toward +x, wheels on y = 0 */
-  const fighter = (body, trim, o) => MODELS.get('us-p51d', body, trim, o);
+  /* a parked P-51D: the player's own aircraft in its parked form (P51DISP.parts: the same exterior and markings, in this livery),
+     nose toward +x, wheels on y = 0; o.air: gear up and level (the tow plane) */
+  const fighter = (body, trim, o) => P51DISP.parts(body, trim, o);
+  /* the parked ones stand on their own (P51DISP.parked: near and distant forms), not merged into the apron's mesh */
+  const placeLOD = (O, x, z, yaw, bl, bw) => {
+    O.applyMatrix4(xf(x, 0.12, z, yaw));
+    scene.add(O);
+    BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
+  };
   /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
   const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI, far: !!(o && o.far) });
 
@@ -46,7 +53,7 @@
     [-108, 456, 0, 0xb7bcc2, 0x1e4fa3, { tanks: 1, ang: 0.9 }],
     [-163, 220, 0.05, 0x5d6341, 0xd9b92a, { ang: 0.5 }],
     [-163, 290, -0.1, 0xb7bcc2, 0xb22a24, { ang: 0.1 }],
-  ].forEach((a) => place(fighterR(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
+  ].forEach((a) => placeLOD(P51DISP.parked(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
   place(fuelTruckR(0x56603f), -136, 345, -Z, 8, 3);
   place(cargoTruckR(), -140, 392, Z, 8, 3);
   place(jeepR(), -128, 422, 0.3, 4, 2.2);

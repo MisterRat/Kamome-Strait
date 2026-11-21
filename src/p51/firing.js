@@ -209,7 +209,8 @@ function resetWeapons() {
     t.m.position.y = t.type === 'ship' && t.k0 !== undefined ? SEA.WL + t.k0 + t.s1 / 2 : t.y0 !== undefined ? t.y0 : H(t.c.x, t.c.z) + t.s1 / 2; /* a ship back on her waterline, anything else where it was set down */
     if (t.type === 'ship') t.m.rotation.z = 0;
     t.m.traverse((o) => {
-      if (o.userData.c0 !== undefined) o.material.color.set(o.userData.c0);
+      if (o.userData.wake) o.visible = true;
+      else if (o.userData.c0 !== undefined) o.material.color.set(o.userData.c0);
     });
   });
   clearEnemies();

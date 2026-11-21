@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.67';
+const VERSION = '5.68';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -936,6 +936,7 @@ SIMS.add({
   hudLate: () => drawADF(),
   /* the start: on the runway's threshold, wings level, gear down */
   spawn: () => {
+    plane.visible = true;
     pos.set(0, 2, 420);
     q.identity();
   },
@@ -3122,7 +3123,7 @@ const GX = (() => {
           if (m) g.applyMatrix4(m);
         }
         if (q.c) cl.setRGB(q.c[0], q.c[1], q.c[2]);
-        else cl.setHex(q.hex);
+        else if (!q.vc) cl.setHex(q.hex);
         if (q.cf && q.cfE) subdiv(g, q.cfE);
         const p = g.attributes.position.array,
           n = g.attributes.normal.array;
@@ -3140,6 +3141,10 @@ const GX = (() => {
             cl.setHex(q.cf(v.x, v.y, v.z));
             this.c.push(cl.r, cl.g, cl.b);
           }
+        } else if (q.vc) {
+          /* a part that carries its own colours (q.vc: its geometry's colour attribute, e.g. a copy of the player's aircraft, P51DISP) */
+          const c = g.attributes.color.array;
+          for (let i = 0; i < p.length; i++) this.c.push(c[i]);
         } else for (let i = 0; i < p.length; i += 3) this.c.push(cl.r, cl.g, cl.b);
         g.dispose();
       }
@@ -3195,7 +3200,51 @@ const GX = (() => {
     }
     return out;
   };
-  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit };
+  /* a distant form by vertex clustering: every corner moves to the average of the corners in its cell (cell metres), and the
+     triangles that collapse go; colours and normals averaged per cell. For a model built from many pieces with no single
+     detail setting (the P-51); colours are kept apart (a corner merges only with corners of its own colour). A builder with one (the Ki-84's far) uses that instead. g: unindexed, with colour. */
+  const thin = (g, cell) => {
+    const p = g.attributes.position.array,
+      n = g.attributes.normal.array,
+      c = g.attributes.color.array,
+      key = new Int32Array(p.length / 3),
+      ids = new Map(),
+      S = [];
+    for (let i = 0; i < key.length; i++) {
+      const k =
+        Math.floor(p[i * 3] / cell) + ',' + Math.floor(p[i * 3 + 1] / cell) + ',' + Math.floor(p[i * 3 + 2] / cell) + ',' + Math.round(c[i * 3] * 31) + ',' + Math.round(c[i * 3 + 1] * 31) + ',' + Math.round(c[i * 3 + 2] * 31) /* corners of different colours never merge: no smeared paint */;
+      let id = ids.get(k);
+      if (id === undefined) ids.set(k, (id = S.length)), S.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+      const s = S[id];
+      for (let a = 0; a < 3; a++) (s[a] += p[i * 3 + a]), (s[3 + a] += n[i * 3 + a]), (s[6 + a] += c[i * 3 + a]);
+      s[9]++;
+      key[i] = id;
+    }
+    const P = [],
+      N = [],
+      C = [];
+    for (let t = 0; t < key.length; t += 3) {
+      const a = key[t],
+        b = key[t + 1],
+        d = key[t + 2];
+      if (a === b || b === d || a === d) continue;
+      for (const id of [a, b, d]) {
+        const s = S[id],
+          k = s[9],
+          l = Math.hypot(s[3], s[4], s[5]) || 1;
+        P.push(s[0] / k, s[1] / k, s[2] / k);
+        N.push(s[3] / l, s[4] / l, s[5] / l);
+        C.push(s[6] / k, s[7] / k, s[8] / k);
+      }
+    }
+    const o = new THREE.BufferGeometry();
+    o.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    o.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    o.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    o.computeBoundingSphere();
+    return o;
+  };
+  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin };
 })();
 /* ---------- model tools: profile extrusion, hull lofting and the MODELS registry ----------
    Every reference-built model (vehicles, ships, boats, crews, buildings) is a list of GX parts, nose or bow along +x, ground or
@@ -4450,315 +4499,6 @@ const MODELS = (() => {
     PSP.anisotropy = 4;
     return PSP;
   };
-})();
-/* ---------- the North American P-51D Mustang as a scenery model (parked on the line, or the tow plane) ----------
-   The player's P-51D is built from the factory general-arrangement drawing (the fuselage, canopy, wing, tail, scoop and landing-gear
-   pieces). This is the same aeroplane from the same tables, copied here so it can be built before those pieces load, at a scenery
-   budget: one vertex-coloured part list, no cockpit, no moving surfaces. Span 11.28 m (37 ft 0.25 in), length 9.83 m (387 in), wing
-   root chord 104 in, tip 50 in, 5 deg dihedral; main wheels 142 in apart at station 114 on 27 in tyres, 76.5 in below the reference
-   line; tail wheel at station 313; Hamilton Standard four-blade propeller, 11 ft 2 in. Stations are inches from the spinner tip.
-   Frame: nose +x, starboard +z. Parked: sitting on its three wheels in the three-point attitude (12.3 deg nose up), wheels on y = 0.
-   o.air: gear up, level, the thrust line at y = 1.4 (the tow plane). Paint: body (natural metal or olive drab), trim (spinner, nose band,
-   rudder), o.spin spinner, o.stripes invasion stripes, o.tanks two 75 gal drop tanks, o.ang propeller angle.
-   MODELS.get('us-p51d', body, trim, o) */
-(() => {
-  const { part, bx, cyl } = GX,
-    Z = Math.PI / 2,
-    IN = 0.0254,
-    X = (st) => 4.88 - st * IN /* station -> x (nose +x) */,
-    sst = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
-  /* the fuselage table: [station, half-width, top, bottom, squareness] (the factory drawing, as the player's model) */
-  const FUS = [
-    [27, 0.37, 0.42, -0.4, 2.3], [35, 0.385, 0.455, -0.55, 2.4], [50, 0.4, 0.495, -0.66, 2.5], [70, 0.42, 0.533, -0.735, 2.6],
-    [90, 0.445, 0.56, -0.77, 2.6], [110, 0.455, 0.577, -0.775, 2.6], [130, 0.46, 0.585, -0.775, 2.6], [180, 0.46, 0.585, -0.765, 2.6],
-    [222, 0.41, 0.577, -0.74, 2.6], [250, 0.34, 0.545, -0.6, 2.5], [280, 0.3, 0.52, -0.53, 2.4], [300, 0.28, 0.525, -0.47, 2.3],
-    [320, 0.25, 0.5, -0.41, 2.2], [340, 0.2, 0.4, -0.33, 2.2], [360, 0.14, 0.27, -0.18, 2.2], [380, 0.06, 0.12, -0.04, 2.1], [387, 0.0, 0.05, 0.0, 2.0],
-  ];
-  const fusAt = (st) => {
-    let i = 0;
-    while (i < FUS.length - 2 && st > FUS[i + 1][0]) i++;
-    const a = FUS[i],
-      b = FUS[i + 1],
-      u = Math.max(0, Math.min(1, (st - a[0]) / (b[0] - a[0])));
-    return a.map((v, k) => v + (b[k] - v) * u);
-  };
-  /* canopy: [station, top of the glass, squareness] */
-  const CAN = [
-    [129, 0.59, 3.4], [134, 0.67, 3.2], [140, 0.78, 3.0], [146, 0.875, 2.8], [150, 0.9, 2.6], [158, 0.927, 2.5], [170, 0.915, 2.5],
-    [180, 0.89, 2.5], [190, 0.85, 2.5], [200, 0.79, 2.5], [210, 0.71, 2.4], [216, 0.65, 2.4], [222, 0.58, 2.4],
-  ];
-  /* a loft through rows of points (each row a ring or loop), every triangle turned away from its rows' centre (so it faces out) */
-  const loft = (rows, hex, closed) => {
-    const pos = [],
-      idx = [],
-      n = rows[0].length,
-      C = rows.map((r) => r.reduce((s, p) => [s[0] + p[0] / n, s[1] + p[1] / n, s[2] + p[2] / n], [0, 0, 0]));
-    rows.forEach((r) => r.forEach((p) => pos.push(...p)));
-    const tri = (a, b, c, ca) => {
-      const P = (i) => pos.slice(i * 3, i * 3 + 3),
-        A = P(a),
-        B = P(b),
-        Cc = P(c),
-        u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]],
-        v = [Cc[0] - A[0], Cc[1] - A[1], Cc[2] - A[2]],
-        nn = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]],
-        o = [(A[0] + B[0] + Cc[0]) / 3 - ca[0], (A[1] + B[1] + Cc[1]) / 3 - ca[1], (A[2] + B[2] + Cc[2]) / 3 - ca[2]];
-      if (nn[0] * o[0] + nn[1] * o[1] + nn[2] * o[2] >= 0) idx.push(a, b, c);
-      else idx.push(a, c, b);
-    };
-    for (let j = 0; j < rows.length - 1; j++) {
-      const ca = C[j].map((v, k) => (v + C[j + 1][k]) / 2);
-      for (let i = 0; i < (closed === false ? n - 1 : n); i++) {
-        const i2 = (i + 1) % n,
-          a = j * n + i,
-          b = j * n + i2,
-          c = (j + 1) * n + i2,
-          d = (j + 1) * n + i;
-        tri(a, b, c, ca);
-        tri(a, c, d, ca);
-      }
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setIndex(idx);
-    g.computeVertexNormals();
-    return part(g, hex, 0, 0, 0);
-  };
-  /* a superellipse ring at x: centre yc, half-width hw, half-height hh, exponent from the squareness; inflated by e */
-  const NT = 14;
-  const ring = (x, yc, hw, hh, sq, e, a0, a1) => {
-    const R = [],
-      k = 2 / sq,
-      m = a1 == null ? NT : 8;
-    for (let j = 0; j < m; j++) {
-      const t = a1 == null ? (2 * Math.PI * j) / NT : a0 + ((a1 - a0) * j) / (m - 1),
-        c = Math.cos(t),
-        s = Math.sin(t);
-      R.push([x, yc + (hh + e) * Math.sign(s) * Math.abs(s) ** k, (hw + e) * Math.sign(c) * Math.abs(c) ** k]);
-    }
-    return R;
-  };
-  const fusRing = (st, e, a0, a1) => {
-    const [, hw, top, bot, sq] = fusAt(st);
-    return ring(X(st), (top + bot) / 2, Math.max(0.004, hw), Math.max(0.004, (top - bot) / 2), sq, e || 0, a0, a1);
-  };
-  const fusLoft = (s0, s1, n, hex, e) => {
-    const rows = [];
-    for (let i = 0; i <= n; i++) rows.push(fusRing(s0 + ((s1 - s0) * i) / n, e));
-    return loft(rows, hex);
-  };
-  /* the wing (factory three-view): leading edge from station 107.9 at the root to 121.4 at the tip, trailing edge 211.9 at the root
-     breaking at 59 % of the span to the tip's 171.4; root centre 0.58 m below the reference line, rising 0.5 m to the tip */
-  const WS = 5.64,
-    xle = (u) => X(107.9 + (121.4 - 107.9) * u),
-    xte = (u) => (u < 0.59 ? X(211.9) + ((0.115 - X(211.9)) * u) / 0.59 : 0.115 + ((X(171.4) - 0.115) * (u - 0.59)) / 0.41),
-    wy = (u) => -0.58 + 0.5 * u,
-    wt = (u) => 0.151 - 0.036 * u /* thickness / chord: NAA/NACA 45-100 laminar section, 15.1 % root, 11.5 % tip */;
-  const CS = [1, 0.8, 0.6, 0.4, 0.25, 0.12, 0.05, 0.015, 0];
-  const naca = (x, t) => 5 * t * (0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1015 * x ** 4) + 0.002;
-  const foilRow = (xL, xT, yc, zs, t, e) => {
-    const c = xL - xT,
-      R = [];
-    for (const f of CS) R.push([xL - f * c, yc + naca(f, t) * c + e, zs]);
-    for (const f of CS.slice(1, -1).reverse()) R.push([xL - f * c, yc - naca(f, t) * c - e, zs]);
-    return R;
-  };
-  /* rows of a wing from span fraction u0 to u1 (one side, s = +-1); the tip is rounded and closed */
-  const wingRows = (u0, u1, n, s, e) => {
-    const R = [];
-    for (let i = 0; i <= n; i++) {
-      const u = n ? u0 + ((u1 - u0) * i) / n : u0,
-        tipK = u > 0.95 ? Math.sqrt(Math.max(0, 1 - ((u - 0.95) / 0.05) ** 2)) : 1,
-        xl = xle(u),
-        xt = xte(u),
-        mid = (xl + xt) / 2,
-        hc = ((xl - xt) / 2) * (0.35 + 0.65 * tipK);
-      R.push(foilRow(mid + hc + e, mid - hc - e, wy(u), s * u * WS, wt(u) * (0.4 + 0.6 * tipK), e));
-    }
-    return R;
-  };
-  const US = [0, 0.12, 0.3, 0.45, 0.59, 0.72, 0.84, 0.93, 0.97, 0.99, 1];
-  const wing = (s, hex) => loft(US.map((u) => wingRows(u, u, 0, s, 0)[0]), hex);
-  /* a plan-form slab (tailplane): [lateral, x] outline points half one side, thickness t at the root */
-  const TP = [
-    [0, X(307.2), X(354.5)], [0.6, X(309.5), X(352.5)], [1.2, X(312.5), X(350.6)], [1.7, X(315.5), X(349.2)], [1.93, X(317.5), X(348.5)], [2.0, X(318.3), X(347.6)], [2.008, X(332), X(333)],
-  ];
-  const tailplane = (s, hex) =>
-    loft(
-      TP.map(([z, xl, xt], i) => {
-        const tk = i === TP.length - 1 ? 0.2 : 1;
-        return foilRow(xl, xt, 0.12, s * z, 0.1 * tk, 0);
-      }),
-      hex,
-    );
-  const build = (body, trim, o) => {
-    o = o || {};
-    body = body == null ? 0xb7bcc2 : body;
-    trim = trim == null ? 0xb22a24 : trim;
-    const P = [],
-      DK = 0x1b1c1e,
-      OD = 0x4f5434,
-      GLASS = 0x2a3a48,
-      FRAME = 0xa9adb2,
-      TYRE = 0x161616,
-      metal = body === 0xb7bcc2;
-    /* fuselage: the nose band in the trim colour, the rest in the body colour */
-    P.push(fusLoft(27, 50, 3, trim), fusLoft(50, 387, 16, body));
-    if (metal) {
-      /* the olive-drab anti-glare panel on top of the nose, ahead of the windscreen */
-      const rows = [];
-      for (const st of [52, 80, 105, 129]) rows.push(fusRing(st, 0.004, Z - 0.45, Z + 0.45));
-      P.push(loft(rows, OD, false));
-    }
-    /* spinner: an ogive from the tip to station 27, in the spinner colour */
-    {
-      const pts = [];
-      for (let i = 0; i <= 8; i++) {
-        const st = (27 * i) / 8,
-          r = 0.392 * Math.sqrt(Math.max(0, 1 - ((27 - st) / 27) ** 2.2));
-        pts.push(new THREE.Vector2(Math.max(0.001, r), X(st)));
-      }
-      const g = new THREE.LatheGeometry(pts.reverse(), 14);
-      g.rotateZ(-Z);
-      P.push(part(g, o.spin || trim, 0, 0.01, 0));
-    }
-    /* propeller: four Hamilton Standard paddle blades (black, yellow tips) round the hub at station 20.5 */
-    {
-      const xh = X(20.5),
-        a0 = o.ang || 0;
-      for (let k = 0; k < 4; k++) {
-        const a = a0 + (k * Math.PI) / 2,
-          bl = (r0, r1, c, hex) => part(bx(0.05, r1 - r0, c), hex, xh, 0.01 + Math.cos(a) * (r0 + r1) / 2, Math.sin(a) * (r0 + r1) / 2, a, 0.38, 0);
-        P.push(bl(0.2, 0.75, 0.2, DK), bl(0.74, 1.4, 0.27, DK), bl(1.39, 1.56, 0.24, DK), bl(1.55, 1.7, 0.19, 0xe3c021));
-      }
-    }
-    /* canopy: the bubble hood and windscreen on the fuselage top, a framed windscreen bow */
-    {
-      const rows = [];
-      for (const [st, top, sq] of CAN) {
-        const [, hw, ft, fb, fsq] = fusAt(st),
-          yb = ft - 0.07,
-          yc = (ft + fb) / 2,
-          hh = (ft - fb) / 2,
-          xb = hw * Math.pow(Math.max(0, 1 - Math.abs((yb - yc) / hh) ** fsq), 1 / fsq) * 0.92,
-          h = Math.max(0.012, top - yb),
-          k = 2 / sq,
-          R = [];
-        for (let j = 0; j <= 8; j++) {
-          const t = (Math.PI * j) / 8,
-            c = Math.cos(t),
-            s = Math.sin(t);
-          R.push([X(st), yb + h * Math.abs(s) ** k, xb * Math.sign(c) * Math.abs(c) ** k]);
-        }
-        rows.push(R);
-      }
-      P.push(loft(rows, GLASS, false));
-      const bow = (st) => {
-        const i = CAN.findIndex((r) => r[0] >= st),
-          r = rows[i];
-        return loft([r.map((p) => [p[0] + 0.03, p[1] + 0.006, p[2] * 1.02]), r.map((p) => [p[0] - 0.03, p[1] + 0.006, p[2] * 1.02])], FRAME, false);
-      };
-      P.push(bow(150), bow(129));
-    }
-    /* the radio mast behind the canopy, raked aft */
-    P.push(part(bx(0.28, 0.42, 0.03), body, X(247), 0.7, 0, 0, 0, 0.35));
-    /* belly radiator scoop (the manual's duct): lip, diffuser, nozzle; dark mouth */
-    {
-      const T = [[157, -0.95, 0.24], [160, -1.04, 0.29], [170, -1.12, 0.33], [185, -1.135, 0.34], [200, -1.12, 0.335], [215, -1.06, 0.32], [230, -0.98, 0.3], [245, -0.82, 0.27], [252, -0.74, 0.25]],
-        top = -0.6;
-      P.push(loft(T.map(([st, yb, hw]) => ring(X(st), (top + yb) / 2, hw, (top - yb) / 2, 3.2, 0)), body));
-      P.push(part(new THREE.CircleGeometry(1, 14), DK, X(157) + 0.004, (-0.95 - 0.76) / 2, 0, 0, Z, 0, 0.23, 0.095, 1));
-    }
-    /* carburettor intake under the nose */
-    {
-      const T = [[33, -0.6, 0.1], [40, -0.66, 0.12], [55, -0.72, 0.12], [70, -0.76, 0.1], [82, -0.77, 0.05]],
-        top = -0.45;
-      P.push(loft(T.map(([st, yb, hw]) => ring(X(st), (top + yb) / 2, hw, (top - yb) / 2, 3, 0)), body));
-      P.push(part(new THREE.CircleGeometry(1, 10), DK, X(33) + 0.004, -0.57, 0, 0, Z, 0, 0.09, 0.03, 1));
-    }
-    /* six exhaust stacks a side on the nose */
-    for (const s of [-1, 1])
-      for (let i = 0; i < 6; i++) {
-        const st = 46 + i * 7.6,
-          [, hw] = fusAt(st);
-        P.push(part(bx(0.1, 0.07, 0.08), 0x3c2a20, X(st), 0.24, s * (hw + 0.02)));
-      }
-    /* wings, tailplane, fin and rudder */
-    P.push(wing(1, body), wing(-1, body), tailplane(1, body), tailplane(-1, body));
-    P.push(
-      GX.ext([[X(300), 0.38], [X(310.9), 0.5], [X(327.2), 0.6], [X(337.4), 1.14], [X(344.5), 1.66], [X(351.6), 1.767], [X(362), 1.767], [X(362), 0.1], [X(300), 0.1]].reverse(), 0.09, body) /* fin and its dorsal fillet, rooted in the fuselage */,
-      GX.ext([[X(362), 1.767], [X(372), 1.767], [X(376), 1.6], [X(384.2), 0.73], [X(387.3), 0.16], [X(386.2), -0.033], [X(381), -0.133], [X(372), -0.153], [X(362), -0.153]].reverse(), 0.08, trim) /* rudder */,
-    );
-    /* national insignia: star in a blue disc with the white bars, on the upper port and lower starboard wing and both fuselage sides */
-    const insignia = (x, y, z, r, ry, rx) => [GX.disc(x, y, z, r, 0x203260, ry, rx), GX.star(x, y, z, r * 0.95, ry, rx, 0xeceae2)];
-    {
-      const u = 0.83 /* outboard of the stripes */,
-        c = xle(u) - xte(u),
-        x = xle(u) - 0.35 * c /* over the section's thickest part */,
-        t = naca(0.35, wt(u)) * c;
-      P.push(...insignia(x, wy(u) + t + 0.01, -u * WS, 0.4, 0, -Z), ...insignia(x, wy(u) - t - 0.01, u * WS, 0.4, 0, Z));
-      for (const s of [-1, 1]) {
-        const st = 262,
-          [, hw] = fusAt(st);
-        P.push(...insignia(X(st), 0.02, s * (hw + 0.012), 0.33, s > 0 ? 0 : Math.PI, 0));
-        for (const d of [-1, 1]) P.push(part(bx(0.36, 0.14, 0.01), 0xeceae2, X(st) + d * 0.45, 0.02, s * (fusAt(st + d * -18)[1] + 0.008)));
-      }
-    }
-    /* invasion stripes (black and white) round the wings and the rear fuselage */
-    if (o.stripes) {
-      let k = 0;
-      for (let i = 0; i < 5; i++) {
-        const u0 = 0.4 + i * 0.075,
-          c = k++ % 2 ? 0x15151a : 0xf1f1ec;
-        for (const s of [-1, 1]) P.push(loft([wingRows(u0, u0, 0, s, 0.008)[0], wingRows(u0 + 0.075, u0 + 0.075, 0, s, 0.008)[0]], c));
-      }
-      [[292, 0xf1f1ec], [304, 0x15151a], [316, 0xf1f1ec]] /* aft of the fuselage star */.forEach(([st, c]) => P.push(fusLoft(st, st + 12, 1, c, 0.008)));
-    }
-    /* two 75 gal drop tanks on pylons under the wings */
-    if (o.tanks)
-      for (const s of [-1, 1]) {
-        const u = 0.46,
-          xc = (xle(u) + xte(u)) / 2 + 0.25,
-          yb = wy(u) - (wt(u) * (xle(u) - xte(u))) * 0.5 * 0.55;
-        const pts = [];
-        for (let i = 0; i <= 8; i++) {
-          const f = i / 8;
-          pts.push(new THREE.Vector2(Math.max(0.001, 0.27 * Math.sin(Math.PI * f) ** 0.6), -1.0 + 2.0 * f));
-        }
-        const g = new THREE.LatheGeometry(pts, 10);
-        g.rotateZ(-Z);
-        P.push(part(g, 0xa5aaaf, xc, yb - 0.37, s * u * WS), part(bx(0.6, 0.14, 0.06), body, xc, yb - 0.04, s * u * WS));
-      }
-    /* landing gear: oleo legs with their fairing doors, the main wheels inboard of them, and the steerable tail wheel */
-    if (!o.air) {
-      const xm = X(114),
-        ym = -1.6,
-        rm = 0.343;
-      for (const s of [-1, 1]) {
-        const zl = s * 1.98,
-          zw = s * 1.8;
-        P.push(GX.rod([xm + 0.04, -0.5, zl], [xm, ym, zl], 0.06, 0xc9ccd0, 0.075, 8) /* the oleo leg, from inside the wing */);
-        P.push(part(bx(0.5, 1.02, 0.02), body, xm + 0.02, -1.06, s * 2.045) /* its fairing door */);
-        P.push(part(cyl(0.035, 0.035, 0.22, 6), 0xc9ccd0, xm, ym, (zl + zw) / 2, Z) /* the axle */);
-        P.push(...GX.tyre(xm, ym, zw, rm, 0.2, TYRE, 0x8d9196, 20, 'z'));
-      }
-      const xt = X(313),
-        yt = -0.673;
-      P.push(GX.rod([X(303), -0.4, 0], [xt, yt, 0], 0.035, 0xc9ccd0, 0.035, 6), GX.rod([X(303), -0.4, 0.06], [xt, yt, 0.06], 0.012, 0xc9ccd0, 0.012, 4));
-      P.push(...GX.tyre(xt, yt, 0, 0.17, 0.1, TYRE, 0x8d9196, 14, 'z'));
-    }
-    /* the attitude: parked on three wheels (nose up 12.3 deg, the main wheels on y = 0), or level with the thrust line at y = 1.4 */
-    let M;
-    if (o.air) M = new THREE.Matrix4().makeTranslation(0, 1.4, 0);
-    else {
-      const sit = Math.atan2(-0.673 - 0.17 - (-1.6 - 0.343), X(114) - X(313)),
-        R = new THREE.Matrix4().makeRotationZ(sit),
-        c = new THREE.Vector3(X(114), -1.6, 0).applyMatrix4(R);
-      M = new THREE.Matrix4().makeTranslation(0, 0.343 - c.y, 0).multiply(R);
-    }
-    return P.map((q) => ({ ...q, m: M.clone().multiply(q.m || new THREE.Matrix4()) }));
-  };
-  MODELS.add('us-p51d', build, { L: 9.83, W: 11.28, name: 'North American P-51D Mustang (parked)' });
 })();
 /* ---------- the Japanese island waterfront, 1945 (docs/research_1945_bases.md, "Naval bases") ----------
    Deep-draught ships lay at anchor offshore and were worked by Daihatsu landing barges and wooden lighters; the jetties were narrow
@@ -9791,6 +9531,7 @@ function shipWakeMesh(k, y) {
   wk.scale.setScalar(k);
   wk.position.y = y;
   wk.frustumCulled = false;
+  wk.userData.wake = true; /* a sunk ship's wake goes (killT); every wake shares WAKE_MAT, so it is never repainted */
   return wk;
 }
 let WSOCK = null;
@@ -10141,1045 +9882,6 @@ let _afT = 0;
 function this_t(o) {
   return o.x * 2.2 + o.z * 2.2 + _afT;
 }
-/* ---------- airfield detail: runway numbers and markings, taxiway lines, parked fighters, trucks, drums ---------- */
-{
-  const Z = Math.PI / 2,
-    Y = 1.5,
-    { V3, Q, M4, cyl, bx, part, xf } = GX,
-    sph = () => GX.sph(12),
-    acc = new GX.Acc(),
-    BL = [];
-  const place = (P, x, z, yaw, bl, bw) => {
-    acc.add(P, xf(x, 0.12, z, yaw));
-    BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
-  };
-  /* a parked P-51D: the scenery model built from the player's factory tables (MODELS 'us-p51d'), nose toward +x, wheels on y = 0 */
-  const fighter = (body, trim, o) => MODELS.get('us-p51d', body, trim, o);
-  /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
-  const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI, far: !!(o && o.far) });
-
-  const drums = () => {
-    const P = [],
-      cols = [0x56603f, 0x8b4a2b, 0x3b5675, 0x56603f];
-    for (let i = 0; i < 3; i++)
-      for (let j = 0; j < 4; j++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[(i + j) % 4], i * 0.72, 0.44, j * 0.72)); /* standing on y = 0 (place() adds the apron) */
-    for (let i = 0; i < 2; i++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[i], 0.36 + i * 0.72, 1.32, 0.7)); /* resting on the drums below */
-    return P;
-  };
-  /* REAL SIZES (GX.fit), figures from References/vehicle research spec sheet.pdf and the P-51D's own (the player's model):
-     fighter: North American P-51D, 9.83 m long, 11.28 m span; cargo and fuel trucks: GMC CCKW 353 2½-ton 6x6, 6.51 x 2.24 x 2.80 m
-     over the canvas bows (the fuel truck on the same chassis, so the same scale); jeep: Willys MB, 3.36 x 1.57 x 1.77 m;
-     tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
-  const FIT = {},
-    fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
-    fighterR = (body, trim, o) => fighter(body, trim, o) /* built to its real size (9.83 m x 11.28 m) */,
-    /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
-    cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
-    fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
-    cargoTruckR = () => GX.fit(MODELS.get('us-cckw-cargo'), null, cckw()),
-    jeepR = () => GX.fit(MODELS.get('us-willys-mb'), { L: 3.36, W: 1.57, H: 1.77 }),
-    tugR = () => GX.fit(MODELS.get('us-clarktor6'), { L: 2.54, W: 1.32, H: 1.42 });
-  /* the line-up: six fighters in front of the apron's east side, two at the hangar doors */
-  [
-    [-108, 336, 0.1, 0xb7bcc2, 0xb22a24, {}],
-    [-108, 360, -0.08, 0x5d6341, 0xd9b92a, { ang: 0.7 }],
-    [-108, 384, 0.05, 0xb7bcc2, 0x222d5a, { stripes: 1, ang: 1.1 }],
-    [-108, 408, -0.12, 0xb7bcc2, 0xd9b92a, { tanks: 1, ang: 0.3 }],
-    [-108, 432, 0.08, 0x5d6341, 0xb22a24, { stripes: 1, ang: 0.2 }],
-    [-108, 456, 0, 0xb7bcc2, 0x1e4fa3, { tanks: 1, ang: 0.9 }],
-    [-163, 220, 0.05, 0x5d6341, 0xd9b92a, { ang: 0.5 }],
-    [-163, 290, -0.1, 0xb7bcc2, 0xb22a24, { ang: 0.1 }],
-  ].forEach((a) => place(fighterR(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
-  place(fuelTruckR(0x56603f), -136, 345, -Z, 8, 3);
-  place(cargoTruckR(), -140, 392, Z, 8, 3);
-  place(jeepR(), -128, 422, 0.3, 4, 2.2);
-  place(jeepR(), -86, 314, 0.9, 4, 2.2);
-  place(jeepR(), -148, 262, -0.4, 4, 2.2);
-  place(tugR(), -124, 474, Z * 2, 3, 1.8);
-  place(fuelTruckR(0x9aa0a6), -152, 462, -0.2, 8, 3);
-  place(cargoTruckR(), -72, 466, Math.PI, 8, 3);
-  place(drums(), -172, 330, 0, 3.2, 3.2);
-  place(drums(), -178, 468, 0.3, 3.2, 3.2);
-  {
-    const g = acc.geometry();
-    scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })));
-  }
-  /* the moving ones: each is its own small mesh; AFLD.update() drives them along their routes */
-  /* the USAAF ground crew (MODELS 'crew', the ground crews piece): herringbone twill in olive drab or light sage, A-3 caps */
-  const CREWV = { 0x6f7a8a: 0, 0x8b7d5a: 1, 0xa89b84: 2 },
-    crew = (shirt, pose) => (pose || 'walk') === 'walk' ? CREW_RIG('us', CREWV[shirt] || 0) : MODELS.get('crew', 'us', pose, CREWV[shirt] || 0) /* a walker is jointed, and walks */;
-  /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
-     goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
-  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {
-    path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
-    door: [-176.5, 145.5],
-    spot: [-172.4, 150],
-    face: 0,
-  });
-  /* the jeep is a perimeter patrol: it drives right round the paved area, outside its edge, and keeps going */
-  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true, ground: true }); /* off the pavement: it follows the ground */
-  /* the fuel bowser works down the line of fighters, just behind their tails, and stands at each one to fuel it */
-  AFLD.add(fuelTruckR(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
-  AFLD.add(crew(0x8b7d5a), [[-97, 338], [-97, 372]], 1.4, 5, 'walk');
-  AFLD.add(crew(0x6f7a8a), [[-97, 398], [-97, 436]], 1.3, 8, 'walk');
-  AFLD.add(crew(0xa89b84), [[-172, 160], [-172, 205]], 1.4, 6, 'walk');
-  AFLD.add(crew(0x8b7d5a), [[-150, 346], [-124, 346]], 1.2, 9, 'walk');
-  /* the US Navy patrol craft escort off the home airfield, a PCE-842 class (56.2 m x 10.1 m, 850 tons): lofted hull with the raised forecastle and rounded transom,
-     3"/50 forward with the Hedgehog behind it, pilothouse and open flying bridge with Mk 51 director and SO/SA radar, a stubby funnel, two 40 mm Bofors, four 20 mm Oerlikons
-     in tubs, depth charge rails and K-guns on the fantail, whaleboats, Carley floats, rails, ensign and the hull number. Bow toward +x; waterline at y = 0, keel 2.9 m below it. */
-  const PCE = { L: 56.2, X0: -28.1 };
-  const pce = () => {
-    const P = [],
-      L = PCE.L,
-      X0 = PCE.X0,
-      N = 40;
-    const sst = (a) => (a <= 0 ? 0 : a >= 1 ? 1 : a * a * (3 - 2 * a)),
-      tt = (x) => (x - X0) / L,
-      bowK = (t) => Math.max(0, (t - 0.6) / 0.4),
-      beamF = (t) => (t < 0.1 ? 0.72 + 0.28 * Math.sin((t / 0.1) * Z) : t < 0.55 ? 1 : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.55) / 0.45, 1.8), 0.6))),
-      W = (x) => 5.04 * beamF(tt(x)),
-      dk = (x) => 2.55 + 0.9 * sst((x - 6) / 3) + 0.15 * Math.max(0, 1 - tt(x) / 0.12) + 1.0 * Math.pow(bowK(tt(x)), 2.2),
-      flare = (x) => 1 + 0.22 * Math.pow(bowK(tt(x)), 1.3),
-      keelY = (x) => -2.9 + 2.55 * Math.pow(Math.max(0, (tt(x) - 0.78) / 0.22), 1.6),
-      bulw = (x) => 0.25 + 0.65 * sst((x - 4) / 6),
-      sideZ = (x, y) => W(x) * (1 + (flare(x) - 1) * Math.max(0, Math.min(1, (y - 0.4) / (dk(x) - 0.4))));
-    PCE.deckY = dk;
-    const BOT = 0x6b2b25,
-      BOOT = 0x1c1f23,
-      HULL = 0x2f3b49,
-      HULL2 = 0x3a4656,
-      SUP = 0x8c959c,
-      SUP2 = 0x7c868e,
-      SUP3 = 0x6f7880,
-      DECK = 0x3d4854,
-      GUN = 0x2c2e30,
-      STEEL = 0x3a3d40,
-      WIN = 0x141c22,
-      WHITE = 0xe9e9e4,
-      BRASS = 0xa8742e;
-    const S = Array.from({ length: N }, (_, i) => {
-      const x = X0 + (L * i) / (N - 1),
-        w = W(x),
-        k = keelY(x),
-        d = dk(x),
-        f = flare(x),
-        b = bulw(x),
-        zi = Math.max(0.02, w * f - 0.14);
-      return {
-        p0: [x, k, 0],
-        p1: [x, k * 0.62, 0.72 * w],
-        p2: [x, 0, 0.985 * w],
-        p3: [x, 0.4, w],
-        p4: [x, d, w * f],
-        p5: [x, d + b, w * f * 0.995],
-        p4i: [x, d, zi],
-        p5i: [x, d + b, zi],
-      };
-    });
-    const mir = (p) => [p[0], p[1], -p[2]],
-      Rk = (k) => S.map((s) => s[k]),
-      Lk = (k) => S.map((s) => mir(s[k]));
-    const grid = (rows, hex) => {
-      const J = rows.length,
-        I = rows[0].length,
-        pos = [],
-        idx = [];
-      for (const r of rows) for (const p of r) pos.push(p[0], p[1], p[2]);
-      for (let j = 0; j < J - 1; j++)
-        for (let i = 0; i < I - 1; i++) {
-          const a = j * I + i,
-            b = a + 1,
-            c = a + I + 1,
-            d = a + I;
-          idx.push(a, b, c, a, c, d);
-        }
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      g.setIndex(idx);
-      g.computeVertexNormals();
-      P.push(part(g, hex, 0, 0, 0));
-    };
-    grid([Lk('p2'), Lk('p1'), Rk('p0'), Rk('p1'), Rk('p2')], BOT);
-    grid([Rk('p2'), Rk('p3')], BOOT);
-    grid([Lk('p3'), Lk('p2')], BOOT);
-    grid([Rk('p3'), Rk('p4')], HULL);
-    grid([Lk('p4'), Lk('p3')], HULL);
-    grid([Rk('p4'), Rk('p5')], HULL);
-    grid([Lk('p5'), Lk('p4')], HULL);
-    grid([Rk('p5'), Rk('p5i')], HULL2);
-    grid([Lk('p5i'), Lk('p5')], HULL2);
-    grid([Rk('p5i'), Rk('p4i')], HULL2);
-    grid([Lk('p4i'), Lk('p5i')], HULL2);
-    grid([Rk('p4i'), Lk('p4i')], DECK);
-    {
-      const s0 = S[0],
-        keys = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'],
-        cols = [BOT, BOT, BOOT, HULL, HULL];
-      for (let q = 0; q < 5; q++) grid([[s0[keys[q]], s0[keys[q + 1]]], [mir(s0[keys[q]]), mir(s0[keys[q + 1]])]], cols[q]);
-    }
-    const box = (sx, sy, sz, hex, x, y, z, ry) => part(bx(sx, sy, sz), hex, x, y, z, 0, ry || 0, 0),
-      rod = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z, 0, 0, -Z), /* a cylinder lying along +x, centred */
-      post = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z),
-      wire = (x0, y0, x1, y1, z, hex) => part(bx(Math.hypot(x1 - x0, y1 - y0), 0.03, 0.03), hex || 0x1b1b1b, (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, Math.atan2(y1 - y0, x1 - x0));
-    /* portholes along the topside, abaft the break */
-    for (let x = -22; x <= 3; x += 2.8) for (const s of [-1, 1]) P.push(box(0.3, 0.26, 0.07, WIN, x, 1.7, s * (sideZ(x, 1.7) + 0.02)));
-    for (let x = 11; x <= 15; x += 2.0) for (const s of [-1, 1]) P.push(box(0.3, 0.26, 0.07, WIN, x, 2.3, s * (sideZ(x, 2.3) + 0.02)));
-    /* the hull number, 842, in white on each bow, built from seven-segment strokes */
-    {
-      const SEG = { a: [0.275, 0.935, 0.55, 0.13], b: [0.485, 0.75, 0.13, 0.5], c: [0.485, 0.25, 0.13, 0.5], d: [0.275, 0.065, 0.55, 0.13], e: [0.065, 0.25, 0.13, 0.5], f: [0.065, 0.75, 0.13, 0.5], g: [0.275, 0.5, 0.55, 0.13] },
-        DIG = { 8: 'abcdefg', 4: 'bcfg', 2: 'abged' };
-      for (const s of [-1, 1])
-        '842'.split('').forEach((ch, di) => {
-          const x0 = s > 0 ? 15.6 + di * 0.85 : 18.2 - di * 0.85;
-          for (const k of DIG[ch]) {
-            const q = SEG[k],
-              x = x0 + (s > 0 ? q[0] : -q[0]),
-              y = 1.7 + q[1];
-            P.push(box(q[2], q[3], 0.05, WHITE, x, y, s * (sideZ(x, y) + 0.03)));
-          }
-        });
-    }
-    /* anchors in their hawse pipes, windlass, capstan, bollards and the jackstaff */
-    for (const s of [-1, 1]) {
-      P.push(box(0.34, 1.1, 0.2, STEEL, 24.2, 2.9, s * (sideZ(24.2, 2.9) + 0.14)), box(0.9, 0.2, 0.2, STEEL, 24.2, 2.45, s * (sideZ(24.2, 2.45) + 0.14)));
-      P.push(part(cyl(0.28, 0.28, 0.12, 10), 0x15171a, 25.2, 3.4, s * (sideZ(25.2, 3.4) + 0.04), Z));
-      for (const x of [26, 8, -8, -25]) P.push(post(0.15, 0.45, 0x3a3d40, x, dk(x) + 0.22, s * (W(x) * 0.9)));
-    }
-    P.push(box(1.5, 0.6, 1.5, 0x4a4d50, 25.2, dk(25.2) + 0.3, 0), part(cyl(0.4, 0.5, 0.8, 10), 0x4a4d50, 26.8, dk(26.8) + 0.4, 0), post(0.04, 1.8, 0x3a3a3a, 27.6, dk(27.6) + 0.9, 0));
-    /* the 3"/50 on the forecastle: pedestal, shield, breech, barrel and recoil sleeve, ready-service boxes */
-    {
-      const x = 20.5,
-        y = dk(20.5);
-      P.push(part(cyl(1.0, 1.15, 0.45, 16), 0x585d62, x, y + 0.22, 0), part(cyl(0.7, 0.8, 0.5, 12), 0x41454a, x, y + 0.65, 0));
-      P.push(box(0.1, 1.5, 2.2, 0x737a81, x + 0.85, y + 1.6, 0), box(1.7, 1.4, 0.07, 0x737a81, x, y + 1.6, 1.1), box(1.7, 1.4, 0.07, 0x737a81, x, y + 1.6, -1.1), box(1.8, 0.07, 2.3, SUP3, x, y + 2.35, 0));
-      P.push(box(1.0, 0.6, 0.7, 0x2b2d2f, x - 0.3, y + 1.4, 0), rod(0.2, 1.1, STEEL, x + 1.05, y + 1.65, 0), rod(0.085, 3.4, GUN, x + 2.45, y + 1.65, 0), rod(0.11, 0.3, GUN, x + 4.1, y + 1.65, 0));
-      P.push(box(0.12, 0.5, 0.9, 0x15171a, x + 0.9, y + 1.65, 0));
-      for (const s of [-1, 1]) P.push(box(0.5, 0.4, 0.7, 0x6b5c40, x - 1.6, y + 0.2, s * 1.5), box(0.3, 0.1, 0.4, 0x2b2d2f, x - 0.8, y + 0.9, s * 0.65));
-    }
-    /* the Hedgehog: four rows of six spigots on a flat rack between the gun and the bridge */
-    {
-      const x = 12.2,
-        y = dk(12.2);
-      P.push(box(2.3, 0.25, 3.2, 0x41454a, x, y + 0.22, 0), box(2.3, 0.12, 0.1, STEEL, x, y + 0.34, 1.55), box(2.3, 0.12, 0.1, STEEL, x, y + 0.34, -1.55));
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) P.push(part(cyl(0.05, 0.07, 0.9, 6), r % 2 ? 0x2b2d2f : 0x3a3d40, x - 0.75 + r * 0.5 - 0.15, y + 0.74, -1.25 + c * 0.5, 0, 0, -0.32));
-      P.push(box(0.8, 0.5, 0.6, 0x6b5c40, x - 2.0, y + 0.25, 1.9), box(0.8, 0.5, 0.6, 0x6b5c40, x - 2.0, y + 0.25, -1.9));
-    }
-    /* the main deckhouse, with the pilothouse, wings and open flying bridge on its forward end */
-    {
-      const y = dk(-2);
-      P.push(box(15, 2.4, 7.0, SUP, -2, y + 1.2, 0), box(15.2, 0.12, 7.2, SUP3, -2, y + 2.46, 0));
-      for (const s of [-1, 1]) for (let x = -8.5; x <= 4.0; x += 2.1) P.push(box(0.7, 0.55, 0.06, WIN, x, y + 1.45, s * 3.53));
-      for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.55, 0.8, WIN, 5.53, y + 1.45, k * 1.2));
-      const py = y + 2.52;
-      P.push(box(5.4, 2.3, 6.0, SUP2, 2.8, py + 1.15, 0), box(5.6, 0.14, 6.2, SUP3, 2.8, py + 2.37, 0));
-      for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.7, 0.95, WIN, 5.53, py + 1.5, k * 1.1));
-      for (const s of [-1, 1]) {
-        for (let k = -1; k <= 1; k++) P.push(box(0.9, 0.65, 0.06, WIN, 2.8 + k * 1.5, py + 1.5, s * 3.03));
-        P.push(box(3.0, 0.1, 1.6, SUP3, 3.4, py + 1.0, s * 4.5), box(3.0, 0.05, 0.04, 0x1b1b1b, 3.4, py + 1.9, s * 5.28), box(0.04, 0.9, 1.6, 0x1b1b1b, 4.9, py + 1.45, s * 4.5));
-        P.push(part(cyl(0.35, 0.35, 0.5, 12), 0x3d4044, 4.2, py + 1.4, s * 4.0), part(cyl(0.33, 0.33, 0.05, 12), 0xd8e4f0, 4.55, py + 1.45, s * 4.0, 0, 0, Z));
-      }
-      /* open flying bridge: coaming, compass binnacle, the Mk 51 director, a searchlight and the signal lamp */
-      const fy = py + 2.44;
-      P.push(box(5.6, 0.5, 0.08, SUP2, 2.8, fy + 0.25, 3.0), box(5.6, 0.5, 0.08, SUP2, 2.8, fy + 0.25, -3.0), box(0.08, 0.5, 6.0, SUP2, 5.6, fy + 0.25, 0));
-      P.push(post(0.18, 0.7, 0x4a4d50, 4.6, fy + 0.35, 0), part(cyl(0.22, 0.22, 0.1, 10), BRASS, 4.6, fy + 0.74, 0));
-      P.push(part(cyl(0.55, 0.65, 0.8, 10), 0x6a7077, 1.8, fy + 0.4, 0), box(1.3, 0.8, 1.1, 0x757c84, 1.8, fy + 1.2, 0), rod(0.07, 0.8, GUN, 2.7, fy + 1.3, 0.3), rod(0.07, 0.8, GUN, 2.7, fy + 1.3, -0.3));
-      P.push(part(cyl(0.3, 0.3, 0.45, 10), 0x3d4044, 4.6, fy + 0.6, 2.2), part(cyl(0.28, 0.28, 0.05, 10), 0xd8e4f0, 4.85, fy + 0.65, 2.2, 0, 0, Z));
-      /* mast with the yard, SA "bedspring" air-search array and the SO surface-search dish on top */
-      const mx = 0.5,
-        my = fy;
-      P.push(part(cyl(0.1, 0.2, 9.5, 8), 0x4a4d50, mx, my + 4.7, 0), box(0.1, 0.1, 4.6, 0x4a4d50, mx, my + 6.3, 0));
-      P.push(box(0.12, 1.5, 2.4, 0x3a3d40, mx - 0.5, my + 8.0, 0));
-      for (let r = 0; r < 6; r++) P.push(box(0.08, 0.05, 2.3, 0x2b2d2f, mx - 0.58, my + 7.4 + r * 0.25, 0));
-      P.push(part(cyl(0.45, 0.2, 0.28, 12), 0x5a5f62, mx + 0.45, my + 9.1, 0), post(0.05, 0.9, 0x3a3d40, mx, my + 9.9, 0), part(cyl(0.02, 0.02, 3.2, 4), 0x2b2d2f, mx, my + 11.0, 0.0));
-      P.push(part(GX.sph(8), 0xe8e4d0, mx, my + 10.5, 0, 0, 0, 0, 0.1, 0.1, 0.1));
-      for (const z of [-1.2, 1.2]) P.push(box(0.04, 0.5, 0.04, 0x3a3d40, mx + 0.1, my + 6.05, z));
-      P.push(wire(mx, my + 9.2, 25.5, dk(25.5) + 1.9, 0), wire(mx, my + 9.2, -26, dk(-26) + 2.2, 0), wire(mx, my + 6.3, mx - 3, y + 2.5, 3.3), wire(mx, my + 6.3, mx - 3, y + 2.5, -3.3), wire(mx, my + 6.3, mx + 3.2, py + 1.2, 2.3, 0x2a2a2a), wire(mx, my + 6.3, mx + 3.2, py + 1.2, -2.3, 0x2a2a2a));
-      /* signal flag hoist on the yard */
-      for (let i = 0; i < 4; i++) P.push(box(0.05, 0.45, 0.5, [0xb22a24, 0xe6e0c8, 0x1e4fa3, 0xd9b92a][i], mx + 0.05, my + 5.9, -1.7 + i * 0.7));
-    }
-    /* the stubby diesel funnel (oval, short, flat cap), engine-room vents and the whistle */
-    {
-      const y = dk(-3) + 2.52,
-        x = -3.0;
-      P.push(part(cyl(1.15, 1.35, 3.4, 12), 0x6a7077, x, y + 1.7, 0, 0, 0, 0, 1.0, 1.0, 1.35), part(cyl(1.18, 1.18, 0.7, 12), 0x1b1c1e, x, y + 3.3, 0, 0, 0, 0, 1.0, 1.0, 1.35), part(cyl(1.25, 1.25, 0.1, 12), 0x303236, x, y + 3.7, 0, 0, 0, 0, 1.0, 1.0, 1.35));
-      P.push(box(0.05, 3.0, 0.5, 0x303236, x + 1.3, y + 1.6, 0), post(0.1, 0.9, 0x3a3d40, x - 1.0, y + 4.2, 0.5), post(0.1, 0.7, 0x3a3d40, x - 1.0, y + 4.1, -0.5));
-      for (const s of [-1, 1]) {
-        P.push(part(cyl(0.4, 0.4, 0.7, 10), 0x4a4d50, x - 3.0, y + 0.35, s * 2.3), part(cyl(0.32, 0.46, 0.35, 10), 0x303236, x - 3.0, y + 0.85, s * 2.3, 0, 0, 0.45 * s));
-      }
-    }
-    /* two motor whaleboats on the deckhouse roof, one each side of the funnel's after end */
-    for (const s of [-1, 1]) {
-      const y = dk(-7) + 2.52,
-        x = -7.4;
-      P.push(box(4.6, 0.6, 1.5, 0x8c8f91, x, y + 0.5, s * 2.5), box(1.0, 0.55, 1.0, 0x8c8f91, x + 2.6, y + 0.5, s * 2.5), box(4.8, 0.07, 1.6, 0x2b2d2f, x, y + 0.82, s * 2.5), box(1.8, 0.4, 1.0, 0x4a4f52, x - 0.4, y + 0.98, s * 2.5));
-      for (const dx of [-1.6, 1.6]) P.push(box(0.1, 0.3, 1.9, 0x303436, x + dx, y + 0.15, s * 2.5));
-    }
-    /* Carley floats and life rings on the deckhouse sides, lifejacket lockers */
-    for (const s of [-1, 1]) {
-      for (let i = 0; i < 3; i++) P.push(part(cyl(0.5, 0.5, 0.3, 14), 0xb5452c, -6 + i * 1.4, dk(-6) + 1.6, s * 3.7, Z), part(cyl(0.3, 0.3, 0.32, 10), 0x2b2d2f, -6 + i * 1.4, dk(-6) + 1.6, s * 3.7, Z));
-      P.push(part(cyl(0.3, 0.3, 0.08, 14), WHITE, 5.2, dk(5) + 2.9, s * 3.05, Z), box(0.8, 0.55, 0.3, 0x5a5f62, -9.0, dk(-9) + 0.5, s * 3.0));
-    }
-    /* the after deckhouse with the 40 mm Bofors on its roof */
-    const bofors = (x, y, z) => {
-      P.push(part(cyl(1.35, 1.5, 0.7, 14), 0x585d62, x, y + 0.35, z), part(cyl(1.2, 1.2, 0.06, 14), 0x15171a, x, y + 0.72, z));
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        P.push(box(0.35, 0.25, 0.18, 0x7d7452, x + Math.cos(a) * 1.4, y + 0.8, z + Math.sin(a) * 1.4, -a));
-      }
-      P.push(post(0.35, 0.9, 0x4a4d50, x, y + 1.15, z), box(1.5, 0.55, 0.75, 0x41454a, x + 0.1, y + 1.75, z), rod(0.09, 0.7, STEEL, x + 0.9, y + 1.78, z), rod(0.058, 2.3, GUN, x + 2.0, y + 1.78, z), rod(0.085, 0.3, GUN, x + 3.2, y + 1.78, z));
-      P.push(box(0.65, 0.3, 0.55, 0x2b2d2f, x - 0.15, y + 2.15, z), box(0.12, 0.28, 0.55, 0x7d7452, x - 0.15, y + 2.4, z), box(0.55, 0.06, 0.55, SUP3, x + 0.55, y + 2.1, z));
-      P.push(box(0.05, 0.9, 1.2, 0x737a81, x + 0.7, y + 1.7, z + 0.9), box(0.05, 0.9, 1.2, 0x737a81, x + 0.7, y + 1.7, z - 0.9));
-      P.push(box(0.5, 0.06, 0.5, 0x2b2d2f, x - 0.8, y + 1.15, z + 0.9), box(0.5, 0.06, 0.5, 0x2b2d2f, x - 0.8, y + 1.15, z - 0.9));
-    };
-    {
-      const x = -14.2,
-        y = dk(-14.2);
-      P.push(box(6.6, 2.2, 6.4, SUP, x, y + 1.1, 0), box(6.8, 0.12, 6.6, SUP3, x, y + 2.26, 0));
-      for (const s of [-1, 1]) for (let k = 0; k < 2; k++) P.push(box(0.7, 0.5, 0.06, WIN, x - 1.2 + k * 2.4, y + 1.3, s * 3.23));
-      P.push(box(0.05, 1.4, 0.8, 0x3a3d40, x + 3.3, y + 0.8, 1.2), box(0.05, 1.4, 0.8, 0x3a3d40, x + 3.3, y + 0.8, -1.2));
-      bofors(x - 0.4, y + 2.32, 0);
-      for (const s of [-1, 1]) P.push(box(0.04, 0.04, 0.04, 0x15171a, x + 1, y + 2.32, s * 2.8));
-    }
-    /* four 20 mm Oerlikons in tubs: two on the bridge wings' roof corners, two abaft the funnel casing */
-    const oerl = (x, y, z) => {
-      P.push(part(cyl(0.6, 0.65, 0.9, 12), 0x585d62, x, y + 0.45, z), part(cyl(0.64, 0.64, 0.07, 12), 0x15171a, x, y + 0.92, z), post(0.07, 0.9, STEEL, x, y + 1.35, z));
-      P.push(box(0.9, 0.16, 0.14, GUN, x + 0.1, y + 1.85, z), rod(0.032, 1.1, GUN, x + 0.95, y + 1.85, z), part(cyl(0.2, 0.2, 0.12, 10), 0x2b2d2f, x + 0.05, y + 2.05, z), box(0.04, 0.5, 0.6, 0x737a81, x + 0.55, y + 1.85, z), part(cyl(0.18, 0.18, 0.03, 10), STEEL, x - 0.45, y + 1.85, z, Z));
-    };
-    oerl(2.0, dk(2) + 2.52 + 0.1, 3.0);
-    oerl(2.0, dk(2) + 2.52 + 0.1, -3.0);
-    oerl(-18.5, dk(-18.5), 3.0);
-    oerl(-18.5, dk(-18.5), -3.0);
-    /* a second 40 mm on the fantail tub, a deckhouse hatch and the ensign staff; depth charge rails, drums and K-guns */
-    bofors(-22.8, dk(-22.8), 0);
-    for (const s of [-1, 1]) {
-      const z = s * 1.3;
-      P.push(box(7.0, 0.1, 0.1, 0x2b2d2f, -24.5, dk(-26) + 0.12, z - 0.25), box(7.0, 0.1, 0.1, 0x2b2d2f, -24.5, dk(-26) + 0.12, z + 0.25));
-      for (let i = 0; i < 7; i++) P.push(part(cyl(0.3, 0.3, 0.8, 10), i % 3 ? 0x303436 : 0x3a3f42, -27.2 + i * 0.95, dk(-26) + 0.55, z, Z));
-      for (let i = 0; i < 3; i++) P.push(part(cyl(0.16, 0.22, 0.9, 8), 0x3a3d40, -19.6 + i * 1.5, dk(-19) + 0.5, s * 4.0, 0, 0, 0), part(cyl(0.1, 0.12, 0.8, 8), 0x2b2d2f, -19.6 + i * 1.5, dk(-19) + 1.15, s * 4.2, s * 0.65), part(cyl(0.2, 0.2, 0.12, 8), 0x2b2d2f, -19.6 + i * 1.5, dk(-19) + 0.08, s * 3.95));
-      P.push(box(1.0, 0.5, 0.8, 0x2b2d2f, -28.0, 2.9, s * 0.9));
-    }
-    {
-      const x = -27.6,
-        y = dk(-27.6);
-      P.push(post(0.05, 3.3, 0x555555, x, y + 1.65, 0), ...FLG.at('us', 1.7, x - 0.05, y + 3.25, 0, Math.PI));
-    }
-    /* guard rails: stanchions every 2.2 m and a top and middle wire along both sides, from the stern to the break of the forecastle */
-    for (const s of [-1, 1]) {
-      const xs = [];
-      for (let x = -27; x <= 8; x += 2.2) xs.push(x);
-      for (const x of xs) P.push(post(0.025, 1.0, 0x6a6f74, x, dk(x) + 0.5, s * (sideZ(x, dk(x)) - 0.12)));
-      for (let i = 0; i < xs.length - 1; i++) {
-        const a = xs[i],
-          b = xs[i + 1];
-        P.push(wire(a, dk(a) + 1.0, b, dk(b) + 1.0, s * (sideZ(a, dk(a)) - 0.12), 0x4a4d50), wire(a, dk(a) + 0.5, b, dk(b) + 0.5, s * (sideZ(a, dk(a)) - 0.12), 0x4a4d50));
-      }
-    }
-    /* deck hatches and ventilators forward of the bridge and on the quarterdeck */
-    for (const x of [-20, 8.2]) P.push(box(1.1, 0.35, 1.1, 0x4a525b, x, dk(x) + 0.18, 2.0), box(1.1, 0.35, 1.1, 0x4a525b, x, dk(x) + 0.18, -2.0));
-    for (const s of [-1, 1]) P.push(part(cyl(0.3, 0.3, 0.9, 10), 0x4a4d50, 8.8, dk(8.8) + 0.45, s * 3.4), part(cyl(0.24, 0.42, 0.45, 10), 0x303236, 8.8, dk(8.8) + 1.0, s * 3.4, 0, 0, 0.4 * s));
-    return P;
-  };
-  /* THE ALLIED FLEET: one list for the whole world. The detailed PCE and PT-105 models (built from the plans), each hull wearing its
-     own number on the bow. [kind, hull number, length m, ring radii r0 and r1 m, speed m/s, placement seed]. The US freighter and
-     tanker models (freighter('us'), tanker('us')) are kept for later. A game's piece may take a ship for a player (HOOKS.claimShip). */
-  const FLEET = [
-    ['pt', '105', 24.4, 1500, 3800, 14, 1],
-    ['pce', '843', 56.2, 2500, 6500, 6.5, 2],
-    ['pce', '842', 56.2, 300, 1800, 7.5, 3, FS.nav[1].w(0, 1700)] /* the US Navy PCE: based at the PT-boat base, on patrol off it (the PCE game's player starts here) */,
-    ['pt', '106', 24.4, 3000, 5500, 13, 4],
-  ];
-  for (const [kind, num, L, r0, r1, sp, seed, c] of FLEET) {
-    if (!AFLD.addShip([], L, r0, r1, sp, seed, SEA.WL, kind === 'pt' ? 0.4 : 0.6, c)) continue; /* waterline at the sea plane */
-    const o = AFLD.a[AFLD.a.length - 1];
-    if (kind === 'pce') {
-      o.m.geometry.dispose();
-      o.m.geometry = PCEM.build(num);
-      o.m.material = PCEM.material;
-      PCEM.flags(o.m);
-    } else o.m.add(PTB.build(num));
-    if (HOOKS.claimShip.some((h) => h(kind, num, o))) continue; /* a player's ship: no AI gun crews */
-    if (kind === 'pce')
-      try {
-        PCEM.mounts(o.m);
-      } catch (e) {
-        console.warn('PCE guns', e);
-      }
-  }
-  /* the cargo ships at their real sizes (GX.fit, figures from References/vehicle research spec sheet.pdf; length, beam, draught,
-     heights in proportion): Japanese Type 2A wartime standard cargo ship 137.0 x 18.2 m, 7.8 m draught; Type 2TL wartime standard
-     tanker 153.5 x 20.0 m, 9.1 m; American Liberty ship (EC2-S-C1) 134.6 x 17.3 m, 8.5 m; T2-SE-A1 tanker 159.6 x 20.7 m, 9.2 m.
-     The ships are the reference-built models; GX.fit only confirms their size (and sets the draught). */
-  const SHIPR = {
-      freighter: { jp: { L: 137, W: 18.2, D: 7.8 }, us: { L: 134.6, W: 17.3, D: 8.5 } },
-      tanker: { jp: { L: 153.5, W: 20, D: 9.1 }, us: { L: 159.6, W: 20.7, D: 9.2 } },
-    },
-    /* the reference-built ships (MODELS, the cargo ships piece), checked to size here */
-    freighterR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-liberty' : 'jp-type2a'), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
-    tankerR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-t2' : 'jp-type2tl'), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
-  AFLD.models = { freighter: freighterR, tanker: tankerR, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
-  /* soft contact shadows under everything parked */
-  {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const x = c.getContext('2d'),
-      gr = x.createRadialGradient(32, 32, 4, 32, 32, 32);
-    gr.addColorStop(0, 'rgba(0,0,0,.75)');
-    gr.addColorStop(0.6, 'rgba(0,0,0,.4)');
-    gr.addColorStop(1, 'rgba(0,0,0,0)');
-    x.fillStyle = gr;
-    x.fillRect(0, 0, 64, 64);
-    const sh = new THREE.InstancedMesh(
-        new THREE.PlaneGeometry(1, 1).rotateX(-Z),
-        new THREE.MeshBasicMaterial({
-          map: new THREE.CanvasTexture(c),
-          transparent: true,
-          depthWrite: false,
-          opacity: 0.55,
-        }),
-        BL.length,
-      ),
-      m4 = new M4();
-    BL.forEach((b, i) => {
-      m4.compose(new V3(b[0], 0.2, b[1]), new Q().setFromAxisAngle(new V3(0, 1, 0), b[2]), new V3(b[3], 1, b[4]));
-      sh.setMatrixAt(i, m4);
-    });
-    sh.frustumCulled = false;
-    scene.add(sh);
-  }
-  /* painted markings */
-  const quad = (A, x, z, lx, lw, a) => {
-    const c = Math.cos(a),
-      s = Math.sin(a),
-      dx = (c * lx) / 2,
-      dz = (s * lx) / 2,
-      px = (-s * lw) / 2,
-      pz = (c * lw) / 2,
-      P = [
-        [x - dx - px, z - dz - pz],
-        [x + dx - px, z + dz - pz],
-        [x + dx + px, z + dz + pz],
-        [x - dx + px, z - dz + pz],
-      ];
-    for (const i of [0, 2, 1, 0, 3, 2]) A.push(P[i][0], 0.24, P[i][1]);
-  };
-  const seg = (A, x1, z1, x2, z2, w) =>
-    quad(A, (x1 + x2) / 2, (z1 + z2) / 2, Math.hypot(x2 - x1, z2 - z1), w, Math.atan2(z2 - z1, x2 - x1));
-  const dash = (A, x1, z1, x2, z2, w, d, gp) => {
-    const L = Math.hypot(x2 - x1, z2 - z1),
-      ux = (x2 - x1) / L,
-      uz = (z2 - z1) / L;
-    for (let t = 0; t + d <= L + 0.01; t += d + gp)
-      seg(A, x1 + ux * t, z1 + uz * t, x1 + ux * (t + d), z1 + uz * (t + d), w);
-  };
-  const flush = (A, hex) => {
-    const g = new THREE.BufferGeometry(),
-      n = [];
-    for (let i = 0; i < A.length; i += 3) n.push(0, 1, 0);
-    g.setAttribute('position', new THREE.Float32BufferAttribute(A, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
-    scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: hex, side: THREE.DoubleSide })));
-  };
-  const Yw = [],
-    Wh = [];
-  seg(Yw, -135, 300, -25, 300, 0.4);
-  for (let i = 0; i < 10; i++) {
-    const a = (i * Z) / 10,
-      b = ((i + 1) * Z) / 10;
-    seg(Yw, -25 + 25 * Math.sin(a), 275 + 25 * Math.cos(a), -25 + 25 * Math.sin(b), 275 + 25 * Math.cos(b), 0.4);
-  } /* taxi centreline + lead-on curve */
-  seg(Yw, -84, 300, -84, 486, 0.35);
-  seg(Yw, -150, 300, -150, 205, 0.35); /* apron lanes */
-  seg(Yw, -65, 288.3, -26, 288.3, 0.25);
-  seg(Yw, -65, 311.7, -26, 311.7, 0.25);
-  seg(Yw, -34, 288, -34, 312, 0.4);
-  dash(Yw, -31.4, 288, -31.4, 312, 0.4, 1.4, 1.2); /* taxiway edges, hold-short line */
-  for (let k = 0; k < 7; k++) seg(Wh, -126, 324 + 24 * k, -90, 324 + 24 * k, 0.25); /* parking stalls */
-  for (const [z0, sg] of [
-    [RW.zS, -1],
-    [RW.zN, 1],
-  ]) {
-    const f = (d) => z0 + sg * d; /* aiming point + touchdown zone bars at both ends */
-    for (const s of [-1, 1]) {
-      seg(Wh, s * 11, f(300), s * 11, f(340), 5);
-      for (const x of [6, 9.2, 12.4]) seg(Wh, s * x, f(150) - 0, s * x, f(172), 1.8);
-      for (const x of [7.5, 11]) seg(Wh, s * x, f(255), s * x, f(277), 1.8);
-    }
-  }
-  flush(Yw, 0xe0b81c);
-  flush(Wh, 0xe4e4de);
-  const num = (txt, z, rot) => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const x = c.getContext('2d');
-    x.fillStyle = '#e8e8e2';
-    x.font = 'bold 190px Arial,Helvetica,sans-serif';
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
-    x.save();
-    x.translate(128, 134);
-    x.scale(0.62, 1);
-    x.fillText(txt, 0, 0);
-    x.restore();
-    const t = new THREE.CanvasTexture(c);
-    t.anisotropy = 4;
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(22, 28).rotateX(-Z),
-      new THREE.MeshLambertMaterial({ map: t, transparent: true, depthWrite: false }),
-    );
-    m.position.set(0, 0.24, z);
-    m.rotation.y = rot;
-    scene.add(m);
-  };
-  num('36', RW.zS - 52, 0);
-  num('18', RW.zN + 52, Math.PI);
-}
-/* ---------- sky dome, sun, clouds ---------- */
-let SKYD = null,
-  MOON = null,
-  STARS = null,
-  CLM = null;
-const SUNSP = [];
-const HZC = new THREE.Color(0xbcd6ee),
-  ZNC = new THREE.Color(0x3f7cc4),
-  sky = new THREE.Group();
-scene.add(sky);
-scene.fog.color.copy(HZC);
-scene.background = HZC.clone();
-{
-  const R = 24000,
-    g = new THREE.SphereGeometry(R, 32, 16),
-    p = g.attributes.position,
-    cs = new Float32Array(p.count * 3),
-    c = new THREE.Color();
-  for (let i = 0; i < p.count; i++) {
-    const y = p.getY(i) / R;
-    if (y < 0) c.copy(HZC).multiplyScalar(0.9);
-    else c.copy(HZC).lerp(ZNC, Math.min(1, Math.pow(y, 0.5) * 1.1));
-    cs.set([c.r, c.g, c.b], i * 3);
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(cs, 3));
-  const d = new THREE.Mesh(
-    g,
-    new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }),
-  );
-  d.renderOrder = -10;
-  sky.add(d);
-  SKYD = g;
-  const tc = document.createElement('canvas');
-  tc.width = tc.height = 128;
-  const x = tc.getContext('2d'),
-    gr = x.createRadialGradient(64, 64, 2, 64, 64, 64);
-  gr.addColorStop(0, 'rgba(255,255,255,1)');
-  gr.addColorStop(0.12, 'rgba(255,250,225,.95)');
-  gr.addColorStop(0.35, 'rgba(255,235,170,.35)');
-  gr.addColorStop(1, 'rgba(255,220,150,0)');
-  x.fillStyle = gr;
-  x.fillRect(0, 0, 128, 128);
-  const st = new THREE.CanvasTexture(tc),
-    sd = new THREE.Vector3(2, 3, 1).normalize().multiplyScalar(20000);
-  [
-    [2600, 1],
-    [9000, 0.45],
-  ].forEach((a) => {
-    const s = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: st,
-        color: 0xfff4d0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        transparent: true,
-        fog: false,
-        opacity: a[1],
-      }),
-    );
-    s.scale.set(a[0], a[0], 1);
-    s.position.copy(sd);
-    s.renderOrder = -9;
-    sky.add(s);
-    SUNSP.push(s);
-  });
-  /* moon and stars (shown at night) */
-  const mcv = document.createElement('canvas');
-  mcv.width = mcv.height = 128;
-  const mx = mcv.getContext('2d'),
-    mg = mx.createRadialGradient(64, 64, 8, 64, 64, 64);
-  mg.addColorStop(0, 'rgba(245,248,255,1)');
-  mg.addColorStop(0.3, 'rgba(235,240,255,.95)');
-  mg.addColorStop(0.38, 'rgba(200,215,255,.25)');
-  mg.addColorStop(1, 'rgba(180,200,255,0)');
-  mx.fillStyle = mg;
-  mx.fillRect(0, 0, 128, 128);
-  MOON = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: new THREE.CanvasTexture(mcv),
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      transparent: true,
-      fog: false,
-    }),
-  );
-  MOON.scale.set(1500, 1500, 1);
-  MOON.renderOrder = -9;
-  sky.add(MOON);
-  const sp = new Float32Array(1100 * 3);
-  for (let i = 0; i < 1100; i++) {
-    const u = Math.random(),
-      a = Math.random() * 6.2832,
-      y = 0.02 + 0.98 * u,
-      r = Math.sqrt(1 - y * y) * 23000;
-    sp.set([Math.cos(a) * r, y * 23000, Math.sin(a) * r], i * 3);
-  }
-  const sg = new THREE.BufferGeometry();
-  sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
-  STARS = new THREE.Points(
-    sg,
-    new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 2,
-      sizeAttenuation: false,
-      transparent: true,
-      opacity: 0,
-      fog: false,
-      depthWrite: false,
-    }),
-  );
-  STARS.renderOrder = -9;
-  sky.add(STARS);
-}
-/* ---- cloud shadows: every cumulus puff is painted into a map that the ground, trees and buildings sample; the whole cloud field drifts with the wind ---- */
-const CSH = {
-  tex: null,
-  off: { value: new THREE.Vector2() },
-  k: { value: 0.28 },
-  root: new THREE.Group(),
-  wt: 0,
-  sun: new THREE.Vector3(2, 3, 1).normalize(),
-};
-scene.add(CSH.root);
-const CSZ = 512,
-  csc = document.createElement('canvas');
-csc.width = csc.height = CSZ;
-const csx = csc.getContext('2d');
-csx.fillStyle = '#000';
-csx.fillRect(0, 0, CSZ, CSZ);
-function csBlob(x, y, z, k) {
-  const sx = x - (y * CSH.sun.x) / CSH.sun.y,
-    sz = z - (y * CSH.sun.z) / CSH.sun.y,
-    r = ((k * 0.5) / 26000) * CSZ; /* where this puff's shadow falls on the ground */
-  for (const ox of [-1, 0, 1])
-    for (const oz of [-1, 0, 1]) {
-      const px = (sx / 26000 + 0.5) * CSZ + ox * CSZ,
-        pz = (sz / 26000 + 0.5) * CSZ + oz * CSZ;
-      if (px < -r || px > CSZ + r || pz < -r || pz > CSZ + r) continue;
-      const g = csx.createRadialGradient(px, pz, r * 0.15, px, pz, r);
-      g.addColorStop(0, 'rgba(255,255,255,.2)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      csx.fillStyle = g;
-      csx.fillRect(px - r, pz - r, r * 2, r * 2);
-    }
-}
-/* The hull outline at the waterline of the ship a player commands (shared by every game). Every csApply'd world surface near sea
-   level (the terrain's painted water, the open-sea plane) is cut away inside it, so nothing flat at sea level can ever show inside
-   the ship's rooms. The ship's role sets it each frame (PCE-842: shipPose); with no manned ship uHM.w stays 0 and nothing is cut.
-   One outline is enough, in multiplayer too: only the hull the camera is aboard needs the painted water cut out of her rooms; every
-   other ship keeps the sea out through OCEAN.hull. */
-const HULLM = { uHM: { value: new THREE.Vector4(0, 0, 0, 0) }, uHW: { value: PCEM.WL.slice() } };
-const HULLM_GL =
-  '{vec2 hr=vCS-uHM.xy;if(uHM.w>0.5&&vCSy<-6.0&&vCSy>-12.5&&dot(hr,hr)<900.0){vec2 fw=vec2(-sin(uHM.z),-cos(uHM.z));float al=dot(hr,fw),ac=abs(dot(hr,vec2(-fw.y,fw.x)));' +
-  'if(al>-28.0&&al<28.3){float fq=clamp(((27.75-al)/0.6096-(' + PCEM.F_STEM.toFixed(3) + '))/' + (PCEM.F_END - PCEM.F_STEM).toFixed(3) + '*31.0,0.0,30.999);int iq=int(fq);' +
-  'if(ac<mix(uHW[iq],uHW[iq+1],fract(fq))-0.1)discard;}}}';
-function csApply(m) {
-  if (
-    !m ||
-    m.userData.cs ||
-    !(m.isMeshLambertMaterial || m.isMeshBasicMaterial || m.isMeshPhongMaterial || m.isMeshStandardMaterial)
-  )
-    return;
-  m.userData.cs = 1;
-  const prev = m.onBeforeCompile,
-    pk = (prev ? prev.toString() : '') + (m.userData.key || '');
-  m.onBeforeCompile = (sh, rn) => {
-    if (prev) prev(sh, rn);
-    sh.uniforms.csTex = { value: CSH.tex };
-    sh.uniforms.csOff = CSH.off;
-    sh.uniforms.csK = CSH.k;
-    sh.uniforms.uHM = HULLM.uHM;
-    sh.uniforms.uHW = HULLM.uHW;
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vCS;varying float vCSy;')
-      .replace(
-        '#include <project_vertex>',
-        '#include <project_vertex>\n{vec4 cw=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncw=instanceMatrix*cw;\n#endif\nvec4 cww=modelMatrix*cw;vCS=cww.xz;vCSy=cww.y;}',
-      );
-    sh.fragmentShader = sh.fragmentShader
-      .replace(
-        '#include <common>',
-        '#include <common>\nuniform sampler2D csTex;uniform vec2 csOff;uniform float csK;varying vec2 vCS;varying float vCSy;uniform vec4 uHM;uniform float uHW[32];',
-      )
-      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n' + HULLM_GL)
-      .replace(
-        '#include <fog_fragment>',
-        'gl_FragColor.rgb*=1.0-csK*texture2D(csTex,(vCS-csOff)/26000.0+0.5).r*(1.0-smoothstep(7000.0,12500.0,length(vCS-cameraPosition.xz)));\n#include <fog_fragment>',
-      );
-  };
-  m.customProgramCacheKey = () => 'cs' + pk;
-  m.needsUpdate = true;
-}
-const csTree = (o) =>
-  o.traverse((c) => {
-    if (c.isMesh && !c.isSprite) (Array.isArray(c.material) ? c.material : [c.material]).forEach(csApply);
-  });
-function driftClouds(dt) {
-  TWIND.value += dt;
-  const r = CSH.root;
-  r.position.x += (FM.use('wind') ? WX.cdx : 5.5) * dt;
-  r.position.z += (FM.use('wind') ? WX.cdz : 1.8) * dt;
-  r.updateMatrix(); /* the scene's matrices were frozen: the cloud field must still drift */
-  CSH.off.value.set(r.position.x, r.position.z);
-  CSH.k.value = QL.t().shadow ? 0.28 * WX.shK : 0;
-  CSH.wt -= dt;
-  if (CSH.wt <= 0) {
-    CSH.wt = 2;
-    const H2 = 13000,
-      px = cam.position.x,
-      pz = cam.position.z;
-    /* the field follows the aircraft: a cloud that falls more than half a tile away is moved a whole tile (26 km) across,
-       so there are clouds wherever you fly and the shadow map (which repeats every tile) still lines up */
-    const wrap = (s, ox, oz) => {
-      const wx = s.position.x + ox - px,
-        wz = s.position.z + oz - pz;
-      let ch = false;
-      if (Math.abs(wx) > H2) (s.position.x -= 26000 * Math.round(wx / 26000)), (ch = true);
-      if (Math.abs(wz) > H2) (s.position.z -= 26000 * Math.round(wz / 26000)), (ch = true);
-      if (ch) s.updateMatrix();
-    };
-    for (const s of CLOUDS) wrap(s, r.position.x, r.position.z);
-    for (const s of CIRRUS) wrap(s, 0, 0);
-  }
-}
-{
-  const mkTex = (w, h, fn) => {
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    fn(c.getContext('2d'), w, h);
-    return new THREE.CanvasTexture(c);
-  };
-  const cum = mkTex(128, 128, (g, w, h) => {
-    const gr = g.createRadialGradient(64, 56, 4, 64, 64, 64);
-    gr.addColorStop(0, 'rgba(255,255,255,.97)');
-    gr.addColorStop(0.55, 'rgba(250,252,255,.7)');
-    gr.addColorStop(1, 'rgba(240,246,255,0)');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, w, h);
-    g.globalCompositeOperation = 'source-atop';
-    const sh = g.createLinearGradient(0, 30, 0, 128);
-    sh.addColorStop(0, 'rgba(150,165,195,0)');
-    sh.addColorStop(1, 'rgba(120,135,170,.6)');
-    g.fillStyle = sh;
-    g.fillRect(0, 0, w, h);
-  });
-  const cir = mkTex(256, 64, (g, w, h) => {
-    const gr = g.createRadialGradient(128, 32, 2, 128, 32, 128);
-    gr.addColorStop(0, 'rgba(255,255,255,.55)');
-    gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.save();
-    g.scale(1, 0.25);
-    g.translate(0, 96);
-    g.fillStyle = gr;
-    g.fillRect(0, -96, w, h * 4);
-    g.restore();
-  });
-  const mc = new THREE.SpriteMaterial({ map: cum, transparent: true, depthWrite: false }),
-    mr = new THREE.SpriteMaterial({ map: cir, transparent: true, depthWrite: false, opacity: 0.7 });
-  CLM = { mc, mr };
-  for (let i = 0; i < 75; i++) {
-    const cx = (Math.random() - 0.5) * 24000,
-      cz = (Math.random() - 0.5) * 24000,
-      cy = 900 + Math.random() * 1900,
-      R = 300 + Math.random() * 500;
-    if (cy < 2000 && Math.hypot(cx, cz) < 1800) continue;
-    for (let j = 0, m = 7 + ((Math.random() * 6) | 0); j < m; j++) {
-      const a = Math.random() * 6.28,
-        d = Math.random() * R,
-        s = new THREE.Sprite(mc),
-        k = 450 + Math.random() * 750 * (1 - d / (R * 1.4));
-      s.position.set(cx + Math.cos(a) * d, cy + Math.random() * R * 0.45 * (1 - d / (R * 1.2)), cz + Math.sin(a) * d);
-      s.scale.set(k, k * 0.8, 1);
-      s.userData.sx = s.scale.x;
-      s.userData.sy = s.scale.y;
-      CSH.root.add(s);
-      CLOUDS.push(s);
-      csBlob(s.position.x, s.position.y, s.position.z, k);
-    }
-  }
-  for (let i = 0; i < 16; i++) {
-    const s = new THREE.Sprite(mr);
-    s.position.set((Math.random() - 0.5) * 26000, 5500 + Math.random() * 1800, (Math.random() - 0.5) * 26000);
-    s.scale.set(7000 + Math.random() * 4000, 1300, 1);
-    scene.add(s);
-    CIRRUS.push(s);
-  }
-  CSH.tex = new THREE.CanvasTexture(csc);
-  CSH.tex.wrapS = CSH.tex.wrapT = THREE.RepeatWrapping;
-  CSH.tex.needsUpdate = true;
-}
-
-/* the shadow map is painted from the puffs that are really shown: change the weather (or the graphics level) and it is painted again, so there is never a shadow without its cloud */
-CSH.rebuild = () => {
-  if (!CSH.tex) return;
-  csx.globalCompositeOperation = 'source-over';
-  csx.fillStyle = '#000';
-  csx.fillRect(0, 0, CSZ, CSZ);
-  for (const s of CLOUDS) if (s.visible) csBlob(s.position.x, s.position.y, s.position.z, s.scale.x);
-  CSH.tex.needsUpdate = true;
-};
-/* everything built so far is scenery that never moves: stop re-computing its matrices every frame */
-scene.traverse((o) => {
-  if (o === sky || o.parent === sky || o.isLight) return;
-  o.updateMatrix();
-  o.matrixAutoUpdate = false;
-  if (o.isMesh && !o.isSprite) (Array.isArray(o.material) ? o.material : [o.material]).forEach(csApply);
-});
-/* ---------- the cloud deck: a solid layer of cloud for overcast, rain and storm, with a bright top you can climb out onto ---------- */
-const DECK = {
-  cfg: {
-    overcast: { base: 1700, thick: 450, cov: 0.95 },
-    rain: { base: 1300, thick: 600, cov: 0.985 },
-    storm: { base: 1000, thick: 900, cov: 0.998 },
-  },
-  N: 256,
-  T: 12000,
-  on: false,
-  above: false,
-  fogOn: false,
-  base: 0,
-  top: 0,
-  thr: 0.5,
-  ox: 0,
-  oz: 0,
-  k: 0,
-  tc: 0,
-  data: null,
-  tex: null,
-  mats: null,
-  meshes: null,
-  build() {
-    const N = this.N,
-      d = new Float32Array(N * N);
-    let seed = 20261031;
-    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    [
-      [8, 0.55],
-      [16, 0.3],
-      [32, 0.15],
-    ].forEach(([c, w]) => {
-      const L = new Float32Array(c * c);
-      for (let i = 0; i < L.length; i++) L[i] = rnd();
-      for (let j = 0; j < N; j++)
-        for (let i = 0; i < N; i++) {
-          const fx = (i / N) * c,
-            fy = (j / N) * c,
-            ix = Math.floor(fx),
-            iy = Math.floor(fy);
-          let tx = fx - ix,
-            ty = fy - iy;
-          tx = tx * tx * (3 - 2 * tx);
-          ty = ty * ty * (3 - 2 * ty);
-          const a = L[(iy % c) * c + (ix % c)],
-            b = L[(iy % c) * c + ((ix + 1) % c)],
-            e = L[((iy + 1) % c) * c + (ix % c)],
-            f = L[((iy + 1) % c) * c + ((ix + 1) % c)];
-          d[j * N + i] += w * ((a * (1 - tx) + b * tx) * (1 - ty) + (e * (1 - tx) + f * tx) * ty);
-        }
-    });
-    const s = Array.from(d).sort((a, b) => a - b),
-      lo = s[Math.floor(s.length * 0.02)],
-      hi = s[Math.floor(s.length * 0.98)];
-    this.data = new Uint8Array(N * N);
-    for (let i = 0; i < d.length; i++) this.data[i] = Math.round(255 * Math.max(0, Math.min(1, (d[i] - lo) / (hi - lo))));
-    this.tex = new THREE.DataTexture(this.data, N, N, THREE.LuminanceFormat, THREE.UnsignedByteType);
-    this.tex.wrapS = this.tex.wrapT = THREE.RepeatWrapping;
-    this.tex.magFilter = this.tex.minFilter = THREE.LinearFilter;
-    this.tex.needsUpdate = true;
-    /* the value below which the layer has a hole, for each coverage: worked out from the texture itself */
-    const q = [];
-    for (let j = 0; j < 96; j++) for (let i = 0; i < 96; i++) q.push(this.n(i * 125 + this.ox, j * 125 + this.oz));
-    q.sort((a, b) => a - b);
-    this.q = q;
-    const vs = `varying vec3 vW;\n#include <common>\n#include <logdepthbuf_pars_vertex>\n#include <fog_pars_vertex>\nvoid main(){vec4 wp=modelMatrix*vec4(position,1.0);vW=wp.xyz;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;\n#include <logdepthbuf_vertex>\n#include <fog_vertex>\n}`,
-      fs = `uniform sampler2D uTex;uniform vec2 uOff;uniform float uT,uThr,uTop,uQ;uniform vec3 uCol,uCol2;varying vec3 vW;
-#include <common>
-#include <logdepthbuf_pars_fragment>
-#include <fog_pars_fragment>
-void main(){
-#include <logdepthbuf_fragment>
-vec2 uv=(vW.xz-uOff)/uT;
-float n=0.72*texture2D(uTex,uv).r+0.28*texture2D(uTex,uv*3.7+vec2(0.31,0.57)).r;
-float a=smoothstep(uThr-0.03,uThr+0.06,n);if(a<0.01)discard;
-float th=clamp((n-uThr)/0.35,0.0,1.0);float dt=uQ>0.5?texture2D(uTex,uv*11.0+vec2(0.7,0.2)).r:0.5;
-vec3 c=uTop>0.5?mix(uCol2*0.86,uCol2,dt*0.8+0.2*th):uCol*(1.0-0.4*th)*(0.92+0.16*dt);
-gl_FragColor=vec4(c,a);
-#include <fog_fragment>
-}`;
-    const mk = (top) =>
-      new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.merge([
-          THREE.UniformsLib.fog,
-          {
-            uTex: { value: this.tex },
-            uOff: { value: new THREE.Vector2() },
-            uT: { value: this.T },
-            uThr: { value: 0.3 },
-            uTop: { value: top },
-            uQ: { value: 1 },
-            uCol: { value: new THREE.Color(0xaab2bb) },
-            uCol2: { value: new THREE.Color(0xffffff) },
-          },
-        ]),
-        vertexShader: vs,
-        fragmentShader: fs,
-        fog: true,
-        transparent: true,
-        depthWrite: true,
-        side: top ? THREE.FrontSide : THREE.BackSide,
-      });
-    this.mats = [mk(0), mk(1)];
-    this.meshes = this.mats.map((m) => {
-      const o = new THREE.Mesh(new THREE.PlaneGeometry(44000, 44000, 1, 1).rotateX(-Math.PI / 2), m);
-      o.frustumCulled = false;
-      o.visible = false;
-      o.renderOrder = -2;
-      scene.add(o);
-      return o;
-    });
-  },
-  tx(u, v) {
-    const N = this.N;
-    u -= Math.floor(u);
-    v -= Math.floor(v);
-    const x = u * N - 0.5,
-      y = v * N - 0.5,
-      x0 = Math.floor(x),
-      y0 = Math.floor(y),
-      fx = x - x0,
-      fy = y - y0,
-      D = this.data,
-      g = (i, j) => D[(((j % N) + N) % N) * N + (((i % N) + N) % N)];
-    return ((g(x0, y0) * (1 - fx) + g(x0 + 1, y0) * fx) * (1 - fy) + (g(x0, y0 + 1) * (1 - fx) + g(x0 + 1, y0 + 1) * fx) * fy) / 255;
-  },
-  /* the cloud density at a world spot: the same sum the shader draws */
-  n(x, z) {
-    const u = (x - this.ox) / this.T,
-      v = (z - this.oz) / this.T;
-    return 0.72 * this.tx(u, v) + 0.28 * this.tx(u * 3.7 + 0.31, v * 3.7 + 0.57);
-  },
-  cover(x, z) {
-    return this.on && this.n(x, z) > this.thr + 0.015;
-  },
-  /* the weather changed (or the game started): switch the layer on or off and set its height and holes */
-  apply() {
-    if (!this.data) this.build();
-    const c = this.cfg[WX.wx];
-    this.on = !!c;
-    this.above = false;
-    if (this.fogOn && this.dome) {
-      this.dome.material.opacity = 1;
-      this.dome.material.transparent = false;
-      sky.visible = true;
-    }
-    this.fogOn = false;
-    this.k = 0;
-    this.meshes.forEach((m) => (m.visible = this.on));
-    if (c) {
-      this.base = c.base;
-      this.top = c.base + c.thick;
-      this.thr = this.q[Math.floor((1 - c.cov) * (this.q.length - 1))];
-      this.mats.forEach((m) => (m.uniforms.uThr.value = this.thr));
-    }
-    WX.deckAbove = false;
-  },
-  /* distance along the ray to the first solid cloud (the layer's underside or top), or Infinity */
-  hit(a, dx, dy, dz, len) {
-    if (!this.on) return Infinity;
-    const planes = [this.base, this.top];
-    let best = Infinity;
-    for (const yy of planes) {
-      if (Math.abs(dy) < 1e-4) continue;
-      const t = (yy - a.y) / dy;
-      if (t > 0 && t < len && t < best && this.cover(a.x + dx * t, a.z + dz * t)) best = t;
-    }
-    if (a.y > this.base && a.y < this.top && this.cover(a.x, a.z)) return 0;
-    return best;
-  },
-  inside(p) {
-    return this.on && p.y > this.base && p.y < this.top && this.cover(p.x, p.z);
-  },
-  update(dt) {
-    if (!this.data) this.apply();
-    if (!this.on) return;
-    const cp = cam.position,
-      y = cp.y,
-      cv = this.cover(cp.x, cp.z),
-      mid = (this.base + this.top) / 2;
-    this.ox += (WX.wx_ || 0) * 0.7 * dt;
-    this.oz += (WX.wz_ || 0) * 0.7 * dt;
-    this.mats.forEach((m) => {
-      m.uniforms.uOff.value.set(this.ox, this.oz);
-      m.uniforms.uQ.value = QL.t().fx > 0 ? 1 : 0;
-    });
-    this.meshes.forEach((m) => {
-      m.position.set(cp.x, m.material === this.mats[0] ? this.base : this.top, cp.z);
-    });
-    /* above or below: the sky, light and rain follow, switched while the aircraft is hidden inside the layer */
-    let ab = this.above;
-    if (!ab && y > (cv ? mid : this.top + 60)) ab = true;
-    else if (ab && y < (cv ? mid : this.base - 60)) ab = false;
-    if (ab !== this.above) {
-      this.above = ab;
-      WX.deckAbove = ab;
-      WX.rainK = ab ? 0 : WX_SET[WX.wx].rain;
-      WX.paint();
-    }
-    /* colours: the underside takes the weather's cloud tint, the top is bright */
-    this.tc -= dt;
-    if (this.tc <= 0) {
-      this.tc = 0.5;
-      const dayK = Math.max(0, Math.min(1, (WXP.SD.y + 0.05) / 0.3));
-      this.mats[0].uniforms.uCol.value.copy(WXP.CC).multiplyScalar(0.8);
-      this.mats[1].uniforms.uCol2.value.setRGB(1, 1, 1).lerp(WXP.O.sc, 0.25).multiplyScalar(0.18 + 0.82 * dayK);
-    }
-    /* inside the layer: thick white-out, so you fly on the instruments */
-    const dep = Math.min(y - this.base, this.top - y),
-      ca = Math.max(0, Math.min(1, (this.n(cp.x, cp.z) - this.thr + 0.03) / 0.09)),
-      k = Math.max(0, Math.min(1, (dep + 30) / 70)) * ca;
-    this.k = k;
-    if (k > 0.002) {
-      const bs = this.above ? WX_SET.clear : WX_SET[WX.wx],
-        c = this.mats[0].uniforms.uCol.value.clone().lerp(this.mats[1].uniforms.uCol2.value, 0.5);
-      scene.fog.near = bs.fogN * Math.pow(3 / bs.fogN, k);
-      scene.fog.far = bs.fogF * Math.pow(110 / bs.fogF, k);
-      scene.fog.color.copy(WXP.O.hz).lerp(c, k);
-      scene.background.copy(scene.fog.color);
-      /* the sky dome fades out into the white-out (it is not fogged), and the sun, moon and stars go with it */
-      const dm = this.dome || (this.dome = sky.children.find((o) => o.geometry === SKYD));
-      if (dm) {
-        dm.material.transparent = true;
-        dm.material.opacity = Math.max(0, 1 - k * 1.6);
-      }
-      sky.visible = k < 0.62;
-      this.fogOn = true;
-    } else if (this.fogOn) {
-      this.fogOn = false;
-      if (this.dome) {
-        this.dome.material.opacity = 1;
-        this.dome.material.transparent = false;
-      }
-      sky.visible = true;
-      WX.paint();
-    }
-  },
-};
 /* merge the plain meshes of a group into one mesh per material (fewer draw calls for small static detail) */
 function mergeGroup(g) {
   const by = new Map();
@@ -11210,11 +9912,12 @@ function mergeGroup(g) {
     g.add(new THREE.Mesh(geo, m));
   });
 }
-/* ---------- P-51 model ---------- */
+/* ---------- P-51 model ---------- (built before the scenery so its copies can stand on the airfields; it joins the scene after the
+   scenery freeze, see the airframe-joins-the-scene piece, so its moving parts keep moving) */
 const plane = new THREE.Group(),
   model = new THREE.Group();
 plane.add(model);
-scene.add(plane);
+plane.visible = false; /* the airframe is shared (its copies are made from it); the P-51's role shows it when the P-51 is played */
 model.position.y = 0.17;
 const PH = (c, s = 70, sp = 0x777777, ds = false) => {
   const m = new THREE.MeshPhongMaterial({ color: c, shininess: s, specular: sp });
@@ -11628,225 +10331,6 @@ function canLoft(za, zb, nz) {
 }
 add(canLoft(CAN.z0, CAN.zJ, 12), glass, 0, 0, 0); /* windscreen glass: stays when the hood is jettisoned */
 const can = add(canLoft(CAN.zJ, CAN.z1, 40), glass, 0, 0, 0); /* the hood */
-/* ---------- pilot figure and parachute: the player's seat, the bandits' cockpits and the descents ---------- */
-function makePilot() {
-  const g = new THREE.Group(),
-    suit = new THREE.MeshLambertMaterial({ color: 0x59623f }),
-    leath = new THREE.MeshLambertMaterial({ color: 0x6e4f30 }),
-    skin = new THREE.MeshLambertMaterial({ color: 0xd0a070 }),
-    gog = new THREE.MeshLambertMaterial({ color: 0x151515 }),
-    lens = new THREE.MeshPhongMaterial({ color: 0x2a3d50, shininess: 90, specular: 0xaaaaaa }),
-    pack = new THREE.MeshLambertMaterial({ color: 0x7b8460 });
-  const mk = (geo, m, x, y, z, p = g) => {
-    const o = new THREE.Mesh(geo, m);
-    o.position.set(x, y, z);
-    p.add(o);
-    return o;
-  };
-  const sph = (r, m, x, y, z, p, sx = 1, sy = 1, sz = 1) => {
-    const o = mk(new THREE.SphereGeometry(r, 14, 10), m, x, y, z, p);
-    o.scale.set(sx, sy, sz);
-    return o;
-  };
-  /* rounded limb: a tapered tube with a ball at each end, pointing along -z (dir 'z') or down (dir 'y') */
-  const limb = (len, r0, r1, m, p, dir) => {
-    const t = new THREE.CylinderGeometry(r0, r1, len, 12);
-    if (dir === 'z') t.rotateX(Math.PI / 2).translate(0, 0, -len / 2);
-    else t.translate(0, -len / 2, 0);
-    mk(t, m, 0, 0, 0, p);
-    sph(r0, m, 0, 0, 0, p);
-    if (dir === 'z') sph(r1, m, 0, 0, -len, p);
-    else sph(r1, m, 0, -len, 0, p);
-  };
-  /* torso: a tapered body with round shoulders, a rounded chest and seat, a parachute pack on the back. The upper body is its own group so the pilot can lean forward to the controls. */
-  const up = new THREE.Group();
-  g.add(up);
-  mk(new THREE.CylinderGeometry(0.17, 0.14, 0.46, 16), suit, 0, 0.3, 0, up).scale.z = 0.72;
-  sph(0.175, suit, 0, 0.5, 0, up, 1, 0.5, 0.72);
-  sph(0.145, suit, 0, 0.08, 0, g, 1, 0.55, 0.75);
-  sph(0.15, pack, 0, 0.28, 0.16, up, 1, 1.4, 0.55);
-  const head = new THREE.Group();
-  head.position.set(0, 0.66, 0);
-  up.add(head);
-  mk(new THREE.CylinderGeometry(0.05, 0.06, 0.12, 10), skin, 0, -0.1, 0, head); /* neck */
-  sph(0.1, skin, 0, 0, 0, head, 0.92, 1.05, 1);
-  sph(0.115, leath, 0, 0.025, 0.01, head, 0.95, 0.9, 1.02); /* helmet */
-  /* goggles: an elastic strap round the helmet and two round lenses on the face */
-  mk(
-    new THREE.CylinderGeometry(0.118, 0.118, 0.03, 20, 1, true),
-    new THREE.MeshLambertMaterial({ color: 0x151515, side: THREE.DoubleSide }),
-    0,
-    0.03,
-    0.005,
-    head,
-  );
-  [-1, 1].forEach((sd) => {
-    sph(0.034, lens, sd * 0.045, 0.03, -0.108, head, 1, 1, 0.45);
-    mk(new THREE.TorusGeometry(0.034, 0.007, 6, 14), gog, sd * 0.045, 0.03, -0.112, head);
-  });
-  const arms = [],
-    elbs = [],
-    legs = [];
-  [-1, 1].forEach((sd) => {
-    const a = new THREE.Group();
-    a.position.set(sd * 0.2, 0.46, 0);
-    up.add(a);
-    limb(0.3, 0.055, 0.047, suit, a, 'z');
-    const el = new THREE.Group(); /* the elbow: the forearm is its own bone, so a hand can reach a control */
-    el.position.set(0, 0, -0.3);
-    a.add(el);
-    limb(0.3, 0.047, 0.04, suit, el, 'z');
-    sph(0.05, leath, 0, 0, -0.31, el, 1, 0.9, 1.2); /* gloved hand */
-    a.rotation.order = 'ZXY';
-    arms.push(a);
-    elbs.push(el);
-    const l = new THREE.Group();
-    l.position.set(sd * 0.09, 0.03, 0);
-    g.add(l);
-    limb(0.5, 0.085, 0.06, suit, l, 'z');
-    const k = new THREE.Group();
-    k.position.set(0, 0, -0.5);
-    l.add(k);
-    limb(0.5, 0.06, 0.045, suit, k, 'y');
-    sph(0.06, leath, 0, -0.52, -0.04, k, 0.9, 0.7, 1.7); /* boot */
-    legs.push([l, k]);
-  });
-  g.userData = { head, arms, elbs, legs, up };
-  poseSit(g);
-  return g;
-}
-function poseSit(g) {
-  const u = g.userData;
-  u.arms.forEach((a) => a.rotation.set(-0.6, 0, 0));
-  u.elbs.forEach((e) => e.rotation.set(-0.35, 0, 0));
-  u.up.rotation.x = 0;
-  u.legs.forEach(([l, k]) => {
-    l.rotation.x = 0;
-    k.rotation.x = 0.9;
-  });
-}
-function poseHang(g) {
-  const u = g.userData;
-  u.arms.forEach((a, i) => a.rotation.set(1.5, 0, i ? -0.45 : 0.45)); /* hands up on the risers */
-  u.elbs.forEach((e) => e.rotation.set(0, 0, 0));
-  u.up.rotation.x = 0;
-  u.legs.forEach(([l, k]) => {
-    l.rotation.x = -1.45;
-    k.rotation.x = 1.25;
-  });
-}
-/* a round parachute: striped dome, shroud lines running down to the harness at the origin */
-function makeChute(r, c1, c2) {
-  const g = new THREE.Group(),
-    geo = new THREE.SphereGeometry(r, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2);
-  geo.scale(1, 0.62, 1);
-  const pa = geo.attributes.position,
-    col = new Float32Array(pa.count * 3),
-    ca = new THREE.Color(c1),
-    cb = new THREE.Color(c2);
-  for (let i = 0; i < pa.count; i++) {
-    const a = Math.atan2(pa.getZ(i), pa.getX(i)),
-      c = Math.floor(((a + Math.PI) / (Math.PI * 2)) * 12) & 1 ? ca : cb;
-    col[i * 3] = c.r;
-    col[i * 3 + 1] = c.g;
-    col[i * 3 + 2] = c.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const dome = new THREE.Mesh(
-    geo,
-    new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, emissive: 0x4a4a4a }),
-  );
-  dome.position.y = 6.4;
-  g.add(dome);
-  const pts = [];
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    pts.push(r * Math.cos(a), 6.4, r * Math.sin(a), 0, 0.55, 0);
-  }
-  const lg = new THREE.BufferGeometry();
-  lg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xdcdcdc })));
-  return g;
-}
-/* the player's pilot in his seat (the figure is the shared one, makePilot) */
-const plPilot = makePilot();
-plPilot.position.set(0, 0.07, -0.33);
-plPilot.scale.setScalar(0.95);
-model.add(plPilot);
-/* the player's hands follow the controls: left on the throttle knob, right on the stick grip (two-bone reach, elbows down and out) */
-const IK = {
-  v: new V(),
-  d: new V(),
-  pv: new V(),
-  u: new V(),
-  f: new V(),
-  h: new V(),
-  e: new V(),
-  t: new V(),
-  fw: new V(0, 0, -1),
-  dn: new V(0, -1, 0),
-  pole: new V(),
-  qi: new THREE.Quaternion(),
-};
-function ikArm(a, el, T, sd) {
-  const S = a.position,
-    L1 = 0.3,
-    L2 = 0.3;
-  IK.v.copy(T).sub(S);
-  const d = Math.min(Math.max(IK.v.length(), 0.12), L1 + L2 - 0.004);
-  IK.d.copy(IK.v).normalize();
-  IK.pole.set(sd * 0.6, -1, 0.4);
-  IK.pv.copy(IK.pole).addScaledVector(IK.d, -IK.pole.dot(IK.d)).normalize();
-  const ca = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d),
-    sa = Math.sqrt(Math.max(0, 1 - ca * ca));
-  IK.u.copy(IK.d).multiplyScalar(ca).addScaledVector(IK.pv, sa);
-  a.quaternion.setFromUnitVectors(IK.fw, IK.u);
-  IK.e.copy(S).addScaledVector(IK.u, L1);
-  IK.h.copy(S).addScaledVector(IK.d, d);
-  IK.f.copy(IK.h).sub(IK.e).normalize().applyQuaternion(IK.qi.copy(a.quaternion).invert());
-  el.quaternion.setFromUnitVectors(IK.fw, IK.f);
-}
-function pilotIK() {
-  const u = plPilot.userData;
-  u.up.rotation.x = -0.08; /* sits upright against the seat back so the shoulder harness works */
-  plPilot.updateWorldMatrix(true, true);
-  ckStick.updateWorldMatrix(true, false);
-  ckThr.updateWorldMatrix(true, false);
-  IK.t.set(0, 0.4, 0);
-  ckStick.localToWorld(IK.t);
-  u.up.worldToLocal(IK.t);
-  ikArm(u.arms[1], u.elbs[1], IK.t, 1);
-  IK.t.set(-0.44, 0.57, -0.56); /* the left hand rests on the blue propeller lever */
-  ck.localToWorld(IK.t);
-  u.up.worldToLocal(IK.t);
-  ikArm(u.arms[0], u.elbs[0], IK.t, -1);
-  [-1, 1].forEach((sd, i) => {
-    /* the feet rest on the rudder pedals (thigh 0.5 m, shin 0.5 m) */
-    ckPed[sd].updateWorldMatrix(true, false);
-    IK.t.set(0, 0.01, -0.12); /* heel on the floor plate, toes against the upright pedal */
-    ckPed[sd].localToWorld(IK.t);
-    plPilot.worldToLocal(IK.t);
-    ikLeg(u.legs[i][0], u.legs[i][1], IK.t, sd);
-  });
-}
-function ikLeg(l, k, T, sd) {
-  const S = l.position,
-    L1 = 0.5,
-    L2 = 0.5;
-  IK.v.copy(T).sub(S);
-  const d = Math.min(Math.max(IK.v.length(), 0.2), L1 + L2 - 0.004);
-  IK.d.copy(IK.v).normalize();
-  IK.pole.set(sd * 0.25, 1, -0.2);
-  IK.pv.copy(IK.pole).addScaledVector(IK.d, -IK.pole.dot(IK.d)).normalize();
-  const ca = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d),
-    sa = Math.sqrt(Math.max(0, 1 - ca * ca));
-  IK.u.copy(IK.d).multiplyScalar(ca).addScaledVector(IK.pv, sa);
-  l.quaternion.setFromUnitVectors(IK.fw, IK.u);
-  IK.e.copy(S).addScaledVector(IK.u, L1);
-  IK.h.copy(S).addScaledVector(IK.d, d);
-  IK.f.copy(IK.h).sub(IK.e).normalize().applyQuaternion(IK.qi.copy(l.quaternion).invert());
-  k.quaternion.setFromUnitVectors(IK.dn, IK.f);
-}
 /* tail, from the factory side and plan views: fin 69 9/16 in above the reference line, rudder hinge at station 362, tailplane span 13 ft 2 1/8 in,
    elevator hinge at station 338.5 */
 const FIN_H = 1.767,
@@ -12107,7 +10591,7 @@ add(
   add(new THREE.BoxGeometry(0.09, 0.34, 0.55), metal2, s * 2.9, wy(2.9) - 0.2, wmid(2.9 / WSEMI));
   [3.7, 4.1, 4.5].forEach((x) => add(new THREE.BoxGeometry(0.05, 0.2, 0.35), metal2, s * x, wy(x) - 0.17, wmid(x / WSEMI)));
 });
-/* national insignia (star-and-bar): decals are wrapped onto the real surface so they never clip or float */
+/* national insignia (star-and-bar): shapes wrapped onto the real surface so they never clip or float */
 {
   const wingY = (X, z, sg) => {
     const u = Math.min(1, Math.abs(X) / WSEMI),
@@ -12115,46 +10599,93 @@ add(
       vz = Math.max(-0.5, Math.min(0.5, (z - zl) / (wzh(u) - zl) - 0.5));
     return WR + sg * 0.5 * (0.38 - 0.24 * u) * (1 - 0.75 * Math.pow(2 * vz, 2)) + u * WD;
   };
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 128;
-  const g = c.getContext('2d'),
-    blue = '#1c3a7a',
-    white = '#f2f2f2';
-  g.fillStyle = blue;
-  g.fillRect(6, 46, 244, 36);
-  g.fillStyle = white;
-  g.fillRect(12, 52, 232, 24);
-  g.fillStyle = blue;
-  g.beginPath();
-  g.arc(128, 64, 60, 0, 7);
-  g.fill();
-  g.fillStyle = white;
-  g.beginPath();
-  for (let i = 0; i < 10; i++) {
+  /* the star-and-bar as shapes, not a picture: drawn on a 256 x 128 sheet (the old decal's layout), cut into regions that do not
+     overlap (the bar's blue border, the white bar, the blue disc round the star, the white star), triangulated, the triangles split
+     until they are small enough to follow the skin, and each corner laid on the surface by the decal's own wrap fn(u, v). Vertex
+     coloured, so a copy of the aircraft (P51DISP) carries the markings in its one mesh. */
+  const blue = 0x1c3a7a,
+    white = 0xf2f2f2,
+    CX = 128,
+    CY = 64,
+    RD = 60;
+  const ring = (n, r) => Array.from({ length: n }, (_, i) => [CX + r * Math.cos((i / n) * 2 * Math.PI), CY + r * Math.sin((i / n) * 2 * Math.PI)]);
+  const star = Array.from({ length: 10 }, (_, i) => {
     const an = -Math.PI / 2 + (i * Math.PI) / 5,
       r = i % 2 ? 15 : 38;
-    g.lineTo(128 + Math.cos(an) * r, 64 + Math.sin(an) * r);
-  }
-  g.closePath();
-  g.fill();
-  const dm = new THREE.MeshLambertMaterial({
-    map: new THREE.CanvasTexture(c),
-    transparent: true,
-    alphaTest: 0.1,
-    side: THREE.DoubleSide,
+    return [CX + Math.cos(an) * r, CY + Math.sin(an) * r];
   });
-  const decal = (nu, nv, fn) => {
-    const gm = new THREE.PlaneGeometry(1, 1, nu, nv),
-      uv = gm.attributes.uv,
-      p = gm.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const q = fn(uv.getX(i), uv.getY(i));
-      p.setXYZ(i, q[0], q[1], q[2]);
+  /* a strip x0..x1, y0..y1 across the disc, less the disc: its left and right pieces */
+  const strip = (x0, y0, x1, y1) => {
+    const xs = (y) => Math.sqrt(RD * RD - (y - CY) * (y - CY)),
+      L = [[x0, y0]],
+      Rr = [[x1, y1]];
+    for (let k = 0; k <= 8; k++) {
+      const y = y0 + ((y1 - y0) * k) / 8;
+      L.push([CX - xs(y), y]);
     }
+    L.push([x0, y1]);
+    for (let k = 0; k <= 8; k++) {
+      const y = y1 - ((y1 - y0) * k) / 8;
+      Rr.push([CX + xs(y), y]);
+    }
+    Rr.push([x1, y0]);
+    return [L, Rr];
+  };
+  const REGIONS = [
+    [white, star, []],
+    [blue, ring(48, RD), [star]],
+    ...strip(12, 52, 244, 76).map((p) => [white, p, []]),
+    ...strip(6, 46, 250, 52).map((p) => [blue, p, []]),
+    ...strip(6, 76, 250, 82).map((p) => [blue, p, []]),
+    [blue, [[6, 52], [12, 52], [12, 76], [6, 76]], []],
+    [blue, [[244, 52], [250, 52], [250, 76], [244, 76]], []],
+  ];
+  const im = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  /* out: the side the marking faces (every triangle is turned to face it, so a copy drawn one-sided keeps it) */
+  const decal = (nu, nv, fn, out) => {
+    const P = [],
+      C = [],
+      col = new THREE.Color(),
+      put = (a) => {
+        const q = fn(a[0] / 256, 1 - a[1] / 128);
+        P.push(q[0], q[1], q[2]);
+        C.push(col.r, col.g, col.b);
+      };
+    const tri = (a, b, c) => {
+      const d = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]),
+        ab = d(a, b),
+        bc = d(b, c),
+        ca = d(c, a),
+        m = Math.max(ab, bc, ca);
+      if (m <= 9) {
+        const A = fn(a[0] / 256, 1 - a[1] / 128),
+          B = fn(b[0] / 256, 1 - b[1] / 128),
+          Cc = fn(c[0] / 256, 1 - c[1] / 128),
+          ux = B[0] - A[0],
+          uy = B[1] - A[1],
+          uz = B[2] - A[2],
+          vx = Cc[0] - A[0],
+          vy = Cc[1] - A[1],
+          vz = Cc[2] - A[2];
+        return (uy * vz - uz * vy) * out[0] + (uz * vx - ux * vz) * out[1] + (ux * vy - uy * vx) * out[2] < 0 ? (put(a), put(c), put(b)) : (put(a), put(b), put(c));
+      }
+      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      if (m === ab) tri(a, mid(a, b), c), tri(mid(a, b), b, c);
+      else if (m === bc) tri(a, b, mid(b, c)), tri(a, mid(b, c), c);
+      else tri(a, b, mid(c, a)), tri(mid(c, a), b, c);
+    };
+    for (const [hex, outer, holes] of REGIONS) {
+      col.setHex(hex);
+      const V2 = (p) => new THREE.Vector2(p[0], p[1]),
+        all = outer.concat(...holes);
+      for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(outer.map(V2), holes.map((h) => h.map(V2)))) tri(all[a], all[b], all[c]);
+    }
+    const gm = new THREE.BufferGeometry();
+    gm.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    gm.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
     gm.computeVertexNormals();
     gm.computeBoundingSphere();
-    return add(gm, dm, 0, 0, 0);
+    return add(gm, im, 0, 0, 0);
   };
   /* fuselage sides: follow the tapering round body */
   [1, -1].forEach((s) => {
@@ -12166,20 +10697,20 @@ add(
         ph = (v - 0.5) * 2 * f0,
         q = fusPt(z, ph, 0.008);
       return [s * q[0], q[1], z];
-    });
+    }, [s, 0, 0]);
   });
   /* upper left wing: follows taper, dihedral and airfoil thickness */
   decal(16, 8, (u, v) => {
     const X = -4.25 + u * 1.5,
       z = wmid(3.5 / WSEMI) + 0.375 - v * 0.75;
     return [X, wingY(X, z, 1) + 0.012, z];
-  });
+  }, [0, 1, 0]);
   /* lower right wing, inboard of the ordnance stations */
   decal(16, 8, (u, v) => {
     const X = 2.5 - u * 1.5,
       z = wmid(1.75 / WSEMI) + 0.375 - v * 0.75;
     return [X, wingY(X, z, -1) - 0.012, z];
-  });
+  }, [0, -1, 0]);
   /* ---- nose art (chosen in the pause menu): painted decals wrapped onto the cowling, plus a victory tally under the cockpit ---- */
   {
     const NW = 1024,
@@ -13112,11 +11643,1572 @@ add(
   mergeGroup(gd);
 }
 let gearOn = true;
-/* ---------- cockpit interior ---------- */
+/* the P-51's cockpit group (ck): part of the airframe (the canopy structure puts its sill parts in it); the P-51's own cockpit
+   pieces fill it with the interior. Copies of the aircraft (P51DISP) leave it out. */
 const ck = new THREE.Group();
 ck.scale.set(0.8, 0.88, 1); /* the cockpit is built roomy; the blueprint says the real one is narrower and sits lower, so it is fitted to the fuselage here */
 ck.position.y = -0.29;
 model.add(ck);
+/* a square bar from p1 to p2, t thick, in the cockpit group (or par) */
+function bar(p1, p2, t, mat, par) {
+  const a = new V(p1[0], p1[1], p1[2]),
+    b = new V(p2[0], p2[1], p2[2]),
+    m = new THREE.Mesh(new THREE.BoxGeometry(t, t, a.distanceTo(b)), mat);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.lookAt(b);
+  (par || ck).add(m);
+  return m;
+}
+/* half-width of the cockpit opening at height z: the fuselage's own opening edge */
+const cabW = (z) => sillX(z) - 0.012;
+/* canopy structure, in the airframe's own frame (it is not part of the scaled cockpit group): sill rails, windscreen posts, bows */
+const ckW = new THREE.Group(),
+  railG = new THREE.Group(),
+  wsG = new THREE.Group(),
+  hoodG = new THREE.Group();
+model.add(ckW);
+ckW.add(railG, wsG, hoodG);
+[-1, 1].forEach((sd) => {
+  for (let z = CAN.z0; z < CAN.z1 - 0.01; z += 0.12) {
+    const z2 = Math.min(CAN.z1, z + 0.12);
+    bar(
+      [sd * (sillX(z) - 0.014), sillY(z) + 0.006, z],
+      [sd * (sillX(z2) - 0.014), sillY(z2) + 0.006, z2],
+      0.034,
+      dark,
+      railG,
+    );
+  }
+  add(new THREE.BoxGeometry(0.13, 0.3, 0.8), dark, sd * 0.43, 0.18, -0.5, ck);
+}); /* sill rails, side consoles */
+function arch(z, t, grp) {
+  t = t || 0.026;
+  const P = [];
+  for (let i = 0; i <= 16; i++) P.push(canPt(z, (Math.PI * i) / 16, 0.01));
+  for (let i = 0; i < 16; i++) bar(P[i], P[i + 1], t, dark, grp);
+}
+function rib(t0, za, zb, th, grp) {
+  const n = Math.max(2, Math.round((zb - za) / 0.08));
+  for (let i = 0; i < n; i++)
+    bar(canPt(za + ((zb - za) * i) / n, t0, 0.01), canPt(za + ((zb - za) * (i + 1)) / n, t0, 0.01), th, dark, grp);
+}
+arch(fz(149), 0.03, wsG); /* windscreen top bow */
+arch(CAN.z0 + 0.012, 0.034, wsG); /* windscreen front frame: closes the glass onto the cowl and joins the sill rails */
+[1.15, Math.PI - 1.15].forEach((t0) => rib(t0, CAN.z0 + 0.012, fz(149), 0.026, wsG)); /* the posts either side of the flat centre panel */
+arch(fz(152), 0.026, hoodG); /* hood front frame */
+arch(fz(205), 0.03, hoodG); /* hood rear frame */
+[wsG, hoodG, railG].forEach(mergeGroup);
+const canBars = [hoodG]; /* these go with the canopy when the pilot bails out */
+
+/* THE P-51D'S DISPLAY FORM (Phase 5): the player's exterior made from the player's own model, never built separately. The cockpit
+   (ck), the pilot, the lights' glows and the aerial wire are left out (o.gear false: the landing gear too); everything else is
+   merged into one mesh per material, texture coordinates kept for the decals. The propeller stays its own group so it can turn.
+   P51DISP.make(o) -> { g, prop }: g in the frame of the player's `plane` group (nose toward -z), prop inside it, spun about its
+   own z axis like the player's. Plain colours are folded into vertex colours (a few materials, a few draw calls). Copies share geometry and materials with the first one made (cheap), so make them freely.
+   Built from the model as it stands, so the first call comes while the player's model is in its rest pose (load time). */
+const P51DISP = (() => {
+  /* the player's pilot, if he exists yet (only the P-51 game has him, and the parked form is made before he is) */
+  const pilot = () => {
+    try {
+      return plPilot;
+    } catch (e) {
+      return null;
+    }
+  };
+  const made = {};
+  /* the plain-coloured materials fold into one vertex-coloured material per kind (type, shine, sides ...): its colour goes
+     into the vertices, so a copy draws in a handful of calls; textured and see-through materials stay as they are */
+  const KINDS = new Map();
+  const kind = (m) => {
+    if (m.map || m.alphaMap || m.transparent || !m.color) return m;
+    const k = [m.type, m.shininess, m.specular && m.specular.getHex(), m.side, m.emissive && m.emissive.getHex(), m.flatShading, m.depthWrite].join('|');
+    if (!KINDS.has(k)) {
+      const c = m.clone();
+      c.color = new THREE.Color(0xffffff);
+      c.vertexColors = true;
+      KINDS.set(k, c);
+    }
+    return KINDS.get(k);
+  };
+  const paint = (geo, m) => {
+    const n = geo.attributes.position.count,
+      C = new Float32Array(n * 3),
+      old = m.vertexColors && geo.attributes.color;
+    for (let i = 0; i < n; i++) {
+      C[i * 3] = m.color.r * (old ? old.getX(i) : 1);
+      C[i * 3 + 1] = m.color.g * (old ? old.getY(i) : 1);
+      C[i * 3 + 2] = m.color.b * (old ? old.getZ(i) : 1);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(C, 3));
+  };
+  /* one geometry per material; a part mirrored by a negative scale has its triangles turned back to face out */
+  const bake = (root, skip) => {
+    root.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(),
+      by = new Map(),
+      M = new THREE.Matrix4();
+    const walk = (o) => {
+      if (!o.visible || skip.includes(o) || o.isSprite || o.isLine || o.isPoints) return;
+      if (o.isMesh && o.geometry && !Array.isArray(o.material)) {
+        const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        M.multiplyMatrices(inv, o.matrixWorld);
+        geo.applyMatrix4(M);
+        if (M.determinant() < 0)
+          for (const k of ['position', 'normal', 'uv']) {
+            const a = geo.attributes[k];
+            if (!a) continue;
+            const s = a.itemSize,
+              A = a.array;
+            for (let t = 0; t < a.count; t += 3)
+              for (let c = 0; c < s; c++) {
+                const i = (t + 1) * s + c,
+                  j = (t + 2) * s + c,
+                  x = A[i];
+                A[i] = A[j];
+                A[j] = x;
+              }
+          }
+        const m = kind(o.material);
+        if (m !== o.material) paint(geo, o.material);
+        if (!by.has(m)) by.set(m, []);
+        by.get(m).push([geo, o.renderOrder]);
+      }
+      for (const c of o.children) walk(c);
+    };
+    walk(root);
+    const g = new THREE.Group();
+    by.forEach((list, m) => {
+      const n = list.reduce((a, [q]) => a + q.attributes.position.count, 0),
+        uv = list.every(([q]) => q.attributes.uv),
+        P = new Float32Array(n * 3),
+        N = new Float32Array(n * 3),
+        U = uv ? new Float32Array(n * 2) : null,
+        col = list.every(([q]) => q.attributes.color),
+        Cc = col ? new Float32Array(n * 3) : null;
+      let k = 0;
+      for (const [q] of list) {
+        P.set(q.attributes.position.array, k * 3);
+        if (q.attributes.normal) N.set(q.attributes.normal.array, k * 3);
+        if (U) U.set(q.attributes.uv.array, k * 2);
+        if (Cc) Cc.set(q.attributes.color.array, k * 3);
+        k += q.attributes.position.count;
+        q.dispose();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+      geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+      if (U) geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+      if (Cc) geo.setAttribute('color', new THREE.BufferAttribute(Cc, 3));
+      geo.computeBoundingSphere();
+      const mesh = new THREE.Mesh(geo, m);
+      mesh.renderOrder = Math.max(...list.map((x) => x[1]));
+      g.add(mesh);
+    });
+    return g;
+  };
+  const first = (gearOn) => {
+    const skip = [ck, prop];
+    if (pilot()) skip.push(pilot());
+    if (!gearOn) skip.push(gear);
+    const body = bake(model, skip);
+    body.position.copy(model.position);
+    body.quaternion.copy(model.quaternion);
+    body.scale.copy(model.scale);
+    model.updateMatrix();
+    prop.updateMatrix();
+    const pr = bake(prop, []);
+    pr.matrixAutoUpdate = true;
+    pr.position.copy(prop.position).applyMatrix4(model.matrix);
+    pr.quaternion.copy(model.quaternion).multiply(prop.quaternion);
+    return { body, pr };
+  };
+  const copy = (src) => {
+    const g = new THREE.Group();
+    g.position.copy(src.position);
+    g.quaternion.copy(src.quaternion);
+    g.scale.copy(src.scale);
+    for (const m of src.children) {
+      const c = new THREE.Mesh(m.geometry, m.material);
+      c.renderOrder = m.renderOrder;
+      g.add(c);
+    }
+    return g;
+  };
+  const make = (o) => {
+    const k = o && o.gear === false ? 'up' : 'down';
+    const F = made[k] || (made[k] = first(k === 'down'));
+    const g = new THREE.Group(),
+      prop2 = copy(F.pr);
+    g.add(copy(F.body), prop2);
+    return { g, prop: prop2 };
+  };
+  /* THE PARKED FORM: the same exterior as one vertex-coloured part (GX), for the scenery's static meshes. The texture overlays (nose
+     art, soot, panel lines: the player's near detail) and the propeller's blur disc are left out, the canopy glass is made opaque,
+     and the paint is the livery asked for: body (natural metal or olive drab) and trim (spinner, nose band). Sitting on its three
+     wheels in the factory's three-point attitude (GEAR.sit), wheels on y = 0, nose toward +x (the scenery's frame).
+     P51DISP.parts(body, trim, o) -> [part]   (o.air: gear up and level instead, for a tow plane; its thrust line at y = 1.4) */
+  const GLASS = 0x2f4655,
+    BODY = [metal.color.getHex(), metal2.color.getHex()],
+    TRIM = red.color.getHex();
+  const flat = {};
+  const flatten = (gearOn) => {
+    model.updateMatrix();
+    const skip = [ck];
+    if (pilot()) skip.push(pilot());
+    if (!gearOn) skip.push(gear);
+    const P = [],
+      N = [],
+      C = [],
+      tag = [],
+      col = new THREE.Color(),
+      M = new THREE.Matrix4(),
+      top = new THREE.Matrix4().copy(model.matrix);
+    plane.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(plane.matrixWorld).invert();
+    const walk = (o) => {
+      if (!o.visible || skip.includes(o) || o.isSprite || o.isLine || o.isPoints) return;
+      const m = o.material;
+      if (o.isMesh && o.geometry && m && !Array.isArray(m) && !m.map && !(m.transparent && m.opacity < 0.3)) {
+        const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        M.multiplyMatrices(inv, o.matrixWorld);
+        g.applyMatrix4(M);
+        const pa = g.attributes.position.array,
+          na = g.attributes.normal.array,
+          old = m.vertexColors && g.attributes.color,
+          hex = m.transparent ? GLASS : m.color.getHex(),
+          flip = M.determinant() < 0;
+        col.setHex(hex);
+        for (let t = 0; t < g.attributes.position.count; t += 3)
+          for (const i of flip ? [t, t + 2, t + 1] : [t, t + 1, t + 2]) {
+            P.push(pa[i * 3], pa[i * 3 + 1], pa[i * 3 + 2]);
+            N.push(na[i * 3], na[i * 3 + 1], na[i * 3 + 2]);
+            if (old) C.push(col.r * old.getX(i), col.g * old.getY(i), col.b * old.getZ(i)), tag.push(0);
+            else C.push(col.r, col.g, col.b), tag.push(hex);
+          }
+        g.dispose();
+      }
+      for (const c of o.children) walk(c);
+    };
+    walk(model);
+    return { P, N, C, tag };
+  };
+  const parts = (body, trim, o) => {
+    o = o || {};
+    const k = o.air ? 'air' : 'park',
+      F = flat[k] || (flat[k] = flatten(!o.air)),
+      g = new THREE.BufferGeometry(),
+      C = Float32Array.from(F.C),
+      cb = new THREE.Color(body == null ? BODY[0] : body),
+      ct = new THREE.Color(trim == null ? TRIM : trim),
+      c0 = new THREE.Color(BODY[0]);
+    for (let i = 0; i < F.tag.length; i++) {
+      const h = F.tag[i];
+      if (h === BODY[0] || h === BODY[1]) {
+        const s = h === BODY[0] ? 1 : new THREE.Color(h).r / c0.r;
+        C[i * 3] = cb.r * s;
+        C[i * 3 + 1] = cb.g * s;
+        C[i * 3 + 2] = cb.b * s;
+      } else if (h === TRIM) {
+        C[i * 3] = ct.r;
+        C[i * 3 + 1] = ct.g;
+        C[i * 3 + 2] = ct.b;
+      }
+    }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(F.P, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(C, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(F.N, 3));
+    /* nose -z to nose +x; parked: tail down on the three wheels, the main wheels' contact on y = 0 */
+    const T = new THREE.Matrix4().makeRotationY(-Math.PI / 2);
+    if (o.air) T.multiply(new THREE.Matrix4().makeTranslation(0, 1.4, 0));
+    else {
+      const a = GEAR.sit,
+        y = GEAR.mainBottom * Math.cos(a) - GEAR.mainZ * Math.sin(a);
+      T.multiply(new THREE.Matrix4().makeTranslation(0, -y, 0)).multiply(new THREE.Matrix4().makeRotationX(a));
+    }
+    return [{ g, vc: true, hex: 0xffffff, m: T }];
+  };
+  /* a parked copy as its own object (not merged into the scenery): a THREE.LOD of the parked form near and its distant form (GX.thin,
+     cells of THIN m) beyond FAR_AT. Same frame as parts(). One vertex-coloured material for all. */
+  const FAR_AT = 1000,
+    THIN = 0.28,
+    MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const parked = (body, trim, o) => {
+    const near = new GX.Acc().add(parts(body, trim, o)).geometry(),
+      lod = new THREE.LOD();
+    lod.addLevel(new THREE.Mesh(near, MAT), 0);
+    lod.addLevel(new THREE.Mesh(GX.thin(near, THIN), MAT), FAR_AT);
+    return lod;
+  };
+  return { make, parts, parked };
+})();
+/* ---------- airfield detail: runway numbers and markings, taxiway lines, parked fighters, trucks, drums ---------- */
+{
+  const Z = Math.PI / 2,
+    Y = 1.5,
+    { V3, Q, M4, cyl, bx, part, xf } = GX,
+    sph = () => GX.sph(12),
+    acc = new GX.Acc(),
+    BL = [];
+  const place = (P, x, z, yaw, bl, bw) => {
+    acc.add(P, xf(x, 0.12, z, yaw));
+    BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
+  };
+  /* a parked P-51D: the player's own aircraft in its parked form (P51DISP.parts: the same exterior and markings, in this livery),
+     nose toward +x, wheels on y = 0; o.air: gear up and level (the tow plane) */
+  const fighter = (body, trim, o) => P51DISP.parts(body, trim, o);
+  /* the parked ones stand on their own (P51DISP.parked: near and distant forms), not merged into the apron's mesh */
+  const placeLOD = (O, x, z, yaw, bl, bw) => {
+    O.applyMatrix4(xf(x, 0.12, z, yaw));
+    scene.add(O);
+    BL.push([x - 1.2, z - 0.6, yaw, bl, bw]);
+  };
+  /* a parked Nakajima Ki-84 Hayate: the shared model (THE KI-84 HAYATE block) on its wheels, tail down, nose toward +x */
+  const ki84 = (body, o) => KI84.parked({ body, ang: ((o && o.ang) || 0) * Math.PI, far: !!(o && o.far) });
+
+  const drums = () => {
+    const P = [],
+      cols = [0x56603f, 0x8b4a2b, 0x3b5675, 0x56603f];
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 4; j++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[(i + j) % 4], i * 0.72, 0.44, j * 0.72)); /* standing on y = 0 (place() adds the apron) */
+    for (let i = 0; i < 2; i++) P.push(part(cyl(0.3, 0.3, 0.88, 10), cols[i], 0.36 + i * 0.72, 1.32, 0.7)); /* resting on the drums below */
+    return P;
+  };
+  /* REAL SIZES (GX.fit), figures from References/vehicle research spec sheet.pdf and the P-51D's own (the player's model):
+     fighter: North American P-51D, 9.83 m long, 11.28 m span; cargo and fuel trucks: GMC CCKW 353 2½-ton 6x6, 6.51 x 2.24 x 2.80 m
+     over the canvas bows (the fuel truck on the same chassis, so the same scale); jeep: Willys MB, 3.36 x 1.57 x 1.77 m;
+     tug: Clark Clarktor 6, 2.54 x 1.32 x 1.42 m. Ships: see freighter / tanker. */
+  const FIT = {},
+    fitOnce = (k, P, r) => FIT[k] || (FIT[k] = GX.fitM(P, r)),
+    fighterR = (body, trim, o) => fighter(body, trim, o) /* built to its real size (9.83 m x 11.28 m) */,
+    /* the US vehicles are the reference-built models (MODELS, the US vehicles piece), checked to size here */
+    cckw = () => fitOnce('cckw', MODELS.get('us-cckw-cargo'), { L: 6.51, W: 2.24, H: 2.8 }),
+    fuelTruckR = (c) => GX.fit(MODELS.get('us-cckw-fuel', c === 0x56603f ? null : c), null, cckw()),
+    cargoTruckR = () => GX.fit(MODELS.get('us-cckw-cargo'), null, cckw()),
+    jeepR = () => GX.fit(MODELS.get('us-willys-mb'), { L: 3.36, W: 1.57, H: 1.77 }),
+    tugR = () => GX.fit(MODELS.get('us-clarktor6'), { L: 2.54, W: 1.32, H: 1.42 });
+  /* the line-up: six fighters in front of the apron's east side, two at the hangar doors */
+  [
+    [-108, 336, 0.1, 0xb7bcc2, 0xb22a24, {}],
+    [-108, 360, -0.08, 0x5d6341, 0xd9b92a, { ang: 0.7 }],
+    [-108, 384, 0.05, 0xb7bcc2, 0x222d5a, { stripes: 1, ang: 1.1 }],
+    [-108, 408, -0.12, 0xb7bcc2, 0xd9b92a, { tanks: 1, ang: 0.3 }],
+    [-108, 432, 0.08, 0x5d6341, 0xb22a24, { stripes: 1, ang: 0.2 }],
+    [-108, 456, 0, 0xb7bcc2, 0x1e4fa3, { tanks: 1, ang: 0.9 }],
+    [-163, 220, 0.05, 0x5d6341, 0xd9b92a, { ang: 0.5 }],
+    [-163, 290, -0.1, 0xb7bcc2, 0xb22a24, { ang: 0.1 }],
+  ].forEach((a) => placeLOD(P51DISP.parked(a[3], a[4], a[5]), a[0], a[1], a[2], 12.5, 13));
+  place(fuelTruckR(0x56603f), -136, 345, -Z, 8, 3);
+  place(cargoTruckR(), -140, 392, Z, 8, 3);
+  place(jeepR(), -128, 422, 0.3, 4, 2.2);
+  place(jeepR(), -86, 314, 0.9, 4, 2.2);
+  place(jeepR(), -148, 262, -0.4, 4, 2.2);
+  place(tugR(), -124, 474, Z * 2, 3, 1.8);
+  place(fuelTruckR(0x9aa0a6), -152, 462, -0.2, 8, 3);
+  place(cargoTruckR(), -72, 466, Math.PI, 8, 3);
+  place(drums(), -172, 330, 0, 3.2, 3.2);
+  place(drums(), -178, 468, 0.3, 3.2, 3.2);
+  {
+    const g = acc.geometry();
+    scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })));
+  }
+  /* the moving ones: each is its own small mesh; AFLD.update() drives them along their routes */
+  /* the USAAF ground crew (MODELS 'crew', the ground crews piece): herringbone twill in olive drab or light sage, A-3 caps */
+  const CREWV = { 0x6f7a8a: 0, 0x8b7d5a: 1, 0xa89b84: 2 },
+    crew = (shirt, pose) => (pose || 'walk') === 'walk' ? CREW_RIG('us', CREWV[shirt] || 0) : MODELS.get('crew', 'us', pose, CREWV[shirt] || 0) /* a walker is jointed, and walks */;
+  /* the fighter that taxis about is going to and from the hangar for repair tests: it stands at the first hangar, a mechanic walks out to look it over,
+     goes back in, and it taxis to the run-up spot at the east end of the taxiway and back */
+  AFLD.addRepair(fighterR(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }), crew(0x6f7a8a, 'walk'), {
+    path: [[-40, 303], [-100, 303], [-100, 150], [-165, 150]],
+    door: [-176.5, 145.5],
+    spot: [-172.4, 150],
+    face: 0,
+  });
+  /* the jeep is a perimeter patrol: it drives right round the paved area, outside its edge, and keeps going */
+  AFLD.add(jeepR(), [[-54, 120], [-54, 490], [-64, 502], [-220, 502], [-230, 490], [-230, 124], [-220, 112], [-64, 112]], 7, 0, 'veh', { loop: true, ground: true }); /* off the pavement: it follows the ground */
+  /* the fuel bowser works down the line of fighters, just behind their tails, and stands at each one to fuel it */
+  AFLD.add(fuelTruckR(0x56603f), [[-123, 336], [-123, 360], [-123, 384], [-123, 408], [-123, 432], [-123, 456]], 4, 9, 'veh', { stops: 9, hose: [-108.4, 1.8] });
+  AFLD.add(crew(0x8b7d5a), [[-97, 338], [-97, 372]], 1.4, 5, 'walk');
+  AFLD.add(crew(0x6f7a8a), [[-97, 398], [-97, 436]], 1.3, 8, 'walk');
+  AFLD.add(crew(0xa89b84), [[-172, 160], [-172, 205]], 1.4, 6, 'walk');
+  AFLD.add(crew(0x8b7d5a), [[-150, 346], [-124, 346]], 1.2, 9, 'walk');
+  /* the US Navy patrol craft escort off the home airfield, a PCE-842 class (56.2 m x 10.1 m, 850 tons): lofted hull with the raised forecastle and rounded transom,
+     3"/50 forward with the Hedgehog behind it, pilothouse and open flying bridge with Mk 51 director and SO/SA radar, a stubby funnel, two 40 mm Bofors, four 20 mm Oerlikons
+     in tubs, depth charge rails and K-guns on the fantail, whaleboats, Carley floats, rails, ensign and the hull number. Bow toward +x; waterline at y = 0, keel 2.9 m below it. */
+  const PCE = { L: 56.2, X0: -28.1 };
+  const pce = () => {
+    const P = [],
+      L = PCE.L,
+      X0 = PCE.X0,
+      N = 40;
+    const sst = (a) => (a <= 0 ? 0 : a >= 1 ? 1 : a * a * (3 - 2 * a)),
+      tt = (x) => (x - X0) / L,
+      bowK = (t) => Math.max(0, (t - 0.6) / 0.4),
+      beamF = (t) => (t < 0.1 ? 0.72 + 0.28 * Math.sin((t / 0.1) * Z) : t < 0.55 ? 1 : Math.max(0.04, Math.pow(1 - Math.pow((t - 0.55) / 0.45, 1.8), 0.6))),
+      W = (x) => 5.04 * beamF(tt(x)),
+      dk = (x) => 2.55 + 0.9 * sst((x - 6) / 3) + 0.15 * Math.max(0, 1 - tt(x) / 0.12) + 1.0 * Math.pow(bowK(tt(x)), 2.2),
+      flare = (x) => 1 + 0.22 * Math.pow(bowK(tt(x)), 1.3),
+      keelY = (x) => -2.9 + 2.55 * Math.pow(Math.max(0, (tt(x) - 0.78) / 0.22), 1.6),
+      bulw = (x) => 0.25 + 0.65 * sst((x - 4) / 6),
+      sideZ = (x, y) => W(x) * (1 + (flare(x) - 1) * Math.max(0, Math.min(1, (y - 0.4) / (dk(x) - 0.4))));
+    PCE.deckY = dk;
+    const BOT = 0x6b2b25,
+      BOOT = 0x1c1f23,
+      HULL = 0x2f3b49,
+      HULL2 = 0x3a4656,
+      SUP = 0x8c959c,
+      SUP2 = 0x7c868e,
+      SUP3 = 0x6f7880,
+      DECK = 0x3d4854,
+      GUN = 0x2c2e30,
+      STEEL = 0x3a3d40,
+      WIN = 0x141c22,
+      WHITE = 0xe9e9e4,
+      BRASS = 0xa8742e;
+    const S = Array.from({ length: N }, (_, i) => {
+      const x = X0 + (L * i) / (N - 1),
+        w = W(x),
+        k = keelY(x),
+        d = dk(x),
+        f = flare(x),
+        b = bulw(x),
+        zi = Math.max(0.02, w * f - 0.14);
+      return {
+        p0: [x, k, 0],
+        p1: [x, k * 0.62, 0.72 * w],
+        p2: [x, 0, 0.985 * w],
+        p3: [x, 0.4, w],
+        p4: [x, d, w * f],
+        p5: [x, d + b, w * f * 0.995],
+        p4i: [x, d, zi],
+        p5i: [x, d + b, zi],
+      };
+    });
+    const mir = (p) => [p[0], p[1], -p[2]],
+      Rk = (k) => S.map((s) => s[k]),
+      Lk = (k) => S.map((s) => mir(s[k]));
+    const grid = (rows, hex) => {
+      const J = rows.length,
+        I = rows[0].length,
+        pos = [],
+        idx = [];
+      for (const r of rows) for (const p of r) pos.push(p[0], p[1], p[2]);
+      for (let j = 0; j < J - 1; j++)
+        for (let i = 0; i < I - 1; i++) {
+          const a = j * I + i,
+            b = a + 1,
+            c = a + I + 1,
+            d = a + I;
+          idx.push(a, b, c, a, c, d);
+        }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      P.push(part(g, hex, 0, 0, 0));
+    };
+    grid([Lk('p2'), Lk('p1'), Rk('p0'), Rk('p1'), Rk('p2')], BOT);
+    grid([Rk('p2'), Rk('p3')], BOOT);
+    grid([Lk('p3'), Lk('p2')], BOOT);
+    grid([Rk('p3'), Rk('p4')], HULL);
+    grid([Lk('p4'), Lk('p3')], HULL);
+    grid([Rk('p4'), Rk('p5')], HULL);
+    grid([Lk('p5'), Lk('p4')], HULL);
+    grid([Rk('p5'), Rk('p5i')], HULL2);
+    grid([Lk('p5i'), Lk('p5')], HULL2);
+    grid([Rk('p5i'), Rk('p4i')], HULL2);
+    grid([Lk('p4i'), Lk('p5i')], HULL2);
+    grid([Rk('p4i'), Lk('p4i')], DECK);
+    {
+      const s0 = S[0],
+        keys = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'],
+        cols = [BOT, BOT, BOOT, HULL, HULL];
+      for (let q = 0; q < 5; q++) grid([[s0[keys[q]], s0[keys[q + 1]]], [mir(s0[keys[q]]), mir(s0[keys[q + 1]])]], cols[q]);
+    }
+    const box = (sx, sy, sz, hex, x, y, z, ry) => part(bx(sx, sy, sz), hex, x, y, z, 0, ry || 0, 0),
+      rod = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z, 0, 0, -Z), /* a cylinder lying along +x, centred */
+      post = (r, l, hex, x, y, z) => part(cyl(r, r, l, 8), hex, x, y, z),
+      wire = (x0, y0, x1, y1, z, hex) => part(bx(Math.hypot(x1 - x0, y1 - y0), 0.03, 0.03), hex || 0x1b1b1b, (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, Math.atan2(y1 - y0, x1 - x0));
+    /* portholes along the topside, abaft the break */
+    for (let x = -22; x <= 3; x += 2.8) for (const s of [-1, 1]) P.push(box(0.3, 0.26, 0.07, WIN, x, 1.7, s * (sideZ(x, 1.7) + 0.02)));
+    for (let x = 11; x <= 15; x += 2.0) for (const s of [-1, 1]) P.push(box(0.3, 0.26, 0.07, WIN, x, 2.3, s * (sideZ(x, 2.3) + 0.02)));
+    /* the hull number, 842, in white on each bow, built from seven-segment strokes */
+    {
+      const SEG = { a: [0.275, 0.935, 0.55, 0.13], b: [0.485, 0.75, 0.13, 0.5], c: [0.485, 0.25, 0.13, 0.5], d: [0.275, 0.065, 0.55, 0.13], e: [0.065, 0.25, 0.13, 0.5], f: [0.065, 0.75, 0.13, 0.5], g: [0.275, 0.5, 0.55, 0.13] },
+        DIG = { 8: 'abcdefg', 4: 'bcfg', 2: 'abged' };
+      for (const s of [-1, 1])
+        '842'.split('').forEach((ch, di) => {
+          const x0 = s > 0 ? 15.6 + di * 0.85 : 18.2 - di * 0.85;
+          for (const k of DIG[ch]) {
+            const q = SEG[k],
+              x = x0 + (s > 0 ? q[0] : -q[0]),
+              y = 1.7 + q[1];
+            P.push(box(q[2], q[3], 0.05, WHITE, x, y, s * (sideZ(x, y) + 0.03)));
+          }
+        });
+    }
+    /* anchors in their hawse pipes, windlass, capstan, bollards and the jackstaff */
+    for (const s of [-1, 1]) {
+      P.push(box(0.34, 1.1, 0.2, STEEL, 24.2, 2.9, s * (sideZ(24.2, 2.9) + 0.14)), box(0.9, 0.2, 0.2, STEEL, 24.2, 2.45, s * (sideZ(24.2, 2.45) + 0.14)));
+      P.push(part(cyl(0.28, 0.28, 0.12, 10), 0x15171a, 25.2, 3.4, s * (sideZ(25.2, 3.4) + 0.04), Z));
+      for (const x of [26, 8, -8, -25]) P.push(post(0.15, 0.45, 0x3a3d40, x, dk(x) + 0.22, s * (W(x) * 0.9)));
+    }
+    P.push(box(1.5, 0.6, 1.5, 0x4a4d50, 25.2, dk(25.2) + 0.3, 0), part(cyl(0.4, 0.5, 0.8, 10), 0x4a4d50, 26.8, dk(26.8) + 0.4, 0), post(0.04, 1.8, 0x3a3a3a, 27.6, dk(27.6) + 0.9, 0));
+    /* the 3"/50 on the forecastle: pedestal, shield, breech, barrel and recoil sleeve, ready-service boxes */
+    {
+      const x = 20.5,
+        y = dk(20.5);
+      P.push(part(cyl(1.0, 1.15, 0.45, 16), 0x585d62, x, y + 0.22, 0), part(cyl(0.7, 0.8, 0.5, 12), 0x41454a, x, y + 0.65, 0));
+      P.push(box(0.1, 1.5, 2.2, 0x737a81, x + 0.85, y + 1.6, 0), box(1.7, 1.4, 0.07, 0x737a81, x, y + 1.6, 1.1), box(1.7, 1.4, 0.07, 0x737a81, x, y + 1.6, -1.1), box(1.8, 0.07, 2.3, SUP3, x, y + 2.35, 0));
+      P.push(box(1.0, 0.6, 0.7, 0x2b2d2f, x - 0.3, y + 1.4, 0), rod(0.2, 1.1, STEEL, x + 1.05, y + 1.65, 0), rod(0.085, 3.4, GUN, x + 2.45, y + 1.65, 0), rod(0.11, 0.3, GUN, x + 4.1, y + 1.65, 0));
+      P.push(box(0.12, 0.5, 0.9, 0x15171a, x + 0.9, y + 1.65, 0));
+      for (const s of [-1, 1]) P.push(box(0.5, 0.4, 0.7, 0x6b5c40, x - 1.6, y + 0.2, s * 1.5), box(0.3, 0.1, 0.4, 0x2b2d2f, x - 0.8, y + 0.9, s * 0.65));
+    }
+    /* the Hedgehog: four rows of six spigots on a flat rack between the gun and the bridge */
+    {
+      const x = 12.2,
+        y = dk(12.2);
+      P.push(box(2.3, 0.25, 3.2, 0x41454a, x, y + 0.22, 0), box(2.3, 0.12, 0.1, STEEL, x, y + 0.34, 1.55), box(2.3, 0.12, 0.1, STEEL, x, y + 0.34, -1.55));
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) P.push(part(cyl(0.05, 0.07, 0.9, 6), r % 2 ? 0x2b2d2f : 0x3a3d40, x - 0.75 + r * 0.5 - 0.15, y + 0.74, -1.25 + c * 0.5, 0, 0, -0.32));
+      P.push(box(0.8, 0.5, 0.6, 0x6b5c40, x - 2.0, y + 0.25, 1.9), box(0.8, 0.5, 0.6, 0x6b5c40, x - 2.0, y + 0.25, -1.9));
+    }
+    /* the main deckhouse, with the pilothouse, wings and open flying bridge on its forward end */
+    {
+      const y = dk(-2);
+      P.push(box(15, 2.4, 7.0, SUP, -2, y + 1.2, 0), box(15.2, 0.12, 7.2, SUP3, -2, y + 2.46, 0));
+      for (const s of [-1, 1]) for (let x = -8.5; x <= 4.0; x += 2.1) P.push(box(0.7, 0.55, 0.06, WIN, x, y + 1.45, s * 3.53));
+      for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.55, 0.8, WIN, 5.53, y + 1.45, k * 1.2));
+      const py = y + 2.52;
+      P.push(box(5.4, 2.3, 6.0, SUP2, 2.8, py + 1.15, 0), box(5.6, 0.14, 6.2, SUP3, 2.8, py + 2.37, 0));
+      for (let k = -2; k <= 2; k++) P.push(box(0.06, 0.7, 0.95, WIN, 5.53, py + 1.5, k * 1.1));
+      for (const s of [-1, 1]) {
+        for (let k = -1; k <= 1; k++) P.push(box(0.9, 0.65, 0.06, WIN, 2.8 + k * 1.5, py + 1.5, s * 3.03));
+        P.push(box(3.0, 0.1, 1.6, SUP3, 3.4, py + 1.0, s * 4.5), box(3.0, 0.05, 0.04, 0x1b1b1b, 3.4, py + 1.9, s * 5.28), box(0.04, 0.9, 1.6, 0x1b1b1b, 4.9, py + 1.45, s * 4.5));
+        P.push(part(cyl(0.35, 0.35, 0.5, 12), 0x3d4044, 4.2, py + 1.4, s * 4.0), part(cyl(0.33, 0.33, 0.05, 12), 0xd8e4f0, 4.55, py + 1.45, s * 4.0, 0, 0, Z));
+      }
+      /* open flying bridge: coaming, compass binnacle, the Mk 51 director, a searchlight and the signal lamp */
+      const fy = py + 2.44;
+      P.push(box(5.6, 0.5, 0.08, SUP2, 2.8, fy + 0.25, 3.0), box(5.6, 0.5, 0.08, SUP2, 2.8, fy + 0.25, -3.0), box(0.08, 0.5, 6.0, SUP2, 5.6, fy + 0.25, 0));
+      P.push(post(0.18, 0.7, 0x4a4d50, 4.6, fy + 0.35, 0), part(cyl(0.22, 0.22, 0.1, 10), BRASS, 4.6, fy + 0.74, 0));
+      P.push(part(cyl(0.55, 0.65, 0.8, 10), 0x6a7077, 1.8, fy + 0.4, 0), box(1.3, 0.8, 1.1, 0x757c84, 1.8, fy + 1.2, 0), rod(0.07, 0.8, GUN, 2.7, fy + 1.3, 0.3), rod(0.07, 0.8, GUN, 2.7, fy + 1.3, -0.3));
+      P.push(part(cyl(0.3, 0.3, 0.45, 10), 0x3d4044, 4.6, fy + 0.6, 2.2), part(cyl(0.28, 0.28, 0.05, 10), 0xd8e4f0, 4.85, fy + 0.65, 2.2, 0, 0, Z));
+      /* mast with the yard, SA "bedspring" air-search array and the SO surface-search dish on top */
+      const mx = 0.5,
+        my = fy;
+      P.push(part(cyl(0.1, 0.2, 9.5, 8), 0x4a4d50, mx, my + 4.7, 0), box(0.1, 0.1, 4.6, 0x4a4d50, mx, my + 6.3, 0));
+      P.push(box(0.12, 1.5, 2.4, 0x3a3d40, mx - 0.5, my + 8.0, 0));
+      for (let r = 0; r < 6; r++) P.push(box(0.08, 0.05, 2.3, 0x2b2d2f, mx - 0.58, my + 7.4 + r * 0.25, 0));
+      P.push(part(cyl(0.45, 0.2, 0.28, 12), 0x5a5f62, mx + 0.45, my + 9.1, 0), post(0.05, 0.9, 0x3a3d40, mx, my + 9.9, 0), part(cyl(0.02, 0.02, 3.2, 4), 0x2b2d2f, mx, my + 11.0, 0.0));
+      P.push(part(GX.sph(8), 0xe8e4d0, mx, my + 10.5, 0, 0, 0, 0, 0.1, 0.1, 0.1));
+      for (const z of [-1.2, 1.2]) P.push(box(0.04, 0.5, 0.04, 0x3a3d40, mx + 0.1, my + 6.05, z));
+      P.push(wire(mx, my + 9.2, 25.5, dk(25.5) + 1.9, 0), wire(mx, my + 9.2, -26, dk(-26) + 2.2, 0), wire(mx, my + 6.3, mx - 3, y + 2.5, 3.3), wire(mx, my + 6.3, mx - 3, y + 2.5, -3.3), wire(mx, my + 6.3, mx + 3.2, py + 1.2, 2.3, 0x2a2a2a), wire(mx, my + 6.3, mx + 3.2, py + 1.2, -2.3, 0x2a2a2a));
+      /* signal flag hoist on the yard */
+      for (let i = 0; i < 4; i++) P.push(box(0.05, 0.45, 0.5, [0xb22a24, 0xe6e0c8, 0x1e4fa3, 0xd9b92a][i], mx + 0.05, my + 5.9, -1.7 + i * 0.7));
+    }
+    /* the stubby diesel funnel (oval, short, flat cap), engine-room vents and the whistle */
+    {
+      const y = dk(-3) + 2.52,
+        x = -3.0;
+      P.push(part(cyl(1.15, 1.35, 3.4, 12), 0x6a7077, x, y + 1.7, 0, 0, 0, 0, 1.0, 1.0, 1.35), part(cyl(1.18, 1.18, 0.7, 12), 0x1b1c1e, x, y + 3.3, 0, 0, 0, 0, 1.0, 1.0, 1.35), part(cyl(1.25, 1.25, 0.1, 12), 0x303236, x, y + 3.7, 0, 0, 0, 0, 1.0, 1.0, 1.35));
+      P.push(box(0.05, 3.0, 0.5, 0x303236, x + 1.3, y + 1.6, 0), post(0.1, 0.9, 0x3a3d40, x - 1.0, y + 4.2, 0.5), post(0.1, 0.7, 0x3a3d40, x - 1.0, y + 4.1, -0.5));
+      for (const s of [-1, 1]) {
+        P.push(part(cyl(0.4, 0.4, 0.7, 10), 0x4a4d50, x - 3.0, y + 0.35, s * 2.3), part(cyl(0.32, 0.46, 0.35, 10), 0x303236, x - 3.0, y + 0.85, s * 2.3, 0, 0, 0.45 * s));
+      }
+    }
+    /* two motor whaleboats on the deckhouse roof, one each side of the funnel's after end */
+    for (const s of [-1, 1]) {
+      const y = dk(-7) + 2.52,
+        x = -7.4;
+      P.push(box(4.6, 0.6, 1.5, 0x8c8f91, x, y + 0.5, s * 2.5), box(1.0, 0.55, 1.0, 0x8c8f91, x + 2.6, y + 0.5, s * 2.5), box(4.8, 0.07, 1.6, 0x2b2d2f, x, y + 0.82, s * 2.5), box(1.8, 0.4, 1.0, 0x4a4f52, x - 0.4, y + 0.98, s * 2.5));
+      for (const dx of [-1.6, 1.6]) P.push(box(0.1, 0.3, 1.9, 0x303436, x + dx, y + 0.15, s * 2.5));
+    }
+    /* Carley floats and life rings on the deckhouse sides, lifejacket lockers */
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < 3; i++) P.push(part(cyl(0.5, 0.5, 0.3, 14), 0xb5452c, -6 + i * 1.4, dk(-6) + 1.6, s * 3.7, Z), part(cyl(0.3, 0.3, 0.32, 10), 0x2b2d2f, -6 + i * 1.4, dk(-6) + 1.6, s * 3.7, Z));
+      P.push(part(cyl(0.3, 0.3, 0.08, 14), WHITE, 5.2, dk(5) + 2.9, s * 3.05, Z), box(0.8, 0.55, 0.3, 0x5a5f62, -9.0, dk(-9) + 0.5, s * 3.0));
+    }
+    /* the after deckhouse with the 40 mm Bofors on its roof */
+    const bofors = (x, y, z) => {
+      P.push(part(cyl(1.35, 1.5, 0.7, 14), 0x585d62, x, y + 0.35, z), part(cyl(1.2, 1.2, 0.06, 14), 0x15171a, x, y + 0.72, z));
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        P.push(box(0.35, 0.25, 0.18, 0x7d7452, x + Math.cos(a) * 1.4, y + 0.8, z + Math.sin(a) * 1.4, -a));
+      }
+      P.push(post(0.35, 0.9, 0x4a4d50, x, y + 1.15, z), box(1.5, 0.55, 0.75, 0x41454a, x + 0.1, y + 1.75, z), rod(0.09, 0.7, STEEL, x + 0.9, y + 1.78, z), rod(0.058, 2.3, GUN, x + 2.0, y + 1.78, z), rod(0.085, 0.3, GUN, x + 3.2, y + 1.78, z));
+      P.push(box(0.65, 0.3, 0.55, 0x2b2d2f, x - 0.15, y + 2.15, z), box(0.12, 0.28, 0.55, 0x7d7452, x - 0.15, y + 2.4, z), box(0.55, 0.06, 0.55, SUP3, x + 0.55, y + 2.1, z));
+      P.push(box(0.05, 0.9, 1.2, 0x737a81, x + 0.7, y + 1.7, z + 0.9), box(0.05, 0.9, 1.2, 0x737a81, x + 0.7, y + 1.7, z - 0.9));
+      P.push(box(0.5, 0.06, 0.5, 0x2b2d2f, x - 0.8, y + 1.15, z + 0.9), box(0.5, 0.06, 0.5, 0x2b2d2f, x - 0.8, y + 1.15, z - 0.9));
+    };
+    {
+      const x = -14.2,
+        y = dk(-14.2);
+      P.push(box(6.6, 2.2, 6.4, SUP, x, y + 1.1, 0), box(6.8, 0.12, 6.6, SUP3, x, y + 2.26, 0));
+      for (const s of [-1, 1]) for (let k = 0; k < 2; k++) P.push(box(0.7, 0.5, 0.06, WIN, x - 1.2 + k * 2.4, y + 1.3, s * 3.23));
+      P.push(box(0.05, 1.4, 0.8, 0x3a3d40, x + 3.3, y + 0.8, 1.2), box(0.05, 1.4, 0.8, 0x3a3d40, x + 3.3, y + 0.8, -1.2));
+      bofors(x - 0.4, y + 2.32, 0);
+      for (const s of [-1, 1]) P.push(box(0.04, 0.04, 0.04, 0x15171a, x + 1, y + 2.32, s * 2.8));
+    }
+    /* four 20 mm Oerlikons in tubs: two on the bridge wings' roof corners, two abaft the funnel casing */
+    const oerl = (x, y, z) => {
+      P.push(part(cyl(0.6, 0.65, 0.9, 12), 0x585d62, x, y + 0.45, z), part(cyl(0.64, 0.64, 0.07, 12), 0x15171a, x, y + 0.92, z), post(0.07, 0.9, STEEL, x, y + 1.35, z));
+      P.push(box(0.9, 0.16, 0.14, GUN, x + 0.1, y + 1.85, z), rod(0.032, 1.1, GUN, x + 0.95, y + 1.85, z), part(cyl(0.2, 0.2, 0.12, 10), 0x2b2d2f, x + 0.05, y + 2.05, z), box(0.04, 0.5, 0.6, 0x737a81, x + 0.55, y + 1.85, z), part(cyl(0.18, 0.18, 0.03, 10), STEEL, x - 0.45, y + 1.85, z, Z));
+    };
+    oerl(2.0, dk(2) + 2.52 + 0.1, 3.0);
+    oerl(2.0, dk(2) + 2.52 + 0.1, -3.0);
+    oerl(-18.5, dk(-18.5), 3.0);
+    oerl(-18.5, dk(-18.5), -3.0);
+    /* a second 40 mm on the fantail tub, a deckhouse hatch and the ensign staff; depth charge rails, drums and K-guns */
+    bofors(-22.8, dk(-22.8), 0);
+    for (const s of [-1, 1]) {
+      const z = s * 1.3;
+      P.push(box(7.0, 0.1, 0.1, 0x2b2d2f, -24.5, dk(-26) + 0.12, z - 0.25), box(7.0, 0.1, 0.1, 0x2b2d2f, -24.5, dk(-26) + 0.12, z + 0.25));
+      for (let i = 0; i < 7; i++) P.push(part(cyl(0.3, 0.3, 0.8, 10), i % 3 ? 0x303436 : 0x3a3f42, -27.2 + i * 0.95, dk(-26) + 0.55, z, Z));
+      for (let i = 0; i < 3; i++) P.push(part(cyl(0.16, 0.22, 0.9, 8), 0x3a3d40, -19.6 + i * 1.5, dk(-19) + 0.5, s * 4.0, 0, 0, 0), part(cyl(0.1, 0.12, 0.8, 8), 0x2b2d2f, -19.6 + i * 1.5, dk(-19) + 1.15, s * 4.2, s * 0.65), part(cyl(0.2, 0.2, 0.12, 8), 0x2b2d2f, -19.6 + i * 1.5, dk(-19) + 0.08, s * 3.95));
+      P.push(box(1.0, 0.5, 0.8, 0x2b2d2f, -28.0, 2.9, s * 0.9));
+    }
+    {
+      const x = -27.6,
+        y = dk(-27.6);
+      P.push(post(0.05, 3.3, 0x555555, x, y + 1.65, 0), ...FLG.at('us', 1.7, x - 0.05, y + 3.25, 0, Math.PI));
+    }
+    /* guard rails: stanchions every 2.2 m and a top and middle wire along both sides, from the stern to the break of the forecastle */
+    for (const s of [-1, 1]) {
+      const xs = [];
+      for (let x = -27; x <= 8; x += 2.2) xs.push(x);
+      for (const x of xs) P.push(post(0.025, 1.0, 0x6a6f74, x, dk(x) + 0.5, s * (sideZ(x, dk(x)) - 0.12)));
+      for (let i = 0; i < xs.length - 1; i++) {
+        const a = xs[i],
+          b = xs[i + 1];
+        P.push(wire(a, dk(a) + 1.0, b, dk(b) + 1.0, s * (sideZ(a, dk(a)) - 0.12), 0x4a4d50), wire(a, dk(a) + 0.5, b, dk(b) + 0.5, s * (sideZ(a, dk(a)) - 0.12), 0x4a4d50));
+      }
+    }
+    /* deck hatches and ventilators forward of the bridge and on the quarterdeck */
+    for (const x of [-20, 8.2]) P.push(box(1.1, 0.35, 1.1, 0x4a525b, x, dk(x) + 0.18, 2.0), box(1.1, 0.35, 1.1, 0x4a525b, x, dk(x) + 0.18, -2.0));
+    for (const s of [-1, 1]) P.push(part(cyl(0.3, 0.3, 0.9, 10), 0x4a4d50, 8.8, dk(8.8) + 0.45, s * 3.4), part(cyl(0.24, 0.42, 0.45, 10), 0x303236, 8.8, dk(8.8) + 1.0, s * 3.4, 0, 0, 0.4 * s));
+    return P;
+  };
+  /* THE ALLIED FLEET: one list for the whole world. The detailed PCE and PT-105 models (built from the plans), each hull wearing its
+     own number on the bow. [kind, hull number, length m, ring radii r0 and r1 m, speed m/s, placement seed]. The US freighter and
+     tanker models (freighter('us'), tanker('us')) are kept for later. A game's piece may take a ship for a player (HOOKS.claimShip). */
+  const FLEET = [
+    ['pt', '105', 24.4, 1500, 3800, 14, 1],
+    ['pce', '843', 56.2, 2500, 6500, 6.5, 2],
+    ['pce', '842', 56.2, 300, 1800, 7.5, 3, FS.nav[1].w(0, 1700)] /* the US Navy PCE: based at the PT-boat base, on patrol off it (the PCE game's player starts here) */,
+    ['pt', '106', 24.4, 3000, 5500, 13, 4],
+  ];
+  for (const [kind, num, L, r0, r1, sp, seed, c] of FLEET) {
+    if (!AFLD.addShip([], L, r0, r1, sp, seed, SEA.WL, kind === 'pt' ? 0.4 : 0.6, c)) continue; /* waterline at the sea plane */
+    const o = AFLD.a[AFLD.a.length - 1];
+    if (kind === 'pce') {
+      o.m.geometry.dispose();
+      o.m.geometry = PCEM.build(num);
+      o.m.material = PCEM.material;
+      PCEM.flags(o.m);
+    } else o.m.add(PTB.build(num));
+    if (HOOKS.claimShip.some((h) => h(kind, num, o))) continue; /* a player's ship: no AI gun crews */
+    if (kind === 'pce')
+      try {
+        PCEM.mounts(o.m);
+      } catch (e) {
+        console.warn('PCE guns', e);
+      }
+  }
+  /* the cargo ships at their real sizes (GX.fit, figures from References/vehicle research spec sheet.pdf; length, beam, draught,
+     heights in proportion): Japanese Type 2A wartime standard cargo ship 137.0 x 18.2 m, 7.8 m draught; Type 2TL wartime standard
+     tanker 153.5 x 20.0 m, 9.1 m; American Liberty ship (EC2-S-C1) 134.6 x 17.3 m, 8.5 m; T2-SE-A1 tanker 159.6 x 20.7 m, 9.2 m.
+     The ships are the reference-built models; GX.fit only confirms their size (and sets the draught). */
+  const SHIPR = {
+      freighter: { jp: { L: 137, W: 18.2, D: 7.8 }, us: { L: 134.6, W: 17.3, D: 8.5 } },
+      tanker: { jp: { L: 153.5, W: 20, D: 9.1 }, us: { L: 159.6, W: 20.7, D: 9.2 } },
+    },
+    /* the reference-built ships (MODELS, the cargo ships piece), checked to size here */
+    freighterR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-liberty' : 'jp-type2a'), SHIPR.freighter[fl === 'us' ? 'us' : 'jp']),
+    tankerR = (fl) => GX.fit(MODELS.get(fl === 'us' ? 'us-t2' : 'jp-type2tl'), SHIPR.tanker[fl === 'us' ? 'us' : 'jp']);
+  AFLD.models = { freighter: freighterR, tanker: tankerR, pce, fighter: fighterR, ki84, fuelTruck: fuelTruckR, cargoTruck: cargoTruckR, jeep: jeepR, tug: tugR, crew, drums }; /* the port and the airbase reuse these models */
+  /* soft contact shadows under everything parked */
+  {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d'),
+      gr = x.createRadialGradient(32, 32, 4, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(0,0,0,.75)');
+    gr.addColorStop(0.6, 'rgba(0,0,0,.4)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = gr;
+    x.fillRect(0, 0, 64, 64);
+    const sh = new THREE.InstancedMesh(
+        new THREE.PlaneGeometry(1, 1).rotateX(-Z),
+        new THREE.MeshBasicMaterial({
+          map: new THREE.CanvasTexture(c),
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.55,
+        }),
+        BL.length,
+      ),
+      m4 = new M4();
+    BL.forEach((b, i) => {
+      m4.compose(new V3(b[0], 0.2, b[1]), new Q().setFromAxisAngle(new V3(0, 1, 0), b[2]), new V3(b[3], 1, b[4]));
+      sh.setMatrixAt(i, m4);
+    });
+    sh.frustumCulled = false;
+    scene.add(sh);
+  }
+  /* painted markings */
+  const quad = (A, x, z, lx, lw, a) => {
+    const c = Math.cos(a),
+      s = Math.sin(a),
+      dx = (c * lx) / 2,
+      dz = (s * lx) / 2,
+      px = (-s * lw) / 2,
+      pz = (c * lw) / 2,
+      P = [
+        [x - dx - px, z - dz - pz],
+        [x + dx - px, z + dz - pz],
+        [x + dx + px, z + dz + pz],
+        [x - dx + px, z - dz + pz],
+      ];
+    for (const i of [0, 2, 1, 0, 3, 2]) A.push(P[i][0], 0.24, P[i][1]);
+  };
+  const seg = (A, x1, z1, x2, z2, w) =>
+    quad(A, (x1 + x2) / 2, (z1 + z2) / 2, Math.hypot(x2 - x1, z2 - z1), w, Math.atan2(z2 - z1, x2 - x1));
+  const dash = (A, x1, z1, x2, z2, w, d, gp) => {
+    const L = Math.hypot(x2 - x1, z2 - z1),
+      ux = (x2 - x1) / L,
+      uz = (z2 - z1) / L;
+    for (let t = 0; t + d <= L + 0.01; t += d + gp)
+      seg(A, x1 + ux * t, z1 + uz * t, x1 + ux * (t + d), z1 + uz * (t + d), w);
+  };
+  const flush = (A, hex) => {
+    const g = new THREE.BufferGeometry(),
+      n = [];
+    for (let i = 0; i < A.length; i += 3) n.push(0, 1, 0);
+    g.setAttribute('position', new THREE.Float32BufferAttribute(A, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
+    scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: hex, side: THREE.DoubleSide })));
+  };
+  const Yw = [],
+    Wh = [];
+  seg(Yw, -135, 300, -25, 300, 0.4);
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Z) / 10,
+      b = ((i + 1) * Z) / 10;
+    seg(Yw, -25 + 25 * Math.sin(a), 275 + 25 * Math.cos(a), -25 + 25 * Math.sin(b), 275 + 25 * Math.cos(b), 0.4);
+  } /* taxi centreline + lead-on curve */
+  seg(Yw, -84, 300, -84, 486, 0.35);
+  seg(Yw, -150, 300, -150, 205, 0.35); /* apron lanes */
+  seg(Yw, -65, 288.3, -26, 288.3, 0.25);
+  seg(Yw, -65, 311.7, -26, 311.7, 0.25);
+  seg(Yw, -34, 288, -34, 312, 0.4);
+  dash(Yw, -31.4, 288, -31.4, 312, 0.4, 1.4, 1.2); /* taxiway edges, hold-short line */
+  for (let k = 0; k < 7; k++) seg(Wh, -126, 324 + 24 * k, -90, 324 + 24 * k, 0.25); /* parking stalls */
+  for (const [z0, sg] of [
+    [RW.zS, -1],
+    [RW.zN, 1],
+  ]) {
+    const f = (d) => z0 + sg * d; /* aiming point + touchdown zone bars at both ends */
+    for (const s of [-1, 1]) {
+      seg(Wh, s * 11, f(300), s * 11, f(340), 5);
+      for (const x of [6, 9.2, 12.4]) seg(Wh, s * x, f(150) - 0, s * x, f(172), 1.8);
+      for (const x of [7.5, 11]) seg(Wh, s * x, f(255), s * x, f(277), 1.8);
+    }
+  }
+  flush(Yw, 0xe0b81c);
+  flush(Wh, 0xe4e4de);
+  const num = (txt, z, rot) => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#e8e8e2';
+    x.font = 'bold 190px Arial,Helvetica,sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.save();
+    x.translate(128, 134);
+    x.scale(0.62, 1);
+    x.fillText(txt, 0, 0);
+    x.restore();
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4;
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(22, 28).rotateX(-Z),
+      new THREE.MeshLambertMaterial({ map: t, transparent: true, depthWrite: false }),
+    );
+    m.position.set(0, 0.24, z);
+    m.rotation.y = rot;
+    scene.add(m);
+  };
+  num('36', RW.zS - 52, 0);
+  num('18', RW.zN + 52, Math.PI);
+}
+/* ---------- sky dome, sun, clouds ---------- */
+let SKYD = null,
+  MOON = null,
+  STARS = null,
+  CLM = null;
+const SUNSP = [];
+const HZC = new THREE.Color(0xbcd6ee),
+  ZNC = new THREE.Color(0x3f7cc4),
+  sky = new THREE.Group();
+scene.add(sky);
+scene.fog.color.copy(HZC);
+scene.background = HZC.clone();
+{
+  const R = 24000,
+    g = new THREE.SphereGeometry(R, 32, 16),
+    p = g.attributes.position,
+    cs = new Float32Array(p.count * 3),
+    c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i) / R;
+    if (y < 0) c.copy(HZC).multiplyScalar(0.9);
+    else c.copy(HZC).lerp(ZNC, Math.min(1, Math.pow(y, 0.5) * 1.1));
+    cs.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(cs, 3));
+  const d = new THREE.Mesh(
+    g,
+    new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }),
+  );
+  d.renderOrder = -10;
+  sky.add(d);
+  SKYD = g;
+  const tc = document.createElement('canvas');
+  tc.width = tc.height = 128;
+  const x = tc.getContext('2d'),
+    gr = x.createRadialGradient(64, 64, 2, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)');
+  gr.addColorStop(0.12, 'rgba(255,250,225,.95)');
+  gr.addColorStop(0.35, 'rgba(255,235,170,.35)');
+  gr.addColorStop(1, 'rgba(255,220,150,0)');
+  x.fillStyle = gr;
+  x.fillRect(0, 0, 128, 128);
+  const st = new THREE.CanvasTexture(tc),
+    sd = new THREE.Vector3(2, 3, 1).normalize().multiplyScalar(20000);
+  [
+    [2600, 1],
+    [9000, 0.45],
+  ].forEach((a) => {
+    const s = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: st,
+        color: 0xfff4d0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        fog: false,
+        opacity: a[1],
+      }),
+    );
+    s.scale.set(a[0], a[0], 1);
+    s.position.copy(sd);
+    s.renderOrder = -9;
+    sky.add(s);
+    SUNSP.push(s);
+  });
+  /* moon and stars (shown at night) */
+  const mcv = document.createElement('canvas');
+  mcv.width = mcv.height = 128;
+  const mx = mcv.getContext('2d'),
+    mg = mx.createRadialGradient(64, 64, 8, 64, 64, 64);
+  mg.addColorStop(0, 'rgba(245,248,255,1)');
+  mg.addColorStop(0.3, 'rgba(235,240,255,.95)');
+  mg.addColorStop(0.38, 'rgba(200,215,255,.25)');
+  mg.addColorStop(1, 'rgba(180,200,255,0)');
+  mx.fillStyle = mg;
+  mx.fillRect(0, 0, 128, 128);
+  MOON = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(mcv),
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      transparent: true,
+      fog: false,
+    }),
+  );
+  MOON.scale.set(1500, 1500, 1);
+  MOON.renderOrder = -9;
+  sky.add(MOON);
+  const sp = new Float32Array(1100 * 3);
+  for (let i = 0; i < 1100; i++) {
+    const u = Math.random(),
+      a = Math.random() * 6.2832,
+      y = 0.02 + 0.98 * u,
+      r = Math.sqrt(1 - y * y) * 23000;
+    sp.set([Math.cos(a) * r, y * 23000, Math.sin(a) * r], i * 3);
+  }
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  STARS = new THREE.Points(
+    sg,
+    new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 2,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0,
+      fog: false,
+      depthWrite: false,
+    }),
+  );
+  STARS.renderOrder = -9;
+  sky.add(STARS);
+}
+/* ---- cloud shadows: every cumulus puff is painted into a map that the ground, trees and buildings sample; the whole cloud field drifts with the wind ---- */
+const CSH = {
+  tex: null,
+  off: { value: new THREE.Vector2() },
+  k: { value: 0.28 },
+  root: new THREE.Group(),
+  wt: 0,
+  sun: new THREE.Vector3(2, 3, 1).normalize(),
+};
+scene.add(CSH.root);
+const CSZ = 512,
+  csc = document.createElement('canvas');
+csc.width = csc.height = CSZ;
+const csx = csc.getContext('2d');
+csx.fillStyle = '#000';
+csx.fillRect(0, 0, CSZ, CSZ);
+function csBlob(x, y, z, k) {
+  const sx = x - (y * CSH.sun.x) / CSH.sun.y,
+    sz = z - (y * CSH.sun.z) / CSH.sun.y,
+    r = ((k * 0.5) / 26000) * CSZ; /* where this puff's shadow falls on the ground */
+  for (const ox of [-1, 0, 1])
+    for (const oz of [-1, 0, 1]) {
+      const px = (sx / 26000 + 0.5) * CSZ + ox * CSZ,
+        pz = (sz / 26000 + 0.5) * CSZ + oz * CSZ;
+      if (px < -r || px > CSZ + r || pz < -r || pz > CSZ + r) continue;
+      const g = csx.createRadialGradient(px, pz, r * 0.15, px, pz, r);
+      g.addColorStop(0, 'rgba(255,255,255,.2)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      csx.fillStyle = g;
+      csx.fillRect(px - r, pz - r, r * 2, r * 2);
+    }
+}
+/* The hull outline at the waterline of the ship a player commands (shared by every game). Every csApply'd world surface near sea
+   level (the terrain's painted water, the open-sea plane) is cut away inside it, so nothing flat at sea level can ever show inside
+   the ship's rooms. The ship's role sets it each frame (PCE-842: shipPose); with no manned ship uHM.w stays 0 and nothing is cut.
+   One outline is enough, in multiplayer too: only the hull the camera is aboard needs the painted water cut out of her rooms; every
+   other ship keeps the sea out through OCEAN.hull. */
+const HULLM = { uHM: { value: new THREE.Vector4(0, 0, 0, 0) }, uHW: { value: PCEM.WL.slice() } };
+const HULLM_GL =
+  '{vec2 hr=vCS-uHM.xy;if(uHM.w>0.5&&vCSy<-6.0&&vCSy>-12.5&&dot(hr,hr)<900.0){vec2 fw=vec2(-sin(uHM.z),-cos(uHM.z));float al=dot(hr,fw),ac=abs(dot(hr,vec2(-fw.y,fw.x)));' +
+  'if(al>-28.0&&al<28.3){float fq=clamp(((27.75-al)/0.6096-(' + PCEM.F_STEM.toFixed(3) + '))/' + (PCEM.F_END - PCEM.F_STEM).toFixed(3) + '*31.0,0.0,30.999);int iq=int(fq);' +
+  'if(ac<mix(uHW[iq],uHW[iq+1],fract(fq))-0.1)discard;}}}';
+function csApply(m) {
+  if (
+    !m ||
+    m.userData.cs ||
+    !(m.isMeshLambertMaterial || m.isMeshBasicMaterial || m.isMeshPhongMaterial || m.isMeshStandardMaterial)
+  )
+    return;
+  m.userData.cs = 1;
+  const prev = m.onBeforeCompile,
+    pk = (prev ? prev.toString() : '') + (m.userData.key || '');
+  m.onBeforeCompile = (sh, rn) => {
+    if (prev) prev(sh, rn);
+    sh.uniforms.csTex = { value: CSH.tex };
+    sh.uniforms.csOff = CSH.off;
+    sh.uniforms.csK = CSH.k;
+    sh.uniforms.uHM = HULLM.uHM;
+    sh.uniforms.uHW = HULLM.uHW;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vCS;varying float vCSy;')
+      .replace(
+        '#include <project_vertex>',
+        '#include <project_vertex>\n{vec4 cw=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncw=instanceMatrix*cw;\n#endif\nvec4 cww=modelMatrix*cw;vCS=cww.xz;vCSy=cww.y;}',
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nuniform sampler2D csTex;uniform vec2 csOff;uniform float csK;varying vec2 vCS;varying float vCSy;uniform vec4 uHM;uniform float uHW[32];',
+      )
+      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n' + HULLM_GL)
+      .replace(
+        '#include <fog_fragment>',
+        'gl_FragColor.rgb*=1.0-csK*texture2D(csTex,(vCS-csOff)/26000.0+0.5).r*(1.0-smoothstep(7000.0,12500.0,length(vCS-cameraPosition.xz)));\n#include <fog_fragment>',
+      );
+  };
+  m.customProgramCacheKey = () => 'cs' + pk;
+  m.needsUpdate = true;
+}
+const csTree = (o) =>
+  o.traverse((c) => {
+    if (c.isMesh && !c.isSprite) (Array.isArray(c.material) ? c.material : [c.material]).forEach(csApply);
+  });
+function driftClouds(dt) {
+  TWIND.value += dt;
+  const r = CSH.root;
+  r.position.x += (FM.use('wind') ? WX.cdx : 5.5) * dt;
+  r.position.z += (FM.use('wind') ? WX.cdz : 1.8) * dt;
+  r.updateMatrix(); /* the scene's matrices were frozen: the cloud field must still drift */
+  CSH.off.value.set(r.position.x, r.position.z);
+  CSH.k.value = QL.t().shadow ? 0.28 * WX.shK : 0;
+  CSH.wt -= dt;
+  if (CSH.wt <= 0) {
+    CSH.wt = 2;
+    const H2 = 13000,
+      px = cam.position.x,
+      pz = cam.position.z;
+    /* the field follows the aircraft: a cloud that falls more than half a tile away is moved a whole tile (26 km) across,
+       so there are clouds wherever you fly and the shadow map (which repeats every tile) still lines up */
+    const wrap = (s, ox, oz) => {
+      const wx = s.position.x + ox - px,
+        wz = s.position.z + oz - pz;
+      let ch = false;
+      if (Math.abs(wx) > H2) (s.position.x -= 26000 * Math.round(wx / 26000)), (ch = true);
+      if (Math.abs(wz) > H2) (s.position.z -= 26000 * Math.round(wz / 26000)), (ch = true);
+      if (ch) s.updateMatrix();
+    };
+    for (const s of CLOUDS) wrap(s, r.position.x, r.position.z);
+    for (const s of CIRRUS) wrap(s, 0, 0);
+  }
+}
+{
+  const mkTex = (w, h, fn) => {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    fn(c.getContext('2d'), w, h);
+    return new THREE.CanvasTexture(c);
+  };
+  const cum = mkTex(128, 128, (g, w, h) => {
+    const gr = g.createRadialGradient(64, 56, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,.97)');
+    gr.addColorStop(0.55, 'rgba(250,252,255,.7)');
+    gr.addColorStop(1, 'rgba(240,246,255,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'source-atop';
+    const sh = g.createLinearGradient(0, 30, 0, 128);
+    sh.addColorStop(0, 'rgba(150,165,195,0)');
+    sh.addColorStop(1, 'rgba(120,135,170,.6)');
+    g.fillStyle = sh;
+    g.fillRect(0, 0, w, h);
+  });
+  const cir = mkTex(256, 64, (g, w, h) => {
+    const gr = g.createRadialGradient(128, 32, 2, 128, 32, 128);
+    gr.addColorStop(0, 'rgba(255,255,255,.55)');
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.save();
+    g.scale(1, 0.25);
+    g.translate(0, 96);
+    g.fillStyle = gr;
+    g.fillRect(0, -96, w, h * 4);
+    g.restore();
+  });
+  const mc = new THREE.SpriteMaterial({ map: cum, transparent: true, depthWrite: false }),
+    mr = new THREE.SpriteMaterial({ map: cir, transparent: true, depthWrite: false, opacity: 0.7 });
+  CLM = { mc, mr };
+  for (let i = 0; i < 75; i++) {
+    const cx = (Math.random() - 0.5) * 24000,
+      cz = (Math.random() - 0.5) * 24000,
+      cy = 900 + Math.random() * 1900,
+      R = 300 + Math.random() * 500;
+    if (cy < 2000 && Math.hypot(cx, cz) < 1800) continue;
+    for (let j = 0, m = 7 + ((Math.random() * 6) | 0); j < m; j++) {
+      const a = Math.random() * 6.28,
+        d = Math.random() * R,
+        s = new THREE.Sprite(mc),
+        k = 450 + Math.random() * 750 * (1 - d / (R * 1.4));
+      s.position.set(cx + Math.cos(a) * d, cy + Math.random() * R * 0.45 * (1 - d / (R * 1.2)), cz + Math.sin(a) * d);
+      s.scale.set(k, k * 0.8, 1);
+      s.userData.sx = s.scale.x;
+      s.userData.sy = s.scale.y;
+      CSH.root.add(s);
+      CLOUDS.push(s);
+      csBlob(s.position.x, s.position.y, s.position.z, k);
+    }
+  }
+  for (let i = 0; i < 16; i++) {
+    const s = new THREE.Sprite(mr);
+    s.position.set((Math.random() - 0.5) * 26000, 5500 + Math.random() * 1800, (Math.random() - 0.5) * 26000);
+    s.scale.set(7000 + Math.random() * 4000, 1300, 1);
+    scene.add(s);
+    CIRRUS.push(s);
+  }
+  CSH.tex = new THREE.CanvasTexture(csc);
+  CSH.tex.wrapS = CSH.tex.wrapT = THREE.RepeatWrapping;
+  CSH.tex.needsUpdate = true;
+}
+
+/* the shadow map is painted from the puffs that are really shown: change the weather (or the graphics level) and it is painted again, so there is never a shadow without its cloud */
+CSH.rebuild = () => {
+  if (!CSH.tex) return;
+  csx.globalCompositeOperation = 'source-over';
+  csx.fillStyle = '#000';
+  csx.fillRect(0, 0, CSZ, CSZ);
+  for (const s of CLOUDS) if (s.visible) csBlob(s.position.x, s.position.y, s.position.z, s.scale.x);
+  CSH.tex.needsUpdate = true;
+};
+/* everything built so far is scenery that never moves: stop re-computing its matrices every frame */
+scene.traverse((o) => {
+  if (o === sky || o.parent === sky || o.isLight) return;
+  o.updateMatrix();
+  o.matrixAutoUpdate = false;
+  if (o.isMesh && !o.isSprite) (Array.isArray(o.material) ? o.material : [o.material]).forEach(csApply);
+});
+/* the P-51 airframe joins the scene now, after the scenery freeze (its controls, gear and propeller move) */
+scene.add(plane);
+/* ---------- the cloud deck: a solid layer of cloud for overcast, rain and storm, with a bright top you can climb out onto ---------- */
+const DECK = {
+  cfg: {
+    overcast: { base: 1700, thick: 450, cov: 0.95 },
+    rain: { base: 1300, thick: 600, cov: 0.985 },
+    storm: { base: 1000, thick: 900, cov: 0.998 },
+  },
+  N: 256,
+  T: 12000,
+  on: false,
+  above: false,
+  fogOn: false,
+  base: 0,
+  top: 0,
+  thr: 0.5,
+  ox: 0,
+  oz: 0,
+  k: 0,
+  tc: 0,
+  data: null,
+  tex: null,
+  mats: null,
+  meshes: null,
+  build() {
+    const N = this.N,
+      d = new Float32Array(N * N);
+    let seed = 20261031;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    [
+      [8, 0.55],
+      [16, 0.3],
+      [32, 0.15],
+    ].forEach(([c, w]) => {
+      const L = new Float32Array(c * c);
+      for (let i = 0; i < L.length; i++) L[i] = rnd();
+      for (let j = 0; j < N; j++)
+        for (let i = 0; i < N; i++) {
+          const fx = (i / N) * c,
+            fy = (j / N) * c,
+            ix = Math.floor(fx),
+            iy = Math.floor(fy);
+          let tx = fx - ix,
+            ty = fy - iy;
+          tx = tx * tx * (3 - 2 * tx);
+          ty = ty * ty * (3 - 2 * ty);
+          const a = L[(iy % c) * c + (ix % c)],
+            b = L[(iy % c) * c + ((ix + 1) % c)],
+            e = L[((iy + 1) % c) * c + (ix % c)],
+            f = L[((iy + 1) % c) * c + ((ix + 1) % c)];
+          d[j * N + i] += w * ((a * (1 - tx) + b * tx) * (1 - ty) + (e * (1 - tx) + f * tx) * ty);
+        }
+    });
+    const s = Array.from(d).sort((a, b) => a - b),
+      lo = s[Math.floor(s.length * 0.02)],
+      hi = s[Math.floor(s.length * 0.98)];
+    this.data = new Uint8Array(N * N);
+    for (let i = 0; i < d.length; i++) this.data[i] = Math.round(255 * Math.max(0, Math.min(1, (d[i] - lo) / (hi - lo))));
+    this.tex = new THREE.DataTexture(this.data, N, N, THREE.LuminanceFormat, THREE.UnsignedByteType);
+    this.tex.wrapS = this.tex.wrapT = THREE.RepeatWrapping;
+    this.tex.magFilter = this.tex.minFilter = THREE.LinearFilter;
+    this.tex.needsUpdate = true;
+    /* the value below which the layer has a hole, for each coverage: worked out from the texture itself */
+    const q = [];
+    for (let j = 0; j < 96; j++) for (let i = 0; i < 96; i++) q.push(this.n(i * 125 + this.ox, j * 125 + this.oz));
+    q.sort((a, b) => a - b);
+    this.q = q;
+    const vs = `varying vec3 vW;\n#include <common>\n#include <logdepthbuf_pars_vertex>\n#include <fog_pars_vertex>\nvoid main(){vec4 wp=modelMatrix*vec4(position,1.0);vW=wp.xyz;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;\n#include <logdepthbuf_vertex>\n#include <fog_vertex>\n}`,
+      fs = `uniform sampler2D uTex;uniform vec2 uOff;uniform float uT,uThr,uTop,uQ;uniform vec3 uCol,uCol2;varying vec3 vW;
+#include <common>
+#include <logdepthbuf_pars_fragment>
+#include <fog_pars_fragment>
+void main(){
+#include <logdepthbuf_fragment>
+vec2 uv=(vW.xz-uOff)/uT;
+float n=0.72*texture2D(uTex,uv).r+0.28*texture2D(uTex,uv*3.7+vec2(0.31,0.57)).r;
+float a=smoothstep(uThr-0.03,uThr+0.06,n);if(a<0.01)discard;
+float th=clamp((n-uThr)/0.35,0.0,1.0);float dt=uQ>0.5?texture2D(uTex,uv*11.0+vec2(0.7,0.2)).r:0.5;
+vec3 c=uTop>0.5?mix(uCol2*0.86,uCol2,dt*0.8+0.2*th):uCol*(1.0-0.4*th)*(0.92+0.16*dt);
+gl_FragColor=vec4(c,a);
+#include <fog_fragment>
+}`;
+    const mk = (top) =>
+      new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.merge([
+          THREE.UniformsLib.fog,
+          {
+            uTex: { value: this.tex },
+            uOff: { value: new THREE.Vector2() },
+            uT: { value: this.T },
+            uThr: { value: 0.3 },
+            uTop: { value: top },
+            uQ: { value: 1 },
+            uCol: { value: new THREE.Color(0xaab2bb) },
+            uCol2: { value: new THREE.Color(0xffffff) },
+          },
+        ]),
+        vertexShader: vs,
+        fragmentShader: fs,
+        fog: true,
+        transparent: true,
+        depthWrite: true,
+        side: top ? THREE.FrontSide : THREE.BackSide,
+      });
+    this.mats = [mk(0), mk(1)];
+    this.meshes = this.mats.map((m) => {
+      const o = new THREE.Mesh(new THREE.PlaneGeometry(44000, 44000, 1, 1).rotateX(-Math.PI / 2), m);
+      o.frustumCulled = false;
+      o.visible = false;
+      o.renderOrder = -2;
+      scene.add(o);
+      return o;
+    });
+  },
+  tx(u, v) {
+    const N = this.N;
+    u -= Math.floor(u);
+    v -= Math.floor(v);
+    const x = u * N - 0.5,
+      y = v * N - 0.5,
+      x0 = Math.floor(x),
+      y0 = Math.floor(y),
+      fx = x - x0,
+      fy = y - y0,
+      D = this.data,
+      g = (i, j) => D[(((j % N) + N) % N) * N + (((i % N) + N) % N)];
+    return ((g(x0, y0) * (1 - fx) + g(x0 + 1, y0) * fx) * (1 - fy) + (g(x0, y0 + 1) * (1 - fx) + g(x0 + 1, y0 + 1) * fx) * fy) / 255;
+  },
+  /* the cloud density at a world spot: the same sum the shader draws */
+  n(x, z) {
+    const u = (x - this.ox) / this.T,
+      v = (z - this.oz) / this.T;
+    return 0.72 * this.tx(u, v) + 0.28 * this.tx(u * 3.7 + 0.31, v * 3.7 + 0.57);
+  },
+  cover(x, z) {
+    return this.on && this.n(x, z) > this.thr + 0.015;
+  },
+  /* the weather changed (or the game started): switch the layer on or off and set its height and holes */
+  apply() {
+    if (!this.data) this.build();
+    const c = this.cfg[WX.wx];
+    this.on = !!c;
+    this.above = false;
+    if (this.fogOn && this.dome) {
+      this.dome.material.opacity = 1;
+      this.dome.material.transparent = false;
+      sky.visible = true;
+    }
+    this.fogOn = false;
+    this.k = 0;
+    this.meshes.forEach((m) => (m.visible = this.on));
+    if (c) {
+      this.base = c.base;
+      this.top = c.base + c.thick;
+      this.thr = this.q[Math.floor((1 - c.cov) * (this.q.length - 1))];
+      this.mats.forEach((m) => (m.uniforms.uThr.value = this.thr));
+    }
+    WX.deckAbove = false;
+  },
+  /* distance along the ray to the first solid cloud (the layer's underside or top), or Infinity */
+  hit(a, dx, dy, dz, len) {
+    if (!this.on) return Infinity;
+    const planes = [this.base, this.top];
+    let best = Infinity;
+    for (const yy of planes) {
+      if (Math.abs(dy) < 1e-4) continue;
+      const t = (yy - a.y) / dy;
+      if (t > 0 && t < len && t < best && this.cover(a.x + dx * t, a.z + dz * t)) best = t;
+    }
+    if (a.y > this.base && a.y < this.top && this.cover(a.x, a.z)) return 0;
+    return best;
+  },
+  inside(p) {
+    return this.on && p.y > this.base && p.y < this.top && this.cover(p.x, p.z);
+  },
+  update(dt) {
+    if (!this.data) this.apply();
+    if (!this.on) return;
+    const cp = cam.position,
+      y = cp.y,
+      cv = this.cover(cp.x, cp.z),
+      mid = (this.base + this.top) / 2;
+    this.ox += (WX.wx_ || 0) * 0.7 * dt;
+    this.oz += (WX.wz_ || 0) * 0.7 * dt;
+    this.mats.forEach((m) => {
+      m.uniforms.uOff.value.set(this.ox, this.oz);
+      m.uniforms.uQ.value = QL.t().fx > 0 ? 1 : 0;
+    });
+    this.meshes.forEach((m) => {
+      m.position.set(cp.x, m.material === this.mats[0] ? this.base : this.top, cp.z);
+    });
+    /* above or below: the sky, light and rain follow, switched while the aircraft is hidden inside the layer */
+    let ab = this.above;
+    if (!ab && y > (cv ? mid : this.top + 60)) ab = true;
+    else if (ab && y < (cv ? mid : this.base - 60)) ab = false;
+    if (ab !== this.above) {
+      this.above = ab;
+      WX.deckAbove = ab;
+      WX.rainK = ab ? 0 : WX_SET[WX.wx].rain;
+      WX.paint();
+    }
+    /* colours: the underside takes the weather's cloud tint, the top is bright */
+    this.tc -= dt;
+    if (this.tc <= 0) {
+      this.tc = 0.5;
+      const dayK = Math.max(0, Math.min(1, (WXP.SD.y + 0.05) / 0.3));
+      this.mats[0].uniforms.uCol.value.copy(WXP.CC).multiplyScalar(0.8);
+      this.mats[1].uniforms.uCol2.value.setRGB(1, 1, 1).lerp(WXP.O.sc, 0.25).multiplyScalar(0.18 + 0.82 * dayK);
+    }
+    /* inside the layer: thick white-out, so you fly on the instruments */
+    const dep = Math.min(y - this.base, this.top - y),
+      ca = Math.max(0, Math.min(1, (this.n(cp.x, cp.z) - this.thr + 0.03) / 0.09)),
+      k = Math.max(0, Math.min(1, (dep + 30) / 70)) * ca;
+    this.k = k;
+    if (k > 0.002) {
+      const bs = this.above ? WX_SET.clear : WX_SET[WX.wx],
+        c = this.mats[0].uniforms.uCol.value.clone().lerp(this.mats[1].uniforms.uCol2.value, 0.5);
+      scene.fog.near = bs.fogN * Math.pow(3 / bs.fogN, k);
+      scene.fog.far = bs.fogF * Math.pow(110 / bs.fogF, k);
+      scene.fog.color.copy(WXP.O.hz).lerp(c, k);
+      scene.background.copy(scene.fog.color);
+      /* the sky dome fades out into the white-out (it is not fogged), and the sun, moon and stars go with it */
+      const dm = this.dome || (this.dome = sky.children.find((o) => o.geometry === SKYD));
+      if (dm) {
+        dm.material.transparent = true;
+        dm.material.opacity = Math.max(0, 1 - k * 1.6);
+      }
+      sky.visible = k < 0.62;
+      this.fogOn = true;
+    } else if (this.fogOn) {
+      this.fogOn = false;
+      if (this.dome) {
+        this.dome.material.opacity = 1;
+        this.dome.material.transparent = false;
+      }
+      sky.visible = true;
+      WX.paint();
+    }
+  },
+};
+/* ---------- pilot figure and parachute: the player's seat, the bandits' cockpits and the descents ---------- */
+function makePilot() {
+  const g = new THREE.Group(),
+    suit = new THREE.MeshLambertMaterial({ color: 0x59623f }),
+    leath = new THREE.MeshLambertMaterial({ color: 0x6e4f30 }),
+    skin = new THREE.MeshLambertMaterial({ color: 0xd0a070 }),
+    gog = new THREE.MeshLambertMaterial({ color: 0x151515 }),
+    lens = new THREE.MeshPhongMaterial({ color: 0x2a3d50, shininess: 90, specular: 0xaaaaaa }),
+    pack = new THREE.MeshLambertMaterial({ color: 0x7b8460 });
+  const mk = (geo, m, x, y, z, p = g) => {
+    const o = new THREE.Mesh(geo, m);
+    o.position.set(x, y, z);
+    p.add(o);
+    return o;
+  };
+  const sph = (r, m, x, y, z, p, sx = 1, sy = 1, sz = 1) => {
+    const o = mk(new THREE.SphereGeometry(r, 14, 10), m, x, y, z, p);
+    o.scale.set(sx, sy, sz);
+    return o;
+  };
+  /* rounded limb: a tapered tube with a ball at each end, pointing along -z (dir 'z') or down (dir 'y') */
+  const limb = (len, r0, r1, m, p, dir) => {
+    const t = new THREE.CylinderGeometry(r0, r1, len, 12);
+    if (dir === 'z') t.rotateX(Math.PI / 2).translate(0, 0, -len / 2);
+    else t.translate(0, -len / 2, 0);
+    mk(t, m, 0, 0, 0, p);
+    sph(r0, m, 0, 0, 0, p);
+    if (dir === 'z') sph(r1, m, 0, 0, -len, p);
+    else sph(r1, m, 0, -len, 0, p);
+  };
+  /* torso: a tapered body with round shoulders, a rounded chest and seat, a parachute pack on the back. The upper body is its own group so the pilot can lean forward to the controls. */
+  const up = new THREE.Group();
+  g.add(up);
+  mk(new THREE.CylinderGeometry(0.17, 0.14, 0.46, 16), suit, 0, 0.3, 0, up).scale.z = 0.72;
+  sph(0.175, suit, 0, 0.5, 0, up, 1, 0.5, 0.72);
+  sph(0.145, suit, 0, 0.08, 0, g, 1, 0.55, 0.75);
+  sph(0.15, pack, 0, 0.28, 0.16, up, 1, 1.4, 0.55);
+  const head = new THREE.Group();
+  head.position.set(0, 0.66, 0);
+  up.add(head);
+  mk(new THREE.CylinderGeometry(0.05, 0.06, 0.12, 10), skin, 0, -0.1, 0, head); /* neck */
+  sph(0.1, skin, 0, 0, 0, head, 0.92, 1.05, 1);
+  sph(0.115, leath, 0, 0.025, 0.01, head, 0.95, 0.9, 1.02); /* helmet */
+  /* goggles: an elastic strap round the helmet and two round lenses on the face */
+  mk(
+    new THREE.CylinderGeometry(0.118, 0.118, 0.03, 20, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0x151515, side: THREE.DoubleSide }),
+    0,
+    0.03,
+    0.005,
+    head,
+  );
+  [-1, 1].forEach((sd) => {
+    sph(0.034, lens, sd * 0.045, 0.03, -0.108, head, 1, 1, 0.45);
+    mk(new THREE.TorusGeometry(0.034, 0.007, 6, 14), gog, sd * 0.045, 0.03, -0.112, head);
+  });
+  const arms = [],
+    elbs = [],
+    legs = [];
+  [-1, 1].forEach((sd) => {
+    const a = new THREE.Group();
+    a.position.set(sd * 0.2, 0.46, 0);
+    up.add(a);
+    limb(0.3, 0.055, 0.047, suit, a, 'z');
+    const el = new THREE.Group(); /* the elbow: the forearm is its own bone, so a hand can reach a control */
+    el.position.set(0, 0, -0.3);
+    a.add(el);
+    limb(0.3, 0.047, 0.04, suit, el, 'z');
+    sph(0.05, leath, 0, 0, -0.31, el, 1, 0.9, 1.2); /* gloved hand */
+    a.rotation.order = 'ZXY';
+    arms.push(a);
+    elbs.push(el);
+    const l = new THREE.Group();
+    l.position.set(sd * 0.09, 0.03, 0);
+    g.add(l);
+    limb(0.5, 0.085, 0.06, suit, l, 'z');
+    const k = new THREE.Group();
+    k.position.set(0, 0, -0.5);
+    l.add(k);
+    limb(0.5, 0.06, 0.045, suit, k, 'y');
+    sph(0.06, leath, 0, -0.52, -0.04, k, 0.9, 0.7, 1.7); /* boot */
+    legs.push([l, k]);
+  });
+  g.userData = { head, arms, elbs, legs, up };
+  poseSit(g);
+  return g;
+}
+function poseSit(g) {
+  const u = g.userData;
+  u.arms.forEach((a) => a.rotation.set(-0.6, 0, 0));
+  u.elbs.forEach((e) => e.rotation.set(-0.35, 0, 0));
+  u.up.rotation.x = 0;
+  u.legs.forEach(([l, k]) => {
+    l.rotation.x = 0;
+    k.rotation.x = 0.9;
+  });
+}
+function poseHang(g) {
+  const u = g.userData;
+  u.arms.forEach((a, i) => a.rotation.set(1.5, 0, i ? -0.45 : 0.45)); /* hands up on the risers */
+  u.elbs.forEach((e) => e.rotation.set(0, 0, 0));
+  u.up.rotation.x = 0;
+  u.legs.forEach(([l, k]) => {
+    l.rotation.x = -1.45;
+    k.rotation.x = 1.25;
+  });
+}
+/* a round parachute: striped dome, shroud lines running down to the harness at the origin */
+function makeChute(r, c1, c2) {
+  const g = new THREE.Group(),
+    geo = new THREE.SphereGeometry(r, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+  geo.scale(1, 0.62, 1);
+  const pa = geo.attributes.position,
+    col = new Float32Array(pa.count * 3),
+    ca = new THREE.Color(c1),
+    cb = new THREE.Color(c2);
+  for (let i = 0; i < pa.count; i++) {
+    const a = Math.atan2(pa.getZ(i), pa.getX(i)),
+      c = Math.floor(((a + Math.PI) / (Math.PI * 2)) * 12) & 1 ? ca : cb;
+    col[i * 3] = c.r;
+    col[i * 3 + 1] = c.g;
+    col[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const dome = new THREE.Mesh(
+    geo,
+    new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, emissive: 0x4a4a4a }),
+  );
+  dome.position.y = 6.4;
+  g.add(dome);
+  const pts = [];
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    pts.push(r * Math.cos(a), 6.4, r * Math.sin(a), 0, 0.55, 0);
+  }
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xdcdcdc })));
+  return g;
+}
+/* the player's pilot in his seat (the figure is the shared one, makePilot) */
+const plPilot = makePilot();
+plPilot.position.set(0, 0.07, -0.33);
+plPilot.scale.setScalar(0.95);
+model.add(plPilot);
+/* the player's hands follow the controls: left on the throttle knob, right on the stick grip (two-bone reach, elbows down and out) */
+const IK = {
+  v: new V(),
+  d: new V(),
+  pv: new V(),
+  u: new V(),
+  f: new V(),
+  h: new V(),
+  e: new V(),
+  t: new V(),
+  fw: new V(0, 0, -1),
+  dn: new V(0, -1, 0),
+  pole: new V(),
+  qi: new THREE.Quaternion(),
+};
+function ikArm(a, el, T, sd) {
+  const S = a.position,
+    L1 = 0.3,
+    L2 = 0.3;
+  IK.v.copy(T).sub(S);
+  const d = Math.min(Math.max(IK.v.length(), 0.12), L1 + L2 - 0.004);
+  IK.d.copy(IK.v).normalize();
+  IK.pole.set(sd * 0.6, -1, 0.4);
+  IK.pv.copy(IK.pole).addScaledVector(IK.d, -IK.pole.dot(IK.d)).normalize();
+  const ca = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d),
+    sa = Math.sqrt(Math.max(0, 1 - ca * ca));
+  IK.u.copy(IK.d).multiplyScalar(ca).addScaledVector(IK.pv, sa);
+  a.quaternion.setFromUnitVectors(IK.fw, IK.u);
+  IK.e.copy(S).addScaledVector(IK.u, L1);
+  IK.h.copy(S).addScaledVector(IK.d, d);
+  IK.f.copy(IK.h).sub(IK.e).normalize().applyQuaternion(IK.qi.copy(a.quaternion).invert());
+  el.quaternion.setFromUnitVectors(IK.fw, IK.f);
+}
+function pilotIK() {
+  const u = plPilot.userData;
+  u.up.rotation.x = -0.08; /* sits upright against the seat back so the shoulder harness works */
+  plPilot.updateWorldMatrix(true, true);
+  ckStick.updateWorldMatrix(true, false);
+  ckThr.updateWorldMatrix(true, false);
+  IK.t.set(0, 0.4, 0);
+  ckStick.localToWorld(IK.t);
+  u.up.worldToLocal(IK.t);
+  ikArm(u.arms[1], u.elbs[1], IK.t, 1);
+  IK.t.set(-0.44, 0.57, -0.56); /* the left hand rests on the blue propeller lever */
+  ck.localToWorld(IK.t);
+  u.up.worldToLocal(IK.t);
+  ikArm(u.arms[0], u.elbs[0], IK.t, -1);
+  [-1, 1].forEach((sd, i) => {
+    /* the feet rest on the rudder pedals (thigh 0.5 m, shin 0.5 m) */
+    ckPed[sd].updateWorldMatrix(true, false);
+    IK.t.set(0, 0.01, -0.12); /* heel on the floor plate, toes against the upright pedal */
+    ckPed[sd].localToWorld(IK.t);
+    plPilot.worldToLocal(IK.t);
+    ikLeg(u.legs[i][0], u.legs[i][1], IK.t, sd);
+  });
+}
+function ikLeg(l, k, T, sd) {
+  const S = l.position,
+    L1 = 0.5,
+    L2 = 0.5;
+  IK.v.copy(T).sub(S);
+  const d = Math.min(Math.max(IK.v.length(), 0.2), L1 + L2 - 0.004);
+  IK.d.copy(IK.v).normalize();
+  IK.pole.set(sd * 0.25, 1, -0.2);
+  IK.pv.copy(IK.pole).addScaledVector(IK.d, -IK.pole.dot(IK.d)).normalize();
+  const ca = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d),
+    sa = Math.sqrt(Math.max(0, 1 - ca * ca));
+  IK.u.copy(IK.d).multiplyScalar(ca).addScaledVector(IK.pv, sa);
+  l.quaternion.setFromUnitVectors(IK.fw, IK.u);
+  IK.e.copy(S).addScaledVector(IK.u, L1);
+  IK.h.copy(S).addScaledVector(IK.d, d);
+  IK.f.copy(IK.h).sub(IK.e).normalize().applyQuaternion(IK.qi.copy(l.quaternion).invert());
+  k.quaternion.setFromUnitVectors(IK.dn, IK.f);
+}
+/* ---------- cockpit interior (its group, ck, is the airframe's: see the cockpit group piece) ---------- */
 const pcv = document.createElement('canvas');
 pcv.width = 1024;
 pcv.height = 640;
@@ -13375,15 +13467,6 @@ function lamp(c, x, y, lbl, on, col) {
   c.textBaseline = 'top';
   c.fillText(lbl, x, y + 16);
 }
-function bar(p1, p2, t, mat, par) {
-  const a = new V(p1[0], p1[1], p1[2]),
-    b = new V(p2[0], p2[1], p2[2]),
-    m = new THREE.Mesh(new THREE.BoxGeometry(t, t, a.distanceTo(b)), mat);
-  m.position.copy(a).add(b).multiplyScalar(0.5);
-  m.lookAt(b);
-  (par || ck).add(m);
-  return m;
-}
 /* instrument panel: low, tilted toward the pilot's eye, sitting right behind the firewall */
 {
   const pg = new THREE.Group();
@@ -13473,47 +13556,6 @@ add(
   -1.6,
   ck,
 ).rotation.x = 0.9;
-/* half-width of the cockpit opening at height z: the fuselage's own opening edge */
-const cabW = (z) => sillX(z) - 0.012;
-/* canopy structure, in the airframe's own frame (it is not part of the scaled cockpit group): sill rails, windscreen posts, bows */
-const ckW = new THREE.Group(),
-  railG = new THREE.Group(),
-  wsG = new THREE.Group(),
-  hoodG = new THREE.Group();
-model.add(ckW);
-ckW.add(railG, wsG, hoodG);
-[-1, 1].forEach((sd) => {
-  for (let z = CAN.z0; z < CAN.z1 - 0.01; z += 0.12) {
-    const z2 = Math.min(CAN.z1, z + 0.12);
-    bar(
-      [sd * (sillX(z) - 0.014), sillY(z) + 0.006, z],
-      [sd * (sillX(z2) - 0.014), sillY(z2) + 0.006, z2],
-      0.034,
-      dark,
-      railG,
-    );
-  }
-  add(new THREE.BoxGeometry(0.13, 0.3, 0.8), dark, sd * 0.43, 0.18, -0.5, ck);
-}); /* sill rails, side consoles */
-function arch(z, t, grp) {
-  t = t || 0.026;
-  const P = [];
-  for (let i = 0; i <= 16; i++) P.push(canPt(z, (Math.PI * i) / 16, 0.01));
-  for (let i = 0; i < 16; i++) bar(P[i], P[i + 1], t, dark, grp);
-}
-function rib(t0, za, zb, th, grp) {
-  const n = Math.max(2, Math.round((zb - za) / 0.08));
-  for (let i = 0; i < n; i++)
-    bar(canPt(za + ((zb - za) * i) / n, t0, 0.01), canPt(za + ((zb - za) * (i + 1)) / n, t0, 0.01), th, dark, grp);
-}
-arch(fz(149), 0.03, wsG); /* windscreen top bow */
-arch(CAN.z0 + 0.012, 0.034, wsG); /* windscreen front frame: closes the glass onto the cowl and joins the sill rails */
-[1.15, Math.PI - 1.15].forEach((t0) => rib(t0, CAN.z0 + 0.012, fz(149), 0.026, wsG)); /* the posts either side of the flat centre panel */
-arch(fz(152), 0.026, hoodG); /* hood front frame */
-arch(fz(205), 0.03, hoodG); /* hood rear frame */
-[wsG, hoodG, railG].forEach(mergeGroup);
-const canBars = [hoodG]; /* these go with the canopy when the pilot bails out */
-
 /* seat, armour plate, headrest */
 add(new THREE.BoxGeometry(0.2, 0.55, 0.2), pmatD, 0, 0.066, -0.35, ck);
 add(new THREE.BoxGeometry(0.46, 0.06, 0.46), pmatD, 0, 0.356, -0.45, ck);
@@ -14444,110 +14486,6 @@ function drawPanel() {
   ptex.needsUpdate = true;
 }
 
-/* THE P-51D'S DISPLAY FORM (Phase 5): the player's exterior made from the player's own model, never built separately. The cockpit
-   (ck), the pilot, the lights' glows and the aerial wire are left out (o.gear false: the landing gear too); everything else is
-   merged into one mesh per material, texture coordinates kept for the decals. The propeller stays its own group so it can turn.
-   P51DISP.make(o) -> { g, prop }: g in the frame of the player's `plane` group (nose toward -z), prop inside it, spun about its
-   own z axis like the player's. Copies share geometry and materials with the first one made (cheap), so make them freely.
-   Built from the model as it stands, so the first call comes while the player's model is in its rest pose (load time). */
-const P51DISP = (() => {
-  const made = {};
-  /* one geometry per material; a part mirrored by a negative scale has its triangles turned back to face out */
-  const bake = (root, skip) => {
-    root.updateMatrixWorld(true);
-    const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(),
-      by = new Map(),
-      M = new THREE.Matrix4();
-    const walk = (o) => {
-      if (!o.visible || skip.includes(o) || o.isSprite || o.isLine || o.isPoints) return;
-      if (o.isMesh && o.geometry && !Array.isArray(o.material)) {
-        const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-        M.multiplyMatrices(inv, o.matrixWorld);
-        geo.applyMatrix4(M);
-        if (M.determinant() < 0)
-          for (const k of ['position', 'normal', 'uv']) {
-            const a = geo.attributes[k];
-            if (!a) continue;
-            const s = a.itemSize,
-              A = a.array;
-            for (let t = 0; t < a.count; t += 3)
-              for (let c = 0; c < s; c++) {
-                const i = (t + 1) * s + c,
-                  j = (t + 2) * s + c,
-                  x = A[i];
-                A[i] = A[j];
-                A[j] = x;
-              }
-          }
-        if (!by.has(o.material)) by.set(o.material, []);
-        by.get(o.material).push([geo, o.renderOrder]);
-      }
-      for (const c of o.children) walk(c);
-    };
-    walk(root);
-    const g = new THREE.Group();
-    by.forEach((list, m) => {
-      const n = list.reduce((a, [q]) => a + q.attributes.position.count, 0),
-        uv = list.every(([q]) => q.attributes.uv),
-        P = new Float32Array(n * 3),
-        N = new Float32Array(n * 3),
-        U = uv ? new Float32Array(n * 2) : null;
-      let k = 0;
-      for (const [q] of list) {
-        P.set(q.attributes.position.array, k * 3);
-        if (q.attributes.normal) N.set(q.attributes.normal.array, k * 3);
-        if (U) U.set(q.attributes.uv.array, k * 2);
-        k += q.attributes.position.count;
-        q.dispose();
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
-      geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
-      if (U) geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
-      geo.computeBoundingSphere();
-      const mesh = new THREE.Mesh(geo, m);
-      mesh.renderOrder = Math.max(...list.map((x) => x[1]));
-      g.add(mesh);
-    });
-    return g;
-  };
-  const first = (gearOn) => {
-    const skip = [ck, plPilot, prop];
-    if (!gearOn) skip.push(gear);
-    const body = bake(model, skip);
-    body.position.copy(model.position);
-    body.quaternion.copy(model.quaternion);
-    body.scale.copy(model.scale);
-    model.updateMatrix();
-    prop.updateMatrix();
-    const pr = bake(prop, []);
-    pr.matrixAutoUpdate = true;
-    pr.position.copy(prop.position).applyMatrix4(model.matrix);
-    pr.quaternion.copy(model.quaternion).multiply(prop.quaternion);
-    return { body, pr };
-  };
-  const copy = (src) => {
-    const g = new THREE.Group();
-    g.position.copy(src.position);
-    g.quaternion.copy(src.quaternion);
-    g.scale.copy(src.scale);
-    for (const m of src.children) {
-      const c = new THREE.Mesh(m.geometry, m.material);
-      c.renderOrder = m.renderOrder;
-      g.add(c);
-    }
-    return g;
-  };
-  const make = (o) => {
-    const k = o && o.gear === false ? 'up' : 'down';
-    const F = made[k] || (made[k] = first(k === 'down'));
-    const g = new THREE.Group(),
-      prop2 = copy(F.pr);
-    g.add(copy(F.body), prop2);
-    return { g, prop: prop2 };
-  };
-  return { make };
-})();
 /* ---------- state ---------- */
 const pos = new V(),
   vel = new V(),
@@ -15097,6 +15035,7 @@ function killT(t) {
   if (t.type === 'ship') t.m.rotation.z = (t.c.x % 2 > 1 ? 1 : -1) * 0.2; /* a ship settles by the side as it burns */
   if (t.lit) t.lit.visible = false; /* the lights go out */
   t.m.traverse((o) => {
+    if (o.userData.wake) return void (o.visible = false); /* she is stopped: no wake (and its material is every ship's) */
     if (o.material && o.material.color && !o.isPoints) {
       o.userData.c0 = o.material.color.getHex();
       o.material.color.set(0x1a1a1a);
@@ -15368,7 +15307,8 @@ function resetWeapons() {
     t.m.position.y = t.type === 'ship' && t.k0 !== undefined ? SEA.WL + t.k0 + t.s1 / 2 : t.y0 !== undefined ? t.y0 : H(t.c.x, t.c.z) + t.s1 / 2; /* a ship back on her waterline, anything else where it was set down */
     if (t.type === 'ship') t.m.rotation.z = 0;
     t.m.traverse((o) => {
-      if (o.userData.c0 !== undefined) o.material.color.set(o.userData.c0);
+      if (o.userData.wake) o.visible = true;
+      else if (o.userData.c0 !== undefined) o.material.color.set(o.userData.c0);
     });
   });
   clearEnemies();
@@ -17732,7 +17672,8 @@ const RIDE = {
   P.push(part(cyl(0.15, 0.15, 8, 8), 0xdddddd, 20, Y0 + 4, 30));
   P.push(part(cyl(0.6, 0.2, 3, 10), 0xff6a00, 22.2, Y0 + 7.6, 30, 0, 0, Zr));
   /* the parked fighters, noses toward the runway, and the vehicles on the apron (the same models as at the home field) */
-  const MD = AFLD.models,
+  const parkedP51 = [],
+    MD = AFLD.models,
     park = (m, u, v, yaw) => P.push(...m.map((q) => ({ g: q.g, hex: q.hex, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) })));
   [
     [-165, 0xb7bcc2, 0xb22a24, {}],
@@ -17741,7 +17682,11 @@ const RIDE = {
     [-120, 0x5d6341, 0xb22a24, { ang: 0.2 }],
     [-105, 0xb7bcc2, 0xd9b92a, { tanks: 1, ang: 0.9 }],
     [-90, 0x5d6341, 0x1e4fa3, { ang: 0.4 }],
-  ].forEach((a, i) => park(MD.fighter(a[1], a[2], a[3]), a[0], -92, -Zr + (i % 3 - 1) * 0.03));
+  ].forEach((a, i) => {
+    const O = P51DISP.parked(a[1], a[2], a[3]) /* its own object, near and distant forms: added to the field's group below */;
+    O.applyMatrix4(GX.xf(a[0], Yp, -92, -Zr + (i % 3 - 1) * 0.03));
+    parkedP51.push(O);
+  });
   park(MD.cargoTruck(), 30, -82, 0.4);
   park(MD.jeep(), 45, -92, -0.3);
   park(MD.tug(), -60, -78, Zr);
@@ -17757,7 +17702,7 @@ const RIDE = {
   psp.repeat.set(290 / 6.1, 96 / 3.05);
   const ap = new THREE.Mesh(new THREE.PlaneGeometry(290, 96).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: psp }));
   ap.position.set(-40, Y0 + 0.13, -102);
-  grp.add(rw, bm, ap);
+  grp.add(rw, bm, ap, ...parkedP51);
   grp.position.set(ISL.F.x, 0, ISL.F.z);
   grp.rotation.y = Math.atan2(-ISL.uz, ISL.ux);
   grp.updateMatrix();

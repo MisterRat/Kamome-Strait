@@ -63,6 +63,7 @@ function shipWakeMesh(k, y) {
   wk.scale.setScalar(k);
   wk.position.y = y;
   wk.frustumCulled = false;
+  wk.userData.wake = true; /* a sunk ship's wake goes (killT); every wake shares WAKE_MAT, so it is never repainted */
   return wk;
 }
 let WSOCK = null;

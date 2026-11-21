@@ -1,6 +1,6 @@
 # North American P-51D Mustang (the player's aircraft): game model measured against the references
 
-Measured from the P-51 Mustang FS 5.59 build by `tools/blueprint.py` (2026-11-20). Model box: 9.84 m long, 11.28 m wide, 3.72 m high (solid parts only, as drawn on the blueprint).
+Measured from the P-51 Mustang FS 5.67 build by `tools/blueprint.py` (2026-11-20). Model box: 9.84 m long, 11.28 m wide, 3.72 m high (solid parts only, as drawn on the blueprint).
 
 **Represents:** North American P-51D Mustang
 

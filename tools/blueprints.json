@@ -66,7 +66,31 @@
   "title": "P-51D Mustang, parked (home airfield)",
   "kind": "aircraft",
   "fwd": "+x",
-  "make": "return __bake(AFLD.models.fighter(0xb7bcc2, 0xb22a24, { stripes: 1, ang: 0.4 }));",
+  "make": "return __bake(AFLD.models.fighter(0xb7bcc2, 0xb22a24, {}));",
+  "type": "North American P-51D Mustang (the player's exterior, parked form)",
+  "ref": [
+   [
+    "Length",
+    9.83,
+    "P-51D, as the player's model"
+   ],
+   [
+    "Span",
+    11.28,
+    "P-51D, as the player's model"
+   ]
+  ],
+  "notes": [
+   "The player's own aircraft in its parked form (P51DISP.parts): the same airframe and markings, recoloured to its livery (body and trim), canopy glass opaque, the texture overlays (nose art, soot, panel lines) left on the player's aircraft; sitting in the factory three-point attitude (GEAR.sit)."
+  ]
+ },
+ {
+  "id": "p51-distant",
+  "file": "P-51D_distant",
+  "title": "P-51D Mustang, parked: the distant form (beyond 1 km)",
+  "kind": "aircraft",
+  "fwd": "+x",
+  "make": "return P51DISP.parked(0xb7bcc2, 0xb22a24).levels[1].object.clone();",
   "type": "North American P-51D Mustang (simplified airfield model)",
   "ref": [
    [
@@ -81,7 +105,7 @@
    ]
   ],
   "notes": [
-   "Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion)."
+   "Phase 5's distant form of the parked P-51 (P51DISP.parked): the parked form thinned by vertex clustering (GX.thin, 0.28 m cells), about 7% of its triangles. Swapped in beyond 1 km."
   ]
  },
  {

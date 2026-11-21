@@ -1,8 +1,8 @@
 # P-51D Mustang, parked (home airfield): game model measured against the references
 
-Measured from the PCE-842 0.77 build by `tools/blueprint.py` (2026-11-20). Model box: 9.69 m long, 11.28 m wide, 3.98 m high (solid parts only, as drawn on the blueprint).
+Measured from the PCE-842 0.85 build by `tools/blueprint.py` (2026-11-20). Model box: 9.69 m long, 11.28 m wide, 4.11 m high (solid parts only, as drawn on the blueprint).
 
-**Represents:** North American P-51D Mustang (simplified airfield model)
+**Represents:** North American P-51D Mustang (the player's exterior, parked form)
 
 | Item | Reference | Source | Model | Difference | Result |
 |---|---|---|---|---|---|
@@ -13,6 +13,6 @@ Results: match within 3%, close within 8%, **check** beyond that. The box takes 
 
 ## Notes
 
-- Built to the real size in the game (GX.fit): the body, without aerials, flag staffs and other thin parts, is scaled to the reference length and width (and height where given; otherwise heights stay in proportion).
+- The player's own aircraft in its parked form (P51DISP.parts): the same airframe and markings, recoloured to its livery (body and trim), canopy glass opaque, the texture overlays (nose art, soot, panel lines) left on the player's aircraft; sitting in the factory three-point attitude (GEAR.sit).
 
 Blueprint: `P-51D_parked_blueprint.png`.

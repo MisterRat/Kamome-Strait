@@ -410,6 +410,7 @@ function killT(t) {
   if (t.type === 'ship') t.m.rotation.z = (t.c.x % 2 > 1 ? 1 : -1) * 0.2; /* a ship settles by the side as it burns */
   if (t.lit) t.lit.visible = false; /* the lights go out */
   t.m.traverse((o) => {
+    if (o.userData.wake) return void (o.visible = false); /* she is stopped: no wake (and its material is every ship's) */
     if (o.material && o.material.color && !o.isPoints) {
       o.userData.c0 = o.material.color.getHex();
       o.material.color.set(0x1a1a1a);

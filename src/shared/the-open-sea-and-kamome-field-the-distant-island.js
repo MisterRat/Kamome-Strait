@@ -136,7 +136,8 @@
   P.push(part(cyl(0.15, 0.15, 8, 8), 0xdddddd, 20, Y0 + 4, 30));
   P.push(part(cyl(0.6, 0.2, 3, 10), 0xff6a00, 22.2, Y0 + 7.6, 30, 0, 0, Zr));
   /* the parked fighters, noses toward the runway, and the vehicles on the apron (the same models as at the home field) */
-  const MD = AFLD.models,
+  const parkedP51 = [],
+    MD = AFLD.models,
     park = (m, u, v, yaw) => P.push(...m.map((q) => ({ g: q.g, hex: q.hex, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) })));
   [
     [-165, 0xb7bcc2, 0xb22a24, {}],
@@ -145,7 +146,11 @@
     [-120, 0x5d6341, 0xb22a24, { ang: 0.2 }],
     [-105, 0xb7bcc2, 0xd9b92a, { tanks: 1, ang: 0.9 }],
     [-90, 0x5d6341, 0x1e4fa3, { ang: 0.4 }],
-  ].forEach((a, i) => park(MD.fighter(a[1], a[2], a[3]), a[0], -92, -Zr + (i % 3 - 1) * 0.03));
+  ].forEach((a, i) => {
+    const O = P51DISP.parked(a[1], a[2], a[3]) /* its own object, near and distant forms: added to the field's group below */;
+    O.applyMatrix4(GX.xf(a[0], Yp, -92, -Zr + (i % 3 - 1) * 0.03));
+    parkedP51.push(O);
+  });
   park(MD.cargoTruck(), 30, -82, 0.4);
   park(MD.jeep(), 45, -92, -0.3);
   park(MD.tug(), -60, -78, Zr);
@@ -161,7 +166,7 @@
   psp.repeat.set(290 / 6.1, 96 / 3.05);
   const ap = new THREE.Mesh(new THREE.PlaneGeometry(290, 96).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: psp }));
   ap.position.set(-40, Y0 + 0.13, -102);
-  grp.add(rw, bm, ap);
+  grp.add(rw, bm, ap, ...parkedP51);
   grp.position.set(ISL.F.x, 0, ISL.F.z);
   grp.rotation.y = Math.atan2(-ISL.uz, ISL.ux);
   grp.updateMatrix();

@@ -80,6 +80,10 @@ function combined(id, sims) {
     } else res.push(p);
     if (p === 'shared/sims-every-simulator-plugs-into-the-world-through-one-role.js') res.push(id + '/the-simulator-picked-for-this-visit.js');
   }
+  /* the simulators load their shared pieces in different orders: a script piece would load twice (fix the manifests' order) */
+  const js = res.filter((p) => typeof p === 'string' && p.endsWith('.js')),
+    twice = js.filter((p, i) => js.indexOf(p) !== i);
+  if (twice.length) throw new Error(`${id}: the simulators' manifests order these shared pieces differently: ${twice.join(', ')}`);
   const end = res.lastIndexOf('shared/script-close.html');
   res.splice(end, 0, ...((GAMES[id] && GAMES[id].cross) || []), id + '/the-start-screen-s-switch-to-another-simulator.js');
   return res;

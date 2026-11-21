@@ -91,7 +91,7 @@ const GX = (() => {
           if (m) g.applyMatrix4(m);
         }
         if (q.c) cl.setRGB(q.c[0], q.c[1], q.c[2]);
-        else cl.setHex(q.hex);
+        else if (!q.vc) cl.setHex(q.hex);
         if (q.cf && q.cfE) subdiv(g, q.cfE);
         const p = g.attributes.position.array,
           n = g.attributes.normal.array;
@@ -109,6 +109,10 @@ const GX = (() => {
             cl.setHex(q.cf(v.x, v.y, v.z));
             this.c.push(cl.r, cl.g, cl.b);
           }
+        } else if (q.vc) {
+          /* a part that carries its own colours (q.vc: its geometry's colour attribute, e.g. a copy of the player's aircraft, P51DISP) */
+          const c = g.attributes.color.array;
+          for (let i = 0; i < p.length; i++) this.c.push(c[i]);
         } else for (let i = 0; i < p.length; i += 3) this.c.push(cl.r, cl.g, cl.b);
         g.dispose();
       }
@@ -164,5 +168,49 @@ const GX = (() => {
     }
     return out;
   };
-  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit };
+  /* a distant form by vertex clustering: every corner moves to the average of the corners in its cell (cell metres), and the
+     triangles that collapse go; colours and normals averaged per cell. For a model built from many pieces with no single
+     detail setting (the P-51); colours are kept apart (a corner merges only with corners of its own colour). A builder with one (the Ki-84's far) uses that instead. g: unindexed, with colour. */
+  const thin = (g, cell) => {
+    const p = g.attributes.position.array,
+      n = g.attributes.normal.array,
+      c = g.attributes.color.array,
+      key = new Int32Array(p.length / 3),
+      ids = new Map(),
+      S = [];
+    for (let i = 0; i < key.length; i++) {
+      const k =
+        Math.floor(p[i * 3] / cell) + ',' + Math.floor(p[i * 3 + 1] / cell) + ',' + Math.floor(p[i * 3 + 2] / cell) + ',' + Math.round(c[i * 3] * 31) + ',' + Math.round(c[i * 3 + 1] * 31) + ',' + Math.round(c[i * 3 + 2] * 31) /* corners of different colours never merge: no smeared paint */;
+      let id = ids.get(k);
+      if (id === undefined) ids.set(k, (id = S.length)), S.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+      const s = S[id];
+      for (let a = 0; a < 3; a++) (s[a] += p[i * 3 + a]), (s[3 + a] += n[i * 3 + a]), (s[6 + a] += c[i * 3 + a]);
+      s[9]++;
+      key[i] = id;
+    }
+    const P = [],
+      N = [],
+      C = [];
+    for (let t = 0; t < key.length; t += 3) {
+      const a = key[t],
+        b = key[t + 1],
+        d = key[t + 2];
+      if (a === b || b === d || a === d) continue;
+      for (const id of [a, b, d]) {
+        const s = S[id],
+          k = s[9],
+          l = Math.hypot(s[3], s[4], s[5]) || 1;
+        P.push(s[0] / k, s[1] / k, s[2] / k);
+        N.push(s[3] / l, s[4] / l, s[5] / l);
+        C.push(s[6] / k, s[7] / k, s[8] / k);
+      }
+    }
+    const o = new THREE.BufferGeometry();
+    o.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    o.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    o.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    o.computeBoundingSphere();
+    return o;
+  };
+  return { M4, V3, Q, E, cyl, bx, sph, part, xf, Acc, body, fitM, fit, thin };
 })();
