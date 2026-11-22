@@ -18,7 +18,7 @@ function enemySync() {
     ENEMY.mode === 'none'
       ? 'No enemies: patrol and practice in peace.'
       : (ENEMY.has('planes')
-          ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
+          ? 'Planes: Ki-84 Hayates strafe her, two at a time, when a Japanese ship, gun or base she fires on calls for air support: they take off from the nearest enemy airfield and fly out to her. '
           : '') +
         (ENEMY.has('shore')
           ? "Shore: the ports' 8 cm coast guns open fire inside about 10 km (and at Allied aircraft), and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "

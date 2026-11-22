@@ -44,13 +44,8 @@ function raidUpdate(dt) {
     if (RAID.L.length) raidClear();
     return;
   }
-  if (!RAID.L.length) {
-    RAID.next -= dt;
-    if (RAID.next <= 0) {
-      RAID.next = 180 + Math.random() * 120;
-      raidSpawn();
-    }
-  }
+  /* no raids on a timer (the user's, 2026-11-22: they must be called and told where she is): a raid is only a Japanese air-support pair
+     (AIRSUP) called by a unit under fire that has flown out and found her (raidSpawn(from)) */
   const tgt = new THREE.Vector3(),
     w = new THREE.Vector3(),
     home = raidHome();

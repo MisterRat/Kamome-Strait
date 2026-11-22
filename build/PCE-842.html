@@ -498,7 +498,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>3&Prime;/50 range</td><td>Game mode: the sight-setter ranges the target nearest your sight. Hardcore: you set it (mouse wheel, Page Up / Page Down).</td></tr>
 <tr><td>Reloading</td><td>Every weapon is reloaded by its crew when it is empty, as long as there is ammunition aboard: the guns, the K-guns, the racks and the Hedgehog (24 bombs in about 3 minutes, half that in game mode). R reloads on demand (at the Hedgehog: loads it from part-full). Changing to a gun finds it loaded.</td></tr>
 <tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-108 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-108 brings &ldquo;check fire&rdquo;.</td></tr>
-<tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Every few minutes two Ki-84 Hayates come out from the enemy airfield; the lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
+<tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Ki-84 Hayates come only when the enemy has been told where you are: a Japanese ship, gun or base you fire on calls for air support, and two fighters take off from the nearest enemy airfield and fly out (the scramble takes about 90 s, then the flight). Out of their sight you are left alone. The lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
 <tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 8 cm/40 naval guns in sandbagged pits, five men to a gun, about 10 rounds a minute out to 10,000 m: they open fire inside about 10 km by day (3 km at night), and, dual-purpose guns, at Allied aircraft overhead when they have no ship to lay on; lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
 <tr><td>Shell cam</td><td>Settings: follow your last shells to the target (off at first). Any key returns to the gun.</td></tr>
 </table></div>
@@ -585,7 +585,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.126';
+const VERSION = '0.127';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -24524,7 +24524,7 @@ function enemySync() {
     ENEMY.mode === 'none'
       ? 'No enemies: patrol and practice in peace.'
       : (ENEMY.has('planes')
-          ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
+          ? 'Planes: Ki-84 Hayates strafe her, two at a time, when a Japanese ship, gun or base she fires on calls for air support: they take off from the nearest enemy airfield and fly out to her. '
           : '') +
         (ENEMY.has('shore')
           ? "Shore: the ports' 8 cm coast guns open fire inside about 10 km (and at Allied aircraft), and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
@@ -28143,13 +28143,8 @@ function raidUpdate(dt) {
     if (RAID.L.length) raidClear();
     return;
   }
-  if (!RAID.L.length) {
-    RAID.next -= dt;
-    if (RAID.next <= 0) {
-      RAID.next = 180 + Math.random() * 120;
-      raidSpawn();
-    }
-  }
+  /* no raids on a timer (the user's, 2026-11-22: they must be called and told where she is): a raid is only a Japanese air-support pair
+     (AIRSUP) called by a unit under fire that has flown out and found her (raidSpawn(from)) */
   const tgt = new THREE.Vector3(),
     w = new THREE.Vector3(),
     home = raidHome();
