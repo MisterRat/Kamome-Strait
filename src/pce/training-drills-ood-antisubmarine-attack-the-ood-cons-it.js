@@ -71,22 +71,18 @@ DRILLS.push({
     }
     return true;
   },
+  /* the OOD's orders (G): the attack orders are this drill's Space and R */
+  order(D, id) {
+    if (id === 'hh') return this.key(D, 'Space', false), true;
+    if (id === 'pat') return this.key(D, 'KeyR', false), true;
+    return false;
+  },
   finish(D) {
-    const yd = ASW.best,
-      v = ASW.hh > 0 || yd <= 25 ? 'KILL' : yd <= 60 ? 'DAMAGED' : 'MISSED',
-      H = D.hhRel,
-      Pt = D.pat && D.pat.rel;
     ASW.drill = false;
-    let s = v === 'KILL' ? 60 : v === 'DAMAGED' ? 35 : 0;
-    /* the Hedgehog: he 200 to 300 yd ahead and on the bow; the pattern: her stern (about 50 yd abaft the bridge) over him */
-    if (H) s += drillMark(Math.abs(H.al - 250), 40, 200, 12) * (Math.abs(H.cr) < 40 ? 1 : 0.4) + 8;
-    if (Pt) s += drillMark(Math.abs(Pt.al - D.pat.best), 25, 200, 12) * (Math.abs(Pt.cr) < 50 ? 1 : 0.4) + 8;
+    const R = aswAssess({ yd: ASW.best, hits: ASW.hh, hh: D.hhRel, pat: D.pat }),
+      v = R.v;
     drillSay('EXERCISE SUB', v === 'KILL' ? 'YOU GOT ME. SURFACING. EXERCISE COMPLETE.' : v === 'DAMAGED' ? 'CLOSE. I WOULD BE DAMAGED. SURFACING.' : 'YOU MISSED. SURFACING. EXERCISE COMPLETE.');
-    drillEnd(D, s, [
-      'RESULT: <b>' + v + '</b>' + (ASW.hh ? ' (' + ASW.hh + ' HEDGEHOG HITS)' : '') + (yd < 1e8 ? ' &middot; NEAREST CHARGE ' + yd + ' YD' : ''),
-      'HEDGEHOG: ' + (H ? 'FIRED WITH HIM ' + Math.round(H.al) + ' YD AHEAD, ' + Math.round(Math.abs(H.cr)) + ' YD ' + (H.cr < 0 ? 'TO PORT' : 'TO STARBOARD') + ' (BEST: 250 AHEAD, DEAD ON THE BOW)' : '<b style="color:#ff8a6a">NOT FIRED</b>'),
-      'PATTERN: ' + (Pt ? 'ORDERED WITH HIM ' + Math.round(Pt.al) + ' YD ' + (Pt.al >= 0 ? 'AHEAD' : 'ASTERN') + ' (BEST AT HER SPEED AND HIS DEPTH: ' + Math.round(D.pat.best) + ' ' + (D.pat.best >= 0 ? 'AHEAD' : 'ASTERN') + ')' : '<b style="color:#ff8a6a">NOT ORDERED</b>'),
-    ]);
+    drillEnd(D, R.s, R.lines);
     D.sub.o.surfT = 150; /* Roncador surfaces */
   },
   box(D) {

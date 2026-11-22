@@ -12,10 +12,10 @@
    the radar finds enemy aircraft (CAP), lays smoke when she comes under shellfire and secures it when it stops, and attacks a
    Japanese submarine sonar holds: he cons her down sonar's bearing at attack speed and fires on the same timing as the drill.
    ===================================================================================================================== */
-var OODO = { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false } };
+var OODO = { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null };
 const ORD_DEP = [50, 100, 150, 200, 250, 300];
 function ordReset() {
-  Object.assign(OODO, { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false } });
+  Object.assign(OODO, { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null });
 }
 /* the player is the OOD: at station 1 in the pilothouse */
 const ordPlayer = () => camMode == 1 && SHIP.stn === 1;
@@ -41,6 +41,8 @@ function ordList() {
 }
 function ordGive(id, by) {
   const B = (t) => RADIO.add('BRIDGE', t, { own: true });
+  /* in a drill, the drill may take the order as its own (the attack drill: its Hedgehog and its pattern, assessed by it) */
+  if (DRILL.on && DRILL.on.order && DRILL.on.order(DRILL.D, id)) return;
   if (id === 'guns') {
     OODO.hold = !OODO.hold;
     B(OODO.hold ? 'ALL GUNS, BRIDGE. CEASE FIRE, CEASE FIRE. HOLD YOUR FIRE.' : 'ALL GUNS, BRIDGE. GUNS FREE. ENGAGE THE ENEMY.');
@@ -52,13 +54,19 @@ function ordGive(id, by) {
   } else if (id === 'smoke') smkOrder(!SMK.on, by);
   else if (id === 'hh') {
     if (!ordContact()) return note('NO SONAR CONTACT TO ATTACK');
-    if (hhFire()) B('FIRE HEDGEHOG!');
+    if (hhFire()) {
+      B('FIRE HEDGEHOG!');
+      const A = by === 'you' && !DRILL.on && ordAtk();
+      if (A) ((A.hh = aswRelTo(A.s.p)), (A.last = SHIP.t));
+    }
   } else if (id === 'pat') {
     if (!ordContact()) return note('NO SONAR CONTACT TO ATTACK');
     if (OODO.pat) return;
     aswArm(OODO.dep);
     OODO.pat = { t0: SHIP.t };
     B('FIRE THE PATTERN! SET ' + OODO.dep + ' FEET.');
+    const A = by === 'you' && !DRILL.on && ordAtk();
+    if (A) ((A.pat = { rel: aswRelTo(A.s.p), best: aswBest(OODO.dep) }), (A.last = SHIP.t));
   } else if (id === 'dep') {
     OODO.dep = ORD_DEP[(ORD_DEP.indexOf(OODO.dep) + 1) % ORD_DEP.length];
     OODO.depSet = true;
@@ -100,25 +108,63 @@ function ordReports() {
 }
 DRILLP.push({
   stn: 1,
+  inDrill: true,
   show: () => OODO.menu,
   html() {
     let h = "<b style=\"color:#9fc3d6\">THE OOD'S ORDERS</b><br>" + ordReports().join('<br>');
     ordList().forEach((o, i) => {
       const col = o.off ? '#6a7a84' : o.hot ? '#ff8a6a' : '#dfe6e8',
         t = '<span style="color:' + col + '">' + o.t + (o.off ? ' (' + o.off + ')' : '') + '</span>';
-      h += '<br>' + (i === OODO.sel ? '<b style="color:#ffd27a">&#9656; </b><b>' + t + '</b>' : '&nbsp;&nbsp;' + t);
+      h += '<div class="dbI" data-i="' + i + '">' + (i === OODO.sel ? '<b style="color:#ffd27a">&#9656; </b><b>' + t + '</b>' : '&nbsp;&nbsp;' + t) + '</div>';
     });
-    return h + '<br><span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> give the order &middot; <b>G</b> close</span>';
+    return h + '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> give the order (or click it) &middot; <b>G</b> close</span>';
+  },
+  /* a click on an order: choose it and give it */
+  click(i) {
+    const o = ordList()[i];
+    if (!o) return;
+    OODO.sel = i;
+    if (o.off) note(o.off);
+    else ordGive(o.id, 'you');
   },
   /* the plot while sonar holds a submarine (Hardcore: his bearing and range from the reports only) */
   pic: () => !!ordContact() && !drillHC(),
   draw: (g, w, h) => aswHeadUp(g, w, h, ordContact().p),
 });
+/* ---- THE ATTACK'S ASSESSMENT (the user's, 2026-11-22: an attack ordered from the pilothouse in action gets its report, as the drill's
+   does). It starts with the player's first weapon on a contact; it ends when everything fired has gone off and nothing more has been
+   fired for 90 s or he is well astern: then the report, marked as the drill's (aswAssess), with either weapon alone enough ---- */
+function ordAtk() {
+  if (OODO.atk) return OODO.atk;
+  const C = ordContact(),
+    s = C && (ordEnemySub(C) || (PT.on && PT.L.find((t) => t.kind === 'sub')));
+  if (!s) return null;
+  return (OODO.atk = { s, jp: s.side === 'jp', hh: null, pat: null, yd: 1e9, hits: 0, last: SHIP.t, hc: drillHC() });
+}
+/* a charge has gone off at p: how near him */
+function ordAtkBurst(p) {
+  const A = OODO.atk;
+  if (!A) return;
+  const yd = Math.round((A.jp ? Math.max(0, SUBS.capsule(A.s, p)) : A.s.p.distanceTo(p)) / 0.9144);
+  A.yd = Math.min(A.yd, yd);
+}
+function ordAtkStep() {
+  const A = OODO.atk;
+  if (!A || OODO.pat || HH.q.length || HH.L.length || DC.L.length) return;
+  /* the run is over: he is well astern of her (400 yd), or nothing more has been fired for a minute and a half */
+  if (SHIP.t - A.last < 90 && aswRelTo(A.s.p).al > -400) return;
+  OODO.atk = null;
+  const R = aswAssess({ yd: A.yd, hits: A.hits, sunk: A.jp && A.s.sunk, hh: A.hh, pat: A.pat, one: true });
+  RADIO.add('SONAR', R.v === 'KILL' ? (A.jp ? 'BRIDGE, SONAR. BREAKING-UP NOISES. HE IS GOING DOWN.' : 'EXERCISE SUB REPORTS: YOU GOT ME.') : R.v === 'DAMAGED' ? 'BRIDGE, SONAR. CLOSE. HE MAY BE DAMAGED.' : 'BRIDGE, SONAR. NO EFFECT ON THE TARGET.', { own: true });
+  OODO.menu = false; /* the report in the box */
+  drillReport(A.jp ? 'Attack on I-58' : 'Attack on the exercise sub', R.s, R.lines, A.hc, 1, ': ', true);
+}
 /* each frame: the pattern rolling, the reports to a player OOD, the AI OOD */
 function ordStep(dt) {
   if (!SIMS.on('pce') || !started || paused || crashed || RPL.on) return;
   if (OODO.menu && !ordPlayer()) OODO.menu = false;
   if (OODO.pat && aswPatStep(OODO.pat, SHIP.t)) OODO.pat = null;
+  ordAtkStep();
   const C = ordContact();
   /* a new submarine contact: Normal, sonar's estimate of his depth goes on the charges */
   if (C && !OODO.sub) {

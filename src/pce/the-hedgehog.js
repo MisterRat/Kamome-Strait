@@ -2,7 +2,7 @@
 function hhFire() {
   if (HH.q.length || HH.L.length > 40) return false;
   if (HH.n <= 0) {
-    note('HEDGEHOG NOT LOADED - ' + kbText('hhLoad') + ' TO LOAD');
+    note(HH.loading ? 'HEDGEHOG STILL LOADING (' + HH.n + ' OF 24)' : 'HEDGEHOG NOT LOADED - ' + kbText('hhLoad') + ' TO LOAD');
     return false;
   }
   const n = HH.n;

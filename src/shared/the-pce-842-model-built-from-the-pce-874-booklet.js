@@ -1616,8 +1616,9 @@ const PCEM = (() => {
     WHEEL.pivot = [xs - 0.46, y0 + 1.12, 0];
     WHEEL.parts = grab(() => {
       add(new THREE.TorusGeometry(0.42, 0.025, 6, 28), WOOD, 0, 0, 0, 0, HP, 0);
+      /* the spokes half a spoke off the upright at amidships (the user's, 2026-11-22): the OOD sees dead ahead between two of them */
       for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * PI * 2;
+        const a = ((i + 0.5) / 8) * PI * 2;
         B(0.03, 0.56, 0.03, BRASS, 0, 0, 0, 0, a, 0);
         P[P.length - 1].m = new M4().compose(new THREE.Vector3(0, Math.cos(a) * 0.28, Math.sin(a) * 0.28), new THREE.Quaternion().setFromEuler(new THREE.Euler(a, 0, 0)), new THREE.Vector3(1, 1, 1));
         C(0.022, 0.022, 0.14, WOOD, 0, Math.cos(a) * 0.52, Math.sin(a) * 0.52, a, 0, 0, 6);

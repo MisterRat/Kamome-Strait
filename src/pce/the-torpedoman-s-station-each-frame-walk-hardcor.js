@@ -10,17 +10,20 @@ function tpUpdate(dt, here, trig) {
       else if (tp === 'hh') hhFire() && aswFired('hh');
       else if (dcFire(tp)) aswFired(tp);
     }
-    /* loading the Hedgehog by hand: 24 bombs in about 3 minutes, a bomb every 7.5 s (game mode: half) */
-    if (tp === 'hh' && HH.loading && HH.n < 24 && !HH.q.length) {
-      HH.ld += dt;
-      if (MAG.hh <= 0) ((HH.loading = false), note('NO HEDGEHOG BOMBS LEFT - REARM AT A US BASE'));
-      else if (HH.ld > 7.5 * rldK()) {
-        HH.ld = 0;
-        HH.n++;
-        MAG.hh--;
-        SND.burst(1800, 400, 0.06, 0.2, 0.7);
-        if (HH.n === 24) ((HH.loading = false), note('HEDGEHOG LOADED'));
-      }
+  }
+  /* the Hedgehog: emptied, its crew load it again from the spare bombs, wherever the player is (the user's, 2026-11-22: empty
+     weapons always reload); R at it loads it from part-full */
+  if (HH.n <= 0 && !HH.loading && !HH.q.length && MAG.hh > 0) ((HH.loading = true), (HH.ld = 0), note('LOADING THE HEDGEHOG'));
+  /* loading it: 24 bombs in about 3 minutes, a bomb every 7.5 s (game mode: half) */
+  if (HH.loading && HH.n < 24 && !HH.q.length) {
+    HH.ld += dt;
+    if (MAG.hh <= 0) ((HH.loading = false), note('NO HEDGEHOG BOMBS LEFT - REARM AT A US BASE'));
+    else if (HH.ld > 7.5 * rldK()) {
+      HH.ld = 0;
+      HH.n++;
+      MAG.hh--;
+      if (at6) SND.burst(1800, 400, 0.06, 0.2, 0.7);
+      if (HH.n === 24) ((HH.loading = false), note('HEDGEHOG LOADED'));
     }
   }
   /* the K-gun crews reload a fired gun in about a minute (game mode: half) */

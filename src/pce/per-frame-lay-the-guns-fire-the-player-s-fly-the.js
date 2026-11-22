@@ -66,6 +66,8 @@ function gunUpdate(dt) {
           }
         } else g.feedT[i] = 0;
       }
+    /* an empty drum is always changed while there are drums below (the user's, 2026-11-22: empty guns always reload) */
+    if (s.mag && g.rnd <= 0 && !(g.rl > 0) && MAG[g.id] > 0) g.rl = s.reload * rldK();
     if (s.mag && g.rl > 0 && (g.rl -= dt) <= 0) {
       g.rl = 0;
       g.rnd = Math.min(s.mag, MAG[g.id]); /* a drum filled from the magazine (MAG) */

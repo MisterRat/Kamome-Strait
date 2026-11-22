@@ -458,13 +458,13 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td><b>5</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
 <tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
 </table>
-<h2>The OOD's orders (G at the OOD's station; Q / E choose, Space gives it, G closes)</h2>
+<h2>The OOD's orders (G at the OOD's station, in a drill too; Q / E choose and Space gives it, or click it; G closes)</h2>
 <table class="t2">
 <tr><td>The reports</td><td>Comms reports to the bridge: the radar's enemy aircraft, sonar's submarine (his bearing and range), the power and the fuel. With you as OOD they are yours to act on; nothing is done until you order it.</td></tr>
 <tr><td>Hold fire / guns free</td><td>The gun crews at the mounts you are not on cease fire, or open it again. The order stands until you change it.</td></tr>
 <tr><td>Request air support</td><td>Comms calls Kamome Control for two P-51s (one call at a time: while a flight is answering, no other).</td></tr>
 <tr><td>Make smoke / secure smoke</td><td>The engine room lights off the smoke generator aft. The screen lies on the water for a minute or two: enemy gunners laying on you through it get only glimpses, and through a thick part they cannot see you at all. About fifteen minutes of fog oil, refilled with the rearming.</td></tr>
-<tr><td>Attack</td><td>With a sonar contact: fire the Hedgehog (best with him about 250 yd ahead, dead on the bow) or the pattern (the racks and the K-guns over 14 s, as her stern comes over him), at the depth setting (Normal: sonar's estimate; Hardcore: yours). The plot shows where sonar puts him (not in Hardcore).</td></tr>
+<tr><td>Attack</td><td>With a sonar contact: fire the Hedgehog (best with him about 250 yd ahead, dead on the bow) or the pattern (the racks and the K-guns over 14 s, as her stern comes over him), at the depth setting (Normal: sonar's estimate; Hardcore: yours). The plot shows where sonar puts him (not in Hardcore). When the run is over (he is well astern, or nothing more has been fired for a minute and a half) you get its assessment, marked as in the drill; either weapon alone can earn full marks. In the antisubmarine drill these orders are the drill's own Space and R.</td></tr>
 <tr><td>The AI OOD</td><td>Away from the pilothouse the AI has the deck: he calls for air support on the radar's report, lays smoke under shellfire, and attacks a Japanese submarine that sonar holds, conning her down sonar's bearing.</td></tr>
 </table>
 <h2>The engine room on patrol</h2>
@@ -494,7 +494,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Fire</td><td>Left mouse button, Space or the controller trigger.</td></tr>
 <tr><td>Aiming rings</td><td>Game mode: a ring on each target shows where to lay the sight so the shells meet it; out of the gun's range there is no aiming ring and the target's own ring turns grey.</td></tr>
 <tr><td>3&Prime;/50 range</td><td>Game mode: the sight-setter ranges the target nearest your sight. Hardcore: you set it (mouse wheel, Page Up / Page Down).</td></tr>
-<tr><td>Reloading</td><td>Guns reload by themselves when empty; R reloads on demand. Changing to a gun finds it loaded.</td></tr>
+<tr><td>Reloading</td><td>Every weapon is reloaded by its crew when it is empty, as long as there is ammunition aboard: the guns, the K-guns, the racks and the Hedgehog (24 bombs in about 3 minutes, half that in game mode). R reloads on demand (at the Hedgehog: loads it from part-full). Changing to a gun finds it loaded.</td></tr>
 <tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-108 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-108 brings &ldquo;check fire&rdquo;.</td></tr>
 <tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Every few minutes two Ki-84 Hayates come out from the enemy airfield; the lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
 <tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 12 cm/45 naval guns in sandbagged pits, five men to a gun, about 5 rounds a minute out to 15,000 m: they open fire inside about 14 km by day (3 km at night), lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
@@ -583,7 +583,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.117';
+const VERSION = '0.118';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -8739,8 +8739,9 @@ const PCEM = (() => {
     WHEEL.pivot = [xs - 0.46, y0 + 1.12, 0];
     WHEEL.parts = grab(() => {
       add(new THREE.TorusGeometry(0.42, 0.025, 6, 28), WOOD, 0, 0, 0, 0, HP, 0);
+      /* the spokes half a spoke off the upright at amidships (the user's, 2026-11-22): the OOD sees dead ahead between two of them */
       for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * PI * 2;
+        const a = ((i + 0.5) / 8) * PI * 2;
         B(0.03, 0.56, 0.03, BRASS, 0, 0, 0, 0, a, 0);
         P[P.length - 1].m = new M4().compose(new THREE.Vector3(0, Math.cos(a) * 0.28, Math.sin(a) * 0.28), new THREE.Quaternion().setFromEuler(new THREE.Euler(a, 0, 0)), new THREE.Vector3(1, 1, 1));
         C(0.022, 0.022, 0.14, WOOD, 0, Math.cos(a) * 0.52, Math.sin(a) * 0.52, a, 0, 0, 6);
@@ -26747,6 +26748,8 @@ function gunUpdate(dt) {
           }
         } else g.feedT[i] = 0;
       }
+    /* an empty drum is always changed while there are drums below (the user's, 2026-11-22: empty guns always reload) */
+    if (s.mag && g.rnd <= 0 && !(g.rl > 0) && MAG[g.id] > 0) g.rl = s.reload * rldK();
     if (s.mag && g.rl > 0 && (g.rl -= dt) <= 0) {
       g.rl = 0;
       g.rnd = Math.min(s.mag, MAG[g.id]); /* a drum filled from the magazine (MAG) */
@@ -29147,14 +29150,18 @@ function drillAbort(msg) {
 function drillEnd(D, score, lines) {
   const d = DRILL.on;
   if (d && d.stop) d.stop(D);
-  score = Math.max(0, Math.min(100, Math.round(score)));
-  const v = score >= 85 ? 'EXCELLENT' : score >= 60 ? 'SATISFACTORY' : 'UNSATISFACTORY';
-  DRILL.deb = { title: d.title, score, v, lines, hc: D.hc };
   DRILL.on = null;
   DRILL.D = null;
+  drillReport(d.title, score, lines, D.hc, d.stn, ' COMPLETE. ');
+}
+/* an assessment in the box (a drill's, or the OOD's attack in action): its title, score (0..100) and lines */
+function drillReport(title, score, lines, hc, stn, said, act) {
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const v = score >= 85 ? 'EXCELLENT' : score >= 60 ? 'SATISFACTORY' : 'UNSATISFACTORY';
+  DRILL.deb = { title, score, v, lines, hc, act };
   SND.tone(660, 990, 0.3, 0.12, 'sine');
-  note(d.title.toUpperCase() + ': ' + v + ' (' + score + ')');
-  drillSay(d.stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', d.title.toUpperCase() + ' COMPLETE. ' + v + '.');
+  note(title.toUpperCase() + ': ' + v + ' (' + score + ')');
+  drillSay(stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', title.toUpperCase() + (said || '. ') + v + '.');
 }
 /* the station's keys while a drill (or its list) is up: true when used */
 function drillKey(code, rep) {
@@ -29165,6 +29172,8 @@ function drillKey(code, rep) {
     if (code === 'Space') return rep || (drillStart(L[DRILL.sel].id), true);
     return false;
   }
+  /* the OOD's orders, in a drill too (the user's, 2026-11-22): G opens them; while open they take Q / E / Space */
+  if (SHIP.stn === 1 && DRILL.on && (code === 'KeyG' || OODO.menu) && ordKey(code, rep)) return true;
   if (DRILL.on && DRILL.on.key) return DRILL.on.key(DRILL.D, code, rep) === true;
   if (dcxLive()) return dcxKey(code, rep);
   if (SHIP.stn === 1) return ordKey(code, rep);
@@ -29195,13 +29204,34 @@ function drillBox(here) {
     el.id = 'drillBox';
     el.style.cssText =
       'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.86);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
-    el.innerHTML = '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
+    el.innerHTML =
+      '<style>#drillBox .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#drillBox.clk .dbI{cursor:pointer}#drillBox.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
+      '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
     document.body.appendChild(el);
+    /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
+       box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
+    el.addEventListener('mousedown', (e) => {
+      const it = e.target.closest('.dbI');
+      e.stopPropagation();
+      e.preventDefault();
+      if (!it || e.button !== 0) return;
+      const i = +it.dataset.i;
+      if (DRILL.menu) {
+        const L = drillList();
+        if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
+      } else if (DRILL.click) DRILL.click(i);
+      DRILL.boxT = 0;
+    });
   }
-  const live = !DRILL.on && !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show()) : null /* in action: the repair jobs, the orders */,
+  const live = !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show() && (!DRILL.on || p.inDrill)) : null /* in action: the repair jobs, the orders (in a drill too) */,
     show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
+  /* clickable while it shows a list: the drills, or a box with click() (the OOD's orders) */
+  DRILL.click = live && live.click ? live.click : null;
+  const clk = !!(DRILL.menu || DRILL.click);
+  el.classList.toggle('clk', clk);
+  el.style.pointerEvents = clk ? 'auto' : 'none';
   /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
   const left = SHIP.stn === 1;
   if (el.dataset.left !== String(left)) {
@@ -29217,14 +29247,15 @@ function drillBox(here) {
   let h = '',
     pic = null;
   if (live) {
-    h = live.html();
+    h = (DRILL.on ? '<span style="color:#9aa">DRILL - ' + DRILL.on.title.toUpperCase() + ' ' + fmtT(DRILL.D.t) + '</span><br>' : '') + live.html();
     if (live.draw && (!live.pic || live.pic())) pic = { draw: (D, g, w, h) => live.draw(g, w, h) };
+    else if (DRILL.on && DRILL.on.draw) pic = DRILL.on;
   } else if (DRILL.menu) {
     h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
     drillList().forEach((d, i) => {
-      h += '<br>' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title);
+      h += '<div class="dbI" data-i="' + i + '">' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title) + '</div>';
     });
-    h += '<br><span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
+    h += '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin (or click it) &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
   } else if (DRILL.on) {
     const d = DRILL.on;
     h = '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D);
@@ -29236,7 +29267,7 @@ function drillBox(here) {
       '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
       '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
       b.lines.map((l) => '<br>' + l).join('') +
-      '<br><span style="color:#9aa">' + T + ' another drill</span>';
+      '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>';
   }
   tx.innerHTML = h;
   cv.style.display = pic ? 'block' : 'none';
@@ -30573,6 +30604,32 @@ function aswHeadUp(g, w, h, E) {
   g.fillText('500', cx + 3, cy - 500 * sc - 3);
   g.fillText('1000 YD', cx + 3, cy - 1000 * sc - 3);
 }
+/* the assessment of an attack (the drill's and the OOD's in action): A { yd: the nearest charge to him (yd, 1e9 none), hits: the
+   Hedgehog's, sunk, hh: where he was when it was fired (aswRelTo) or null, pat: { rel, best } or null, one: either weapon alone is
+   enough (in action: the one used is marked for both; the drill wants both) } -> { v, s (0..100), lines } */
+function aswAssess(A) {
+  const yd = A.yd,
+    v = A.sunk || A.hits > 0 || yd <= 25 ? 'KILL' : yd <= 60 ? 'DAMAGED' : 'MISSED',
+    H = A.hh,
+    P = A.pat;
+  let s = v === 'KILL' ? 60 : v === 'DAMAGED' ? 35 : 0,
+    w = 0;
+  const k = A.one && !H !== !P ? 2 : 1,
+    none = A.one ? '<span style="color:#9aa">NOT USED</span>' : null;
+  /* the Hedgehog: he 200 to 300 yd ahead and on the bow; the pattern: her stern (about 50 yd abaft the bridge) over him */
+  if (H) w += drillMark(Math.abs(H.al - 250), 40, 200, 12) * (Math.abs(H.cr) < 40 ? 1 : 0.4) + 8;
+  if (P) w += drillMark(Math.abs(P.rel.al - P.best), 25, 200, 12) * (Math.abs(P.rel.cr) < 50 ? 1 : 0.4) + 8;
+  s += w * k;
+  return {
+    v,
+    s,
+    lines: [
+      'RESULT: <b>' + v + '</b>' + (A.hits ? ' (' + A.hits + ' HEDGEHOG HITS)' : '') + (yd < 1e8 ? ' &middot; NEAREST CHARGE ' + yd + ' YD' : ''),
+      'HEDGEHOG: ' + (H ? 'FIRED WITH HIM ' + Math.round(H.al) + ' YD AHEAD, ' + Math.round(Math.abs(H.cr)) + ' YD ' + (H.cr < 0 ? 'TO PORT' : 'TO STARBOARD') + ' (BEST: 250 AHEAD, DEAD ON THE BOW)' : none || '<b style="color:#ff8a6a">NOT FIRED</b>'),
+      'PATTERN: ' + (P ? 'ORDERED WITH HIM ' + Math.round(P.rel.al) + ' YD ' + (P.rel.al >= 0 ? 'AHEAD' : 'ASTERN') + ' (BEST AT HER SPEED AND HIS DEPTH: ' + Math.round(P.best) + ' ' + (P.best >= 0 ? 'AHEAD' : 'ASTERN') + ')' : none || '<b style="color:#ff8a6a">NOT ORDERED</b>'),
+    ],
+  };
+}
 /* ---- OOD DRILL: ANTISUBMARINE ATTACK. The exercise submarine is about 1,400 yd ahead; sonar (the AI operator) reports him every
    few seconds: bearing, range and Doppler. The OOD cons the attack himself: steer to put him fine on the bow, slow to attack speed,
    and order the weapons; the torpedomen (AI) carry the orders out at the depth sonar gives.
@@ -30646,22 +30703,18 @@ DRILLS.push({
     }
     return true;
   },
+  /* the OOD's orders (G): the attack orders are this drill's Space and R */
+  order(D, id) {
+    if (id === 'hh') return this.key(D, 'Space', false), true;
+    if (id === 'pat') return this.key(D, 'KeyR', false), true;
+    return false;
+  },
   finish(D) {
-    const yd = ASW.best,
-      v = ASW.hh > 0 || yd <= 25 ? 'KILL' : yd <= 60 ? 'DAMAGED' : 'MISSED',
-      H = D.hhRel,
-      Pt = D.pat && D.pat.rel;
     ASW.drill = false;
-    let s = v === 'KILL' ? 60 : v === 'DAMAGED' ? 35 : 0;
-    /* the Hedgehog: he 200 to 300 yd ahead and on the bow; the pattern: her stern (about 50 yd abaft the bridge) over him */
-    if (H) s += drillMark(Math.abs(H.al - 250), 40, 200, 12) * (Math.abs(H.cr) < 40 ? 1 : 0.4) + 8;
-    if (Pt) s += drillMark(Math.abs(Pt.al - D.pat.best), 25, 200, 12) * (Math.abs(Pt.cr) < 50 ? 1 : 0.4) + 8;
+    const R = aswAssess({ yd: ASW.best, hits: ASW.hh, hh: D.hhRel, pat: D.pat }),
+      v = R.v;
     drillSay('EXERCISE SUB', v === 'KILL' ? 'YOU GOT ME. SURFACING. EXERCISE COMPLETE.' : v === 'DAMAGED' ? 'CLOSE. I WOULD BE DAMAGED. SURFACING.' : 'YOU MISSED. SURFACING. EXERCISE COMPLETE.');
-    drillEnd(D, s, [
-      'RESULT: <b>' + v + '</b>' + (ASW.hh ? ' (' + ASW.hh + ' HEDGEHOG HITS)' : '') + (yd < 1e8 ? ' &middot; NEAREST CHARGE ' + yd + ' YD' : ''),
-      'HEDGEHOG: ' + (H ? 'FIRED WITH HIM ' + Math.round(H.al) + ' YD AHEAD, ' + Math.round(Math.abs(H.cr)) + ' YD ' + (H.cr < 0 ? 'TO PORT' : 'TO STARBOARD') + ' (BEST: 250 AHEAD, DEAD ON THE BOW)' : '<b style="color:#ff8a6a">NOT FIRED</b>'),
-      'PATTERN: ' + (Pt ? 'ORDERED WITH HIM ' + Math.round(Pt.al) + ' YD ' + (Pt.al >= 0 ? 'AHEAD' : 'ASTERN') + ' (BEST AT HER SPEED AND HIS DEPTH: ' + Math.round(D.pat.best) + ' ' + (D.pat.best >= 0 ? 'AHEAD' : 'ASTERN') + ')' : '<b style="color:#ff8a6a">NOT ORDERED</b>'),
-    ]);
+    drillEnd(D, R.s, R.lines);
     D.sub.o.surfT = 150; /* Roncador surfaces */
   },
   box(D) {
@@ -30885,10 +30938,10 @@ DRILLS.push({
    the radar finds enemy aircraft (CAP), lays smoke when she comes under shellfire and secures it when it stops, and attacks a
    Japanese submarine sonar holds: he cons her down sonar's bearing at attack speed and fires on the same timing as the drill.
    ===================================================================================================================== */
-var OODO = { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false } };
+var OODO = { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null };
 const ORD_DEP = [50, 100, 150, 200, 250, 300];
 function ordReset() {
-  Object.assign(OODO, { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false } });
+  Object.assign(OODO, { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null });
 }
 /* the player is the OOD: at station 1 in the pilothouse */
 const ordPlayer = () => camMode == 1 && SHIP.stn === 1;
@@ -30914,6 +30967,8 @@ function ordList() {
 }
 function ordGive(id, by) {
   const B = (t) => RADIO.add('BRIDGE', t, { own: true });
+  /* in a drill, the drill may take the order as its own (the attack drill: its Hedgehog and its pattern, assessed by it) */
+  if (DRILL.on && DRILL.on.order && DRILL.on.order(DRILL.D, id)) return;
   if (id === 'guns') {
     OODO.hold = !OODO.hold;
     B(OODO.hold ? 'ALL GUNS, BRIDGE. CEASE FIRE, CEASE FIRE. HOLD YOUR FIRE.' : 'ALL GUNS, BRIDGE. GUNS FREE. ENGAGE THE ENEMY.');
@@ -30925,13 +30980,19 @@ function ordGive(id, by) {
   } else if (id === 'smoke') smkOrder(!SMK.on, by);
   else if (id === 'hh') {
     if (!ordContact()) return note('NO SONAR CONTACT TO ATTACK');
-    if (hhFire()) B('FIRE HEDGEHOG!');
+    if (hhFire()) {
+      B('FIRE HEDGEHOG!');
+      const A = by === 'you' && !DRILL.on && ordAtk();
+      if (A) ((A.hh = aswRelTo(A.s.p)), (A.last = SHIP.t));
+    }
   } else if (id === 'pat') {
     if (!ordContact()) return note('NO SONAR CONTACT TO ATTACK');
     if (OODO.pat) return;
     aswArm(OODO.dep);
     OODO.pat = { t0: SHIP.t };
     B('FIRE THE PATTERN! SET ' + OODO.dep + ' FEET.');
+    const A = by === 'you' && !DRILL.on && ordAtk();
+    if (A) ((A.pat = { rel: aswRelTo(A.s.p), best: aswBest(OODO.dep) }), (A.last = SHIP.t));
   } else if (id === 'dep') {
     OODO.dep = ORD_DEP[(ORD_DEP.indexOf(OODO.dep) + 1) % ORD_DEP.length];
     OODO.depSet = true;
@@ -30973,25 +31034,63 @@ function ordReports() {
 }
 DRILLP.push({
   stn: 1,
+  inDrill: true,
   show: () => OODO.menu,
   html() {
     let h = "<b style=\"color:#9fc3d6\">THE OOD'S ORDERS</b><br>" + ordReports().join('<br>');
     ordList().forEach((o, i) => {
       const col = o.off ? '#6a7a84' : o.hot ? '#ff8a6a' : '#dfe6e8',
         t = '<span style="color:' + col + '">' + o.t + (o.off ? ' (' + o.off + ')' : '') + '</span>';
-      h += '<br>' + (i === OODO.sel ? '<b style="color:#ffd27a">&#9656; </b><b>' + t + '</b>' : '&nbsp;&nbsp;' + t);
+      h += '<div class="dbI" data-i="' + i + '">' + (i === OODO.sel ? '<b style="color:#ffd27a">&#9656; </b><b>' + t + '</b>' : '&nbsp;&nbsp;' + t) + '</div>';
     });
-    return h + '<br><span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> give the order &middot; <b>G</b> close</span>';
+    return h + '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> give the order (or click it) &middot; <b>G</b> close</span>';
+  },
+  /* a click on an order: choose it and give it */
+  click(i) {
+    const o = ordList()[i];
+    if (!o) return;
+    OODO.sel = i;
+    if (o.off) note(o.off);
+    else ordGive(o.id, 'you');
   },
   /* the plot while sonar holds a submarine (Hardcore: his bearing and range from the reports only) */
   pic: () => !!ordContact() && !drillHC(),
   draw: (g, w, h) => aswHeadUp(g, w, h, ordContact().p),
 });
+/* ---- THE ATTACK'S ASSESSMENT (the user's, 2026-11-22: an attack ordered from the pilothouse in action gets its report, as the drill's
+   does). It starts with the player's first weapon on a contact; it ends when everything fired has gone off and nothing more has been
+   fired for 90 s or he is well astern: then the report, marked as the drill's (aswAssess), with either weapon alone enough ---- */
+function ordAtk() {
+  if (OODO.atk) return OODO.atk;
+  const C = ordContact(),
+    s = C && (ordEnemySub(C) || (PT.on && PT.L.find((t) => t.kind === 'sub')));
+  if (!s) return null;
+  return (OODO.atk = { s, jp: s.side === 'jp', hh: null, pat: null, yd: 1e9, hits: 0, last: SHIP.t, hc: drillHC() });
+}
+/* a charge has gone off at p: how near him */
+function ordAtkBurst(p) {
+  const A = OODO.atk;
+  if (!A) return;
+  const yd = Math.round((A.jp ? Math.max(0, SUBS.capsule(A.s, p)) : A.s.p.distanceTo(p)) / 0.9144);
+  A.yd = Math.min(A.yd, yd);
+}
+function ordAtkStep() {
+  const A = OODO.atk;
+  if (!A || OODO.pat || HH.q.length || HH.L.length || DC.L.length) return;
+  /* the run is over: he is well astern of her (400 yd), or nothing more has been fired for a minute and a half */
+  if (SHIP.t - A.last < 90 && aswRelTo(A.s.p).al > -400) return;
+  OODO.atk = null;
+  const R = aswAssess({ yd: A.yd, hits: A.hits, sunk: A.jp && A.s.sunk, hh: A.hh, pat: A.pat, one: true });
+  RADIO.add('SONAR', R.v === 'KILL' ? (A.jp ? 'BRIDGE, SONAR. BREAKING-UP NOISES. HE IS GOING DOWN.' : 'EXERCISE SUB REPORTS: YOU GOT ME.') : R.v === 'DAMAGED' ? 'BRIDGE, SONAR. CLOSE. HE MAY BE DAMAGED.' : 'BRIDGE, SONAR. NO EFFECT ON THE TARGET.', { own: true });
+  OODO.menu = false; /* the report in the box */
+  drillReport(A.jp ? 'Attack on I-58' : 'Attack on the exercise sub', R.s, R.lines, A.hc, 1, ': ', true);
+}
 /* each frame: the pattern rolling, the reports to a player OOD, the AI OOD */
 function ordStep(dt) {
   if (!SIMS.on('pce') || !started || paused || crashed || RPL.on) return;
   if (OODO.menu && !ordPlayer()) OODO.menu = false;
   if (OODO.pat && aswPatStep(OODO.pat, SHIP.t)) OODO.pat = null;
+  ordAtkStep();
   const C = ordContact();
   /* a new submarine contact: Normal, sonar's estimate of his depth goes on the charges */
   if (C && !OODO.sub) {
@@ -31209,6 +31308,7 @@ function dcStep(dt) {
       SND.burst(700, 40, 2.2, Math.min(1, 1.6 / (1 + d / 200)), 0.6, 'lowpass', Math.min(2, d / 1500));
       SND.tone(55, 25, 1.6, Math.min(0.8, 1.2 / (1 + d / 200)), 'sine', Math.min(2, d / 1500));
       SUBS.burst(c.p); /* the enemy's boat (I-58): sunk, hurt or driven deep */
+      ordAtkBurst(c.p); /* the OOD's attack in action: how near him */
       /* the practice attack: how close it went off to the exercise submarine */
       if (PT.on) {
         const sub = PT.L.find((t) => t.kind === 'sub');
@@ -31369,7 +31469,7 @@ function tpWalk(dt) {
 function hhFire() {
   if (HH.q.length || HH.L.length > 40) return false;
   if (HH.n <= 0) {
-    note('HEDGEHOG NOT LOADED - ' + kbText('hhLoad') + ' TO LOAD');
+    note(HH.loading ? 'HEDGEHOG STILL LOADING (' + HH.n + ' OF 24)' : 'HEDGEHOG NOT LOADED - ' + kbText('hhLoad') + ' TO LOAD');
     return false;
   }
   const n = HH.n;
@@ -31540,6 +31640,7 @@ function hhStep(dt) {
         HH.hits++;
         aswEv('hit', b.p);
         if (ASW.ph === 'run' || ASW.drill) ASW.hh++;
+        if (OODO.atk) OODO.atk.hits++; /* the OOD's attack in action */
         const top = new V(b.p.x, OCEAN.Y, b.p.z);
         for (let j = 0; j < 6; j++) gunFx(new V(b.p.x + (Math.random() - 0.5) * 5, OCEAN.Y + j * 2, b.p.z + (Math.random() - 0.5) * 5), 0xeef3f4, 4, 14, 3, 9 * (1 - j * 0.1), false);
         gunFx(top, 0xf6f8f8, 12, 30, 2.5, 0, false);
@@ -31841,17 +31942,20 @@ function tpUpdate(dt, here, trig) {
       else if (tp === 'hh') hhFire() && aswFired('hh');
       else if (dcFire(tp)) aswFired(tp);
     }
-    /* loading the Hedgehog by hand: 24 bombs in about 3 minutes, a bomb every 7.5 s (game mode: half) */
-    if (tp === 'hh' && HH.loading && HH.n < 24 && !HH.q.length) {
-      HH.ld += dt;
-      if (MAG.hh <= 0) ((HH.loading = false), note('NO HEDGEHOG BOMBS LEFT - REARM AT A US BASE'));
-      else if (HH.ld > 7.5 * rldK()) {
-        HH.ld = 0;
-        HH.n++;
-        MAG.hh--;
-        SND.burst(1800, 400, 0.06, 0.2, 0.7);
-        if (HH.n === 24) ((HH.loading = false), note('HEDGEHOG LOADED'));
-      }
+  }
+  /* the Hedgehog: emptied, its crew load it again from the spare bombs, wherever the player is (the user's, 2026-11-22: empty
+     weapons always reload); R at it loads it from part-full */
+  if (HH.n <= 0 && !HH.loading && !HH.q.length && MAG.hh > 0) ((HH.loading = true), (HH.ld = 0), note('LOADING THE HEDGEHOG'));
+  /* loading it: 24 bombs in about 3 minutes, a bomb every 7.5 s (game mode: half) */
+  if (HH.loading && HH.n < 24 && !HH.q.length) {
+    HH.ld += dt;
+    if (MAG.hh <= 0) ((HH.loading = false), note('NO HEDGEHOG BOMBS LEFT - REARM AT A US BASE'));
+    else if (HH.ld > 7.5 * rldK()) {
+      HH.ld = 0;
+      HH.n++;
+      MAG.hh--;
+      if (at6) SND.burst(1800, 400, 0.06, 0.2, 0.7);
+      if (HH.n === 24) ((HH.loading = false), note('HEDGEHOG LOADED'));
     }
   }
   /* the K-gun crews reload a fired gun in about a minute (game mode: half) */

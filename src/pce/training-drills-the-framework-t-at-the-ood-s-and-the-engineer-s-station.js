@@ -49,14 +49,18 @@ function drillAbort(msg) {
 function drillEnd(D, score, lines) {
   const d = DRILL.on;
   if (d && d.stop) d.stop(D);
-  score = Math.max(0, Math.min(100, Math.round(score)));
-  const v = score >= 85 ? 'EXCELLENT' : score >= 60 ? 'SATISFACTORY' : 'UNSATISFACTORY';
-  DRILL.deb = { title: d.title, score, v, lines, hc: D.hc };
   DRILL.on = null;
   DRILL.D = null;
+  drillReport(d.title, score, lines, D.hc, d.stn, ' COMPLETE. ');
+}
+/* an assessment in the box (a drill's, or the OOD's attack in action): its title, score (0..100) and lines */
+function drillReport(title, score, lines, hc, stn, said, act) {
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const v = score >= 85 ? 'EXCELLENT' : score >= 60 ? 'SATISFACTORY' : 'UNSATISFACTORY';
+  DRILL.deb = { title, score, v, lines, hc, act };
   SND.tone(660, 990, 0.3, 0.12, 'sine');
-  note(d.title.toUpperCase() + ': ' + v + ' (' + score + ')');
-  drillSay(d.stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', d.title.toUpperCase() + ' COMPLETE. ' + v + '.');
+  note(title.toUpperCase() + ': ' + v + ' (' + score + ')');
+  drillSay(stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', title.toUpperCase() + (said || '. ') + v + '.');
 }
 /* the station's keys while a drill (or its list) is up: true when used */
 function drillKey(code, rep) {
@@ -67,6 +71,8 @@ function drillKey(code, rep) {
     if (code === 'Space') return rep || (drillStart(L[DRILL.sel].id), true);
     return false;
   }
+  /* the OOD's orders, in a drill too (the user's, 2026-11-22): G opens them; while open they take Q / E / Space */
+  if (SHIP.stn === 1 && DRILL.on && (code === 'KeyG' || OODO.menu) && ordKey(code, rep)) return true;
   if (DRILL.on && DRILL.on.key) return DRILL.on.key(DRILL.D, code, rep) === true;
   if (dcxLive()) return dcxKey(code, rep);
   if (SHIP.stn === 1) return ordKey(code, rep);
@@ -97,13 +103,34 @@ function drillBox(here) {
     el.id = 'drillBox';
     el.style.cssText =
       'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.86);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
-    el.innerHTML = '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
+    el.innerHTML =
+      '<style>#drillBox .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#drillBox.clk .dbI{cursor:pointer}#drillBox.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
+      '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
     document.body.appendChild(el);
+    /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
+       box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
+    el.addEventListener('mousedown', (e) => {
+      const it = e.target.closest('.dbI');
+      e.stopPropagation();
+      e.preventDefault();
+      if (!it || e.button !== 0) return;
+      const i = +it.dataset.i;
+      if (DRILL.menu) {
+        const L = drillList();
+        if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
+      } else if (DRILL.click) DRILL.click(i);
+      DRILL.boxT = 0;
+    });
   }
-  const live = !DRILL.on && !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show()) : null /* in action: the repair jobs, the orders */,
+  const live = !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show() && (!DRILL.on || p.inDrill)) : null /* in action: the repair jobs, the orders (in a drill too) */,
     show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
+  /* clickable while it shows a list: the drills, or a box with click() (the OOD's orders) */
+  DRILL.click = live && live.click ? live.click : null;
+  const clk = !!(DRILL.menu || DRILL.click);
+  el.classList.toggle('clk', clk);
+  el.style.pointerEvents = clk ? 'auto' : 'none';
   /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
   const left = SHIP.stn === 1;
   if (el.dataset.left !== String(left)) {
@@ -119,14 +146,15 @@ function drillBox(here) {
   let h = '',
     pic = null;
   if (live) {
-    h = live.html();
+    h = (DRILL.on ? '<span style="color:#9aa">DRILL - ' + DRILL.on.title.toUpperCase() + ' ' + fmtT(DRILL.D.t) + '</span><br>' : '') + live.html();
     if (live.draw && (!live.pic || live.pic())) pic = { draw: (D, g, w, h) => live.draw(g, w, h) };
+    else if (DRILL.on && DRILL.on.draw) pic = DRILL.on;
   } else if (DRILL.menu) {
     h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
     drillList().forEach((d, i) => {
-      h += '<br>' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title);
+      h += '<div class="dbI" data-i="' + i + '">' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title) + '</div>';
     });
-    h += '<br><span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
+    h += '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin (or click it) &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
   } else if (DRILL.on) {
     const d = DRILL.on;
     h = '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D);
@@ -138,7 +166,7 @@ function drillBox(here) {
       '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
       '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
       b.lines.map((l) => '<br>' + l).join('') +
-      '<br><span style="color:#9aa">' + T + ' another drill</span>';
+      '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>';
   }
   tx.innerHTML = h;
   cv.style.display = pic ? 'block' : 'none';
