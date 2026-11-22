@@ -48,6 +48,7 @@ SIMS.add({
      looking up from the sight (X) it turns the head */
   mouseMove: (e) => {
     if (!(camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started)) return false;
+    if (!gunMoveOk(e)) return true; /* a false jump of the pointer, as it is captured */
     if (GUN.look) {
       viewYaw += e.movementX * 0.0045;
       viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));

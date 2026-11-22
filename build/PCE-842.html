@@ -584,7 +584,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.121';
+const VERSION = '0.122';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -850,6 +850,7 @@ SIMS.add({
      looking up from the sight (X) it turns the head */
   mouseMove: (e) => {
     if (!(camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started)) return false;
+    if (!gunMoveOk(e)) return true; /* a false jump of the pointer, as it is captured */
     if (GUN.look) {
       viewYaw += e.movementX * 0.0045;
       viewPitch = Math.max(-1.2, Math.min(1.2, viewPitch - e.movementY * 0.0045));
@@ -26743,6 +26744,12 @@ function gunRange(d) {
   if (!FM.use('range')) return note('THE SIGHT-SETTER RANGES FOR YOU (HARDCORE: YOU SET IT)');
   GUN.rng = Math.max(200, Math.min(13340, GUN.rng + d) /* the 3"/50's full range */);
 }
+/* the browser's first movements after it captures (or frees) the pointer can be huge and false: the gun spun wildly when first manned (the
+   user's, 2026-11-22). For 150 ms after the capture changes the movements are ignored, and so is any single movement over 300 px
+   (a real hand's come many to a second, each small) */
+let gunLockT = -1e9;
+document.addEventListener('pointerlockchange', () => (gunLockT = performance.now()));
+const gunMoveOk = (e) => performance.now() - gunLockT > 150 && Math.abs(e.movementX) < 300 && Math.abs(e.movementY) < 300;
 /* is the line of fire clear of the ship? (the firing cutout cam): steps along the bore from the muzzle, in the model frame */
 function gunClear(G) {
   const d = G.m.d,
