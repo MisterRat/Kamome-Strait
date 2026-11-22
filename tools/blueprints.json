@@ -1777,6 +1777,68 @@
   ]
  },
  {
+  "id": "jp-i58",
+  "file": "JP_I-58_Type_B3",
+  "title": "I-58, Type B3 submarine, May 1945 (six kaiten)",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('jp-i58'));",
+  "type": "Otsu-gata B3 cruiser submarine (Yokosuka, completed September 1944), after her May 1945 refit at Kure",
+  "ref": [
+   [
+    "Length",
+    108.7,
+    "108.7 m overall (navypedia, Otsu-gata B3: 102.4 pp, 106.9 wl; alchetron 109 m)"
+   ],
+   [
+    "Beam",
+    9.3,
+    "9.30 m (navypedia)"
+   ],
+   [
+    "Draught",
+    5.19,
+    "5.19 m (navypedia)"
+   ]
+  ],
+  "notes": [
+   "The May 1945 fit (alchetron's I-58 history; navypedia's B3 page): the 140 mm gun, hangar and catapult removed; six kaiten on deck; snorkel; Type 3 radar; the twin 25 mm. The user's choice (2026-11-21): the Japanese submarine, mid-1944 to mid-1945.",
+   "The kaiten's places from the reproduction the user found (References/Type B3): two abreast forward of the tower, two abreast aft of it with one behind them, one on the stern. Kaiten Type 1: 14.75 x 1.0 m, each on two cradles with straps.",
+   "Hull and tower measured off the cutaway (References/Type B3), scaled to 108.7 m: deck 2.95 m up amidships, the raked stem, the big rudder below the keel, the tower 49.5 to 63 m, periscopes raised to 13.7 m."
+  ]
+ },
+ {
+  "id": "jp-i58-distant",
+  "file": "JP_I-58_Type_B3_distant",
+  "title": "I-58: the distant form",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('jp-i58', { far: true }));",
+  "type": "Otsu-gata B3 cruiser submarine, distant form",
+  "ref": [
+   [
+    "Length",
+    108.7,
+    "108.7 m overall (navypedia, Otsu-gata B3: 102.4 pp, 106.9 wl; alchetron 109 m)"
+   ],
+   [
+    "Beam",
+    9.3,
+    "9.30 m (navypedia)"
+   ],
+   [
+    "Draught",
+    5.19,
+    "5.19 m (navypedia)"
+   ]
+  ],
+  "notes": [
+   "The same builder at lower detail: 18 hull stations (56 near), the kaiten as plain cylinders, no rails, cradles, straps or small fittings."
+  ]
+ },
+ {
   "id": "driver-us",
   "file": "US_seated_driver",
   "title": "US driver, seated (every moving American vehicle)",
