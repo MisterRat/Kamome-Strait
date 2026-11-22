@@ -78,6 +78,8 @@ function sonarStep(dt, here, train) {
   }
   if (here) SONAR.brg = Math.max(-2.8, Math.min(2.8, SONAR.brg + train * 0.26 * dt));
   if (!engPower()) return; /* no power: the set is dead */
+  if (!here) SONAR.ri = 2; /* the AI operator searches on the 4,000-yard scale (the user's, 2026-11-22) */
+  sonarListen(dt);
   SONAR.t += dt;
   const T = (2 * SONAR.R[SONAR.ri] * 0.9144) / 1500 + 0.4;
   if (SONAR.t >= T) {
@@ -86,13 +88,43 @@ function sonarStep(dt, here, train) {
     if (!here) {
       /* with a contact he holds it: the beam on the last fix, hunting a little either side; without one he searches */
       const E = subEst();
+      const Ls = SONAR.lis && SHIP.t - SONAR.lis.t < 30 ? SONAR.lis : null;
       if (E && E.age < 30) SONAR.brg = Math.max(-2.8, Math.min(2.8, cRel(E.p.x, E.p.z)[0] + (SONAR.dir = -SONAR.dir) * 0.04));
+      else if (Ls) SONAR.brg = Math.max(-2.8, Math.min(2.8, cRel(Ls.x, Ls.z)[0] + (SONAR.dir = -SONAR.dir) * 0.06)) /* screws heard: ping down their bearing */;
       else {
         SONAR.brg += SONAR.dir * 0.087;
         if (Math.abs(SONAR.brg) > 1.4) SONAR.dir = -SONAR.dir;
       }
     }
     sonarPing(here);
+  }
+}
+/* listening between pings (the user's, 2026-11-22: the operator listens for screws): a submarine running at 5 knots or more is heard all
+   round (except dead astern, in the ship's own wake) out to about 2,000 yd, a slow one only closer, a stopped one not at all; above
+   15 knots her own noise drowns it. The operator reports the screws' bearing and, searching alone, trains the beam down it to ping */
+function sonarListen(dt) {
+  if ((SONAR.lt = (SONAR.lt || 0) + dt) < 1) return;
+  SONAR.lt = 0;
+  if (SONAR.lis && SONAR.lis.t > SHIP.t) SONAR.lis = SONAR.lisRep = null; /* the game was reset: nothing heard yet */
+  if (Math.hypot(vel.x, vel.z) > 7.7) return;
+  for (const t of pceSubs()) {
+    const ex = t.p.x - pos.x,
+      ez = t.p.z - pos.z,
+      r = Math.hypot(ex, ez),
+      sp = t.v ? Math.hypot(t.v.x, t.v.z) : 0,
+      reach = 1830 * Math.min(1, Math.max(0, (sp - 0.5) / 2.1));
+    if (r > reach || Math.random() > 0.35) continue;
+    const rb = cRel(t.p.x, t.p.z)[0];
+    if (Math.abs(rb) > 2.8) continue; /* dead astern: the wake */
+    const fresh = !SONAR.lis || SHIP.t - SONAR.lis.t > 60;
+    SONAR.lis = { x: t.p.x, z: t.p.z, t: SHIP.t };
+    if (fresh || SHIP.t - (SONAR.lisRep || -1e9) > 45) {
+      SONAR.lisRep = SHIP.t;
+      const brg = Math.round(((Math.atan2(ex, -ez) * 180) / Math.PI + 360) % 360);
+      RADIO.add('SONAR', 'BRIDGE, SONAR. SCREWS BEARING ' + String(brg).padStart(3, '0') + ', ' + (sp > 2.6 ? 'FAST' : 'SLOW') + ' TURNS. POSSIBLE SUBMARINE.', { own: true });
+      if (fresh) note('SONAR: SCREWS BEARING ' + String(brg).padStart(3, '0'));
+    }
+    return;
   }
 }
 function sonarRecDraw(f) {

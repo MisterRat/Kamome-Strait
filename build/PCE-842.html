@@ -453,7 +453,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <table class="t2">
 <tr><td><b>1</b> OOD</td><td>The pilothouse: conn the ship (W / S rings the engines, A / D the rudder) at the wheel, the telegraphs and the compass; X for the binoculars. G: your orders in action (below). T: the OOD's training drills.</td></tr>
 <tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines. T: the engineer's training drills; in action, the repairs and the engine room's own troubles come to you here (below).</td></tr>
-<tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). The paper keeps everything: the traffic and every message that popped up on the screen, so you can read what you missed at other stations. Scroll it with the mouse wheel or Page Up / Page Down; Home goes to the oldest, End back to the newest. Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
+<tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> between pings the operator listens all round for screws (a submarine running at 5 knots or more out to about 2,000 yd, unless you are making over 15 knots) and reports their bearing; search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). The paper keeps everything: the traffic and every message that popped up on the screen, so you can read what you missed at other stations. Scroll it with the mouse wheel or Page Up / Page Down; Home goes to the oldest, End back to the newest. Away from the station an AI operator does it all, searching on the 4,000-yard scale and pinging down any screws he hears. <b>T</b> here: the Comms school for the set you are at.</td></tr>
 <tr><td><b>4</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 4 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
 <tr><td><b>5</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
 <tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
@@ -585,7 +585,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.127';
+const VERSION = '0.128';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -28737,6 +28737,8 @@ function sonarStep(dt, here, train) {
   }
   if (here) SONAR.brg = Math.max(-2.8, Math.min(2.8, SONAR.brg + train * 0.26 * dt));
   if (!engPower()) return; /* no power: the set is dead */
+  if (!here) SONAR.ri = 2; /* the AI operator searches on the 4,000-yard scale (the user's, 2026-11-22) */
+  sonarListen(dt);
   SONAR.t += dt;
   const T = (2 * SONAR.R[SONAR.ri] * 0.9144) / 1500 + 0.4;
   if (SONAR.t >= T) {
@@ -28745,13 +28747,43 @@ function sonarStep(dt, here, train) {
     if (!here) {
       /* with a contact he holds it: the beam on the last fix, hunting a little either side; without one he searches */
       const E = subEst();
+      const Ls = SONAR.lis && SHIP.t - SONAR.lis.t < 30 ? SONAR.lis : null;
       if (E && E.age < 30) SONAR.brg = Math.max(-2.8, Math.min(2.8, cRel(E.p.x, E.p.z)[0] + (SONAR.dir = -SONAR.dir) * 0.04));
+      else if (Ls) SONAR.brg = Math.max(-2.8, Math.min(2.8, cRel(Ls.x, Ls.z)[0] + (SONAR.dir = -SONAR.dir) * 0.06)) /* screws heard: ping down their bearing */;
       else {
         SONAR.brg += SONAR.dir * 0.087;
         if (Math.abs(SONAR.brg) > 1.4) SONAR.dir = -SONAR.dir;
       }
     }
     sonarPing(here);
+  }
+}
+/* listening between pings (the user's, 2026-11-22: the operator listens for screws): a submarine running at 5 knots or more is heard all
+   round (except dead astern, in the ship's own wake) out to about 2,000 yd, a slow one only closer, a stopped one not at all; above
+   15 knots her own noise drowns it. The operator reports the screws' bearing and, searching alone, trains the beam down it to ping */
+function sonarListen(dt) {
+  if ((SONAR.lt = (SONAR.lt || 0) + dt) < 1) return;
+  SONAR.lt = 0;
+  if (SONAR.lis && SONAR.lis.t > SHIP.t) SONAR.lis = SONAR.lisRep = null; /* the game was reset: nothing heard yet */
+  if (Math.hypot(vel.x, vel.z) > 7.7) return;
+  for (const t of pceSubs()) {
+    const ex = t.p.x - pos.x,
+      ez = t.p.z - pos.z,
+      r = Math.hypot(ex, ez),
+      sp = t.v ? Math.hypot(t.v.x, t.v.z) : 0,
+      reach = 1830 * Math.min(1, Math.max(0, (sp - 0.5) / 2.1));
+    if (r > reach || Math.random() > 0.35) continue;
+    const rb = cRel(t.p.x, t.p.z)[0];
+    if (Math.abs(rb) > 2.8) continue; /* dead astern: the wake */
+    const fresh = !SONAR.lis || SHIP.t - SONAR.lis.t > 60;
+    SONAR.lis = { x: t.p.x, z: t.p.z, t: SHIP.t };
+    if (fresh || SHIP.t - (SONAR.lisRep || -1e9) > 45) {
+      SONAR.lisRep = SHIP.t;
+      const brg = Math.round(((Math.atan2(ex, -ez) * 180) / Math.PI + 360) % 360);
+      RADIO.add('SONAR', 'BRIDGE, SONAR. SCREWS BEARING ' + String(brg).padStart(3, '0') + ', ' + (sp > 2.6 ? 'FAST' : 'SLOW') + ' TURNS. POSSIBLE SUBMARINE.', { own: true });
+      if (fresh) note('SONAR: SCREWS BEARING ' + String(brg).padStart(3, '0'));
+    }
+    return;
   }
 }
 function sonarRecDraw(f) {
