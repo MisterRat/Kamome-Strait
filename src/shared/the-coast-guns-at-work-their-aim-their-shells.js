@@ -30,6 +30,15 @@ function coastUpdate(dt) {
   for (const g of COAST.G) {
     g.rec = Math.max(0, g.rec - dt * 1.5);
     g.bar.position.x = -0.45 * g.rec;
+    /* a gun knocked out: said once, with what is left of its battery (the user's, 2026-11-22: the other gun firing on looked as if the
+       battery he had hit still fired) */
+    if (g.t.dead && !g.said) {
+      g.said = true;
+      const left = COAST.G.filter((q) => q.bat === g.bat && !q.t.dead).length,
+        t = left ? 'SHORE GUN DESTROYED. ITS BATTERY HAS ' + left + ' MORE GUN' + (left > 1 ? 'S' : '') + ' FIRING.' : 'SHORE BATTERY SILENCED: NO GUN OF IT LEFT FIRING.';
+      note(t);
+      if (typeof RADIO !== 'undefined') RADIO.add('GUNNERY', t, { own: true });
+    }
     if (g.t.dead || !on) continue;
     /* the target, once a second: the PCE if she is in range and in sight; else (targets of opportunity, RULES OF ENGAGEMENT) the
        nearest Allied ship it can see in range (a fleet PCE or PT boat, the Liberty) */

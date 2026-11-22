@@ -96,84 +96,121 @@ function drillStep(dt, here) {
   drillBox(here);
 }
 /* the drill box: the instructor's word, the drill's own picture, the debrief */
-function drillBox(here) {
-  let el = $$('drillBox');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'drillBox';
-    el.style.cssText =
-      'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.86);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
-    el.innerHTML =
-      '<style>#drillBox .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#drillBox.clk .dbI{cursor:pointer}#drillBox.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
-      '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
-    document.body.appendChild(el);
-    /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
-       box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
-    el.addEventListener('mousedown', (e) => {
-      const it = e.target.closest('.dbI');
-      e.stopPropagation();
-      e.preventDefault();
-      if (!it || e.button !== 0) return;
-      const i = +it.dataset.i;
-      if (DRILL.menu) {
-        const L = drillList();
-        if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
-      } else if (DRILL.click) DRILL.click(i);
-      DRILL.boxT = 0;
-    });
+/* the boxes on screen (the user's, 2026-11-22: at the OOD's station the orders and a drill both open at once, the orders on the left
+   and the drill on the right; the backgrounds 10% more see-through). drillBox: a drill's list, the drill itself, its assessment (and at
+   station 2 the repair jobs, as before); ordBox: the OOD's orders */
+function dbEl(id) {
+  let el = $$(id);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = id;
+  el.style.cssText =
+    'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.76);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
+  el.innerHTML =
+    '<style>#' + id + ' .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#' + id + '.clk .dbI{cursor:pointer}#' + id + '.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
+    '<div class="tx"></div><canvas width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:rgba(11,18,24,.85)"></canvas>';
+  document.body.appendChild(el);
+  /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
+     box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
+  el.addEventListener('mousedown', (e) => {
+    const it = e.target.closest('.dbI');
+    e.stopPropagation();
+    e.preventDefault();
+    if (!it || e.button !== 0) return;
+    const i = +it.dataset.i;
+    if (el.dataset.role === 'menu') {
+      const L = drillList();
+      if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
+    } else if (el.dataset.role === 'live' && DRILL.click) DRILL.click(i);
+    DRILL.boxT = 0;
+  });
+  return el;
+}
+/* one box: shown or not, where (left, right or centred), what it says and draws, and what a click does */
+function dbShow(id, c, place) {
+  const el = dbEl(id);
+  el.style.display = c ? 'block' : 'none';
+  if (!c) return;
+  if (el.dataset.place !== place) {
+    el.dataset.place = place;
+    const side = { left: '12px', right: 'auto', top: '160px', bottom: 'auto', transform: 'none', width: 'min(440px,42vw)' };
+    Object.assign(
+      el.style,
+      place === 'left'
+        ? side
+        : place === 'right'
+          ? { ...side, left: 'auto', right: '12px', top: '212px' /* under the minimap */ }
+          : place === 'bottom'
+            ? { left: '50%', right: 'auto', top: 'auto', bottom: '12px', transform: 'translateX(-50%)', width: 'min(420px,36vw)' }
+            : { left: '50%', right: 'auto', top: '96px', bottom: 'auto', transform: 'translateX(-50%)', width: 'min(540px,92vw)' },
+    );
   }
-  const live = !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show() && (!DRILL.on || p.inDrill)) : null /* in action: the repair jobs, the orders (in a drill too) */,
-    show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
-  el.style.display = show ? 'block' : 'none';
-  if (!show) return;
-  /* clickable while it shows a list: the drills, or a box with click() (the OOD's orders) */
-  DRILL.click = live && live.click ? live.click : null;
-  const clk = !!(DRILL.menu || DRILL.click);
+  el.dataset.role = c.role || '';
+  const clk = !!c.role;
   el.classList.toggle('clk', clk);
   el.style.pointerEvents = clk ? 'auto' : 'none';
-  /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
-  const left = SHIP.stn === 1;
-  if (el.dataset.left !== String(left)) {
-    el.dataset.left = String(left);
-    Object.assign(el.style, left ? { left: '12px', top: '160px', transform: 'none', width: 'min(440px,42vw)' } : { left: '50%', top: '96px', transform: 'translateX(-50%)', width: 'min(540px,92vw)' });
+  el.querySelector('.tx').innerHTML = c.h;
+  const cv = el.querySelector('canvas');
+  cv.style.display = c.pic ? 'block' : 'none';
+  if (c.pic) {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    c.pic(g, cv.width, cv.height);
   }
-  const now = performance.now();
-  if (now - DRILL.boxT < 80) return;
-  DRILL.boxT = now;
-  const tx = $$('drillTx'),
-    cv = $$('drillCv'),
-    T = '<b>' + kbText('targets') + '</b>';
-  let h = '',
-    pic = null;
-  if (live) {
-    h = (DRILL.on ? '<span style="color:#9aa">DRILL - ' + DRILL.on.title.toUpperCase() + ' ' + fmtT(DRILL.D.t) + '</span><br>' : '') + live.html();
-    if (live.draw && (!live.pic || live.pic())) pic = { draw: (D, g, w, h) => live.draw(g, w, h) };
-    else if (DRILL.on && DRILL.on.draw) pic = DRILL.on;
-  } else if (DRILL.menu) {
-    h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
+}
+/* what the drill box says: the list, the drill, the assessment; or null */
+function drillContent() {
+  const T = '<b>' + kbText('targets') + '</b>';
+  if (DRILL.menu) {
+    let h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
     drillList().forEach((d, i) => {
       h += '<div class="dbI" data-i="' + i + '">' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title) + '</div>';
     });
     h += '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin (or click it) &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
-  } else if (DRILL.on) {
+    return { h, role: 'menu' };
+  }
+  if (DRILL.on) {
     const d = DRILL.on;
-    h = '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D);
-    if (d.draw) pic = d;
-  } else if (DRILL.deb) {
+    return {
+      h: '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D),
+      pic: d.draw ? (g, w, h) => d.draw(DRILL.D, g, w, h) : null,
+    };
+  }
+  if (DRILL.deb) {
     const b = DRILL.deb,
       col = b.v === 'EXCELLENT' ? '#8fe39a' : b.v === 'SATISFACTORY' ? '#ffd27a' : '#ff8a6a';
-    h =
-      '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
-      '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
-      b.lines.map((l) => '<br>' + l).join('') +
-      '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>';
+    return {
+      h:
+        '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
+        '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
+        b.lines.map((l) => '<br>' + l).join('') +
+        '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>',
+    };
   }
-  tx.innerHTML = h;
-  cv.style.display = pic ? 'block' : 'none';
-  if (pic) {
-    const g = cv.getContext('2d');
-    g.clearRect(0, 0, cv.width, cv.height);
-    pic.draw(DRILL.D, g, cv.width, cv.height);
+  return null;
+}
+function drillBox(here) {
+  const st = SHIP.stn,
+    on = here && !paused && (st === 1 || st === 2);
+  /* the station's other box (the repair jobs; the orders, in a drill too) */
+  const live = on && !DRILL.menu ? DRILLP.find((p) => p.stn === st && p.show() && (!DRILL.on || p.inDrill)) : null;
+  DRILL.click = live && live.click ? live.click : null;
+  const now = performance.now();
+  if (now - DRILL.boxT < 80 && on) return;
+  DRILL.boxT = now;
+  const D = on ? drillContent() : null,
+    L = live && { h: live.html(), pic: live.draw && (!live.pic || live.pic()) ? live.draw : null, role: live.click ? 'live' : '' };
+  if (st === 1) {
+    /* the OOD: his orders on the left, a drill on the right, both at once; the one picture (the drill's, else the sonar plot) in its
+       own box at the bottom in the middle (the user's, 2026-11-22: the plot once, not in both) */
+    const pic = (D && D.pic) || (L && L.pic);
+    dbShow('ordBox', L && { ...L, pic: null }, 'left');
+    dbShow('drillBox', D && { ...D, pic: null }, L ? 'right' : 'left');
+    dbShow('plotBox', pic ? { h: '', pic } : null, 'bottom');
+  } else {
+    dbShow('ordBox', null);
+    dbShow('plotBox', null);
+    dbShow('drillBox', L || D, 'mid');
   }
 }
 DRILLP.push({

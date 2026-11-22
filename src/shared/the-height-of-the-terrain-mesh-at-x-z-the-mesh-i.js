@@ -162,6 +162,8 @@ const SURF = (() => {
     C.clear();
   };
   let settled = false;
+  /* settle them all again at the next frame (the far sites, built after the page has loaded, are in) */
+  f.resettle = () => (settled = false);
   f.settle = () => {
     if (settled || typeof T === 'undefined') return;
     settled = true;

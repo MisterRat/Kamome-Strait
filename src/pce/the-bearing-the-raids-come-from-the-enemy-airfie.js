@@ -37,3 +37,26 @@ function raidSpawn(from) {
   SND.tone(620, 620, 0.5, 0.35, 'square');
   SND.tone(620, 620, 0.5, 0.35, 'square', 0.7);
 }
+/* the raiders on the minimap (the user's, 2026-11-22: attacking aircraft did not show on it): a red arrow each, pointing the way it flies */
+HOOKS.mapDraw.push((g, lw) => {
+  if (!SIMS.on('pce')) return;
+  for (const e of RAID.L) {
+    if (e.st === 'down') continue;
+    g.save();
+    g.translate(e.p.x, e.p.z);
+    g.rotate(Math.atan2(e.v.x, -e.v.z));
+    g.scale(lw(1), lw(1));
+    g.fillStyle = '#ff3b30';
+    g.strokeStyle = '#000';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(0, -8);
+    g.lineTo(5.5, 6);
+    g.lineTo(0, 3);
+    g.lineTo(-5.5, 6);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.restore();
+  }
+});

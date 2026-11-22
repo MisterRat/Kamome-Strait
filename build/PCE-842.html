@@ -443,7 +443,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="sub">The stations, practice, gunnery, the torpedoman's work and the ship</div>
 <h2>Missions (the Missions tab, or press M)</h2>
 <table class="t2">
-<tr><td>Free patrol</td><td>The ship is yours: conn her from the pilothouse, answer the bells, keep watch. No targets out.</td></tr>
+<tr><td>Free patrol</td><td>The ship is yours: conn her from the pilothouse, answer the bells, keep watch. No targets out. She starts in open water clear of the reach of every enemy base and ship.</td></tr>
 <tr><td>Gunnery practice</td><td>One for each gun (the 3&Prime;/50, the 20 mm and the twin 40 mm): puts out the practice targets and takes you to that gun.</td></tr>
 <tr><td>Antisubmarine attack run</td><td>Takes you to the torpedoman's station with the exercise submarine out. The OOD runs in on him and phones the orders; you fire the Hedgehog, the K-guns and the racks. One run, then the debrief and the pattern plot stay up until you press T again or leave the station.</td></tr>
 <tr><td>Sonar watch</td><td>The communications station with the exercise submarine out: find him on the sonar and the radar.</td></tr>
@@ -460,6 +460,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 </table>
 <h2>The OOD's orders (G at the OOD's station, in a drill too; Q / E choose and Space gives it, or click it; G closes)</h2>
 <table class="t2">
+<tr><td>The boxes</td><td>Your orders open on the left and a drill's box on the right, both at once; the picture (the drill's, or the sonar plot) sits at the bottom in the middle.</td></tr>
 <tr><td>The reports</td><td>Comms reports to the bridge: the radar's enemy aircraft, sonar's submarine (his bearing and range), the power and the fuel. With you as OOD they are yours to act on; nothing is done until you order it.</td></tr>
 <tr><td>Hold fire / guns free</td><td>The gun crews at the mounts you are not on cease fire, or open it again. The order stands until you change it.</td></tr>
 <tr><td>Request air support</td><td>Comms calls Kamome Control for two P-51s (one call at a time: while a flight is answering, no other).</td></tr>
@@ -583,7 +584,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.119';
+const VERSION = '0.120';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -1745,6 +1746,22 @@ function hash(x, z) {
   const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
   return s - Math.floor(s);
 }
+/* the lattice's values, kept as they are worked out (the user's, 2026-11-22: loading was slow, most of it Math.sin in hash, asked
+   again and again for the same lattice points by neighbouring samples): a direct-mapped table keyed by the point. A point not in it
+   (or one whose key would not fit 32 bits) is worked out by hash as before, so every value is exactly what hash gives */
+const HCN = 1 << 15,
+  HCX = new Int32Array(HCN).fill(-2147483648),
+  HCZ = new Int32Array(HCN),
+  HCV = new Float64Array(HCN);
+function hashL(ix, iz) {
+  const k = (Math.imul(ix, 73856093) ^ Math.imul(iz, 19349663)) & (HCN - 1);
+  if (HCX[k] === ix && HCZ[k] === iz) return HCV[k];
+  const v = hash(ix, iz);
+  HCX[k] = ix;
+  HCZ[k] = iz;
+  HCV[k] = v;
+  return v;
+}
 function vn(x, z) {
   const ix = Math.floor(x),
     iz = Math.floor(z),
@@ -1752,10 +1769,10 @@ function vn(x, z) {
     fz = z - iz,
     u = fx * fx * (3 - 2 * fx),
     w = fz * fz * (3 - 2 * fz);
-  const a = hash(ix, iz),
-    b = hash(ix + 1, iz),
-    c = hash(ix, iz + 1),
-    d = hash(ix + 1, iz + 1);
+  const a = hashL(ix, iz),
+    b = hashL(ix + 1, iz),
+    c = hashL(ix, iz + 1),
+    d = hashL(ix + 1, iz + 1);
   return (a + (b - a) * u + (c - a) * w + (a - b - c + d) * u * w) * 2 - 1;
 }
 function fbm(x, z) {
@@ -2324,6 +2341,8 @@ const SURF = (() => {
     C.clear();
   };
   let settled = false;
+  /* settle them all again at the next frame (the far sites, built after the page has loaded, are in) */
+  f.resettle = () => (settled = false);
   f.settle = () => {
     if (settled || typeof T === 'undefined') return;
     settled = true;
@@ -17071,11 +17090,32 @@ const WORLD = (() => {
       return out;
     };
     /* is (x, z) within d of a route? (used by the site fences so a road gets its gate) */
+    /* the routes' points in 64 m cells, made once (the fences ask this for every panel: it walked every route's points each time) */
+    let NG = null,
+      NGr = null;
+    const ngKey = (i, j) => i * 100003 + j;
     const near = (x, z, d) => {
-      for (const R of list()) {
-        if (x < R.x0 - d || x > R.x1 + d || z < R.z0 - d || z > R.z1 + d) continue;
-        for (let k = 0; k < R.n; k++) if (Math.abs(R.x[k] - x) < d && Math.abs(R.z[k] - z) < d && Math.hypot(R.x[k] - x, R.z[k] - z) < d) return true;
+      const L = list();
+      if (NGr !== L) {
+        NGr = L;
+        NG = new Map();
+        for (const R of L)
+          for (let k = 0; k < R.n; k++) {
+            const key = ngKey(Math.floor(R.x[k] / 64), Math.floor(R.z[k] / 64));
+            let c = NG.get(key);
+            if (!c) NG.set(key, (c = []));
+            c.push(R.x[k], R.z[k]);
+          }
       }
+      const i0 = Math.floor((x - d) / 64),
+        i1 = Math.floor((x + d) / 64),
+        j0 = Math.floor((z - d) / 64),
+        j1 = Math.floor((z + d) / 64);
+      for (let i = i0; i <= i1; i++)
+        for (let j = j0; j <= j1; j++) {
+          const c = NG.get(ngKey(i, j));
+          if (c) for (let k = 0; k < c.length; k += 2) if (Math.abs(c[k] - x) < d && Math.abs(c[k + 1] - z) < d && Math.hypot(c[k] - x, c[k + 1] - z) < d) return true;
+        }
       return false;
     };
     const list = () => routes || plan();
@@ -18403,7 +18443,7 @@ const COAST = {
       if (!best) continue;
       const [u, d, x, z] = best;
       use(u - 6, u + 6, d - 6, d + 6);
-      COAST.add(x, z, seaYaw);
+      COAST.add(x, z, seaYaw).bat = F; /* the battery it belongs to */
     }
   };
 }
@@ -18461,6 +18501,15 @@ function coastUpdate(dt) {
   for (const g of COAST.G) {
     g.rec = Math.max(0, g.rec - dt * 1.5);
     g.bar.position.x = -0.45 * g.rec;
+    /* a gun knocked out: said once, with what is left of its battery (the user's, 2026-11-22: the other gun firing on looked as if the
+       battery he had hit still fired) */
+    if (g.t.dead && !g.said) {
+      g.said = true;
+      const left = COAST.G.filter((q) => q.bat === g.bat && !q.t.dead).length,
+        t = left ? 'SHORE GUN DESTROYED. ITS BATTERY HAS ' + left + ' MORE GUN' + (left > 1 ? 'S' : '') + ' FIRING.' : 'SHORE BATTERY SILENCED: NO GUN OF IT LEFT FIRING.';
+      note(t);
+      if (typeof RADIO !== 'undefined') RADIO.add('GUNNERY', t, { own: true });
+    }
     if (g.t.dead || !on) continue;
     /* the target, once a second: the PCE if she is in range and in sight; else (targets of opportunity, RULES OF ENGAGEMENT) the
        nearest Allied ship it can see in range (a fleet PCE or PT boat, the Liberty) */
@@ -20753,21 +20802,34 @@ const SITES = [],
     for (let i = l0; i < AA.lamp.length; i++) mine.push(AA.lamp[i].grp);
     FARS.push({ F, mine, pat, cx: F.O.x, cz: F.O.z, far: null });
   };
+  /* THE FAR SITES ARE BUILT AFTER THE PAGE HAS LOADED (the user's, 2026-11-22: loading a game was slow; these took about a quarter of
+     it): one at a time, nearest the player first, while the start screen is up and, if he starts sooner, over his first seconds, when
+     they are still far off. FARQ holds what is still to build, in order; the ships anchored off the ports and Depot Mikawa's pier come
+     after their sites. When the last is built, every ground target is settled again onto its pad and road (SURF.resettle) */
+  const FARQ = [];
   for (const F of FS.list) {
     WH(F.O.x, F.O.z); /* make sure the pad height is known */
     const seed = Math.round(Math.abs(F.O.x) + Math.abs(F.O.z)) % 100000;
-    if (F.kind === 'port') farBuild(F, () => void harbour(F, true, seed));
-    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)));
-    else farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F)));
+    FARQ.push({
+      F,
+      go: () =>
+        F.kind === 'port'
+          ? farBuild(F, () => void harbour(F, true, seed))
+          : F.kind === 'air'
+            ? farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)))
+            : farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F))),
+    });
   }
-  {
-    const ports = FS.list.filter((f) => f.kind === 'port');
-    if (ports.length > 1) {
-      const [A, B] = ports;
-      mkCiv(M.freighter('jp'), 137, A, B, 70, 0, 7.8); /* anchored either side of the jetty's line, clear of each other */
-      mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
-    }
-  }
+  FARQ.push({
+    go: () => {
+      const ports = FS.list.filter((f) => f.kind === 'port');
+      if (ports.length > 1) {
+        const [A, B] = ports;
+        mkCiv(M.freighter('jp'), 137, A, B, 70, 0, 7.8); /* anchored either side of the jetty's line, clear of each other */
+        mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
+      }
+    },
+  });
   /* ----- THE NAVAL BASES (user's sites, 2026-11-20): the IJN base on the north tip of the long island and the US Navy PT-boat base on the
      south shore of the big island (FS.nav). Built in each site's own frame (u along the coast, d seaward) on its levelled coral pad. ----- */
   /* a craft moored or at anchor in frame F: rides the waves where she lies (ANCH, rideAt), the sea kept out of her (OCEAN hull) */
@@ -20902,9 +20964,17 @@ const SITES = [],
       mooredF(F, MODELS.get('jp-t14'), sideU, Md0 + 110, YS + Math.PI, 15, 3.6);
       /* her freighter runs between the base and Depot Mikawa (the user's, 2026-11-21): anchored off each, her Daihatsu taking the cargo
          to the mole's T-head here and to the depot's landing there (mkCiv) */
-      {
+      /* (queued after the far sites: Depot Mikawa, and so its landing, is built after the page has loaded) */
+      FARQ.push({ go: () => {
         const MK = FS.list.find((s) => s.id === 'cv1');
         const CH = FS.chan[0];
+        /* what she adds goes with the IJN base's far site, as when it was built with the base */
+        const fr = FARS.find((q) => q.F === F);
+        if (fr) scene.add = function (...a) {
+          fr.mine.push(...a);
+          return _sceneAdd.apply(this, a);
+        };
+        try {
         if (MK && MK.landing)
           mkCiv(M.freighter('jp'), 137, F, MK, 60, 0, 7.8, {
             jA: [-MT / 2 - 2.2, Md0 + ML - 4],
@@ -20917,6 +20987,12 @@ const SITES = [],
               if (G) G.mag = Math.min(G.cap, G.mag + T14MAG);
             },
           }); /* through the dredged channel */
+        } finally {
+          delete scene.add;
+        }
+      } });
+      {
+        const CH = FS.chan[0];
         /* the channel's buoys: red to port going in from the sea (left of a -> b), green to starboard, every 400 m */
         {
           const ax = CH.a[0],
@@ -21249,7 +21325,7 @@ const SITES = [],
   };
   for (const F of FS.nav) farBuild(F, () => naval(F));
   /* Depot Mikawa's landing pier, added to the depot's own far site (so it shows and hides with it) */
-  {
+  FARQ.push({ go: () => {
     const MK = FS.list.find((s) => s.id === 'cv1'),
       fr = FARS.find((q) => q.F === MK);
     if (MK && MK.shoreD && fr) {
@@ -21265,7 +21341,29 @@ const SITES = [],
         delete scene.add;
       }
     }
-  }
+  } });
+  /* the next far site: nearest the eye first (the ports' ships and Mikawa's pier keep their places after the sites) */
+  let farSorted = false;
+  const farNext = () => {
+    if (!FARQ.length) return false;
+    if (!farSorted) {
+      farSorted = true;
+      const d = (q) => (q.F ? Math.hypot(q.F.O.x - cam.position.x, q.F.O.z - cam.position.z) : 1e12);
+      const sites = FARQ.filter((q) => q.F).sort((a, b) => d(a) - d(b));
+      FARQ.splice(0, FARQ.length, ...sites, ...FARQ.filter((q) => !q.F));
+    }
+    FARQ.shift().go();
+    if (!FARQ.length && SURF.resettle) SURF.resettle();
+    return true;
+  };
+  SITE.farLeft = () => FARQ.length;
+  SITE.farAll = () => {
+    while (farNext());
+  };
+  addEventListener('load', () => {
+    const tick = () => farNext() && setTimeout(tick, 20);
+    setTimeout(tick, 60);
+  });
   SITE.far = FARS;
   SITE.SEA = LANES; /* the sea-lane finder */
   SITE.civ = CIV;
@@ -25686,11 +25784,59 @@ function shipStation(n) {
   gunStation();
   note(st.name);
 }
+/* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
+   lies beyond each enemy gun's reach with a margin: the coast batteries (they open fire inside 14 km) by 16 km, an armed enemy ship or
+   post by its longest gun's surface range and 3 km more, the T-14s' base (they run in on her within 3 km of their beat) by 7 km.
+   Heading away from the nearest of them. The far sites, if still being built after the page loaded, are finished first */
+function pceStart(x0, z0) {
+  if (SITE.farLeft && SITE.farLeft()) SITE.farAll();
+  const W = [];
+  for (const g of typeof COAST !== 'undefined' ? COAST.G : []) W.push([g.p.x, g.p.z, 16000]);
+  if (typeof ROE !== 'undefined')
+    for (const P of ROE.posts())
+      if (P.side === 'jp' && P.guns.length) {
+        const q = P.m.getWorldPosition(new THREE.Vector3());
+        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0)) + 3000]);
+      }
+  for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 7000]);
+  const clear = (x, z) => W.every(([wx, wz, r]) => Math.hypot(x - wx, z - wz) >= r),
+    deep = (x, z) => {
+      for (const [dx, dz] of [[0, 0], [400, 0], [-400, 0], [0, 400], [0, -400]]) if (HR(x + dx, z + dz) > coastSea() - 12) return false;
+      return Math.max(Math.abs(x), Math.abs(z)) < 45000;
+    };
+  let at = null;
+  if (clear(x0, z0) && deep(x0, z0)) at = [x0, z0];
+  for (let r = 500; !at && r <= 40000; r += 500)
+    for (let a = 0; a < 360; a += Math.max(2, 360 / ((2 * Math.PI * r) / 500))) {
+      const x = x0 + Math.sin((a * Math.PI) / 180) * r,
+        z = z0 + Math.cos((a * Math.PI) / 180) * r;
+      if (clear(x, z) && deep(x, z)) {
+        at = [x, z];
+        break;
+      }
+    }
+  if (!at) return null;
+  /* away from the nearest threat */
+  let n = null,
+    nd = 1e12;
+  for (const w of W) {
+    const d = Math.hypot(at[0] - w[0], at[1] - w[1]) - w[2];
+    if (d < nd) ((nd = d), (n = w));
+  }
+  const hdg = n ? Math.atan2(-(at[0] - n[0]), -(at[1] - n[1])) : null;
+  return { x: at[0], z: at[1], hdg };
+}
 function shipReset() {
   const P = SHIPM.pts;
   if (P) {
     pos.set(P[0][0], SHIPM.Y, P[0][1]);
-    SHIP.hdg = Math.atan2(-(P[1][0] - P[0][0]), -(P[1][1] - P[0][1])); /* start on the PCE's own patrol line, heading along it */
+    SHIP.hdg = Math.atan2(-(P[1][0] - P[0][0]), -(P[1][1] - P[0][1])); /* her own patrol line, heading along it */
+    const S = pceStart(P[0][0], P[0][1]);
+    if (S) {
+      pos.set(S.x, SHIPM.Y, S.z);
+      if (S.hdg !== null) SHIP.hdg = S.hdg;
+    }
+    SHIP.hold = SHIP.hdg; /* the helmsman holds the heading she starts on */
   } else {
     pos.set(0, SHIPM.Y, -3000);
     SHIP.hdg = 0;
@@ -27774,6 +27920,29 @@ function raidSpawn(from) {
   SND.tone(620, 620, 0.5, 0.35, 'square');
   SND.tone(620, 620, 0.5, 0.35, 'square', 0.7);
 }
+/* the raiders on the minimap (the user's, 2026-11-22: attacking aircraft did not show on it): a red arrow each, pointing the way it flies */
+HOOKS.mapDraw.push((g, lw) => {
+  if (!SIMS.on('pce')) return;
+  for (const e of RAID.L) {
+    if (e.st === 'down') continue;
+    g.save();
+    g.translate(e.p.x, e.p.z);
+    g.rotate(Math.atan2(e.v.x, -e.v.z));
+    g.scale(lw(1), lw(1));
+    g.fillStyle = '#ff3b30';
+    g.strokeStyle = '#000';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(0, -8);
+    g.lineTo(5.5, 6);
+    g.lineTo(0, 3);
+    g.lineTo(-5.5, 6);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.restore();
+  }
+});
 /* steer e's velocity toward the direction w, at most RAIDV.G g of turn; speed toward sp. Banks the model into the turn */
 function raidSteer(e, w, sp, dt) {
   const v = e.v,
@@ -29197,84 +29366,121 @@ function drillStep(dt, here) {
   drillBox(here);
 }
 /* the drill box: the instructor's word, the drill's own picture, the debrief */
-function drillBox(here) {
-  let el = $$('drillBox');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'drillBox';
-    el.style.cssText =
-      'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.86);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
-    el.innerHTML =
-      '<style>#drillBox .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#drillBox.clk .dbI{cursor:pointer}#drillBox.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
-      '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
-    document.body.appendChild(el);
-    /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
-       box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
-    el.addEventListener('mousedown', (e) => {
-      const it = e.target.closest('.dbI');
-      e.stopPropagation();
-      e.preventDefault();
-      if (!it || e.button !== 0) return;
-      const i = +it.dataset.i;
-      if (DRILL.menu) {
-        const L = drillList();
-        if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
-      } else if (DRILL.click) DRILL.click(i);
-      DRILL.boxT = 0;
-    });
+/* the boxes on screen (the user's, 2026-11-22: at the OOD's station the orders and a drill both open at once, the orders on the left
+   and the drill on the right; the backgrounds 10% more see-through). drillBox: a drill's list, the drill itself, its assessment (and at
+   station 2 the repair jobs, as before); ordBox: the OOD's orders */
+function dbEl(id) {
+  let el = $$(id);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = id;
+  el.style.cssText =
+    'position:fixed;top:96px;left:50%;transform:translateX(-50%);width:min(540px,92vw);background:rgba(12,20,28,.76);color:#dfe6e8;font:13px/1.45 ui-monospace,Consolas,monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);z-index:6;pointer-events:none';
+  el.innerHTML =
+    '<style>#' + id + ' .dbI{border-radius:3px;padding:0 3px;margin:0 -3px}#' + id + '.clk .dbI{cursor:pointer}#' + id + '.clk .dbI:hover{background:rgba(255,210,122,.16)}</style>' +
+    '<div class="tx"></div><canvas width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:rgba(11,18,24,.85)"></canvas>';
+  document.body.appendChild(el);
+  /* the mouse on a list (the user's, 2026-11-22): a click on a line (data-i) chooses it and acts, as Space does. On mousedown: the
+     box is redrawn several times a second, so a click's press and release may fall on different copies of the line */
+  el.addEventListener('mousedown', (e) => {
+    const it = e.target.closest('.dbI');
+    e.stopPropagation();
+    e.preventDefault();
+    if (!it || e.button !== 0) return;
+    const i = +it.dataset.i;
+    if (el.dataset.role === 'menu') {
+      const L = drillList();
+      if (L[i]) ((DRILL.sel = i), drillStart(L[i].id));
+    } else if (el.dataset.role === 'live' && DRILL.click) DRILL.click(i);
+    DRILL.boxT = 0;
+  });
+  return el;
+}
+/* one box: shown or not, where (left, right or centred), what it says and draws, and what a click does */
+function dbShow(id, c, place) {
+  const el = dbEl(id);
+  el.style.display = c ? 'block' : 'none';
+  if (!c) return;
+  if (el.dataset.place !== place) {
+    el.dataset.place = place;
+    const side = { left: '12px', right: 'auto', top: '160px', bottom: 'auto', transform: 'none', width: 'min(440px,42vw)' };
+    Object.assign(
+      el.style,
+      place === 'left'
+        ? side
+        : place === 'right'
+          ? { ...side, left: 'auto', right: '12px', top: '212px' /* under the minimap */ }
+          : place === 'bottom'
+            ? { left: '50%', right: 'auto', top: 'auto', bottom: '12px', transform: 'translateX(-50%)', width: 'min(420px,36vw)' }
+            : { left: '50%', right: 'auto', top: '96px', bottom: 'auto', transform: 'translateX(-50%)', width: 'min(540px,92vw)' },
+    );
   }
-  const live = !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show() && (!DRILL.on || p.inDrill)) : null /* in action: the repair jobs, the orders (in a drill too) */,
-    show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
-  el.style.display = show ? 'block' : 'none';
-  if (!show) return;
-  /* clickable while it shows a list: the drills, or a box with click() (the OOD's orders) */
-  DRILL.click = live && live.click ? live.click : null;
-  const clk = !!(DRILL.menu || DRILL.click);
+  el.dataset.role = c.role || '';
+  const clk = !!c.role;
   el.classList.toggle('clk', clk);
   el.style.pointerEvents = clk ? 'auto' : 'none';
-  /* the OOD needs the view ahead through the pilothouse windows: his box sits at the left, under the ship's lines */
-  const left = SHIP.stn === 1;
-  if (el.dataset.left !== String(left)) {
-    el.dataset.left = String(left);
-    Object.assign(el.style, left ? { left: '12px', top: '160px', transform: 'none', width: 'min(440px,42vw)' } : { left: '50%', top: '96px', transform: 'translateX(-50%)', width: 'min(540px,92vw)' });
+  el.querySelector('.tx').innerHTML = c.h;
+  const cv = el.querySelector('canvas');
+  cv.style.display = c.pic ? 'block' : 'none';
+  if (c.pic) {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    c.pic(g, cv.width, cv.height);
   }
-  const now = performance.now();
-  if (now - DRILL.boxT < 80) return;
-  DRILL.boxT = now;
-  const tx = $$('drillTx'),
-    cv = $$('drillCv'),
-    T = '<b>' + kbText('targets') + '</b>';
-  let h = '',
-    pic = null;
-  if (live) {
-    h = (DRILL.on ? '<span style="color:#9aa">DRILL - ' + DRILL.on.title.toUpperCase() + ' ' + fmtT(DRILL.D.t) + '</span><br>' : '') + live.html();
-    if (live.draw && (!live.pic || live.pic())) pic = { draw: (D, g, w, h) => live.draw(g, w, h) };
-    else if (DRILL.on && DRILL.on.draw) pic = DRILL.on;
-  } else if (DRILL.menu) {
-    h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
+}
+/* what the drill box says: the list, the drill, the assessment; or null */
+function drillContent() {
+  const T = '<b>' + kbText('targets') + '</b>';
+  if (DRILL.menu) {
+    let h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
     drillList().forEach((d, i) => {
       h += '<div class="dbI" data-i="' + i + '">' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title) + '</div>';
     });
     h += '<span style="color:#9aa"><b>Q / E</b> choose &middot; <b>Space</b> begin (or click it) &middot; ' + T + ' close' + (drillHC() ? ' &middot; HARDCORE' : '') + '</span>';
-  } else if (DRILL.on) {
+    return { h, role: 'menu' };
+  }
+  if (DRILL.on) {
     const d = DRILL.on;
-    h = '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D);
-    if (d.draw) pic = d;
-  } else if (DRILL.deb) {
+    return {
+      h: '<b style="color:#9fc3d6">DRILL - ' + d.title.toUpperCase() + '</b> <span style="color:#9aa">' + fmtT(DRILL.D.t) + (DRILL.D.hc ? ' &middot; HARDCORE' : '') + '</span><br>' + d.box(DRILL.D),
+      pic: d.draw ? (g, w, h) => d.draw(DRILL.D, g, w, h) : null,
+    };
+  }
+  if (DRILL.deb) {
     const b = DRILL.deb,
       col = b.v === 'EXCELLENT' ? '#8fe39a' : b.v === 'SATISFACTORY' ? '#ffd27a' : '#ff8a6a';
-    h =
-      '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
-      '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
-      b.lines.map((l) => '<br>' + l).join('') +
-      '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>';
+    return {
+      h:
+        '<b style="color:#9fc3d6">' + b.title.toUpperCase() + ' - ASSESSMENT</b>' + (b.hc ? ' <span style="color:#9aa">HARDCORE</span>' : '') +
+        '<br><b style="font-size:17px;color:' + col + '">' + b.v + ' &middot; ' + b.score + '/100</b>' +
+        b.lines.map((l) => '<br>' + l).join('') +
+        '<br><span style="color:#9aa">' + (b.act ? '<b>G</b> your orders &middot; ' + T + ' training drills' : T + ' another drill') + '</span>',
+    };
   }
-  tx.innerHTML = h;
-  cv.style.display = pic ? 'block' : 'none';
-  if (pic) {
-    const g = cv.getContext('2d');
-    g.clearRect(0, 0, cv.width, cv.height);
-    pic.draw(DRILL.D, g, cv.width, cv.height);
+  return null;
+}
+function drillBox(here) {
+  const st = SHIP.stn,
+    on = here && !paused && (st === 1 || st === 2);
+  /* the station's other box (the repair jobs; the orders, in a drill too) */
+  const live = on && !DRILL.menu ? DRILLP.find((p) => p.stn === st && p.show() && (!DRILL.on || p.inDrill)) : null;
+  DRILL.click = live && live.click ? live.click : null;
+  const now = performance.now();
+  if (now - DRILL.boxT < 80 && on) return;
+  DRILL.boxT = now;
+  const D = on ? drillContent() : null,
+    L = live && { h: live.html(), pic: live.draw && (!live.pic || live.pic()) ? live.draw : null, role: live.click ? 'live' : '' };
+  if (st === 1) {
+    /* the OOD: his orders on the left, a drill on the right, both at once; the one picture (the drill's, else the sonar plot) in its
+       own box at the bottom in the middle (the user's, 2026-11-22: the plot once, not in both) */
+    const pic = (D && D.pic) || (L && L.pic);
+    dbShow('ordBox', L && { ...L, pic: null }, 'left');
+    dbShow('drillBox', D && { ...D, pic: null }, L ? 'right' : 'left');
+    dbShow('plotBox', pic ? { h: '', pic } : null, 'bottom');
+  } else {
+    dbShow('ordBox', null);
+    dbShow('plotBox', null);
+    dbShow('drillBox', L || D, 'mid');
   }
 }
 DRILLP.push({

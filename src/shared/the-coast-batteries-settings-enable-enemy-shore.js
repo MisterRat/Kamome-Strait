@@ -152,7 +152,7 @@ const COAST = {
       if (!best) continue;
       const [u, d, x, z] = best;
       use(u - 6, u + 6, d - 6, d + 6);
-      COAST.add(x, z, seaYaw);
+      COAST.add(x, z, seaYaw).bat = F; /* the battery it belongs to */
     }
   };
 }

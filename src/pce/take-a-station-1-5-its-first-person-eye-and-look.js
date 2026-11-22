@@ -17,11 +17,59 @@ function shipStation(n) {
   gunStation();
   note(st.name);
 }
+/* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
+   lies beyond each enemy gun's reach with a margin: the coast batteries (they open fire inside 14 km) by 16 km, an armed enemy ship or
+   post by its longest gun's surface range and 3 km more, the T-14s' base (they run in on her within 3 km of their beat) by 7 km.
+   Heading away from the nearest of them. The far sites, if still being built after the page loaded, are finished first */
+function pceStart(x0, z0) {
+  if (SITE.farLeft && SITE.farLeft()) SITE.farAll();
+  const W = [];
+  for (const g of typeof COAST !== 'undefined' ? COAST.G : []) W.push([g.p.x, g.p.z, 16000]);
+  if (typeof ROE !== 'undefined')
+    for (const P of ROE.posts())
+      if (P.side === 'jp' && P.guns.length) {
+        const q = P.m.getWorldPosition(new THREE.Vector3());
+        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0)) + 3000]);
+      }
+  for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 7000]);
+  const clear = (x, z) => W.every(([wx, wz, r]) => Math.hypot(x - wx, z - wz) >= r),
+    deep = (x, z) => {
+      for (const [dx, dz] of [[0, 0], [400, 0], [-400, 0], [0, 400], [0, -400]]) if (HR(x + dx, z + dz) > coastSea() - 12) return false;
+      return Math.max(Math.abs(x), Math.abs(z)) < 45000;
+    };
+  let at = null;
+  if (clear(x0, z0) && deep(x0, z0)) at = [x0, z0];
+  for (let r = 500; !at && r <= 40000; r += 500)
+    for (let a = 0; a < 360; a += Math.max(2, 360 / ((2 * Math.PI * r) / 500))) {
+      const x = x0 + Math.sin((a * Math.PI) / 180) * r,
+        z = z0 + Math.cos((a * Math.PI) / 180) * r;
+      if (clear(x, z) && deep(x, z)) {
+        at = [x, z];
+        break;
+      }
+    }
+  if (!at) return null;
+  /* away from the nearest threat */
+  let n = null,
+    nd = 1e12;
+  for (const w of W) {
+    const d = Math.hypot(at[0] - w[0], at[1] - w[1]) - w[2];
+    if (d < nd) ((nd = d), (n = w));
+  }
+  const hdg = n ? Math.atan2(-(at[0] - n[0]), -(at[1] - n[1])) : null;
+  return { x: at[0], z: at[1], hdg };
+}
 function shipReset() {
   const P = SHIPM.pts;
   if (P) {
     pos.set(P[0][0], SHIPM.Y, P[0][1]);
-    SHIP.hdg = Math.atan2(-(P[1][0] - P[0][0]), -(P[1][1] - P[0][1])); /* start on the PCE's own patrol line, heading along it */
+    SHIP.hdg = Math.atan2(-(P[1][0] - P[0][0]), -(P[1][1] - P[0][1])); /* her own patrol line, heading along it */
+    const S = pceStart(P[0][0], P[0][1]);
+    if (S) {
+      pos.set(S.x, SHIPM.Y, S.z);
+      if (S.hdg !== null) SHIP.hdg = S.hdg;
+    }
+    SHIP.hold = SHIP.hdg; /* the helmsman holds the heading she starts on */
   } else {
     pos.set(0, SHIPM.Y, -3000);
     SHIP.hdg = 0;

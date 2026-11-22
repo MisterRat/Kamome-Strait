@@ -894,11 +894,32 @@ const WORLD = (() => {
       return out;
     };
     /* is (x, z) within d of a route? (used by the site fences so a road gets its gate) */
+    /* the routes' points in 64 m cells, made once (the fences ask this for every panel: it walked every route's points each time) */
+    let NG = null,
+      NGr = null;
+    const ngKey = (i, j) => i * 100003 + j;
     const near = (x, z, d) => {
-      for (const R of list()) {
-        if (x < R.x0 - d || x > R.x1 + d || z < R.z0 - d || z > R.z1 + d) continue;
-        for (let k = 0; k < R.n; k++) if (Math.abs(R.x[k] - x) < d && Math.abs(R.z[k] - z) < d && Math.hypot(R.x[k] - x, R.z[k] - z) < d) return true;
+      const L = list();
+      if (NGr !== L) {
+        NGr = L;
+        NG = new Map();
+        for (const R of L)
+          for (let k = 0; k < R.n; k++) {
+            const key = ngKey(Math.floor(R.x[k] / 64), Math.floor(R.z[k] / 64));
+            let c = NG.get(key);
+            if (!c) NG.set(key, (c = []));
+            c.push(R.x[k], R.z[k]);
+          }
       }
+      const i0 = Math.floor((x - d) / 64),
+        i1 = Math.floor((x + d) / 64),
+        j0 = Math.floor((z - d) / 64),
+        j1 = Math.floor((z + d) / 64);
+      for (let i = i0; i <= i1; i++)
+        for (let j = j0; j <= j1; j++) {
+          const c = NG.get(ngKey(i, j));
+          if (c) for (let k = 0; k < c.length; k += 2) if (Math.abs(c[k] - x) < d && Math.abs(c[k + 1] - z) < d && Math.hypot(c[k] - x, c[k + 1] - z) < d) return true;
+        }
       return false;
     };
     const list = () => routes || plan();

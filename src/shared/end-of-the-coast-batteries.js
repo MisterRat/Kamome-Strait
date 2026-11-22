@@ -2165,21 +2165,34 @@ const SITES = [],
     for (let i = l0; i < AA.lamp.length; i++) mine.push(AA.lamp[i].grp);
     FARS.push({ F, mine, pat, cx: F.O.x, cz: F.O.z, far: null });
   };
+  /* THE FAR SITES ARE BUILT AFTER THE PAGE HAS LOADED (the user's, 2026-11-22: loading a game was slow; these took about a quarter of
+     it): one at a time, nearest the player first, while the start screen is up and, if he starts sooner, over his first seconds, when
+     they are still far off. FARQ holds what is still to build, in order; the ships anchored off the ports and Depot Mikawa's pier come
+     after their sites. When the last is built, every ground target is settled again onto its pad and road (SURF.resettle) */
+  const FARQ = [];
   for (const F of FS.list) {
     WH(F.O.x, F.O.z); /* make sure the pad height is known */
     const seed = Math.round(Math.abs(F.O.x) + Math.abs(F.O.z)) % 100000;
-    if (F.kind === 'port') farBuild(F, () => void harbour(F, true, seed));
-    else if (F.kind === 'air') farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)));
-    else farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F)));
+    FARQ.push({
+      F,
+      go: () =>
+        F.kind === 'port'
+          ? farBuild(F, () => void harbour(F, true, seed))
+          : F.kind === 'air'
+            ? farBuild(F, () => (farAirbase(F, seed), F.inland ? null : mkPatrol(F)))
+            : farBuild(F, () => (compound(F, seed), F.id === 'cv1' && mikawaLanding(F), mkPatrol(F))),
+    });
   }
-  {
-    const ports = FS.list.filter((f) => f.kind === 'port');
-    if (ports.length > 1) {
-      const [A, B] = ports;
-      mkCiv(M.freighter('jp'), 137, A, B, 70, 0, 7.8); /* anchored either side of the jetty's line, clear of each other */
-      mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
-    }
-  }
+  FARQ.push({
+    go: () => {
+      const ports = FS.list.filter((f) => f.kind === 'port');
+      if (ports.length > 1) {
+        const [A, B] = ports;
+        mkCiv(M.freighter('jp'), 137, A, B, 70, 0, 7.8); /* anchored either side of the jetty's line, clear of each other */
+        mkCiv(M.tanker('jp'), 153.5, B, A, -70, 900, 9.1);
+      }
+    },
+  });
   /* ----- THE NAVAL BASES (user's sites, 2026-11-20): the IJN base on the north tip of the long island and the US Navy PT-boat base on the
      south shore of the big island (FS.nav). Built in each site's own frame (u along the coast, d seaward) on its levelled coral pad. ----- */
   /* a craft moored or at anchor in frame F: rides the waves where she lies (ANCH, rideAt), the sea kept out of her (OCEAN hull) */
@@ -2314,9 +2327,17 @@ const SITES = [],
       mooredF(F, MODELS.get('jp-t14'), sideU, Md0 + 110, YS + Math.PI, 15, 3.6);
       /* her freighter runs between the base and Depot Mikawa (the user's, 2026-11-21): anchored off each, her Daihatsu taking the cargo
          to the mole's T-head here and to the depot's landing there (mkCiv) */
-      {
+      /* (queued after the far sites: Depot Mikawa, and so its landing, is built after the page has loaded) */
+      FARQ.push({ go: () => {
         const MK = FS.list.find((s) => s.id === 'cv1');
         const CH = FS.chan[0];
+        /* what she adds goes with the IJN base's far site, as when it was built with the base */
+        const fr = FARS.find((q) => q.F === F);
+        if (fr) scene.add = function (...a) {
+          fr.mine.push(...a);
+          return _sceneAdd.apply(this, a);
+        };
+        try {
         if (MK && MK.landing)
           mkCiv(M.freighter('jp'), 137, F, MK, 60, 0, 7.8, {
             jA: [-MT / 2 - 2.2, Md0 + ML - 4],
@@ -2329,6 +2350,12 @@ const SITES = [],
               if (G) G.mag = Math.min(G.cap, G.mag + T14MAG);
             },
           }); /* through the dredged channel */
+        } finally {
+          delete scene.add;
+        }
+      } });
+      {
+        const CH = FS.chan[0];
         /* the channel's buoys: red to port going in from the sea (left of a -> b), green to starboard, every 400 m */
         {
           const ax = CH.a[0],
@@ -2661,7 +2688,7 @@ const SITES = [],
   };
   for (const F of FS.nav) farBuild(F, () => naval(F));
   /* Depot Mikawa's landing pier, added to the depot's own far site (so it shows and hides with it) */
-  {
+  FARQ.push({ go: () => {
     const MK = FS.list.find((s) => s.id === 'cv1'),
       fr = FARS.find((q) => q.F === MK);
     if (MK && MK.shoreD && fr) {
@@ -2677,7 +2704,29 @@ const SITES = [],
         delete scene.add;
       }
     }
-  }
+  } });
+  /* the next far site: nearest the eye first (the ports' ships and Mikawa's pier keep their places after the sites) */
+  let farSorted = false;
+  const farNext = () => {
+    if (!FARQ.length) return false;
+    if (!farSorted) {
+      farSorted = true;
+      const d = (q) => (q.F ? Math.hypot(q.F.O.x - cam.position.x, q.F.O.z - cam.position.z) : 1e12);
+      const sites = FARQ.filter((q) => q.F).sort((a, b) => d(a) - d(b));
+      FARQ.splice(0, FARQ.length, ...sites, ...FARQ.filter((q) => !q.F));
+    }
+    FARQ.shift().go();
+    if (!FARQ.length && SURF.resettle) SURF.resettle();
+    return true;
+  };
+  SITE.farLeft = () => FARQ.length;
+  SITE.farAll = () => {
+    while (farNext());
+  };
+  addEventListener('load', () => {
+    const tick = () => farNext() && setTimeout(tick, 20);
+    setTimeout(tick, 60);
+  });
   SITE.far = FARS;
   SITE.SEA = LANES; /* the sea-lane finder */
   SITE.civ = CIV;
