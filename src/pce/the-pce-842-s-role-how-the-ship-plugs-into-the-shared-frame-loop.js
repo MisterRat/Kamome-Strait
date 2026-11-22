@@ -24,6 +24,7 @@ SIMS.add({
   },
   hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
   holdFire: () => OODO.hold /* the OOD's order (THE OOD'S ORDERS) */,
+  gunPri: () => OODO.pri /* the OOD's target priority */,
   oodCalls: () => ordPlayer() /* the player as OOD calls for air support himself */,
   screen: (a, b) => smkScreen(a, b) /* her smoke screen (THE ENGINE ROOM ON PATROL) */,
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right

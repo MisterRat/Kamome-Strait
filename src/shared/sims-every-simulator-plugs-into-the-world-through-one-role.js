@@ -101,6 +101,7 @@ const SIMS = {
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
+    gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
     oodCalls: () => false /* the player decides the vehicle's own calls for air support (the PCE with the player as OOD) */,
     screen: () => 0 /* how much smoke (0..1) lies between a gun at a and the player's vehicle at b, (a, b): the PCE's smoke screen */,
     torpedoed: () => {},

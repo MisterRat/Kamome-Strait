@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.100';
+const VERSION = '5.101';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -747,6 +747,7 @@ const SIMS = {
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
+    gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
     oodCalls: () => false /* the player decides the vehicle's own calls for air support (the PCE with the player as OOD) */,
     screen: () => 0 /* how much smoke (0..1) lies between a gun at a and the player's vehicle at b, (a, b): the PCE's smoke screen */,
     torpedoed: () => {},
@@ -21760,6 +21761,7 @@ const SITES = [],
     for (let i = 0; i < n; i++) {
       const e = target(MODELS.get('jp-t14', i % 2, undefined, true), 'ship', 30, 15 * 0.3, u0, d0, F.ryS),
         wl = -e.k0 - e.s1 / 2;
+      e.t14 = true; /* a torpedo boat (the OOD's target priority tells her from the other ships) */
       e.m.add(shipWakeMesh(15 / 78, wl + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
       /* the 25 mm on its pedestal, stowed trained forward until it has a target */
@@ -23977,11 +23979,35 @@ var ROE = (() => {
     return L;
   };
   const armed = (q) => q.kind === 'aa' || (q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat');
+  /* what kind of enemy target q is, for a target priority (the PCE's OOD's order): 'escort' (a warship), 't14' (a torpedo boat),
+     'cargo' (a freighter or tanker, not a small boat), 'coast' (a coast battery gun), 'aa' (an AA gun), or '' */
+  const tkind = (q) =>
+    q.type === 'coast12' ? 'coast' : q.kind === 'aa' ? 'aa' : q.type !== 'ship' ? '' : q.esc ? 'escort' : q.t14 ? 't14' : q.r > 10 ? 'cargo' : '';
+  /* the nearest enemy of kind k within r of o (with the settings that let them fight: ships with Ships, the shore with Shore) */
+  const nearestOf = (k, o, r) => {
+    let best = null,
+      bd = r;
+    if (!(k === 'coast' || k === 'aa' ? war() : navy())) return null;
+    for (const q of T) {
+      if (q.dead || q.side === 'us' || q.m.visible === false || tkind(q) !== k) continue;
+      const d = q.c.distanceTo(o);
+      if (d < bd) ((bd = d), (best = { k: 't', q, p: q.c, v: q.ringV || new V3(), d }));
+    }
+    return best;
+  };
   const pick = (P, g, o) => {
     const s = g.s;
     let best = null,
       bd = 1e9;
     if (P.kind === 'escort' && !navy()) return null; /* the escorts fight only with the Ships setting */
+    /* her own guns: the OOD's target priority first (SIMS.cur.gunPri: '' or 'air' leaves the usual order) */
+    if (P.kind === 'own') {
+      const pk = SIMS.cur.gunPri();
+      if (pk && pk !== 'air') {
+        const b = nearestOf(pk, o, pk === 'aa' ? s.surf * 0.66 : s.surf);
+        if (b) return b;
+      }
+    }
     /* the player's vehicle first (the Japanese) */
     if (P.side === 'jp' && started && !crashed) {
       const d = pos.distanceTo(o);
@@ -24163,7 +24189,7 @@ var ROE = (() => {
     for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
     return W;
   };
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, tkind, nearestOf, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
 })();
 /* AIR SUPPORT, both sides (the user's, 2026-11-21): sea units and ground installations under fire call for air support from the nearest
    airbase of their side. Two fighters launch after the scramble (90 s), take off along the runway, climb and fly out at cruise speed;

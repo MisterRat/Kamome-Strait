@@ -49,6 +49,11 @@ function crewStep(dt) {
             if (d < Math.min(rS, bd)) ((bd = d), (best = { p: q.p, t: q.t }));
           }
       }
+      /* the OOD's target priority (THE OOD'S ORDERS): the nearest of that kind in reach comes first */
+      if (OODO.pri && OODO.pri !== 'air') {
+        const b = ROE.nearestOf(OODO.pri, mz, OODO.pri === 'aa' ? rS * 0.66 : rS);
+        if (b) ((best = { p: b.p, t: b.q }), (bd = b.d));
+      }
       g.tg = best;
       g.aimOk = false;
       if (best) {

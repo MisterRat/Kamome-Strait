@@ -463,6 +463,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>The boxes</td><td>Your orders open on the left and a drill's box on the right, both at once; the picture (the drill's, or the sonar plot) sits at the bottom in the middle.</td></tr>
 <tr><td>The reports</td><td>Comms reports to the bridge: the radar's enemy aircraft, sonar's submarine (his bearing and range), the power and the fuel. With you as OOD they are yours to act on; nothing is done until you order it.</td></tr>
 <tr><td>Hold fire / guns free</td><td>The gun crews at the mounts you are not on cease fire, or open it again. The order stands until you change it.</td></tr>
+<tr><td>Target priority</td><td>Space steps through it: aircraft (the usual), escorts, torpedo boats, shore guns, AA guns, cargo ships. The gun crews take the nearest of that kind in their reach first; with none in reach, their usual order (aircraft, escorts, torpedo boats, shore guns, AA guns). Cargo ships, unarmed, only when you put them first.</td></tr>
 <tr><td>Request air support</td><td>Comms calls Kamome Control for two P-51s (one call at a time: while a flight is answering, no other).</td></tr>
 <tr><td>Make smoke / secure smoke</td><td>The engine room lights off the smoke generator aft. The screen lies on the water for a minute or two: enemy gunners laying on you through it get only glimpses, and through a thick part they cannot see you at all. About fifteen minutes of fog oil, refilled with the rearming.</td></tr>
 <tr><td>Attack</td><td>With a sonar contact: fire the Hedgehog (best with him about 250 yd ahead, dead on the bow) or the pattern (the racks and the K-guns over 14 s, as her stern comes over him), at the depth setting (Normal: sonar's estimate; Hardcore: yours). The plot shows where sonar puts him (not in Hardcore). When the run is over (he is well astern, or nothing more has been fired for a minute and a half) you get its assessment, marked as in the drill; either weapon alone can earn full marks. In the antisubmarine drill these orders are the drill's own Space and R.</td></tr>
@@ -584,7 +585,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.124';
+const VERSION = '0.125';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -740,6 +741,7 @@ const SIMS = {
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
+    gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
     oodCalls: () => false /* the player decides the vehicle's own calls for air support (the PCE with the player as OOD) */,
     screen: () => 0 /* how much smoke (0..1) lies between a gun at a and the player's vehicle at b, (a, b): the PCE's smoke screen */,
     torpedoed: () => {},
@@ -826,6 +828,7 @@ SIMS.add({
   },
   hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
   holdFire: () => OODO.hold /* the OOD's order (THE OOD'S ORDERS) */,
+  gunPri: () => OODO.pri /* the OOD's target priority */,
   oodCalls: () => ordPlayer() /* the player as OOD calls for air support himself */,
   screen: (a, b) => smkScreen(a, b) /* her smoke screen (THE ENGINE ROOM ON PATROL) */,
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
@@ -19535,6 +19538,7 @@ const SITES = [],
     for (let i = 0; i < n; i++) {
       const e = target(MODELS.get('jp-t14', i % 2, undefined, true), 'ship', 30, 15 * 0.3, u0, d0, F.ryS),
         wl = -e.k0 - e.s1 / 2;
+      e.t14 = true; /* a torpedo boat (the OOD's target priority tells her from the other ships) */
       e.m.add(shipWakeMesh(15 / 78, wl + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
       /* the 25 mm on its pedestal, stowed trained forward until it has a target */
@@ -21752,11 +21756,35 @@ var ROE = (() => {
     return L;
   };
   const armed = (q) => q.kind === 'aa' || (q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat');
+  /* what kind of enemy target q is, for a target priority (the PCE's OOD's order): 'escort' (a warship), 't14' (a torpedo boat),
+     'cargo' (a freighter or tanker, not a small boat), 'coast' (a coast battery gun), 'aa' (an AA gun), or '' */
+  const tkind = (q) =>
+    q.type === 'coast12' ? 'coast' : q.kind === 'aa' ? 'aa' : q.type !== 'ship' ? '' : q.esc ? 'escort' : q.t14 ? 't14' : q.r > 10 ? 'cargo' : '';
+  /* the nearest enemy of kind k within r of o (with the settings that let them fight: ships with Ships, the shore with Shore) */
+  const nearestOf = (k, o, r) => {
+    let best = null,
+      bd = r;
+    if (!(k === 'coast' || k === 'aa' ? war() : navy())) return null;
+    for (const q of T) {
+      if (q.dead || q.side === 'us' || q.m.visible === false || tkind(q) !== k) continue;
+      const d = q.c.distanceTo(o);
+      if (d < bd) ((bd = d), (best = { k: 't', q, p: q.c, v: q.ringV || new V3(), d }));
+    }
+    return best;
+  };
   const pick = (P, g, o) => {
     const s = g.s;
     let best = null,
       bd = 1e9;
     if (P.kind === 'escort' && !navy()) return null; /* the escorts fight only with the Ships setting */
+    /* her own guns: the OOD's target priority first (SIMS.cur.gunPri: '' or 'air' leaves the usual order) */
+    if (P.kind === 'own') {
+      const pk = SIMS.cur.gunPri();
+      if (pk && pk !== 'air') {
+        const b = nearestOf(pk, o, pk === 'aa' ? s.surf * 0.66 : s.surf);
+        if (b) return b;
+      }
+    }
     /* the player's vehicle first (the Japanese) */
     if (P.side === 'jp' && started && !crashed) {
       const d = pos.distanceTo(o);
@@ -21938,7 +21966,7 @@ var ROE = (() => {
     for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
     return W;
   };
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, tkind, nearestOf, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
 })();
 /* AIR SUPPORT, both sides (the user's, 2026-11-21): sea units and ground installations under fire call for air support from the nearest
    airbase of their side. Two fighters launch after the scramble (90 s), take off along the runway, climb and fly out at cruise speed;
@@ -26147,6 +26175,11 @@ function crewStep(dt) {
             const d = q.p.distanceTo(mz);
             if (d < Math.min(rS, bd)) ((bd = d), (best = { p: q.p, t: q.t }));
           }
+      }
+      /* the OOD's target priority (THE OOD'S ORDERS): the nearest of that kind in reach comes first */
+      if (OODO.pri && OODO.pri !== 'air') {
+        const b = ROE.nearestOf(OODO.pri, mz, OODO.pri === 'aa' ? rS * 0.66 : rS);
+        if (b) ((best = { p: b.p, t: b.q }), (bd = b.d));
       }
       g.tg = best;
       g.aimOk = false;
@@ -31232,6 +31265,7 @@ DRILLS.push({
    contacts, sonar's submarine, the power and the fuel); the OOD decides and gives his orders. At station 1, G opens his orders
    (Q / E choose, Space gives it; G again closes them):
      HOLD FIRE / GUNS FREE    the gun crews (the AI at the mounts the player is not on) cease fire or open it again
+     TARGET PRIORITY          the kind of target the crews take first: aircraft, escorts, torpedo boats, shore guns, AA guns, cargo ships
      REQUEST AIR SUPPORT      Comms calls Kamome Control (one call at a time: AIRSUP)
      MAKE SMOKE / SECURE      the engine room lights off the smoke generator (THE ENGINE ROOM ON PATROL) or shuts it down
      ATTACK: HEDGEHOG         the torpedomen fire it (the bombs land about 250 yd ahead: him dead on the bow, 200 to 300 yd)
@@ -31241,10 +31275,21 @@ DRILLS.push({
    the radar finds enemy aircraft (CAP), lays smoke when she comes under shellfire and secures it when it stops, and attacks a
    Japanese submarine sonar holds: he cons her down sonar's bearing at attack speed and fires on the same timing as the drill.
    ===================================================================================================================== */
-var OODO = { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null };
+var OODO = { menu: false, sel: 0, hold: false, pri: 'air', dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null };
 const ORD_DEP = [50, 100, 150, 200, 250, 300];
+/* the target priority (the user's, 2026-11-22): the kind of target the gun crews take first, the nearest of it in reach; if none,
+   their usual order (aircraft, then escorts, torpedo boats, shore guns, AA guns). Cargo ships (unarmed) only when put first */
+const ORD_PRI = [
+  ['air', 'AIRCRAFT'],
+  ['escort', 'ESCORTS'],
+  ['t14', 'TORPEDO BOATS'],
+  ['coast', 'SHORE GUNS'],
+  ['aa', 'AA GUNS'],
+  ['cargo', 'CARGO SHIPS'],
+];
+const ordPriName = () => (ORD_PRI.find((p) => p[0] === OODO.pri) || ORD_PRI[0])[1];
 function ordReset() {
-  Object.assign(OODO, { menu: false, sel: 0, hold: false, dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null });
+  Object.assign(OODO, { menu: false, sel: 0, hold: false, pri: 'air', dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null });
 }
 /* the player is the OOD: at station 1 in the pilothouse */
 const ordPlayer = () => camMode == 1 && SHIP.stn === 1;
@@ -31261,6 +31306,7 @@ function ordList() {
   const C = ordContact();
   return [
     { id: 'guns', t: OODO.hold ? 'GUNS FREE' : 'HOLD FIRE' },
+    { id: 'pri', t: 'TARGET PRIORITY: ' + ordPriName() },
     { id: 'air', t: 'REQUEST AIR SUPPORT', off: ordAirUp() && 'A FLIGHT IS ANSWERING', hot: CAP.S.raid && !ordAirUp() },
     { id: 'smoke', t: SMK.on ? 'SECURE SMOKE' : 'MAKE SMOKE', off: !SMK.on && SMK.oil <= 0 && 'NO FOG OIL' },
     { id: 'hh', t: 'ATTACK: FIRE HEDGEHOG', off: !C ? 'NO SONAR CONTACT' : HH.n <= 0 ? 'THE HEDGEHOG IS EMPTY' : HH.L.length || HH.q.length ? 'ITS BOMBS ARE IN THE AIR' : '', hot: !!C },
@@ -31276,6 +31322,11 @@ function ordGive(id, by) {
     OODO.hold = !OODO.hold;
     B(OODO.hold ? 'ALL GUNS, BRIDGE. CEASE FIRE, CEASE FIRE. HOLD YOUR FIRE.' : 'ALL GUNS, BRIDGE. GUNS FREE. ENGAGE THE ENEMY.');
     note(OODO.hold ? 'OOD: HOLD FIRE' : 'OOD: GUNS FREE');
+  } else if (id === 'pri') {
+    const i = ORD_PRI.findIndex((p) => p[0] === OODO.pri);
+    OODO.pri = ORD_PRI[(i + 1) % ORD_PRI.length][0];
+    B('ALL GUNS, BRIDGE. TARGET PRIORITY: ' + ordPriName() + '.');
+    note('TARGET PRIORITY: ' + ordPriName());
   } else if (id === 'air') {
     if (ordAirUp()) return note('AIR SUPPORT IS ALREADY ANSWERING YOUR LAST CALL');
     B('COMMS, BRIDGE: REQUEST AIR SUPPORT FROM KAMOME CONTROL.');
@@ -31332,7 +31383,7 @@ function ordReports() {
   if (!ENG.pwr) R.push('<b style="color:#ff8a6a">NO POWER: RADAR AND SONAR DEAD</b>');
   if (ENG.leak > 0) R.push('<b style="color:#ff8a6a">LOSING FUEL</b>');
   if (ENG.heat > 1.1) R.push('<b style="color:#ff8a6a">ENGINES OVERHEATED</b>');
-  R.push('GUNS <b>' + (OODO.hold ? 'HOLDING FIRE' : 'FREE') + '</b> &middot; SMOKE <b>' + (SMK.on ? 'ON' : 'OFF') + '</b> &middot; FUEL <b>' + Math.round(ENG.fuel * 100) + '%</b>');
+  R.push('GUNS <b>' + (OODO.hold ? 'HOLDING FIRE' : 'FREE') + '</b> &middot; FIRST <b>' + ordPriName() + '</b> &middot; SMOKE <b>' + (SMK.on ? 'ON' : 'OFF') + '</b> &middot; FUEL <b>' + Math.round(ENG.fuel * 100) + '%</b>');
   return R;
 }
 DRILLP.push({

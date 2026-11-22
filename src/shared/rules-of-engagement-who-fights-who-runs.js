@@ -210,11 +210,35 @@ var ROE = (() => {
     return L;
   };
   const armed = (q) => q.kind === 'aa' || (q.type === 'ship' && q.kind !== 'civ' && q.kind !== 'boat');
+  /* what kind of enemy target q is, for a target priority (the PCE's OOD's order): 'escort' (a warship), 't14' (a torpedo boat),
+     'cargo' (a freighter or tanker, not a small boat), 'coast' (a coast battery gun), 'aa' (an AA gun), or '' */
+  const tkind = (q) =>
+    q.type === 'coast12' ? 'coast' : q.kind === 'aa' ? 'aa' : q.type !== 'ship' ? '' : q.esc ? 'escort' : q.t14 ? 't14' : q.r > 10 ? 'cargo' : '';
+  /* the nearest enemy of kind k within r of o (with the settings that let them fight: ships with Ships, the shore with Shore) */
+  const nearestOf = (k, o, r) => {
+    let best = null,
+      bd = r;
+    if (!(k === 'coast' || k === 'aa' ? war() : navy())) return null;
+    for (const q of T) {
+      if (q.dead || q.side === 'us' || q.m.visible === false || tkind(q) !== k) continue;
+      const d = q.c.distanceTo(o);
+      if (d < bd) ((bd = d), (best = { k: 't', q, p: q.c, v: q.ringV || new V3(), d }));
+    }
+    return best;
+  };
   const pick = (P, g, o) => {
     const s = g.s;
     let best = null,
       bd = 1e9;
     if (P.kind === 'escort' && !navy()) return null; /* the escorts fight only with the Ships setting */
+    /* her own guns: the OOD's target priority first (SIMS.cur.gunPri: '' or 'air' leaves the usual order) */
+    if (P.kind === 'own') {
+      const pk = SIMS.cur.gunPri();
+      if (pk && pk !== 'air') {
+        const b = nearestOf(pk, o, pk === 'aa' ? s.surf * 0.66 : s.surf);
+        if (b) return b;
+      }
+    }
     /* the player's vehicle first (the Japanese) */
     if (P.side === 'jp' && started && !crashed) {
       const d = pos.distanceTo(o);
@@ -396,5 +420,5 @@ var ROE = (() => {
     for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
     return W;
   };
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, tkind, nearestOf, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
 })();

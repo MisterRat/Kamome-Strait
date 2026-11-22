@@ -862,6 +862,7 @@ const SITES = [],
     for (let i = 0; i < n; i++) {
       const e = target(MODELS.get('jp-t14', i % 2, undefined, true), 'ship', 30, 15 * 0.3, u0, d0, F.ryS),
         wl = -e.k0 - e.s1 / 2;
+      e.t14 = true; /* a torpedo boat (the OOD's target priority tells her from the other ships) */
       e.m.add(shipWakeMesh(15 / 78, wl + 0.12) /* a small boat's wake, on the water at her waterline */);
       e.m.matrixAutoUpdate = true;
       /* the 25 mm on its pedestal, stowed trained forward until it has a target */
