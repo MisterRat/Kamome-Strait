@@ -136,7 +136,8 @@ function updAA(dt) {
       const sight = night < 0.35 ? gunVis : litAny > 0 ? Math.min(gunVis > 0 ? 2500 : 0, lightVis) : Math.min(800, gunVis);
       /* and they need a clear line to the target past the hills (checked once a second) */
       if ((g.lt = (g.lt || 0) - dt) <= 0) (g.lt = 1), (g.los = aaSees(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)));
-      can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2;
+      g.scr = SIMS.cur.afloat ? SIMS.cur.screen(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)) : 0; /* a ship's smoke screen */
+      can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2 && g.scr < 0.75;
       /* targets of opportunity (RULES OF ENGAGEMENT): not on the player, the nearest Allied unit it can see in range (an escort P-51, a
          fleet PCE or PT boat, the Liberty) */
       if (!can && hot && typeof ROE !== 'undefined') {
@@ -189,7 +190,7 @@ function updAA(dt) {
             vr = (g.v.x * dx + g.v.y * dy + g.v.z * dz) * u * u,
             vp = Math.hypot(g.v.x - dx * vr, g.v.y - dy * vr, g.v.z - dz * vr),
             tof = R / 840,
-            crew = 0.6 + DIFF.spread * 8,
+            crew = (0.6 + DIFF.spread * 8) * (1 + 5 * (g.tg ? 0 : g.scr || 0)),
             s = Math.hypot(0.002, 0.003, crew * Math.hypot((0.35 * vp * tof) / Math.max(R, 50), (0.5 * vp) / Math.max(R, 50)), (crew * 0.15 * 4.9 * tof * tof) / Math.max(R, 50)),
             gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2,
             sg = g.bias,

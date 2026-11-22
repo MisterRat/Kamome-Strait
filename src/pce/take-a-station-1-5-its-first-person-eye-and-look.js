@@ -29,6 +29,8 @@ function shipReset() {
   SHIP.u = SHIP.r = SHIP.tel = SHIP.rud = 0;
   RTB.on = false; /* not returning to base */
   sdmReset(); /* her battle damage mended */
+  if (typeof SMK === 'object' && SMK) engReset(); /* fuel, power, the strainer, the smoke (var SMK: before THE ENGINE ROOM ON PATROL loads) */
+  if (typeof OODO === 'object' && OODO) ordReset(); /* the OOD's standing orders */
   if (typeof RAID === 'object' && RAID) (raidClear(), (RAID.next = 90), (RAID.hits = RAID.kills = 0)) /* var RAID: shipReset runs before THE AIR RAIDS block loads */;
   ENG.ans = 0;
   DC.rack = [8, 8];

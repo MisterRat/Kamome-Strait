@@ -9,6 +9,9 @@
    ===================================================================================================================== */
 var DRILLS = [];
 var DRILL = { on: null /* the drill running */, menu: false, sel: 0, D: null /* its state */, deb: null /* the last debrief */, boxT: 0 };
+/* the station's other boxes, shown in the drill box when no drill, list or debrief is up: { stn, show() -> bool, html() -> html,
+   draw(g, w, h) (optional) }: the engineer's repair jobs, the OOD's orders */
+var DRILLP = [];
 const drillSay = (who, txt) => RADIO.add(who, txt, { own: true });
 const drillHC = () => FM.use('orders') || FM.use('aa') || FM.use('walk') || FM.use('eng'); /* Hardcore: any of its options */
 const drillList = () => DRILLS.filter((d) => d.stn === SHIP.stn);
@@ -66,6 +69,7 @@ function drillKey(code, rep) {
   }
   if (DRILL.on && DRILL.on.key) return DRILL.on.key(DRILL.D, code, rep) === true;
   if (dcxLive()) return dcxKey(code, rep);
+  if (SHIP.stn === 1) return ordKey(code, rep);
   return false;
 }
 /* each frame */
@@ -96,7 +100,7 @@ function drillBox(here) {
     el.innerHTML = '<div id="drillTx"></div><canvas id="drillCv" width="500" height="150" style="display:none;width:100%;margin-top:6px;border-radius:4px;background:#0b1218"></canvas>';
     document.body.appendChild(el);
   }
-  const live = !DRILL.on && !DRILL.menu && dcxLive() /* in action: the engineer's repair jobs */,
+  const live = !DRILL.on && !DRILL.menu ? DRILLP.find((p) => p.stn === SHIP.stn && p.show()) : null /* in action: the repair jobs, the orders */,
     show = here && (DRILL.on || DRILL.menu || DRILL.deb || live) && !paused && (SHIP.stn === 1 || SHIP.stn === 2);
   el.style.display = show ? 'block' : 'none';
   if (!show) return;
@@ -115,8 +119,8 @@ function drillBox(here) {
   let h = '',
     pic = null;
   if (live) {
-    h = '<b style="color:#ff8a6a">DAMAGE CONTROL - ENGINE ROOM</b><br>' + dcxText();
-    pic = { draw: () => dcxDraw(cv.getContext('2d'), cv.width, cv.height) };
+    h = live.html();
+    if (live.draw && (!live.pic || live.pic())) pic = { draw: (D, g, w, h) => live.draw(g, w, h) };
   } else if (DRILL.menu) {
     h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
     drillList().forEach((d, i) => {
@@ -144,6 +148,12 @@ function drillBox(here) {
     pic.draw(DRILL.D, g, cv.width, cv.height);
   }
 }
+DRILLP.push({
+  stn: 2,
+  show: () => dcxLive(),
+  html: () => '<b style="color:#ff8a6a">' + (DCX.L.every((j) => DCX_K[j.k]) ? 'ENGINE ROOM' : 'DAMAGE CONTROL - ENGINE ROOM') + '</b><br>' + dcxText(),
+  draw: (g, w, h) => dcxDraw(g, w, h),
+});
 /* a mark out of full for one measure: full at or better than `good`, nothing at or worse than `bad` */
 const drillMark = (x, good, bad, full) => full * Math.max(0, Math.min(1, (bad - x) / (bad - good)));
 /* a timing bar (the wrench, the shoring maul): a marker sweeps to and fro; Space when it is in the green */

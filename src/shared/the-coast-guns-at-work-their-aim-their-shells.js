@@ -39,7 +39,7 @@ function coastUpdate(dt) {
       const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
         was = g.tg;
       g.tg = null;
-      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt);
+      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt) && SIMS.cur.screen(g.p, tgt) < 0.75 /* her smoke hides her */;
       if (!g.sees && typeof ROE !== 'undefined') {
         const u = ROE.pickAlly(g.p, maxR, false);
         if (u && aaSees(g.p, new THREE.Vector3(u.p.x, coastSea() + 3, u.p.z))) ((g.tg = u), (g.sees = true));
@@ -144,7 +144,7 @@ function coastUpdate(dt) {
     } else if (typeof gunBurst === 'function') gunBurst(s.p, { splash: 1.2, blast: null }, false);
     else explode(s.p.clone(), 6);
     /* spotting: the battery sees the splash short / over and left / right, and corrects half the error */
-    if (g && !g.t.dead) {
+    if (g && !g.t.dead && !(!s.tg && SIMS.cur.screen(g.p, s.p) > 0.35) /* a splash in her smoke cannot be spotted */) {
       g.er *= 0.45 + Math.random() * 0.2;
       g.ed *= 0.45 + Math.random() * 0.2;
       if (Math.abs(g.er) < 0.012) g.er = _cg() * 0.012;

@@ -189,7 +189,7 @@ var ROE = (() => {
       else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
       else if (q.side !== 'us' && q.esc) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead) /* the Ukurus (not the freighters and tankers at anchor) */;
     }
-    if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed, true);
+    if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed || SIMS.cur.holdFire(), true);
     POSTS = L;
     return L;
   };
@@ -295,7 +295,14 @@ var ROE = (() => {
           tof = R / s.mv,
           air = T0.air || T0.k !== 'player' && T0.k !== 't',
           E = aimErr(g, R, air, T0.v),
-          aim = T0.p.clone().addScaledVector(E.v, tof * 0.95).add(E.off);
+          scr = T0.k === 'player' && !T0.air ? SIMS.cur.screen(o, T0.p) : 0 /* her smoke between them: they lay on glimpses */,
+          aim = T0.p.clone().addScaledVector(E.v, tof * 0.95).addScaledVector(E.off, 1 + 5 * scr);
+        if (scr > 0.75) {
+          /* hidden in it: they cannot see her to lay on */
+          if (P.mag) MAG[g.id]++;
+          g.tg = null;
+          continue;
+        }
         if (T0.k === 'player' && !T0.air) aim.y = coastSea() + 2;
         aim.y += 4.9 * tof * tof;
         const d = aim.sub(o).normalize(),

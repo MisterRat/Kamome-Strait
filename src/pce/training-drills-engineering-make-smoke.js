@@ -26,24 +26,14 @@ DRILLS.push({
       return;
     }
     if (D.ph === 'on' || D.ph === 'secure') {
-      /* the band wanders */
-      if (Math.random() < dt * 0.4) D.cv = (Math.random() - 0.5) * (D.hc ? 0.16 : 0.09);
-      D.c = Math.max(0.2, Math.min(0.85, D.c + D.cv * dt));
-      const half = D.hc ? 0.09 : 0.14,
-        off = Math.abs(D.f - D.c);
-      D.dens = Math.max(0, 1 - Math.max(0, off - half * 0.5) / half);
+      smkBand(D, dt, D.hc); /* the band wanders */
       D.oil += D.f * dt;
       if (D.ph === 'on') {
         D.lay += dt;
         if (D.dens > 0.7) D.good += dt;
         if (D.lay > 60) ((D.ph = 'secure'), (D.t1 = D.t), drillSay('BRIDGE', 'SECURE SMOKE.'));
       } else if (D.t - D.t1 > 30) return this.finish(D);
-      /* the smoke off her stern: white fog-oil smoke, thick or thin, drifting astern and rising slowly */
-      if ((D.puffT -= dt) <= 0) {
-        D.puffT = 0.12;
-        const p = SHIPM.mesh.localToWorld(new THREE.Vector3(PCEM.XF(91), 2.2, 0));
-        if (D.dens > 0.05) fxAdd(p, D.f > D.c + 0.1 ? 0xf2f2ee : 0xd8d8d4, 2 + 4 * D.dens, 12 + 30 * D.dens, 20, 0.4, false);
-      }
+      smkPuff(D, dt, false); /* the smoke off her stern */
     } else if (D.t - D.t0 > 30) return this.finish(D);
   },
   finish(D) {
@@ -75,24 +65,6 @@ DRILLS.push({
     );
   },
   draw(D, g, w, h) {
-    if (D.ph !== 'on' && D.ph !== 'secure') return;
-    const x0 = 30,
-      bw = w - 60,
-      half = D.hc ? 0.09 : 0.14;
-    g.fillStyle = '#1c2a33';
-    g.fillRect(x0, 60, bw, 18);
-    g.fillStyle = '#2f7d3f';
-    g.fillRect(x0 + bw * (D.c - half), 60, bw * half * 2, 18);
-    g.fillStyle = '#ffd27a';
-    g.fillRect(x0 + bw * D.f - 2, 54, 4, 30);
-    g.fillStyle = '#b8c4c8';
-    g.font = '12px monospace';
-    g.fillText('LEAN', x0, 100);
-    g.textAlign = 'right';
-    g.fillText('RICH', x0 + bw, 100);
-    g.textAlign = 'left';
-    g.fillText('FOG OIL FLOW (KEEP IT IN THE GREEN)', x0, 46);
-    g.fillStyle = 'rgba(220,220,214,' + (0.15 + 0.7 * (D.dens || 0)) + ')';
-    g.fillRect(x0, 112, bw * (D.dens || 0), 14);
+    if (D.ph === 'on' || D.ph === 'secure') smkBar(g, w, D, D.hc);
   },
 });

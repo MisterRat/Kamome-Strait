@@ -23,6 +23,9 @@ SIMS.add({
     return true;
   },
   hcChanged: () => modeSync() /* the wave motion follows Hardcore */,
+  holdFire: () => OODO.hold /* the OOD's order (THE OOD'S ORDERS) */,
+  oodCalls: () => ordPlayer() /* the player as OOD calls for air support himself */,
+  screen: (a, b) => smkScreen(a, b) /* her smoke screen (THE ENGINE ROOM ON PATROL) */,
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
      button held also lays it as the mouse is dragged */
   mouseDown: (e) => {
@@ -91,6 +94,7 @@ SIMS.add({
   /* Settings > Enable enemy: Shore runs the world's ground fire (the 25 mm guns and searchlights) at the ship, and the coast guns.
      The P-51's weapons, enemies, missions and guidance stay off until the PCE has her own */
   liveLate: (dt) => {
+    fxStep(dt); /* the shared effects grow, fade and go (until 0.117 they never did in the PCE) */
     if (AA.on) updAA(dt);
   },
   /* the station's eye (SHIP.EYE), turned by the station's own look and the head; at a gun, the gun's sight */

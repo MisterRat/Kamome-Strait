@@ -37,6 +37,7 @@ function sdmHit(kind) {
   }
   /* the player in the engine room: the repairs are his jobs (DAMAGE CONTROL AT STATION 2) */
   dcxFromHit(kind, SDM.fire > f0, SDM.eng > e0);
+  engHit(kind); /* the switchboard, the fuel tanks (THE ENGINE ROOM ON PATROL) */
 }
 /* each frame: the water, the fires, the damage control, her settling, her loss */
 function sdmStep(dt) {

@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.95';
+const VERSION = '5.96';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -746,6 +746,9 @@ const SIMS = {
     subsOn: () => false /* the enemy submarine, I-58, on patrol (SUBS): the PCE's Subs setting */,
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
     shelled: () => {} /* a coast gun's shell has struck the player's vehicle */,
+    holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
+    oodCalls: () => false /* the player decides the vehicle's own calls for air support (the PCE with the player as OOD) */,
+    screen: () => 0 /* how much smoke (0..1) lies between a gun at a and the player's vehicle at b, (a, b): the PCE's smoke screen */,
     torpedoed: () => {},
     label: '',
     fileTag: '',
@@ -15679,6 +15682,24 @@ function fxAdd(p, col, s0, s1, life, vy, addv) {
   scene.add(s);
   FX.push({ s, t: 0, life, s0, s1, vy });
 }
+/* each frame: the effects grow, fade and go (every simulator calls it from its role's frame) */
+function fxStep(dt) {
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i];
+    f.t += dt;
+    const k = f.t / f.life;
+    if (k >= 1) {
+      scene.remove(f.s);
+      f.s.material.dispose();
+      FX.splice(i, 1);
+      continue;
+    }
+    const s = f.s0 + (f.s1 - f.s0) * k;
+    f.s.scale.set(s, s, 1);
+    f.s.material.opacity = 1 - k;
+    f.s.position.y += f.vy * dt;
+  }
+}
 function explode(p, size) {
   fxAdd(p, 0xff9a30, size * 0.5, size * 3, 0.7, 0, true);
   fxAdd(p, 0xffe0a0, size * 0.3, size * 1.6, 0.35, 0, true);
@@ -15874,21 +15895,7 @@ function updWeapons(dt) {
       BM.splice(i, 1);
     }
   }
-  for (let i = FX.length - 1; i >= 0; i--) {
-    const f = FX[i];
-    f.t += dt;
-    const k = f.t / f.life;
-    if (k >= 1) {
-      scene.remove(f.s);
-      f.s.material.dispose();
-      FX.splice(i, 1);
-      continue;
-    }
-    const s = f.s0 + (f.s1 - f.s0) * k;
-    f.s.scale.set(s, s, 1);
-    f.s.material.opacity = 1 - k;
-    f.s.position.y += f.vy * dt;
-  }
+  fxStep(dt); /* the effects (shared) */
 }
 function resetWeapons() {
   ammo = AMMO0.slice();
@@ -17775,7 +17782,8 @@ function updAA(dt) {
       const sight = night < 0.35 ? gunVis : litAny > 0 ? Math.min(gunVis > 0 ? 2500 : 0, lightVis) : Math.min(800, gunVis);
       /* and they need a clear line to the target past the hills (checked once a second) */
       if ((g.lt = (g.lt || 0) - dt) <= 0) (g.lt = 1), (g.los = aaSees(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)));
-      can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2;
+      g.scr = SIMS.cur.afloat ? SIMS.cur.screen(g.piv, _aaS.set(pos.x, AA.aimY(), pos.z)) : 0; /* a ship's smoke screen */
+      can = hot && R < Math.min(2500, sight) && !g.occ && g.los && AA.aimY() > H(pos.x, pos.z) + 2 && g.scr < 0.75;
       /* targets of opportunity (RULES OF ENGAGEMENT): not on the player, the nearest Allied unit it can see in range (an escort P-51, a
          fleet PCE or PT boat, the Liberty) */
       if (!can && hot && typeof ROE !== 'undefined') {
@@ -17828,7 +17836,7 @@ function updAA(dt) {
             vr = (g.v.x * dx + g.v.y * dy + g.v.z * dz) * u * u,
             vp = Math.hypot(g.v.x - dx * vr, g.v.y - dy * vr, g.v.z - dz * vr),
             tof = R / 840,
-            crew = 0.6 + DIFF.spread * 8,
+            crew = (0.6 + DIFF.spread * 8) * (1 + 5 * (g.tg ? 0 : g.scr || 0)),
             s = Math.hypot(0.002, 0.003, crew * Math.hypot((0.35 * vp * tof) / Math.max(R, 50), (0.5 * vp) / Math.max(R, 50)), (crew * 0.15 * 4.9 * tof * tof) / Math.max(R, 50)),
             gz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2,
             sg = g.bias,
@@ -20688,7 +20696,7 @@ function coastUpdate(dt) {
       const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
         was = g.tg;
       g.tg = null;
-      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt);
+      g.sees = SIMS.cur.afloat && R0 <= maxR && R0 >= 60 && aaSees(g.p, tgt) && SIMS.cur.screen(g.p, tgt) < 0.75 /* her smoke hides her */;
       if (!g.sees && typeof ROE !== 'undefined') {
         const u = ROE.pickAlly(g.p, maxR, false);
         if (u && aaSees(g.p, new THREE.Vector3(u.p.x, coastSea() + 3, u.p.z))) ((g.tg = u), (g.sees = true));
@@ -20793,7 +20801,7 @@ function coastUpdate(dt) {
     } else if (typeof gunBurst === 'function') gunBurst(s.p, { splash: 1.2, blast: null }, false);
     else explode(s.p.clone(), 6);
     /* spotting: the battery sees the splash short / over and left / right, and corrects half the error */
-    if (g && !g.t.dead) {
+    if (g && !g.t.dead && !(!s.tg && SIMS.cur.screen(g.p, s.p) > 0.35) /* a splash in her smoke cannot be spotted */) {
       g.er *= 0.45 + Math.random() * 0.2;
       g.ed *= 0.45 + Math.random() * 0.2;
       if (Math.abs(g.er) < 0.012) g.er = _cg() * 0.012;
@@ -23806,7 +23814,7 @@ var ROE = (() => {
       else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
       else if (q.side !== 'us' && q.esc) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead) /* the Ukurus (not the freighters and tankers at anchor) */;
     }
-    if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed, true);
+    if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed || SIMS.cur.holdFire(), true);
     POSTS = L;
     return L;
   };
@@ -23912,7 +23920,14 @@ var ROE = (() => {
           tof = R / s.mv,
           air = T0.air || T0.k !== 'player' && T0.k !== 't',
           E = aimErr(g, R, air, T0.v),
-          aim = T0.p.clone().addScaledVector(E.v, tof * 0.95).add(E.off);
+          scr = T0.k === 'player' && !T0.air ? SIMS.cur.screen(o, T0.p) : 0 /* her smoke between them: they lay on glimpses */,
+          aim = T0.p.clone().addScaledVector(E.v, tof * 0.95).addScaledVector(E.off, 1 + 5 * scr);
+        if (scr > 0.75) {
+          /* hidden in it: they cannot see her to lay on */
+          if (P.mag) MAG[g.id]++;
+          g.tg = null;
+          continue;
+        }
         if (T0.k === 'player' && !T0.air) aim.y = coastSea() + 2;
         aim.y += 4.9 * tof * tof;
         const d = aim.sub(o).normalize(),
@@ -24358,10 +24373,11 @@ var AIRSUP = (() => {
   };
   /* enemy aircraft shooting at p (the raiders' bursts): an Allied unit or base near it calls */
   const underAir = (p) => {
-    const near = T.some((q) => q.side === 'us' && !q.dead && q.c.distanceTo(p) < 1500) || (SIMS.cur.afloat && pos.distanceTo(p) < 1500);
+    /* the player's own ship calls only when her OOD is the AI's (the player as OOD makes his own calls) */
+    const near = T.some((q) => q.side === 'us' && !q.dead && q.c.distanceTo(p) < 1500) || (SIMS.cur.afloat && !SIMS.cur.oodCalls() && pos.distanceTo(p) < 1500);
     if (near) call('us', p.clone(), whoAt(p, 'us', true));
   };
-  return { L, call, hit, underAir, hurt, clear, fields };
+  return { L, call, hit, underAir, hurt, clear, fields, busy };
 })();
 /* =====================================================================================================================
    SUBMARINES AT SEA (the user's, 2026-11-21): USS Roncador (SS-301) and I-58 (Type B3, May 1945) in the water. Each boat

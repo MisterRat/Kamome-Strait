@@ -177,21 +177,7 @@ function updWeapons(dt) {
       BM.splice(i, 1);
     }
   }
-  for (let i = FX.length - 1; i >= 0; i--) {
-    const f = FX[i];
-    f.t += dt;
-    const k = f.t / f.life;
-    if (k >= 1) {
-      scene.remove(f.s);
-      f.s.material.dispose();
-      FX.splice(i, 1);
-      continue;
-    }
-    const s = f.s0 + (f.s1 - f.s0) * k;
-    f.s.scale.set(s, s, 1);
-    f.s.material.opacity = 1 - k;
-    f.s.position.y += f.vy * dt;
-  }
+  fxStep(dt); /* the effects (shared) */
 }
 function resetWeapons() {
   ammo = AMMO0.slice();

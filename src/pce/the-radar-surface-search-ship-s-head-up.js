@@ -22,7 +22,7 @@ function radarDraw(f, dt) {
   const o = RADAR.off.getContext('2d'),
     R = RADAR.R[RADAR.ri] * 1852,
     a0 = RADAR.a,
-    a1 = a0 + Math.min(1.2, dt * (Math.PI * 2) / 4) /* 15 turns a minute */,
+    a1 = a0 + (engPower() ? Math.min(1.2, dt * (Math.PI * 2) / 4) : 0) /* 15 turns a minute; no power, no sweep */,
     bow = [-Math.sin(SHIP.hdg), -Math.cos(SHIP.hdg)],
     stb = [Math.cos(SHIP.hdg), -Math.sin(SHIP.hdg)],
     k = s / 2 / R;
@@ -102,4 +102,13 @@ function radarDraw(f, dt) {
   g.fillText(RADAR.R[RADAR.ri] + ' NM  RINGS ' + RADAR.R[RADAR.ri] / 4 + ' NM', s / 2, 470);
   radarOverlay(g, s, R);
   g.restore();
+  if (!engPower()) {
+    g.fillStyle = 'rgba(0,0,0,.55)';
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = '#ff8a6a';
+    g.font = 'bold 30px monospace';
+    g.textAlign = 'center';
+    g.fillText('NO POWER', s / 2, s / 2 + 10);
+    g.textAlign = 'left';
+  }
 }

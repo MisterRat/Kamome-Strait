@@ -25,7 +25,7 @@ DRILLS.push({
     DC.rack = [8, 8];
     DC.kg = [2, 2];
     DC.kl = [1, 1, 1, 1];
-    for (const k of ['rack', 'port', 'stbd']) ((DC.dep[k] = D.depth), (DC.arm[k] = true));
+    aswArm(D.depth);
     SHIP.tel = Math.max(SHIP.tel, 0.45);
     D.rep = 0;
     D.pat = null;
@@ -34,12 +34,8 @@ DRILLS.push({
   stop() {
     ASW.drill = false;
   },
-  /* where he really is, relative to her: ahead (along her course) and across (to starboard), in yards */
   rel(D) {
-    const fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
-      dx = D.sub.p.x - pos.x,
-      dz = D.sub.p.z - pos.z;
-    return { al: (dx * fw.x + dz * fw.z) / 0.9144, cr: (dx * -fw.z + dz * fw.x) / 0.9144 };
+    return aswRelTo(D.sub.p);
   },
   step(D, dt) {
     const sub = D.sub,
@@ -55,17 +51,8 @@ DRILLS.push({
       drillSay('SONAR', 'BEARING ' + D.last.b + ', RANGE ' + D.last.r + ', ' + dop + ' DOPPLER.');
     }
     if (r <= 150 && !D.lostSaid) ((D.lostSaid = true), drillSay('SONAR', 'LOST CONTACT, RANGE 150. HE IS UNDER THE BOW.'));
-    /* the pattern the torpedomen roll: rack, starboard K-gun, port K-gun, rack */
-    if (D.pat) {
-      const t = D.t - D.pat.t0;
-      for (const [k, at] of [
-        ['rack', 0],
-        ['stbd', 4],
-        ['port', 8],
-        ['rack', 14],
-      ])
-        if (t >= at && !D.pat[k + at]) ((D.pat[k + at] = 1), dcFire(k));
-    }
+    /* the pattern the torpedomen roll */
+    if (D.pat) aswPatStep(D.pat, D.t);
     /* done: both weapons fired and gone off, or he is well astern and nothing more will come, or ten minutes */
     const spent = D.hhT !== undefined && D.pat && D.t - D.pat.t0 > 32 && !HH.L.length && !HH.q.length && !DC.L.length,
       past = this.rel(D).al < -900;
@@ -79,7 +66,7 @@ DRILLS.push({
     } else if (code === 'KeyR' && !D.pat) {
       /* the best moment: the first charge, off the stern (about 30 m abaft her middle), reaching his depth as she passes over:
          he should be ahead of her middle by her run in those seconds, less the stern's 30 m */
-      D.pat = { t0: D.t, rel: this.rel(D), best: (SHIP.u * (D.depth / 8) - 30) / 0.9144 };
+      D.pat = { t0: D.t, rel: this.rel(D), best: aswBest(D.depth) };
       drillSay('BRIDGE', 'FIRE THE PATTERN! SET ' + D.depth + ' FEET.');
     }
     return true;
@@ -111,40 +98,8 @@ DRILLS.push({
     );
   },
   draw(D, g, w, h) {
-    /* the plot, ship's head up: her, the Hedgehog's landing ring 250 yd ahead, and where sonar last put him (Hardcore: nothing) */
-    const cx = w / 2,
-      cy = h * 0.8,
-      sc = (h * 0.75) / 1400;
-    g.strokeStyle = '#2c4250';
-    for (const R of [250, 500, 1000]) {
-      g.beginPath();
-      g.arc(cx, cy, R * sc, Math.PI, 2 * Math.PI);
-      g.stroke();
-    }
-    g.fillStyle = '#9fc3d6';
-    g.fillRect(cx - 2, cy - 8, 4, 16);
-    g.strokeStyle = 'rgba(255,210,122,.6)';
-    g.beginPath();
-    g.arc(cx, cy - 250 * sc, 13 * sc * 3, 0, Math.PI * 2);
-    g.stroke();
-    if (!D.hc && D.last) {
-      const E = subEst();
-      if (E) {
-        const fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
-          dx = (E.p.x - pos.x) / 0.9144,
-          dz = (E.p.z - pos.z) / 0.9144,
-          al = dx * fw.x + dz * fw.z,
-          cr = dx * -fw.z + dz * fw.x;
-        g.fillStyle = '#ff8a6a';
-        g.beginPath();
-        g.arc(cx + cr * sc, cy - al * sc, 4, 0, Math.PI * 2);
-        g.fill();
-      }
-    }
-    g.fillStyle = '#6a7a84';
-    g.font = '10px monospace';
-    g.fillText('250', cx + 3, cy - 250 * sc - 3);
-    g.fillText('500', cx + 3, cy - 500 * sc - 3);
-    g.fillText('1000 YD', cx + 3, cy - 1000 * sc - 3);
+    /* the plot (Hardcore: no contact on it) */
+    const E = !D.hc && D.last && subEst();
+    aswHeadUp(g, w, h, E && E.p);
   },
 });

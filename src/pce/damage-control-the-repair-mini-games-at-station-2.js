@@ -14,6 +14,13 @@
 var DCX = { L: [] /* the jobs waiting, the first being worked: { k, ph, t, ... } */, msgT: 0 };
 const DCX_NAME = { pipe: 'BURST PIPE', flood: 'FLOODING', fire: 'FIRE', list: 'LIST', cool: 'COOLING WATER' };
 const DCX_PIPES = ['FIRE MAIN', 'LUBE OIL', 'SALT WATER', 'FUEL OIL'];
+/* more kinds of job, each in its own piece: DCX_K[k] = { name, init(j), step(j, dt) -> 'done' | 'fail' | null, key(j, Q, E, Space, rep),
+   text(j) -> html, draw(g, w, h, j) } (the engine room's own systems: the power, the fuel, the smoke generator) */
+var DCX_K = {};
+function dcxKind(k, o) {
+  DCX_K[k] = o;
+  DCX_NAME[k] = o.name;
+}
 /* a new job; o: { hc } (the drill's or the game's Hardcore) */
 function dcxAdd(k, hc) {
   if (DCX.L.some((j) => j.k === k)) return;
@@ -24,6 +31,7 @@ function dcxAdd(k, hc) {
   if (k === 'list') ((j.L = (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 4)), (j.v = 0), (j.ok = 0));
   if (k === 'cool') ((j.temp = 82), (j.peak = 82));
   if (k === 'pipe' || k === 'flood') j.bar = barMake({ hc: j.hc }, 0.22);
+  if (DCX_K[k] && DCX_K[k].init) DCX_K[k].init(j);
   DCX.L.push(j);
   SND.tone(520, 380, 0.4, 0.1, 'sawtooth');
   return j;
@@ -39,6 +47,10 @@ function dcxStep(dt) {
   j.t += dt;
   const hc = j.hc;
   if (j.bar) barStep(j.bar, dt);
+  if (DCX_K[j.k]) {
+    const r = DCX_K[j.k].step(j, dt);
+    return r ? dcxDone(j, r === 'fail') : null;
+  }
   if (j.k === 'pipe') {
     if (hc) j.spill = (j.spill || 0) + dt; /* the water pours in until it is shut */
   } else if (j.k === 'flood') {
@@ -82,6 +94,7 @@ function dcxKey(code, rep) {
     E = code === 'KeyE',
     SP = code === 'Space';
   if (!Q && !E && !SP) return false;
+  if (DCX_K[j.k]) return DCX_K[j.k].key(j, Q, E, SP, rep), true;
   if (j.k === 'fire') {
     if (Q || E) j.nz = Math.max(0, Math.min(1, j.nz + (E ? 0.035 : -0.035)));
     return true;
@@ -120,6 +133,7 @@ function dcxText() {
   if (!j) return 'ALL JOBS DONE.';
   const more = DCX.L.length > 1 ? ' <span style="color:#9aa">(' + (DCX.L.length - 1) + ' MORE WAITING)</span>' : '';
   const H = '<b style="font-size:16px;color:#ff8a6a">' + DCX_NAME[j.k] + '</b>' + more + '<br>';
+  if (DCX_K[j.k]) return H + DCX_K[j.k].text(j);
   if (j.k === 'pipe')
     return H + (j.ph === 0 ? 'BURST: THE <b>' + DCX_PIPES[j.pipe] + '</b> LINE. <b>Q / E</b> FIND ITS VALVE, <b>Space</b> SHUT IT.' : 'THE WRENCH: <b>Space</b> WHEN THE MARKER IS IN THE GREEN. TURNS ' + j.turns + '/3.');
   if (j.k === 'flood')
@@ -135,6 +149,7 @@ function dcxDraw(g, w, h) {
   if (!j) return;
   g.font = '12px monospace';
   g.textAlign = 'left';
+  if (DCX_K[j.k]) return DCX_K[j.k].draw(g, w, h, j);
   if (j.k === 'pipe') {
     /* four lines across the bulkhead, each with its valve wheel; the burst one sprays */
     for (let i = 0; i < 4; i++) {

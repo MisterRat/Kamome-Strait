@@ -19,6 +19,24 @@ function fxAdd(p, col, s0, s1, life, vy, addv) {
   scene.add(s);
   FX.push({ s, t: 0, life, s0, s1, vy });
 }
+/* each frame: the effects grow, fade and go (every simulator calls it from its role's frame) */
+function fxStep(dt) {
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i];
+    f.t += dt;
+    const k = f.t / f.life;
+    if (k >= 1) {
+      scene.remove(f.s);
+      f.s.material.dispose();
+      FX.splice(i, 1);
+      continue;
+    }
+    const s = f.s0 + (f.s1 - f.s0) * k;
+    f.s.scale.set(s, s, 1);
+    f.s.material.opacity = 1 - k;
+    f.s.position.y += f.vy * dt;
+  }
+}
 function explode(p, size) {
   fxAdd(p, 0xff9a30, size * 0.5, size * 3, 0.7, 0, true);
   fxAdd(p, 0xffe0a0, size * 0.3, size * 1.6, 0.35, 0, true);

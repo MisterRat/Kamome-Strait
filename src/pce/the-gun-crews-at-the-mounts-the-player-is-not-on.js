@@ -9,6 +9,7 @@ const CREW = { t: 0, msgT: 0 };
 function crewStep(dt) {
   if (!SIMS.on('pce') || !started || paused || crashed || (typeof RPL !== 'undefined' && RPL.on) || typeof ENEMY === 'undefined') return;
   gunInit();
+  if (OODO.hold) return; /* the OOD's order: hold fire */
   const planes = ENEMY.has('planes'),
     shore = ENEMY.has('shore'),
     ships = ENEMY.has('ships');

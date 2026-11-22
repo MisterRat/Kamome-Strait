@@ -15,6 +15,11 @@ function engStep(dt) {
   /* the player at the throttle (the Answer the Bells drill): the engines follow his lever, not the order */
   if (ENG.man != null) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, TELV[ENG.man] - ENG.ans));
   else if (ENG.lagT > 1.4) ENG.ans += Math.max(-0.5 * dt, Math.min(0.5 * dt, SHIP.tel - ENG.ans));
+  /* the engine room's own limits (THE ENGINE ROOM ON PATROL): overheated, stopped to save them, out of fuel */
+  const lim = engLimit();
+  ENG.ans = Math.max(-0.5 * lim, Math.min(lim, ENG.ans));
   const load = Math.abs(ENG.ans);
-  ENG.heat += (0.3 + 0.7 * load - ENG.heat) * Math.min(1, dt / 60);
+  /* the cooling water: with the sea strainer clogged it climbs toward boiling */
+  if (ENG.clog) ENG.heat += (0.6 + load) * dt / 40;
+  else ENG.heat += (0.3 + 0.7 * load - ENG.heat) * Math.min(1, dt / (ENG.heat > 1 ? 15 : 60));
 }

@@ -367,8 +367,9 @@ var AIRSUP = (() => {
   };
   /* enemy aircraft shooting at p (the raiders' bursts): an Allied unit or base near it calls */
   const underAir = (p) => {
-    const near = T.some((q) => q.side === 'us' && !q.dead && q.c.distanceTo(p) < 1500) || (SIMS.cur.afloat && pos.distanceTo(p) < 1500);
+    /* the player's own ship calls only when her OOD is the AI's (the player as OOD makes his own calls) */
+    const near = T.some((q) => q.side === 'us' && !q.dead && q.c.distanceTo(p) < 1500) || (SIMS.cur.afloat && !SIMS.cur.oodCalls() && pos.distanceTo(p) < 1500);
     if (near) call('us', p.clone(), whoAt(p, 'us', true));
   };
-  return { L, call, hit, underAir, hurt, clear, fields };
+  return { L, call, hit, underAir, hurt, clear, fields, busy };
 })();

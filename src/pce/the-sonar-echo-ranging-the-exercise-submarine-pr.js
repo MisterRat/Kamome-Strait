@@ -77,6 +77,7 @@ function sonarStep(dt, here, train) {
     g.fillRect(0, 0, 400, 330);
   }
   if (here) SONAR.brg = Math.max(-2.8, Math.min(2.8, SONAR.brg + train * 0.26 * dt));
+  if (!engPower()) return; /* no power: the set is dead */
   SONAR.t += dt;
   const T = (2 * SONAR.R[SONAR.ri] * 0.9144) / 1500 + 0.4;
   if (SONAR.t >= T) {
