@@ -481,7 +481,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Navigation fix (OOD)</td><td>Bearings on three landmarks: lay the middle of the view on each (X: binoculars) and press Space. The lines are crossed (a running fix) and the fix compared with her true position. Assessed on the error, the cocked hat and the time.</td></tr>
 <tr><td>Recognition (OOD)</td><td>A boat closes: Space challenges her by light; read her lamp's reply against the day's code. Then two aircraft: a P-51 or a Ki-84? Q friend (hold fire), E enemy (guns free). Assessed on each call and how soon.</td></tr>
 <tr><td>Antisubmarine attack (OOD)</td><td>Con the attack yourself: sonar reports the exercise sub's bearing, range and Doppler every 8 s (the plot shows where it puts him; not in Hardcore). Steer him onto the bow, slow to about 2/3, Space fires the Hedgehog (best with him 250 yd ahead, dead on the bow), R rolls the pattern (racks and K-guns; the charges sink 8 ft a second, so order it while he is still ahead by her run in that time). Sonar loses him inside 150 yd. Assessed on the result and the timing of each weapon.</td></tr>
-<tr><td>Coming alongside (OOD)</td><td>From 700 m off PT Base Halsey (about 5 kn), bring her in and stop starboard side to the outer end of her pier: parallel (within 8&deg;), her side within 6 m of it, under 0.5 kn for five seconds. Back her with S. Touching the pier over 2 kn, or grounding, fails. The berth plan shows her from above inside 330 m.</td></tr>
+<tr><td>Coming alongside (OOD)</td><td>From 700 m off PT Base Halsey (about 5 kn), bring her in and stop alongside the outer end of her pier (starboard side to as ordered, or port side to on its west side): parallel (within 8&deg;), her side within 6 m of it, her middle within 20 m of the berth's, under 0.5 kn for five seconds. Near the pier the box ticks off each of the four as you meet it. Back her with S. Touching the pier over 2 kn, or grounding, fails. The berth plan shows her from above inside 330 m.</td></tr>
 <tr><td>Answer the bells (Engineering)</td><td>The bridge rings ten engine orders; W / S move your throttle lever a sector at a time. Assessed on the time to answer (smart within 4 s) and answers that went the wrong way first.</td></tr>
 <tr><td>Make smoke (Engineering)</td><td>On MAKE SMOKE, Space lights off the smoke generator aft; Q / E keep the fog oil flow in the green band, which wanders; SECURE SMOKE after a minute, Space shuts it down. Assessed on how soon you lit and secured it and how much of the minute the screen was thick.</td></tr>
 <tr><td>Damage control (Engineering)</td><td>Four casualties: a burst pipe (Q / E find its valve, Space shuts it; then the wrench, Space in the green), a hole (two timbers, Space in the green; then Space for the pumps), a fire (Q / E keep the hose on it), a list (Q / E open the port or starboard tanks, bring her upright, shut them), the cooling water (Space: the standby strainer). Assessed on each job's time, slips and how bad it got.</td></tr>
@@ -583,7 +583,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.118';
+const VERSION = '0.119';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -29775,11 +29775,13 @@ function engPatrol(dt) {
   const cj = DCX.L.find((j) => j.k === 'cool' && j.live);
   if (cj) ENG.heat = (cj.temp - 60) / 25;
   /* refuelled alongside an American base, with the rearming */
-  if (typeof REARM !== 'undefined' && REARM.at && ENG.fuel < 1 && Math.hypot(vel.x, vel.z) < 0.75) {
-    if (ENG.fuel < 0.999 && !ENG.fueling) ((ENG.fueling = true), note('ALONGSIDE ' + REARM.at.title.toUpperCase() + ' - REFUELLING'));
+  /* (from under 99%, so the sliver she burns lying there does not start it again and again) */
+  if (typeof REARM !== 'undefined' && REARM.at && (ENG.fueling || ENG.fuel < 0.99) && Math.hypot(vel.x, vel.z) < 0.75) {
+    if (!ENG.fueling) ((ENG.fueling = true), note('ALONGSIDE ' + REARM.at.title.toUpperCase() + ' - REFUELLING'));
     ENG.fuel = Math.min(1, ENG.fuel + dt / (120 * rldK()));
     SMK.oil = 1;
     ENG.leak = 0;
+    ENG.fuel = Math.min(1, ENG.fuel);
     if (ENG.fuel >= 1) ((ENG.fueling = false), (ENG.warn = 1), note('REFUELLED'));
   }
   smkStep(dt);
@@ -30732,11 +30734,12 @@ DRILLS.push({
   },
 });
 /* ---- OOD DRILL: COMING ALONGSIDE. She is put about 700 m off PT Base Halsey, heading in at about 5 kn; her berth is the outer end of
-   her own pier (its east side, 56 m alongside). Bring her in and stop alongside: parallel to the pier (within 8 deg), her middle
-   abreast the berth's (within 15 m), close to it (her side within 6 m of the pier), stopped (under 0.5 kn) for five seconds while the
-   lines go over. Touch the pier faster than 2 kn, or put her aground, and the drill fails. Assessed on the time, the speed she met
+   her own pier (either side of it, 56 m alongside: the captain asks for starboard side to, on its east side, but port side to on its
+   west side is taken too). Bring her in and stop alongside: parallel to the pier (within 8 deg), her middle abreast the berth's
+   (within 20 m), close to it (her side within 6 m of the pier), stopped (under 0.5 kn) for five seconds while the lines go over. The
+   box ticks off each of the four as she meets it (the user's, 2026-11-22: alongside, nothing said what was still wrong). Touch the pier faster than 2 kn, or put her aground, and the drill fails. Assessed on the time, the speed she met
    the pier with, how close and how square she lay, and where along the berth. Normal: markers on the berth's ends ---- */
-const BERTH = { u: 75 + 4 + 5.04 + 1 /* the pier's east edge, her half beam, a metre of fenders */, d0: 94, d1: 150 };
+const BERTH = { u: 75 + 4 + 5.04 + 1 /* the pier's east edge, her half beam, a metre of fenders */, uW: 75 - 4 - 5.04 - 1 /* its west side */, d0: 94, d1: 150 };
 DRILLS.push({
   id: 'along',
   stn: 1,
@@ -30777,8 +30780,13 @@ DRILLS.push({
       fw = { x: -Math.sin(SHIP.hdg), z: -Math.cos(SHIP.hdg) },
       along = fw.x * -D.F.S.x + fw.z * -D.F.S.z /* 1: bow in */,
       ang = Math.acos(Math.min(1, Math.abs(along))) * (180 / Math.PI),
-      gap = u - BERTH.u /* her side from where it should lie (0: against the fenders) */;
-    return { u, d, ang, gap, kn: Math.abs(SHIP.u) / 0.5144, mid: d - (BERTH.d0 + BERTH.d1) / 2 };
+      east = u >= 75 /* which side of the pier she is on */,
+      gap = east ? u - BERTH.u : BERTH.uW - u /* her side from where it should lie (0: against the fenders) */;
+    return { u, d, ang, gap, east, kn: Math.abs(SHIP.u) / 0.5144, mid: d - (BERTH.d0 + BERTH.d1) / 2 };
+  },
+  /* the four conditions, each true when met */
+  ok4(A) {
+    return { par: A.ang < 8, close: A.gap < 6 && A.gap > -1, abreast: Math.abs(A.mid) < 20, stop: A.kn < 0.5 };
   },
   step(D, dt) {
     const A = this.at(D);
@@ -30792,7 +30800,8 @@ DRILLS.push({
       }
       SHIP.u *= 0.5; /* the fenders take her way off */
     }
-    const ok = A.ang < 8 && Math.abs(A.mid) < 15 && A.gap < 6 && A.gap > -1 && A.kn < 0.5;
+    const K = this.ok4(A),
+      ok = K.par && K.close && K.abreast && K.stop;
     if (ok) {
       if ((D.hold = (D.hold || 0) + dt) > 5) {
         drillSay('BOATSWAIN', 'ALL LINES DOUBLED UP. SHE IS FAST ALONGSIDE.');
@@ -30804,18 +30813,27 @@ DRILLS.push({
   },
   finish(D) {
     const A = D.fin;
-    const s = drillMark(D.t, 180, 600, 30) + drillMark(D.vMax, 0.3, 2, 20) + drillMark(Math.max(0, A.gap), 1, 6, 20) + drillMark(A.ang, 1.5, 8, 15) + drillMark(Math.abs(A.mid), 2, 15, 15);
+    const s = drillMark(D.t, 180, 600, 30) + drillMark(D.vMax, 0.3, 2, 20) + drillMark(Math.max(0, A.gap), 1, 6, 20) + drillMark(A.ang, 1.5, 8, 15) + drillMark(Math.abs(A.mid), 2, 20, 15);
     drillEnd(D, s, [
       'ALONGSIDE IN <b>' + fmtT(D.t) + '</b> &middot; MET THE PIER AT ' + (D.vMax ? D.vMax.toFixed(1) + ' KN' : 'NOTHING (STOPPED CLEAR OF IT)'),
-      'LYING ' + Math.max(0, A.gap).toFixed(1) + ' M OFF THE FENDERS, ' + A.ang.toFixed(1) + '&deg; OFF PARALLEL, HER MIDDLE ' + Math.abs(A.mid).toFixed(0) + ' M ' + (A.mid > 0 ? 'SEAWARD OF' : 'INSHORE OF') + ' THE BERTH\'S',
+      (A.east ? 'STARBOARD SIDE TO (AS ORDERED). ' : 'PORT SIDE TO, ON THE PIER\'S WEST SIDE. ') + 'LYING ' + Math.max(0, A.gap).toFixed(1) + ' M OFF THE FENDERS, ' + A.ang.toFixed(1) + '&deg; OFF PARALLEL, HER MIDDLE ' + Math.abs(A.mid).toFixed(0) + ' M ' + (A.mid > 0 ? 'SEAWARD OF' : 'INSHORE OF') + ' THE BERTH\'S',
     ]);
   },
   box(D) {
     const A = this.at(D),
-      toGo = A.d - (BERTH.d0 + BERTH.d1) / 2;
+      toGo = A.d - (BERTH.d0 + BERTH.d1) / 2,
+      K = this.ok4(A),
+      c = (ok, t) => '<b style="color:' + (ok ? '#8fe39a">&#10003; ' : '#ff8a6a">&#10007; ') + t + '</b>',
+      near = A.d < 260 && Math.abs(A.gap) < 60;
     return (
-      'THE BERTH: <b>' + Math.max(0, Math.round(toGo)) + ' M</b> TO GO &middot; SPEED <b>' + A.kn.toFixed(1) + ' KN</b> &middot; ' + (A.gap > 0 ? Math.round(A.gap) + ' M OFF THE PIER\'S LINE' : '<b style="color:#ff8a6a">INSIDE THE PIER\'S LINE</b>') + ' &middot; ' + Math.round(A.ang) + '&deg; OFF PARALLEL' +
-      '<br>STOP HER WITH HER SIDE WITHIN 6 M OF THE PIER, PARALLEL, UNDER 0.5 KN (BACK HER: <b>S</b>). OVER 2 KN AGAINST THE PIER FAILS.'
+      (near
+        ? c(K.par, 'PARALLEL ' + Math.round(A.ang) + '&deg;') + ' &middot; ' +
+          c(K.close, 'ALONGSIDE ' + (A.gap > -1 ? Math.max(0, A.gap).toFixed(1) + ' M OFF' : 'INSIDE THE PIER\'S LINE')) + ' &middot; ' +
+          c(K.abreast, K.abreast ? 'ABREAST THE BERTH' : Math.round(Math.abs(A.mid)) + ' M ' + (A.mid > 0 ? 'SHORT OF' : 'PAST') + ' THE BERTH') + ' &middot; ' +
+          c(K.stop, 'STOPPED ' + A.kn.toFixed(1) + ' KN') +
+          (D.hold > 0 ? ' &middot; <b style="color:#ffd27a">LINES GOING OVER ' + Math.ceil(5 - D.hold) + '</b>' : '')
+        : 'THE BERTH: <b>' + Math.max(0, Math.round(toGo)) + ' M</b> TO GO &middot; SPEED <b>' + A.kn.toFixed(1) + ' KN</b> &middot; ' + Math.round(A.ang) + '&deg; OFF PARALLEL') +
+      '<br>STOP HER ALONGSIDE THE OUTER END OF THE PIER: SIDE WITHIN 6 M, PARALLEL, MIDDLE WITHIN 20 M OF THE BERTH\'S, UNDER 0.5 KN FOR 5 S (BACK HER: <b>S</b>). OVER 2 KN AGAINST THE PIER FAILS.'
     );
   },
   draw(D, g, w, h) {
@@ -30830,7 +30848,7 @@ DRILLS.push({
     g.fillStyle = '#7a6040';
     g.fillRect(X(150), Y(71), 150 * k, 8 * k2); /* the pier: 8 m wide, centred 75 m along the coast */
     g.strokeStyle = 'rgba(143,227,154,.7)';
-    g.strokeRect(X(BERTH.d1), Y(BERTH.u - 5.04), (BERTH.d1 - BERTH.d0) * k, 10.08 * k2);
+    for (const bu of [BERTH.u, BERTH.uW]) g.strokeRect(X(BERTH.d1), Y(bu - 5.04), (BERTH.d1 - BERTH.d0) * k, 10.08 * k2);
     const A = this.at(D);
     if (A.d < 330 && Math.abs(A.gap) < 60) {
       const a = SHIP.hdg - Math.atan2(D.F.S.x, D.F.S.z);

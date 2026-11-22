@@ -109,11 +109,13 @@ function engPatrol(dt) {
   const cj = DCX.L.find((j) => j.k === 'cool' && j.live);
   if (cj) ENG.heat = (cj.temp - 60) / 25;
   /* refuelled alongside an American base, with the rearming */
-  if (typeof REARM !== 'undefined' && REARM.at && ENG.fuel < 1 && Math.hypot(vel.x, vel.z) < 0.75) {
-    if (ENG.fuel < 0.999 && !ENG.fueling) ((ENG.fueling = true), note('ALONGSIDE ' + REARM.at.title.toUpperCase() + ' - REFUELLING'));
+  /* (from under 99%, so the sliver she burns lying there does not start it again and again) */
+  if (typeof REARM !== 'undefined' && REARM.at && (ENG.fueling || ENG.fuel < 0.99) && Math.hypot(vel.x, vel.z) < 0.75) {
+    if (!ENG.fueling) ((ENG.fueling = true), note('ALONGSIDE ' + REARM.at.title.toUpperCase() + ' - REFUELLING'));
     ENG.fuel = Math.min(1, ENG.fuel + dt / (120 * rldK()));
     SMK.oil = 1;
     ENG.leak = 0;
+    ENG.fuel = Math.min(1, ENG.fuel);
     if (ENG.fuel >= 1) ((ENG.fueling = false), (ENG.warn = 1), note('REFUELLED'));
   }
   smkStep(dt);
