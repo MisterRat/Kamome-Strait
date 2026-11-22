@@ -206,10 +206,10 @@ ENEMY = [
     ("DEPOT KUSAKA", "Adm. Ryūnosuke Kusaka", "Depot", "G6", "055°T  3.6 nm", "2 × Type 96 25 mm twin, 2 searchlights"),
     ("DEPOT MIKAWA", "Adm. Gunichi Mikawa", "Depot", "F9", "176°T  14.6 nm", "2 × Type 96 25 mm twin, 2 searchlights"),
     ("DEPOT KURITA", "Adm. Takeo Kurita", "Depot", "D4", "313°T  14.7 nm", "2 × Type 96 25 mm twin, 2 searchlights"),
-    ("PORT NAGUMO", "Adm. Chūichi Nagumo", "Naval harbour", "F5", "017°T  3.7 nm", "2 × Type 96 25 mm twin, 1 searchlight, 12 cm coast gun"),
-    ("PORT UGAKI", "Adm. Matome Ugaki", "Naval base", grid(*UGc), frm(*UGc), "3 × Type 96 25 mm twin, 1 searchlight, 12 cm coast gun"),
-    ("PORT KONDŌ", "Adm. Nobutake Kondō", "Colonial harbour", "D3", "326°T  20.2 nm", "2 × 12 cm coast guns"),
-    ("PORT INOUE", "Adm. Shigeyoshi Inoue", "Colonial harbour", "E8", "212°T  11.9 nm", "2 × 12 cm coast guns"),
+    ("PORT NAGUMO", "Adm. Chūichi Nagumo", "Naval harbour", "F5", "017°T  3.7 nm", "2 × Type 96 25 mm twin, 1 searchlight, 8 cm coast gun"),
+    ("PORT UGAKI", "Adm. Matome Ugaki", "Naval base", grid(*UGc), frm(*UGc), "3 × Type 96 25 mm twin, 1 searchlight, 8 cm coast gun"),
+    ("PORT KONDŌ", "Adm. Nobutake Kondō", "Colonial harbour", "D3", "326°T  20.2 nm", "2 × 8 cm coast guns"),
+    ("PORT INOUE", "Adm. Shigeyoshi Inoue", "Colonial harbour", "E8", "212°T  11.9 nm", "2 × 8 cm coast guns"),
 ]
 ALLIED = [
     ("FLETCHER FIELD", "USAAF fighter strip; N–S runway 7,500 ft; P-51 Mustangs. Base of departure.", "F6", "—"),
@@ -230,7 +230,7 @@ PATROL = [
 NOTES = [
     "GRID  Squares of 11,000 yards: columns A–K west to east, rows 1–11 north to south. Bearings are true, taken from Fletcher Field.",
     "FLAK  Red rings show the 1.5 nm range of each armed site. The twin 25 mm guns are hand-trained and poor beyond about 2,200 yards.",
-    "COAST  The ports' 12 cm/45 coast guns reach 15,000 m by day (about 3,000 m at night) and engage shipping only.",
+    "COAST  The ports' 8 cm/40 coast guns reach 10,000 m by day (about 3,000 m at night); dual purpose, they also fire on aircraft.",
     "LIGHTS  Each airbase and depot has two searchlights, reach about 4 nm at night.",
     "PATROLS  Escorts patrol a racetrack of 0.3–1.0 nm off their station at 16 kt (ship symbols enlarged so they can be read).",
     "ROADS  Depots and airbases are linked by paved road; harbours are linked to the villages by native track. Bases across open water",

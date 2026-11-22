@@ -623,16 +623,16 @@
  },
  {
   "id": "coast12",
-  "file": "12cm-45_coast_gun",
-  "title": "12 cm/45 3rd Year Type gun in its coast emplacement",
+  "file": "8cm-40_coast_gun",
+  "title": "8 cm/40 3rd Year Type gun in its coast emplacement",
   "fwd": "+x",
   "make": "COAST.add(0, 0, 0); const g = COAST.G.pop(); T.pop(); scene.remove(g.grp); window.__M['Gun length overall'] = __size(g.bar).x; return __local(g.grp);",
-  "type": "12 cm/45 3rd Year Type naval gun on a coast-defence pedestal",
+  "type": "8 cm/40 3rd Year Type naval gun on a coast-defence pedestal",
   "ref": [
    [
     "Gun length overall",
-    5.55,
-    "218.5 in (5.550 m), most models (NavWeaps 12 cm/45 3rd Year Type)"
+    3.2,
+    "10 ft 6 in (3.2 m), L/40 (8 cm/40 3rd Year Type naval gun)"
    ]
   ]
  },

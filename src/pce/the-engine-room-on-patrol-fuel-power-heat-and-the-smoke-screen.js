@@ -37,8 +37,8 @@ function engReset() {
 function engHit(kind) {
   const r = Math.random;
   if (kind !== 'small') ENG.hitT = SHIP.t;
-  const pw = kind === 'torpedo' ? 0.8 : kind === 'shell' ? 0.3 : 0.03,
-    fl = kind === 'torpedo' ? 0.6 : kind === 'shell' ? 0.15 : 0;
+  const pw = kind === 'torpedo' ? 0.8 : kind === 'shell' ? 0.3 : kind === 'shell3' ? 0.15 : 0.03,
+    fl = kind === 'torpedo' ? 0.6 : kind === 'shell' ? 0.15 : kind === 'shell3' ? 0.07 : 0;
   if (ENG.pwr && r() < pw) {
     ENG.pwr = false;
     ENG.ai.pwr = 25 + r() * 20;

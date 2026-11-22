@@ -395,9 +395,23 @@ function segHit(a, b, c, r) {
     t = l2 ? Math.max(0, Math.min(1, c.clone().sub(a).dot(d) / l2)) : 0;
   return a.clone().addScaledVector(d, t).distanceToSquared(c) < r * r;
 }
+/* whose a message is about (the user's, 2026-11-22: colour them, red for the enemy and blue for the allies): 'jp', 'us' or ''
+   (her own ship's business, practice, the rest). From its words, and who sent it (the radio) */
+const MSG_JP = /\b(ENEMY|BANDITS?|BOGIES?|RAID(ERS?)?|INBOUND|SHORE (BATTERY|BATTERIES|GUNS?)|COAST (BATTERY|GUNS?)|TORPEDO(ES)?|SUBMARINE|SONAR CONTACT|I-58|JAPANESE|IJN|KUME|UKURU|AGUNI|AMAMI|T-14S?|FRANKS?|KI-84|HAYATE|STRADDLED|UNDER FIRE|SHELL HIT|KAITEN)\b/,
+  MSG_US = /\b(AIR SUPPORT|KAMOME CONTROL|FRIENDLY|ALLIED|LIBERTY|PT-?1\d\d|PT BASE|HALSEY|NIMITZ|P-51S?|MUSTANGS?|USS|FLETCHER|PCE ?843|RONCADOR)\b/,
+  MSG_NONE = /\b(EXERCISE|PRACTICE|DRILL|SLEEVES?|TARGETS? (ARE )?OUT)\b/;
+function msgSide(t, from) {
+  t = String(t || '').toUpperCase();
+  if (MSG_NONE.test(t) || from === 'EXERCISE SUB') return '';
+  if (MSG_JP.test(t)) return 'jp';
+  if (MSG_US.test(t) || from === 'KAMOME CONTROL' || /^(PT|LIBERTY|USS|P-51)/.test(from || '')) return 'us';
+  return '';
+}
 function note(x) {
   const e = $$('kill');
   e.textContent = x;
+  const sd = msgSide(x);
+  e.style.color = sd === 'jp' ? '#ff6a5a' : sd === 'us' ? '#7ab8ff' : '';
   e.style.display = 'block';
   clearTimeout(note.t);
   note.t = setTimeout(() => (e.style.display = 'none'), 1600);

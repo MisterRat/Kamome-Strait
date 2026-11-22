@@ -136,7 +136,9 @@ var ROE = (() => {
     50: { air: 1300, surf: 900, rps: 6, sp: 0.007, dmg: 0.6, mv: 870, kr: 0.035 },
     '3in': { air: 5000, surf: 9000, rps: 0.3, sp: 0.0025, dmg: 14, mv: 823, prox: 15 },
     '5in': { air: 7000, surf: 14000, rps: 0.25, sp: 0.0025, dmg: 40, mv: 792, prox: 20 },
-    '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15 },
+    '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15, mm: 120 },
+    /* the coast batteries' 8 cm/40s against aircraft (dual purpose: +75 deg, 7,200 m ceiling): their fire at ships is the batteries' own */
+    '8cm': { air: 6000, surf: 0, rps: 0.17, sp: 0.003, dmg: 10, mv: 680, prox: 12, mm: 76 },
   };
   const FIT = {
     pt: [
@@ -189,6 +191,9 @@ var ROE = (() => {
       else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
       else if (q.side !== 'us' && q.esc) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead) /* the Ukurus (not the freighters and tankers at anchor) */;
     }
+    /* each coast battery gun (an 8 cm/40, dual purpose) fires at Allied aircraft while it has no ship to lay on (the user's, 2026-11-22) */
+    if (typeof COAST !== 'undefined')
+      for (const g of COAST.G) if (!g.t.dead) at(g.grp, 'jp', 'coast', [['8cm', 0, COAST.PIV, 0]], () => g.t.dead || g.sees || !war());
     if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed || SIMS.cur.holdFire(), true);
     POSTS = L;
     return L;
@@ -328,7 +333,7 @@ var ROE = (() => {
         if (T0.k === 'player') {
           if (T0.air || s.dmg <= 4) {
             if (AA.hit(a, b.p)) dead = true;
-          } else if (SIMS.cur.afloat && SIMS.cur.struck(b.p)) ((dead = true), SIMS.cur.shelled());
+          } else if (SIMS.cur.afloat && SIMS.cur.struck(b.p)) ((dead = true), SIMS.cur.shelled(b.s.mm || 120));
         } else if (T0.k === 't') {
           const q = T0.q;
           if (!q.dead) {
@@ -377,19 +382,19 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (it opens fire inside 14 km), each armed Japanese post
+  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (its 10.8 km), each armed Japanese post
      or ship (its longest gun's surface range) and each T-14 group's base (they run in on a ship within about 4 km of it). The PCE's start
      and I-58's patrol keep clear of them (the user's, 2026-11-22) */
   const reach = () => {
     const W = [];
-    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, 14000]);
+    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, COAST.REACH]);
     for (const P of posts())
       if (P.side === 'jp' && P.guns.length) {
         const q = P.m.getWorldPosition(new THREE.Vector3());
-        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]);
+        if (P.kind !== 'coast') W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]); /* (the coast guns' reach at sea is their own, above) */
       }
     for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
     return W;
   };
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
 })();

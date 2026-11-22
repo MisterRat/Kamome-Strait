@@ -19,7 +19,7 @@ const _cg = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
 const coastFx = (p, col, s0, s1, life, vy, add) => (typeof gunFx === 'function' ? gunFx(p, col, s0, s1, life, vy, add) : fxAdd(p, col, s0, s1, life, vy, add));
 /* the coast guns at work (shared: every page; the user's, 2026-11-21). They fire when the current simulator says the shore enemies
    are on (its role's coastOn: the PCE's Enemy setting, the P-51's Ground Fire). At the player's ship when she is afloat and in range,
-   else at the nearest Allied ship they can see (targets of opportunity): never at an aircraft (a 12 cm gun laid by hand, +33 deg) */
+   else at the nearest Allied ship they can see (targets of opportunity). Against aircraft they fire as ROE's posts (the '8cm' gun), when no ship is laid on; at ships the solution is laid by hand to +45 deg */
 function coastUpdate(dt) {
   const on = SIMS.cur.coastOn() && started && !crashed && trn.mode === 'free';
   COAST.msgT = Math.max(0, COAST.msgT - dt);
@@ -42,7 +42,7 @@ function coastUpdate(dt) {
     if (g.t.dead || !on) continue;
     /* the target, once a second: the PCE if she is in range and in sight; else (targets of opportunity, RULES OF ENGAGEMENT) the
        nearest Allied ship it can see in range (a fleet PCE or PT boat, the Liberty) */
-    const maxR = night > 0.35 ? 3000 : 14000;
+    const maxR = night > 0.35 ? 3000 : COAST.R;
     if ((g.vt = (g.vt || 0) - dt) <= 0) {
       g.vt = 1;
       const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
@@ -57,6 +57,21 @@ function coastUpdate(dt) {
     }
     if (!g.sees) {
       g.n = 0;
+      /* no ship to lay on: the gun is a dual-purpose 8 cm, and its post (ROE) may be firing at an Allied aircraft: the mount follows it */
+      const P = typeof ROE !== 'undefined' && ROE.postOf(g.grp),
+        a = P && P.guns[0].tg;
+      if (a && a.air) {
+        const dx = a.p.x - g.p.x,
+          dz = a.p.z - g.p.z,
+          want = Math.atan2(-dz, dx) - g.home,
+          dy = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)),
+          el = Math.min((75 * Math.PI) / 180, Math.atan2(a.p.y - g.p.y, Math.hypot(dx, dz)));
+        g.yaw += Math.max(-0.15 * dt, Math.min(0.15 * dt, dy));
+        g.el += Math.max(-0.15 * dt, Math.min(0.15 * dt, el - g.el));
+        g.tur.rotation.y = g.yaw;
+        g.bar.rotation.z = g.el;
+        if (P.guns[0].cd > (1 / P.guns[0].s.rps) * 0.8) g.rec = Math.max(g.rec, 0.9); /* just fired: the recoil */
+      }
       continue;
     }
     const tp = g.tg ? new THREE.Vector3(g.tg.p.x, coastSea() + 3, g.tg.p.z) : tgt,
@@ -92,7 +107,7 @@ function coastUpdate(dt) {
       const az = g.home + g.yaw + _cg() * 0.0015,
         e2 = g.el + _cg() * 0.002,
         dir = new THREE.Vector3(Math.cos(az) * Math.cos(e2), Math.sin(e2), -Math.sin(az) * Math.cos(e2)),
-        mz = g.p.clone().addScaledVector(dir, 4.6);
+        mz = g.p.clone().addScaledVector(dir, COAST.MZ);
       COAST.S.push({ p: mz.clone(), v: dir.multiplyScalar(COAST.MV * (1 + _cg() * 0.0015)), t: 0, g, aimR: r, tg: g.tg });
       g.rec = 1;
       coastFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
@@ -140,7 +155,7 @@ function coastUpdate(dt) {
       coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
     } else if (hit) {
       COAST.hits++;
-      SIMS.cur.shelled();
+      SIMS.cur.shelled(76) /* an 8 cm shell */;
       coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
       coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
       note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');

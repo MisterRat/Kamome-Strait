@@ -1,7 +1,8 @@
 /* BATTLE DAMAGE, the PCE-842 (Settings > Battle damage, DM.on, on by default): what the hits do to her. Until now they were only
    counted. Each hit holes her hull (water comes in through the holes), may start a fire and may damage her engines:
      a 25 mm or machine-gun round (the ground fire, the escort, the raiders)   a small hole; now and then a fire
-     a 12 cm shell (the coast battery)                                         a real hole; often a fire; sometimes the engines
+     an 8 cm shell (the coast battery)                                          a hole; now and then a fire; seldom the engines
+     a 12 cm shell (the escorts)                                               a real hole; often a fire; sometimes the engines
      a torpedo (the T-14s)                                                     a great hole, the engine room flooding, a fire
    Damage control fights back: the pumps clear 0.12% of her reserve buoyancy a second, the repair parties shore the holes up and put
    the fires out (a big fire spreads faster than they can, and reaches the engines). Flooding settles her and lists her and slows
@@ -27,6 +28,13 @@ function sdmHit(kind) {
     if (r() < 0.35) SDM.fire = Math.max(SDM.fire, 0.35);
     if (r() < 0.25) {
       SDM.eng = Math.min(1, SDM.eng + 0.3);
+      sdmSay('BRIDGE, DAMAGE CONTROL. HIT IN THE ENGINE ROOM. ONE ENGINE DAMAGED, SPEED REDUCED.');
+    } else sdmSay('BRIDGE, DAMAGE CONTROL. SHELL HIT, HOLED ABOVE THE WATERLINE. REPAIR PARTIES ON IT.');
+  } else if (kind === 'shell3') {
+    SDM.holes += 0.35;
+    if (r() < 0.2) SDM.fire = Math.max(SDM.fire, 0.25);
+    if (r() < 0.1) {
+      SDM.eng = Math.min(1, SDM.eng + 0.2);
       sdmSay('BRIDGE, DAMAGE CONTROL. HIT IN THE ENGINE ROOM. ONE ENGINE DAMAGED, SPEED REDUCED.');
     } else sdmSay('BRIDGE, DAMAGE CONTROL. SHELL HIT, HOLED ABOVE THE WATERLINE. REPAIR PARTIES ON IT.');
   } else if (kind === 'torpedo') {

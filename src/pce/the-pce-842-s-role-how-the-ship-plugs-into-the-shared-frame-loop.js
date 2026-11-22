@@ -73,7 +73,7 @@ SIMS.add({
   coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
   subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the Subs setting: I-58 on patrol (SUBS) */,
   shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the Ships setting: the Ukuru escorts and the T-14s fight her */,
-  shelled: () => sdmHit('shell'),
+  shelled: (mm) => sdmHit(mm && mm < 100 ? 'shell3' : 'shell') /* an 8 cm (the coast guns) or a 12 cm (the escorts) */,
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */

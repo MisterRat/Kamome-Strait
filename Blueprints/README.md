@@ -33,7 +33,7 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Japanese tanker | Type 2TL wartime standard tanker | 153.50 x 20.00 x 24.77 | match | `Japanese_tanker_blueprint.png`, `Japanese_tanker_measurements.md` |
 | Liberty ship (US resupply run) | Liberty ship EC2-S-C1 (the supply run between Depot Nimitz and PT Base Halsey) | 134.60 x 17.30 x 30.20 | match | `US_freighter_blueprint.png`, `US_freighter_measurements.md` |
 | US tanker (kept for later) | T2-SE-A1 tanker, kept for later | 159.60 x 20.70 x 26.07 | match | `US_tanker_blueprint.png`, `US_tanker_measurements.md` |
-| 12 cm/45 3rd Year Type gun in its coast emplacement | 12 cm/45 3rd Year Type naval gun on a coast-defence pedestal | 9.20 x 9.20 x 3.47 | close | `12cm-45_coast_gun_blueprint.png`, `12cm-45_coast_gun_measurements.md` |
+| 8 cm/40 3rd Year Type gun in its coast emplacement | 8 cm/40 3rd Year Type naval gun on a coast-defence pedestal | 9.20 x 9.20 x 3.04 | close | `8cm-40_coast_gun_blueprint.png`, `8cm-40_coast_gun_measurements.md` |
 | Type 96 25 mm twin AA gun in its emplacement | Type 96 25 mm twin mount (Navy, on land) in a sandbagged pit | 9.80 x 9.80 x 3.14 | no reference yet | `Type96_25mm_twin_blueprint.png`, `Type96_25mm_twin_measurements.md` |
 | 150 cm searchlight in its emplacement | 150 cm searchlight (Type 96 class) | 7.00 x 7.00 x 3.20 | no reference yet | `150cm_searchlight_blueprint.png`, `150cm_searchlight_measurements.md` |
 | Japanese army cargo truck (enemy target) | Isuzu Type 94 six-wheeled truck (cargo truck) | 5.40 x 1.97 x 2.31 | close | `Japanese_cargo_truck_blueprint.png`, `Japanese_cargo_truck_measurements.md` |

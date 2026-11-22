@@ -498,7 +498,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Reloading</td><td>Every weapon is reloaded by its crew when it is empty, as long as there is ammunition aboard: the guns, the K-guns, the racks and the Hedgehog (24 bombs in about 3 minutes, half that in game mode). R reloads on demand (at the Hedgehog: loads it from part-full). Changing to a gun finds it loaded.</td></tr>
 <tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-108 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-108 brings &ldquo;check fire&rdquo;.</td></tr>
 <tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Every few minutes two Ki-84 Hayates come out from the enemy airfield; the lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
-<tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 12 cm/45 naval guns in sandbagged pits, five men to a gun, about 5 rounds a minute out to 15,000 m: they open fire inside about 14 km by day (3 km at night), lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
+<tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 8 cm/40 naval guns in sandbagged pits, five men to a gun, about 10 rounds a minute out to 10,000 m: they open fire inside about 10 km by day (3 km at night), and, dual-purpose guns, at Allied aircraft overhead when they have no ship to lay on; lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
 <tr><td>Shell cam</td><td>Settings: follow your last shells to the target (off at first). Any key returns to the gun.</td></tr>
 </table></div>
 <div><h2>The torpedoman</h2>
@@ -584,7 +584,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.123';
+const VERSION = '0.124';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -738,7 +738,7 @@ const SIMS = {
     coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
     subsOn: () => false /* the enemy submarine, I-58, on patrol (SUBS): the PCE's Subs setting */,
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
-    shelled: () => {} /* a coast gun's shell has struck the player's vehicle */,
+    shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
     oodCalls: () => false /* the player decides the vehicle's own calls for air support (the PCE with the player as OOD) */,
     screen: () => 0 /* how much smoke (0..1) lies between a gun at a and the player's vehicle at b, (a, b): the PCE's smoke screen */,
@@ -875,7 +875,7 @@ SIMS.add({
   coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
   subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the Subs setting: I-58 on patrol (SUBS) */,
   shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the Ships setting: the Ukuru escorts and the T-14s fight her */,
-  shelled: () => sdmHit('shell'),
+  shelled: (mm) => sdmHit(mm && mm < 100 ? 'shell3' : 'shell') /* an 8 cm (the coast guns) or a 12 cm (the escorts) */,
   orbitDist: 85,
   docsTab: 'ctl',
   /* photo mode: the P-51 is never shown; the toggle shows or hides the ship */
@@ -14305,9 +14305,23 @@ function segHit(a, b, c, r) {
     t = l2 ? Math.max(0, Math.min(1, c.clone().sub(a).dot(d) / l2)) : 0;
   return a.clone().addScaledVector(d, t).distanceToSquared(c) < r * r;
 }
+/* whose a message is about (the user's, 2026-11-22: colour them, red for the enemy and blue for the allies): 'jp', 'us' or ''
+   (her own ship's business, practice, the rest). From its words, and who sent it (the radio) */
+const MSG_JP = /\b(ENEMY|BANDITS?|BOGIES?|RAID(ERS?)?|INBOUND|SHORE (BATTERY|BATTERIES|GUNS?)|COAST (BATTERY|GUNS?)|TORPEDO(ES)?|SUBMARINE|SONAR CONTACT|I-58|JAPANESE|IJN|KUME|UKURU|AGUNI|AMAMI|T-14S?|FRANKS?|KI-84|HAYATE|STRADDLED|UNDER FIRE|SHELL HIT|KAITEN)\b/,
+  MSG_US = /\b(AIR SUPPORT|KAMOME CONTROL|FRIENDLY|ALLIED|LIBERTY|PT-?1\d\d|PT BASE|HALSEY|NIMITZ|P-51S?|MUSTANGS?|USS|FLETCHER|PCE ?843|RONCADOR)\b/,
+  MSG_NONE = /\b(EXERCISE|PRACTICE|DRILL|SLEEVES?|TARGETS? (ARE )?OUT)\b/;
+function msgSide(t, from) {
+  t = String(t || '').toUpperCase();
+  if (MSG_NONE.test(t) || from === 'EXERCISE SUB') return '';
+  if (MSG_JP.test(t)) return 'jp';
+  if (MSG_US.test(t) || from === 'KAMOME CONTROL' || /^(PT|LIBERTY|USS|P-51)/.test(from || '')) return 'us';
+  return '';
+}
 function note(x) {
   const e = $$('kill');
   e.textContent = x;
+  const sd = msgSide(x);
+  e.style.color = sd === 'jp' ? '#ff6a5a' : sd === 'us' ? '#7ab8ff' : '';
   e.style.display = 'block';
   clearTimeout(note.t);
   note.t = setTimeout(() => (e.style.display = 'none'), 1600);
@@ -18293,10 +18307,11 @@ nearRoads(h.x, h.z);
   return W;
 })();
 /* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore or All) =====
-   Each Japanese port has a pair of 12 cm/45 3rd Year Type naval guns, the Navy's commonest coast-defence gun in the Pacific
-   (old destroyer guns, hand worked): 20.3 kg HE at 825 m/s, -7 to +33 deg, 15,000 m at 33 deg, 5 - 6 rounds a minute
-   (NavWeaps). Each sits in a sandbagged pit on the shore behind the harbour, with a shield and a crew of five (pointer, trainer,
-   loader, two ammunition handlers). They open fire when she comes inside about 14 km by day (3 km at night, where they can see her),
+   Each Japanese port has a pair of 8 cm/40 3rd Year Type naval guns (the user's, 2026-11-22: a gun of less reach than the 12 cm/45s
+   they had, 14 km or under): a 3-inch gun the Navy set up ashore all over the Pacific for coast defence (a copy of the British
+   12-pounder, hand worked): 5.99 kg HE at 680 m/s, -7 to +75 deg, 10,800 m at 45 deg, 13 - 20 rounds a minute aboard ship (about 10
+   ashore) (NavWeaps); here reaching 10,000 m at most, so that Port Ugaki's battery cannot reach Depot Nimitz. Each sits in a sandbagged pit on the shore behind the harbour, on a pedestal with a light shield, and a crew of
+   five (pointer, trainer, loader, two ammunition handlers). They open fire when she comes inside about 10 km by day (3 km at night, where they can see her),
    lead her by her course and speed at the moment of firing, and walk the fall of shot onto her: the first round is off by several
    per cent of the range, and each spotted splash halves the error, down to the battery's limit (about 1% of the range, 3 mils in line). A shell that comes down inside
    her hull is a hit (counted, like the strafing, until battle damage comes). The guns are targets: the 3"/50 knocks them out. */
@@ -18309,11 +18324,15 @@ const COAST = {
   S: [] /* shells in flight */,
   hits: 0,
   msgT: 0,
-  MV: 825,
-  K: 1.26e-4 /* fitted: 15,000 m at 33 deg, as the GSPEC drag law */,
-  RLD: 11 /* seconds a round: 5 - 6 a minute */,
+  MV: 680,
+  K: 1.81e-4 /* fitted: 10,000 m at most (at 40 deg) (the user's, 2026-11-22: within that, short of Depot Nimitz; the table's 10,800 m at 45 deg), as the GSPEC drag law */,
+  RLD: 6 /* seconds a round: about 10 a minute ashore */,
+  R: 10000 /* they open fire inside this by day */,
+  REACH: 10000 /* the most they can reach (ROE.reach): Port Ugaki's battery falls short of Depot Nimitz (10.3 km) and the Liberty's anchorage off it (10.2) */,
+  PIV: 1.25 /* the trunnions above the pit's floor */,
+  MZ: 2.5 /* the muzzle ahead of the trunnions */,
   EL0: (-7 * Math.PI) / 180,
-  EL1: (33 * Math.PI) / 180,
+  EL1: (45 * Math.PI) / 180 /* the mount goes to +75, but the range is greatest at 40 - 45 */,
 };
 {
   const { part, bx, cyl, sph } = GX,
@@ -18341,7 +18360,7 @@ const COAST = {
       if (arms === 1) at(0.22, 1.15, sd * 0.2, bx(0.42, 0.1, 0.1), UNI, 0, 0, -0.3);
       else if (arms === 2) {
         at(0.16, 1.12, sd * 0.2, bx(0.32, 0.1, 0.1), UNI);
-        if (sd > 0) at(0.3, 1.18, 0, cyl(0.06, 0.06, 0.62, 8), 0xb08a3a, Math.PI / 2) /* a 12 cm round, brass case */;
+        if (sd > 0) at(0.3, 1.18, 0, cyl(0.045, 0.045, 0.6, 8), 0xb08a3a, Math.PI / 2) /* an 8 cm round, brass case */;
       } else at(0, 1.05, sd * 0.25, bx(0.1, 0.55, 0.1), UNI);
     return P;
   };
@@ -18362,31 +18381,30 @@ const COAST = {
     }
     return P;
   };
-  /* the gun on its pedestal, shield and platform: turns as a whole (yaw), nose toward +x */
+  /* the gun on its pedestal, a light shield and a platform: turns as a whole (yaw), nose toward +x. The shield open-topped, as a
+     high-angle pedestal mount's: the barrel elevates through its slot to +75 */
   const mount = () => [
-    part(cyl(0.55, 0.75, 1.0, 14), GREY, 0, 0.5, 0),
-    part(cyl(1.6, 1.6, 0.12, 20), DK, 0, 1.0, 0) /* the crew's platform */,
-    part(bx(1.3, 0.75, 0.9), GREY, 0.1, 1.35, 0) /* the cradle's carriage */,
-    /* the shield: a square box open at the back, its front plate, sides and roof joined at the edges, and the slot the barrel
-       elevates in */
-    part(bx(0.08, 1.75, 2.58), GREY, 1.05, 1.975, 0),
-    part(bx(1.24, 1.75, 0.08), GREY, 0.45, 1.975, 1.25),
-    part(bx(1.24, 1.75, 0.08), GREY, 0.45, 1.975, -1.25),
-    part(bx(1.24, 0.07, 2.58), GREY, 0.45, 2.885, 0),
-    part(bx(0.09, 0.95, 0.34), DK, 1.065, 1.95, 0),
-    part(cyl(0.22, 0.22, 0.06, 12), DK, 0.2, 1.3, 0.6, Math.PI / 2) /* elevating handwheel */,
-    part(cyl(0.22, 0.22, 0.06, 12), DK, 0.2, 1.3, -0.6, Math.PI / 2) /* training handwheel */,
-    part(bx(0.2, 0.25, 0.18), DK, 0.5, 2.1, -0.65) /* the pointer's telescope */,
-    ...man(-0.2, 0.95, 0, 1).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 1.06, 0).multiply(q.m)), q)) /* pointer */,
-    ...man(-0.2, -0.95, 0, 1).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 1.06, 0).multiply(q.m)), q)) /* trainer */,
-    ...man(-1.25, 0, 0, 2).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 1.06, 0).multiply(q.m)), q)) /* loader with a round */,
+    part(cyl(0.38, 0.55, 0.75, 14), GREY, 0, 0.375, 0) /* the pedestal */,
+    part(cyl(1.25, 1.25, 0.1, 20), DK, 0, 0.75, 0) /* the crew's platform */,
+    part(bx(0.85, 0.5, 0.6), GREY, 0.05, 1.0, 0) /* the cradle's carriage */,
+    part(bx(0.06, 1.15, 1.7), GREY, 0.75, 1.42, 0) /* the shield's front plate */,
+    part(bx(0.55, 1.0, 0.06), GREY, 0.48, 1.35, 0.85),
+    part(bx(0.55, 1.0, 0.06), GREY, 0.48, 1.35, -0.85) /* its sides */,
+    part(bx(0.07, 0.75, 0.24), DK, 0.765, 1.45, 0) /* the barrel's slot */,
+    part(cyl(0.18, 0.18, 0.05, 12), DK, 0.1, 1.0, 0.45, Math.PI / 2) /* elevating handwheel */,
+    part(cyl(0.18, 0.18, 0.05, 12), DK, 0.1, 1.0, -0.45, Math.PI / 2) /* training handwheel */,
+    part(bx(0.16, 0.2, 0.14), DK, 0.35, 1.55, -0.5) /* the pointer's telescope */,
+    ...man(-0.2, 0.8, 0, 1).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 0.8, 0).multiply(q.m)), q)) /* pointer */,
+    ...man(-0.2, -0.8, 0, 1).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 0.8, 0).multiply(q.m)), q)) /* trainer */,
+    ...man(-1.15, 0, 0, 2).map((q) => ((q.m = new THREE.Matrix4().makeTranslation(0, 0.8, 0).multiply(q.m)), q)) /* loader with a round */,
   ];
-  /* the barrel (5.55 m), the breech and the recoil cylinder: elevates about the trunnions */
+  /* the barrel (3.2 m: 40 calibres of 76.2 mm and the breech), the breech and the recoil cylinder under it: elevates about the
+     trunnions, 0.7 m from its breech end */
   const barrel = () => [
-    part(new THREE.LatheGeometry([new THREE.Vector2(0.001, 0), new THREE.Vector2(0.19, 0), new THREE.Vector2(0.19, 1.3), new THREE.Vector2(0.13, 1.6), new THREE.Vector2(0.1, 5.2), new THREE.Vector2(0.115, 5.35), new THREE.Vector2(0.115, 5.55), new THREE.Vector2(0.06, 5.55)], 14), GREY, -1.0, 0, 0, 0, 0, -Math.PI / 2),
-    part(bx(0.45, 0.42, 0.42), DK, -1.1, 0, 0) /* breech ring and Welin block */,
-    part(cyl(0.08, 0.08, 1.9, 8), GREY, 0.0, 0.27, 0, 0, 0, Math.PI / 2) /* recoil cylinder over the barrel */,
-    part(cyl(0.12, 0.12, 0.5, 10), DK, 0, 0, 0, Math.PI / 2) /* trunnions */,
+    part(new THREE.LatheGeometry([new THREE.Vector2(0.001, 0), new THREE.Vector2(0.12, 0), new THREE.Vector2(0.12, 0.8), new THREE.Vector2(0.085, 1.1), new THREE.Vector2(0.065, 3.05), new THREE.Vector2(0.075, 3.12), new THREE.Vector2(0.075, 3.2), new THREE.Vector2(0.04, 3.2)], 12), GREY, -0.7, 0, 0, 0, 0, -Math.PI / 2),
+    part(bx(0.3, 0.28, 0.28), DK, -0.55, 0, 0) /* breech ring (inside the barrel's 3.2 m) */,
+    part(cyl(0.06, 0.06, 1.2, 8), GREY, -0.05, -0.17, 0, 0, 0, Math.PI / 2) /* recoil cylinder under the barrel */,
+    part(cyl(0.08, 0.08, 0.36, 10), DK, 0, 0, 0, Math.PI / 2) /* trunnions */,
   ];
   const mat = () => new THREE.MeshLambertMaterial({ vertexColors: true });
   const G = { pit: new GX.Acc().add(pit()).geometry(), mount: new GX.Acc().add(mount()).geometry(), barrel: new GX.Acc().add(barrel()).geometry() };
@@ -18400,15 +18418,15 @@ const COAST = {
     const tur = new THREE.Group(),
       bar = new THREE.Group();
     tur.add(new THREE.Mesh(G.mount, mat()));
-    bar.position.set(0, 1.62, 0);
+    bar.position.set(0, COAST.PIV, 0);
     bar.add(new THREE.Mesh(G.barrel, mat()));
     tur.add(bar);
     grp.add(tur);
     scene.add(grp);
-    const t = { m: grp, lit: null, c: grp.position, r: 3.2, hp: 40, hp0: 40, type: 'coast12', dead: false, s1: 2, col: 0x6e7477, kind: 'aa', y0: grp.position.y };
+    const t = { m: grp, lit: null, c: grp.position, r: 2.6, hp: 30, hp0: 30, type: 'coast12' /* the coast gun's type (the name kept: an 8 cm now) */, dead: false, s1: 2, col: 0x6e7477, kind: 'aa', y0: grp.position.y };
     T.push(t);
-    const g = { grp, tur, bar, t, p: new THREE.Vector3(x, y + 1.62 + 1.06 * 0, z), yaw: 0, el: 0.05, cd: Math.random() * 6, er: 0, ed: 0, n: 0, rec: 0, home: yaw, smoke: 0 };
-    g.p.y = y + 1.62;
+    const g = { grp, tur, bar, t, p: new THREE.Vector3(x, y + COAST.PIV, z), yaw: 0, el: 0.05, cd: Math.random() * 6, er: 0, ed: 0, n: 0, rec: 0, home: yaw, smoke: 0 };
+    g.p.y = y + COAST.PIV;
     COAST.G.push(g);
     return g;
   };
@@ -18493,7 +18511,7 @@ const _cg = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
 const coastFx = (p, col, s0, s1, life, vy, add) => (typeof gunFx === 'function' ? gunFx(p, col, s0, s1, life, vy, add) : fxAdd(p, col, s0, s1, life, vy, add));
 /* the coast guns at work (shared: every page; the user's, 2026-11-21). They fire when the current simulator says the shore enemies
    are on (its role's coastOn: the PCE's Enemy setting, the P-51's Ground Fire). At the player's ship when she is afloat and in range,
-   else at the nearest Allied ship they can see (targets of opportunity): never at an aircraft (a 12 cm gun laid by hand, +33 deg) */
+   else at the nearest Allied ship they can see (targets of opportunity). Against aircraft they fire as ROE's posts (the '8cm' gun), when no ship is laid on; at ships the solution is laid by hand to +45 deg */
 function coastUpdate(dt) {
   const on = SIMS.cur.coastOn() && started && !crashed && trn.mode === 'free';
   COAST.msgT = Math.max(0, COAST.msgT - dt);
@@ -18516,7 +18534,7 @@ function coastUpdate(dt) {
     if (g.t.dead || !on) continue;
     /* the target, once a second: the PCE if she is in range and in sight; else (targets of opportunity, RULES OF ENGAGEMENT) the
        nearest Allied ship it can see in range (a fleet PCE or PT boat, the Liberty) */
-    const maxR = night > 0.35 ? 3000 : 14000;
+    const maxR = night > 0.35 ? 3000 : COAST.R;
     if ((g.vt = (g.vt || 0) - dt) <= 0) {
       g.vt = 1;
       const R0 = Math.hypot(pos.x - g.p.x, pos.z - g.p.z),
@@ -18531,6 +18549,21 @@ function coastUpdate(dt) {
     }
     if (!g.sees) {
       g.n = 0;
+      /* no ship to lay on: the gun is a dual-purpose 8 cm, and its post (ROE) may be firing at an Allied aircraft: the mount follows it */
+      const P = typeof ROE !== 'undefined' && ROE.postOf(g.grp),
+        a = P && P.guns[0].tg;
+      if (a && a.air) {
+        const dx = a.p.x - g.p.x,
+          dz = a.p.z - g.p.z,
+          want = Math.atan2(-dz, dx) - g.home,
+          dy = Math.atan2(Math.sin(want - g.yaw), Math.cos(want - g.yaw)),
+          el = Math.min((75 * Math.PI) / 180, Math.atan2(a.p.y - g.p.y, Math.hypot(dx, dz)));
+        g.yaw += Math.max(-0.15 * dt, Math.min(0.15 * dt, dy));
+        g.el += Math.max(-0.15 * dt, Math.min(0.15 * dt, el - g.el));
+        g.tur.rotation.y = g.yaw;
+        g.bar.rotation.z = g.el;
+        if (P.guns[0].cd > (1 / P.guns[0].s.rps) * 0.8) g.rec = Math.max(g.rec, 0.9); /* just fired: the recoil */
+      }
       continue;
     }
     const tp = g.tg ? new THREE.Vector3(g.tg.p.x, coastSea() + 3, g.tg.p.z) : tgt,
@@ -18566,7 +18599,7 @@ function coastUpdate(dt) {
       const az = g.home + g.yaw + _cg() * 0.0015,
         e2 = g.el + _cg() * 0.002,
         dir = new THREE.Vector3(Math.cos(az) * Math.cos(e2), Math.sin(e2), -Math.sin(az) * Math.cos(e2)),
-        mz = g.p.clone().addScaledVector(dir, 4.6);
+        mz = g.p.clone().addScaledVector(dir, COAST.MZ);
       COAST.S.push({ p: mz.clone(), v: dir.multiplyScalar(COAST.MV * (1 + _cg() * 0.0015)), t: 0, g, aimR: r, tg: g.tg });
       g.rec = 1;
       coastFx(mz, 0xffc070, 4, 12, 0.18, 0, true);
@@ -18614,7 +18647,7 @@ function coastUpdate(dt) {
       coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
     } else if (hit) {
       COAST.hits++;
-      SIMS.cur.shelled();
+      SIMS.cur.shelled(76) /* an 8 cm shell */;
       coastFx(L, 0xffa040, 6, 16, 0.5, 0, true);
       coastFx(L, 0x2a2826, 6, 26, 6, 1.5, false);
       note('HIT BY A 12 CM SHELL! (' + COAST.hits + ')');
@@ -21645,7 +21678,9 @@ var ROE = (() => {
     50: { air: 1300, surf: 900, rps: 6, sp: 0.007, dmg: 0.6, mv: 870, kr: 0.035 },
     '3in': { air: 5000, surf: 9000, rps: 0.3, sp: 0.0025, dmg: 14, mv: 823, prox: 15 },
     '5in': { air: 7000, surf: 14000, rps: 0.25, sp: 0.0025, dmg: 40, mv: 792, prox: 20 },
-    '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15 },
+    '12cm': { air: 6000, surf: 12000, rps: 0.17, sp: 0.0025, dmg: 30, mv: 825, prox: 15, mm: 120 },
+    /* the coast batteries' 8 cm/40s against aircraft (dual purpose: +75 deg, 7,200 m ceiling): their fire at ships is the batteries' own */
+    '8cm': { air: 6000, surf: 0, rps: 0.17, sp: 0.003, dmg: 10, mv: 680, prox: 12, mm: 76 },
   };
   const FIT = {
     pt: [
@@ -21698,6 +21733,9 @@ var ROE = (() => {
       else if (q.side === 'us' && q.kind === 'civ' && q.r > 30) at(q.m, 'us', 'liberty', FIT.liberty, () => q.dead);
       else if (q.side !== 'us' && q.esc) at(q.m, 'jp', 'escort', FIT.escort, () => q.dead) /* the Ukurus (not the freighters and tankers at anchor) */;
     }
+    /* each coast battery gun (an 8 cm/40, dual purpose) fires at Allied aircraft while it has no ship to lay on (the user's, 2026-11-22) */
+    if (typeof COAST !== 'undefined')
+      for (const g of COAST.G) if (!g.t.dead) at(g.grp, 'jp', 'coast', [['8cm', 0, COAST.PIV, 0]], () => g.t.dead || g.sees || !war());
     if (SIMS.on('pce') && typeof SHIPM !== 'undefined' && SHIPM.mesh) at(SHIPM.mesh, 'us', 'own', PCEM.guns(false), () => crashed || SIMS.cur.holdFire(), true);
     POSTS = L;
     return L;
@@ -21837,7 +21875,7 @@ var ROE = (() => {
         if (T0.k === 'player') {
           if (T0.air || s.dmg <= 4) {
             if (AA.hit(a, b.p)) dead = true;
-          } else if (SIMS.cur.afloat && SIMS.cur.struck(b.p)) ((dead = true), SIMS.cur.shelled());
+          } else if (SIMS.cur.afloat && SIMS.cur.struck(b.p)) ((dead = true), SIMS.cur.shelled(b.s.mm || 120));
         } else if (T0.k === 't') {
           const q = T0.q;
           if (!q.dead) {
@@ -21886,21 +21924,21 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (it opens fire inside 14 km), each armed Japanese post
+  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (its 10.8 km), each armed Japanese post
      or ship (its longest gun's surface range) and each T-14 group's base (they run in on a ship within about 4 km of it). The PCE's start
      and I-58's patrol keep clear of them (the user's, 2026-11-22) */
   const reach = () => {
     const W = [];
-    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, 14000]);
+    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, COAST.REACH]);
     for (const P of posts())
       if (P.side === 'jp' && P.guns.length) {
         const q = P.m.getWorldPosition(new THREE.Vector3());
-        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]);
+        if (P.kind !== 'coast') W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]); /* (the coast guns' reach at sea is their own, above) */
       }
     for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
     return W;
   };
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, reset: () => (RND.length = 0) };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, postOf: (m) => post.get(m), reset: () => (RND.length = 0) };
 })();
 /* AIR SUPPORT, both sides (the user's, 2026-11-21): sea units and ground installations under fire call for air support from the nearest
    airbase of their side. Two fighters launch after the scramble (90 s), take off along the runway, climb and fly out at cruise speed;
@@ -24453,7 +24491,7 @@ function enemySync() {
           ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
           : '') +
         (ENEMY.has('shore')
-          ? "Shore: the ports' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
+          ? "Shore: the ports' 8 cm coast guns open fire inside about 10 km (and at Allied aircraft), and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
           : '') +
         (ENEMY.has('ships')
           ? "Ships: the Ukuru-class escorts' 12 cm guns open fire inside about 12 km, and the T-14 torpedo boats make torpedo runs from about 3 km. "
@@ -26266,7 +26304,8 @@ if (SIMS.on('pce')) {
 /* BATTLE DAMAGE, the PCE-842 (Settings > Battle damage, DM.on, on by default): what the hits do to her. Until now they were only
    counted. Each hit holes her hull (water comes in through the holes), may start a fire and may damage her engines:
      a 25 mm or machine-gun round (the ground fire, the escort, the raiders)   a small hole; now and then a fire
-     a 12 cm shell (the coast battery)                                         a real hole; often a fire; sometimes the engines
+     an 8 cm shell (the coast battery)                                          a hole; now and then a fire; seldom the engines
+     a 12 cm shell (the escorts)                                               a real hole; often a fire; sometimes the engines
      a torpedo (the T-14s)                                                     a great hole, the engine room flooding, a fire
    Damage control fights back: the pumps clear 0.12% of her reserve buoyancy a second, the repair parties shore the holes up and put
    the fires out (a big fire spreads faster than they can, and reaches the engines). Flooding settles her and lists her and slows
@@ -26292,6 +26331,13 @@ function sdmHit(kind) {
     if (r() < 0.35) SDM.fire = Math.max(SDM.fire, 0.35);
     if (r() < 0.25) {
       SDM.eng = Math.min(1, SDM.eng + 0.3);
+      sdmSay('BRIDGE, DAMAGE CONTROL. HIT IN THE ENGINE ROOM. ONE ENGINE DAMAGED, SPEED REDUCED.');
+    } else sdmSay('BRIDGE, DAMAGE CONTROL. SHELL HIT, HOLED ABOVE THE WATERLINE. REPAIR PARTIES ON IT.');
+  } else if (kind === 'shell3') {
+    SDM.holes += 0.35;
+    if (r() < 0.2) SDM.fire = Math.max(SDM.fire, 0.25);
+    if (r() < 0.1) {
+      SDM.eng = Math.min(1, SDM.eng + 0.2);
       sdmSay('BRIDGE, DAMAGE CONTROL. HIT IN THE ENGINE ROOM. ONE ENGINE DAMAGED, SPEED REDUCED.');
     } else sdmSay('BRIDGE, DAMAGE CONTROL. SHELL HIT, HOLED ABOVE THE WATERLINE. REPAIR PARTIES ON IT.');
   } else if (kind === 'torpedo') {
@@ -28705,6 +28751,8 @@ RADIO.add = function (from, txt, o) {
   const h = Math.floor(WX.hour || 0),
     m = Math.floor(((WX.hour || 0) % 1) * 60);
   this.log.push(String(h).padStart(2, '0') + String(m).padStart(2, '0') + ' ' + from + ': ' + txt);
+  (this.sd || (this.sd = [])).push(msgSide(txt, from)) /* whose it is about: its colour on the paper */;
+  if (this.sd.length > 30) this.sd.shift();
   if (this.log.length > 30) this.log.shift();
   this.dirty = true;
 };
@@ -28717,19 +28765,21 @@ function radioDraw(f) {
   g.fillStyle = '#2a2a2a';
   g.font = 'bold 19px monospace';
   g.textAlign = 'left';
-  const lines = [];
-  for (const l of RADIO.log) {
+  const lines = [],
+    INK = { jp: '#a81f1a', us: '#1f3a6e', '': '#2a2a2a' } /* red: the enemy; blue: the allies */;
+  RADIO.log.forEach((l, k) => {
+    const c = INK[(RADIO.sd && RADIO.sd[k]) || ''];
     let s = l;
     while (s.length > 40) {
       let i = s.lastIndexOf(' ', 40);
       if (i < 10) i = 40;
-      lines.push(s.slice(0, i));
+      lines.push([s.slice(0, i), c]);
       s = '      ' + s.slice(i + 1);
     }
-    lines.push(s, '');
-  }
+    lines.push([s, c], ['', c]);
+  });
   const show = lines.slice(-18);
-  show.forEach((l, i) => g.fillText(l, 14, 26 + i * 22.5));
+  show.forEach(([l, c], i) => ((g.fillStyle = c), g.fillText(l, 14, 26 + i * 22.5)));
   g.fillStyle = '#7a1a10';
   g.fillRect(0, H - 12, W, 12);
 }
@@ -29938,8 +29988,8 @@ function engReset() {
 function engHit(kind) {
   const r = Math.random;
   if (kind !== 'small') ENG.hitT = SHIP.t;
-  const pw = kind === 'torpedo' ? 0.8 : kind === 'shell' ? 0.3 : 0.03,
-    fl = kind === 'torpedo' ? 0.6 : kind === 'shell' ? 0.15 : 0;
+  const pw = kind === 'torpedo' ? 0.8 : kind === 'shell' ? 0.3 : kind === 'shell3' ? 0.15 : 0.03,
+    fl = kind === 'torpedo' ? 0.6 : kind === 'shell' ? 0.15 : kind === 'shell3' ? 0.07 : 0;
   if (ENG.pwr && r() < pw) {
     ENG.pwr = false;
     ENG.ai.pwr = 25 + r() * 20;

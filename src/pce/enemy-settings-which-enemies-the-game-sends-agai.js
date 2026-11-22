@@ -21,7 +21,7 @@ function enemySync() {
           ? 'Planes: Ki-84 Hayates from the enemy airfield strafe her, two at a time, every few minutes (the first about 90 s after you sail). '
           : '') +
         (ENEMY.has('shore')
-          ? "Shore: the ports' 12 cm coast guns open fire inside about 14 km, and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
+          ? "Shore: the ports' 8 cm coast guns open fire inside about 10 km (and at Allied aircraft), and the 25 mm guns at the ports, airfields and on the escort inside 2.5 km. "
           : '') +
         (ENEMY.has('ships')
           ? "Ships: the Ukuru-class escorts' 12 cm guns open fire inside about 12 km, and the T-14 torpedo boats make torpedo runs from about 3 km. "
