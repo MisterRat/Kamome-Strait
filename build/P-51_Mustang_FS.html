@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.98';
+const VERSION = '5.99';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -22837,7 +22837,7 @@ const SITES = [],
       seg.push(l);
       L += l;
     }
-    const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len, onA: o.onA, onB: o.onB };
+    const c = { m, s1, k0, pts, seg, L, v: 7.5, dock: 150, phase, yaw: FA.ryS, vis: true, len, onA: o.onA, onB: o.onB, us: !!o.us };
     c.bd = COLL.add({ sea: true, hl: len / 2, r: len * 0.075, mg: 40, x: p0[0], z: p0[1], yaw: c.yaw, v: 0, maxOff: 250 }); /* she gives way (COLL) */
     CIV.push(c);
     /* her Daihatsu: works between her and the harbour's jetty head while she lies at anchor (1945 practice: deep-draught ships were
@@ -23621,8 +23621,17 @@ const SITES = [],
         if (c.bg) c.bg.m.traverse((q) => (q.layers.mask = c.vis ? 1 : 2));
       }
     };
+    /* the Liberty starts each game at anchor off PT Base Halsey, her cargo being worked (the user's, 2026-11-22: her run's clock ran from
+       the page's loading, so she was out on it by the time the PCE put to sea, and could not be caught before the enemy found her) */
+    let civWas = false;
+    SITE.civRestart = () => (civWas = false);
     SITE.pat = (dt) => {
       if (_pat) _pat(dt);
+      if (started && !civWas) {
+        const t0 = performance.now() / 1000;
+        for (const c of CIV) if (c.us) c.phase = 2 * (c.L / c.v + c.dock) - (t0 % (2 * (c.L / c.v + c.dock)));
+      }
+      civWas = started;
       for (const o of SITE.anch || []) SITE.rideAt(o, dt); /* the home port's ships and craft at anchor */
       const t = performance.now() / 1000;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
