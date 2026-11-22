@@ -86,17 +86,21 @@ const SUBS = (() => {
   /* ---- I-58's patrol and attacks ---- */
   let I58 = null;
   /* her patrol circle: 2.5 km across water at least 30 m deep all round (the strait is mostly 20 to 60 m; the middle, between the
-     bases, is the island), in the waters the PCE works, 6 to 20 km from the US base; her depth there clears the bottom */
+     bases, is the island), in the waters the PCE works, 6 to 20 km from the US base and clear of the enemy sites' guns; her depth there clears the bottom */
   const patrolC = () => {
     const us = FS.nav.find((n) => n.navy === 'us'),
       B = us ? us.O : { x: 0, z: 0 },
-      sea = coastSea();
+      sea = coastSea(),
+      W = typeof ROE !== 'undefined' ? ROE.reach() : [];
     let best = null,
       bs = -1e9;
     for (let x = B.x - 20000; x <= B.x + 20000; x += 1500)
       for (let z = B.z - 20000; z <= B.z + 20000; z += 1500) {
         const dB = Math.hypot(x - B.x, z - B.z);
         if (dB < 6000) continue;
+        /* clear of every enemy gun's reach (ROE.reach) by his circle's 2.5 km and 1 km more, so the PCE can hunt him without coming
+           under them (the user's, 2026-11-22: PT Base Halsey moved so that she patrols out of their reach) */
+        if (W.some(([wx, wz, r]) => Math.hypot(x - wx, z - wz) < r + 3500)) continue;
         let md = sea - HR(x, z);
         for (let k = 0; k < 16 && md >= 30; k++) md = Math.min(md, sea - HR(x + Math.cos(k * 0.3927) * 2500, z + Math.sin(k * 0.3927) * 2500));
         if (md < 30) continue;

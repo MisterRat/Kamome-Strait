@@ -89,12 +89,12 @@ def route(pts, col, ls):
 UG = (2025, 19175)  # Port Ugaki (navjp): its shore point; the yard behind it
 UGc = (2025, 19175 + 60)
 KA = (-8185, 22542)  # Airbase Kakuta (air3): the runway's middle (d = -750 from O (-8185, 21792), S north)
-HA = (1675, 10925 - 30)  # PT Base Halsey (navus)
+HA = (18592, 10737)  # PT Base Halsey (navus; moved 2026-11-22 to the big eastern island's west shore, its sea to the west; 30 m inland of O)
 NI = (8959, 11470 - 30)  # Depot Nimitz (navusd)
 CH = ((1823, 18476), (773, 20634))
 RUN_JP = [(2085, 18837), (2085, 17937), (1823, 18476), (773, 20634), (452, 25752), (1284, 26096)]
-RUN_US = [(1825, 11262), (1825, 12162), (9109, 12707), (9109, 11807)]
-I58 = (-9325, 13425)  # I-58's patrol circle (SUBS patrolC: 2.5 km round water at least 30 m deep, 6-20 km from the US base)
+RUN_US = [(18317, 11023), (17494, 11387), (9109, 12707), (9109, 11807)]
+I58 = (21065, -9251)  # I-58's patrol circle (SUBS patrolC: 2.5 km round water at least 30 m deep, 6-20 km from the US base, clear of the enemy sites' guns)
 
 # supply runs first (under the symbols)
 LANE = "#2e4a66"  # the chart's merchant shipping lane: dashed slate blue
@@ -133,7 +133,7 @@ label(kx, ky, ["AIRBASE KAKUTA", "Fighter airfield  ·  " + grid(*KA)], RED, 500
 # PT Base Halsey and Depot Nimitz (Allied, blue)
 hx, hy = P(*HA)
 anchor_sym(hx, hy, BLUE)
-label(hx, hy, ["PT BASE HALSEY", "US Navy PT-boat base  ·  " + grid(*HA)], BLUE, 880, 1000, anchor=(880, 1000))
+label(hx, hy, ["PT BASE HALSEY", "US Navy PT-boat base  ·  " + grid(*HA)], BLUE, hx + 70, hy + 6, anchor=(hx + 70, hy + 6))
 nx_, ny_ = P(*NI)
 depot_sym(nx_, ny_, BLUE)
 label(nx_, ny_, ["DEPOT NIMITZ", "US Navy supply depot  ·  " + grid(*NI)], BLUE, 985, 1062, anchor=(985, 1062))
@@ -142,7 +142,7 @@ label(nx_, ny_, ["DEPOT NIMITZ", "US Navy supply depot  ·  " + grid(*NI)], BLUE
 mx, my = (ax0 + ax1) / 2, (ay0 + ay1) / 2
 ax.text(mx - 8, my + 2, "Dredged channel\n(buoyed, 40 ft)", fontsize=9, fontstyle="italic", fontfamily=SERIF, color=INK, ha="right",
         va="center", zorder=6)
-p = P(5200, 12500)
+p = P(13900, 10450)  # in the strait, above the run and clear of Depot Nimitz's label
 ax.text(p[0], p[1] + 10, "Liberty supply run", fontsize=8, fontstyle="italic", fontfamily=SERIF, color=LANE, ha="center", zorder=6)
 p = P(900, 23500)
 ax.text(p[0] + 8, p[1], "Freighter run", fontsize=8, fontstyle="italic", fontfamily=SERIF, color=LANE, ha="left", va="center", zorder=6)
@@ -150,9 +150,15 @@ ax.text(p[0] + 8, p[1], "Freighter run", fontsize=8, fontstyle="italic", fontfam
 # I-58's patrol area: a red dashed circle 2.5 km across, the submarine symbol (a hull and tower) and her label
 ix, iy = P(*I58)
 ax.add_patch(Circle((ix, iy), 2500 * S, fc=(0.75, 0.15, 0.1, 0.06), ec=RED, lw=1.6, ls=(0, (4, 3)), zorder=4))
-ax.add_patch(Polygon([(ix - 13, iy), (ix - 9, iy - 2.6), (ix + 11, iy - 2.6), (ix + 14, iy), (ix + 11, iy + 2.6), (ix - 9, iy + 2.6)], closed=True, fc=RED, ec="none", zorder=7))
-ax.add_patch(Polygon([(ix - 2, iy - 2.6), (ix - 1, iy - 7), (ix + 4, iy - 7), (ix + 5, iy - 2.6)], closed=True, fc=RED, ec="none", zorder=7))
-label(ix, iy, ["I-58  SUBMARINE", "Type B3, six kaiten  ·  submerged patrol  ·  " + grid(*I58)], RED, ix - 262, iy + 52, size=8.6, anchor=(ix - 262, iy + 52))
+sy = iy + 16  # the symbol in the circle's lower part (IJN UKURU's label lies over its middle)
+ax.add_patch(Polygon([(ix - 13, sy), (ix - 9, sy - 2.6), (ix + 11, sy - 2.6), (ix + 14, sy), (ix + 11, sy + 2.6), (ix - 9, sy + 2.6)], closed=True, fc=RED, ec="none", zorder=7))
+ax.add_patch(Polygon([(ix - 2, sy - 2.6), (ix - 1, sy - 7), (ix + 4, sy - 7), (ix + 5, sy - 2.6)], closed=True, fc=RED, ec="none", zorder=7))
+label(ix, sy, ["I-58  SUBMARINE", "Type B3, six kaiten  ·  submerged patrol  ·  " + grid(*I58)], RED, ix + 48, sy + 22, size=8.6, anchor=(ix + 48, sy + 22))
+# IJN UKURU's label drawn again over I-58's patrol area, where the first edition has it (box 1098.3 - 1235.8 by 735.4 - 765.0): the circle
+# passes behind it
+ax.text(1100.9, 750.2, "IJN UKURU (鵜来)\nUkuru-class escort — coastal patrol\nStation: PORT NAGUMO", fontsize=7.4, fontfamily=[SERIF, "Noto Serif CJK JP"],
+        color=RED, va="center", ha="left", linespacing=1.2, zorder=8,
+        bbox=dict(boxstyle="round,pad=0.35,rounding_size=0.3", fc="#f3e9c9", ec=RED, lw=0.7))
 
 # IJN AGUNI's label, moved: Airbase Kakuta stands where it was (the first edition's is taken out of the page below)
 ag = ax.text(812, 1306, "IJN AGUNI (粟国)\nUkuru-class escort — coastal patrol\nStation: DEPOT MIKAWA", fontsize=7.4, fontfamily=[SERIF, "Noto Serif CJK JP"],

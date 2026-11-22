@@ -584,7 +584,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.120';
+const VERSION = '0.121';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -1992,13 +1992,15 @@ const FS = (() => {
     Object.assign(mk('air3', 'air', -8185, 21792, -Math.PI / 2), { inland: true }),
   ];
   /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
-     PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
+     PT-boat base on the west shore of the big eastern island (far world; moved there from the big island's south shore, 2026-11-22). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
      are cut into WH (far) and HR (home) like the colonial ports'. */
   const nav = [
     mk('navjp', 'naval', 2025, 19175, -Math.PI / 2),
-    mk('navus', 'naval', 1675, 10925, Math.PI / 2),
-    /* the US Navy supply depot (the user's, 2026-11-21): 7.2 km east of the PT base (as far as Depot Mikawa is from the IJN base),
-       on the south shore of the islet there */
+    /* PT Base Halsey moved (the user's, 2026-11-22) across the strait to the west shore of the big eastern island, 9.6 km east of Depot
+       Nimitz: out of reach of the enemy's shore batteries and the IJN base's ships (18.5 km from the nearest battery, which opens fire
+       inside 14 km), so the PCE can patrol in front of it without engaging them. Its sea to the west-south-west */
+    mk('navus', 'naval', 18565, 10749, 2.725),
+    /* the US Navy supply depot (the user's, 2026-11-21): on the south shore of the islet 9.6 km west of the PT base, across the strait */
     mk('navusd', 'naval', 8959, 11470, Math.PI / 2),
   ]; /* O on the waterline (the sea is at -8) */
   /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */
@@ -21874,7 +21876,21 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reset: () => (RND.length = 0) };
+  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (it opens fire inside 14 km), each armed Japanese post
+     or ship (its longest gun's surface range) and each T-14 group's base (they run in on a ship within about 4 km of it). The PCE's start
+     and I-58's patrol keep clear of them (the user's, 2026-11-22) */
+  const reach = () => {
+    const W = [];
+    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, 14000]);
+    for (const P of posts())
+      if (P.side === 'jp' && P.guns.length) {
+        const q = P.m.getWorldPosition(new THREE.Vector3());
+        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]);
+      }
+    for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
+    return W;
+  };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, reset: () => (RND.length = 0) };
 })();
 /* AIR SUPPORT, both sides (the user's, 2026-11-21): sea units and ground installations under fire call for air support from the nearest
    airbase of their side. Two fighters launch after the scramble (90 s), take off along the runway, climb and fly out at cruise speed;
@@ -22339,17 +22355,21 @@ const SUBS = (() => {
   /* ---- I-58's patrol and attacks ---- */
   let I58 = null;
   /* her patrol circle: 2.5 km across water at least 30 m deep all round (the strait is mostly 20 to 60 m; the middle, between the
-     bases, is the island), in the waters the PCE works, 6 to 20 km from the US base; her depth there clears the bottom */
+     bases, is the island), in the waters the PCE works, 6 to 20 km from the US base and clear of the enemy sites' guns; her depth there clears the bottom */
   const patrolC = () => {
     const us = FS.nav.find((n) => n.navy === 'us'),
       B = us ? us.O : { x: 0, z: 0 },
-      sea = coastSea();
+      sea = coastSea(),
+      W = typeof ROE !== 'undefined' ? ROE.reach() : [];
     let best = null,
       bs = -1e9;
     for (let x = B.x - 20000; x <= B.x + 20000; x += 1500)
       for (let z = B.z - 20000; z <= B.z + 20000; z += 1500) {
         const dB = Math.hypot(x - B.x, z - B.z);
         if (dB < 6000) continue;
+        /* clear of every enemy gun's reach (ROE.reach) by his circle's 2.5 km and 1 km more, so the PCE can hunt him without coming
+           under them (the user's, 2026-11-22: PT Base Halsey moved so that she patrols out of their reach) */
+        if (W.some(([wx, wz, r]) => Math.hypot(x - wx, z - wz) < r + 3500)) continue;
         let md = sea - HR(x, z);
         for (let k = 0; k < 16 && md >= 30; k++) md = Math.min(md, sea - HR(x + Math.cos(k * 0.3927) * 2500, z + Math.sin(k * 0.3927) * 2500));
         if (md < 30) continue;
@@ -25785,20 +25805,12 @@ function shipStation(n) {
   note(st.name);
 }
 /* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
-   lies beyond each enemy gun's reach with a margin: the coast batteries (they open fire inside 14 km) by 16 km, an armed enemy ship or
-   post by its longest gun's surface range and 3 km more, the T-14s' base (they run in on her within 3 km of their beat) by 7 km.
+   lies beyond each enemy gun's reach (ROE.reach: the coast batteries' 14 km, an armed post's or ship's longest gun, the T-14s' 4 km)
+   and 3 km more.
    Heading away from the nearest of them. The far sites, if still being built after the page loaded, are finished first */
 function pceStart(x0, z0) {
   if (SITE.farLeft && SITE.farLeft()) SITE.farAll();
-  const W = [];
-  for (const g of typeof COAST !== 'undefined' ? COAST.G : []) W.push([g.p.x, g.p.z, 16000]);
-  if (typeof ROE !== 'undefined')
-    for (const P of ROE.posts())
-      if (P.side === 'jp' && P.guns.length) {
-        const q = P.m.getWorldPosition(new THREE.Vector3());
-        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0)) + 3000]);
-      }
-  for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 7000]);
+  const W = ROE.reach().map(([x, z, r]) => [x, z, r + 3000]) /* every enemy gun's reach and 3 km more */;
   const clear = (x, z) => W.every(([wx, wz, r]) => Math.hypot(x - wx, z - wz) >= r),
     deep = (x, z) => {
       for (const [dx, dz] of [[0, 0], [400, 0], [-400, 0], [0, 400], [0, -400]]) if (HR(x + dx, z + dz) > coastSea() - 12) return false;

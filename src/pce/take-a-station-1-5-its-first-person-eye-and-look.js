@@ -18,20 +18,12 @@ function shipStation(n) {
   note(st.name);
 }
 /* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
-   lies beyond each enemy gun's reach with a margin: the coast batteries (they open fire inside 14 km) by 16 km, an armed enemy ship or
-   post by its longest gun's surface range and 3 km more, the T-14s' base (they run in on her within 3 km of their beat) by 7 km.
+   lies beyond each enemy gun's reach (ROE.reach: the coast batteries' 14 km, an armed post's or ship's longest gun, the T-14s' 4 km)
+   and 3 km more.
    Heading away from the nearest of them. The far sites, if still being built after the page loaded, are finished first */
 function pceStart(x0, z0) {
   if (SITE.farLeft && SITE.farLeft()) SITE.farAll();
-  const W = [];
-  for (const g of typeof COAST !== 'undefined' ? COAST.G : []) W.push([g.p.x, g.p.z, 16000]);
-  if (typeof ROE !== 'undefined')
-    for (const P of ROE.posts())
-      if (P.side === 'jp' && P.guns.length) {
-        const q = P.m.getWorldPosition(new THREE.Vector3());
-        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0)) + 3000]);
-      }
-  for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 7000]);
+  const W = ROE.reach().map(([x, z, r]) => [x, z, r + 3000]) /* every enemy gun's reach and 3 km more */;
   const clear = (x, z) => W.every(([wx, wz, r]) => Math.hypot(x - wx, z - wz) >= r),
     deep = (x, z) => {
       for (const [dx, dz] of [[0, 0], [400, 0], [-400, 0], [0, 400], [0, -400]]) if (HR(x + dx, z + dz) > coastSea() - 12) return false;

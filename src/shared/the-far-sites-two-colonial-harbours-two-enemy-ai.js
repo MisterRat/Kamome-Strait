@@ -32,13 +32,15 @@ const FS = (() => {
     Object.assign(mk('air3', 'air', -8185, 21792, -Math.PI / 2), { inland: true }),
   ];
   /* the two naval bases (user's choice of sites, 2026-11-20): the IJN base on the north tip of the long island (far world) and the US Navy
-     PT-boat base on the south shore of the big island (home map). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
+     PT-boat base on the west shore of the big eastern island (far world; moved there from the big island's south shore, 2026-11-22). Their pads (pu along the coast, from pi inland to po seaward, blend pb)
      are cut into WH (far) and HR (home) like the colonial ports'. */
   const nav = [
     mk('navjp', 'naval', 2025, 19175, -Math.PI / 2),
-    mk('navus', 'naval', 1675, 10925, Math.PI / 2),
-    /* the US Navy supply depot (the user's, 2026-11-21): 7.2 km east of the PT base (as far as Depot Mikawa is from the IJN base),
-       on the south shore of the islet there */
+    /* PT Base Halsey moved (the user's, 2026-11-22) across the strait to the west shore of the big eastern island, 9.6 km east of Depot
+       Nimitz: out of reach of the enemy's shore batteries and the IJN base's ships (18.5 km from the nearest battery, which opens fire
+       inside 14 km), so the PCE can patrol in front of it without engaging them. Its sea to the west-south-west */
+    mk('navus', 'naval', 18565, 10749, 2.725),
+    /* the US Navy supply depot (the user's, 2026-11-21): on the south shore of the islet 9.6 km west of the PT base, across the strait */
     mk('navusd', 'naval', 8959, 11470, Math.PI / 2),
   ]; /* O on the waterline (the sea is at -8) */
   /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */

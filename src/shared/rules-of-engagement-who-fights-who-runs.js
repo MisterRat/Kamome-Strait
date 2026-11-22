@@ -377,5 +377,19 @@ var ROE = (() => {
     tg.attributes.position.needsUpdate = true;
   };
   HOOKS.tick.push(tick);
-  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reset: () => (RND.length = 0) };
+  /* where the enemy's guns reach on the sea: [x, z, r] for each coast battery gun (it opens fire inside 14 km), each armed Japanese post
+     or ship (its longest gun's surface range) and each T-14 group's base (they run in on a ship within about 4 km of it). The PCE's start
+     and I-58's patrol keep clear of them (the user's, 2026-11-22) */
+  const reach = () => {
+    const W = [];
+    if (typeof COAST !== 'undefined') for (const g of COAST.G) if (!g.t.dead) W.push([g.p.x, g.p.z, 14000]);
+    for (const P of posts())
+      if (P.side === 'jp' && P.guns.length) {
+        const q = P.m.getWorldPosition(new THREE.Vector3());
+        W.push([q.x, q.z, Math.max(...P.guns.map((g) => g.s.surf || 0))]);
+      }
+    for (const G of (SITE.t14w && SITE.t14w.groups) || []) if (G.F) W.push([G.F.O.x, G.F.O.z, 4000]);
+    return W;
+  };
+  return { STR, allies: alliesNow, enemy, ratio, pickAlly, hitAlly, posts, aimErr, reach, reset: () => (RND.length = 0) };
 })();
