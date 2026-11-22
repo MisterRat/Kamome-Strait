@@ -48,6 +48,8 @@ function aswPlot() {
   return cv.toDataURL();
 }
 function aswDebrief() {
+  const xs = PT.L.find((t) => t.kind === 'sub');
+  if (xs) xs.o.surfT = 150; /* the exercise boat surfaces when it is over ('SURFACING'), and is seen */
   const F = ASW.O.filter((o) => o.st !== 'info'),
     ok = F.filter((o) => o.st === 'ok').length,
     late = F.filter((o) => o.st === 'late').length,

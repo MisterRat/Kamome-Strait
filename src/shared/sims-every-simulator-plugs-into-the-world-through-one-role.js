@@ -97,6 +97,7 @@ const SIMS = {
     afloat: false,
     struck: () => false,
     coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
+    subsOn: () => false /* the enemy submarine, I-58, on patrol (SUBS): the PCE's Subs setting */,
     shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
     shelled: () => {} /* a coast gun's shell has struck the player's vehicle */,
     torpedoed: () => {},

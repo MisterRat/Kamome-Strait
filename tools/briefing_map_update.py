@@ -94,6 +94,7 @@ NI = (8959, 11470 - 30)  # Depot Nimitz (navusd)
 CH = ((1823, 18476), (773, 20634))
 RUN_JP = [(2085, 18837), (2085, 17937), (1823, 18476), (773, 20634), (452, 25752), (1284, 26096)]
 RUN_US = [(1825, 11262), (1825, 12162), (9109, 12707), (9109, 11807)]
+I58 = (-9325, 13425)  # I-58's patrol circle (SUBS patrolC: 2.5 km round water at least 30 m deep, 6-20 km from the US base)
 
 # supply runs first (under the symbols)
 LANE = "#2e4a66"  # the chart's merchant shipping lane: dashed slate blue
@@ -145,6 +146,13 @@ p = P(5200, 12500)
 ax.text(p[0], p[1] + 10, "Liberty supply run", fontsize=8, fontstyle="italic", fontfamily=SERIF, color=LANE, ha="center", zorder=6)
 p = P(900, 23500)
 ax.text(p[0] + 8, p[1], "Freighter run", fontsize=8, fontstyle="italic", fontfamily=SERIF, color=LANE, ha="left", va="center", zorder=6)
+
+# I-58's patrol area: a red dashed circle 2.5 km across, the submarine symbol (a hull and tower) and her label
+ix, iy = P(*I58)
+ax.add_patch(Circle((ix, iy), 2500 * S, fc=(0.75, 0.15, 0.1, 0.06), ec=RED, lw=1.6, ls=(0, (4, 3)), zorder=4))
+ax.add_patch(Polygon([(ix - 13, iy), (ix - 9, iy - 2.6), (ix + 11, iy - 2.6), (ix + 14, iy), (ix + 11, iy + 2.6), (ix - 9, iy + 2.6)], closed=True, fc=RED, ec="none", zorder=7))
+ax.add_patch(Polygon([(ix - 2, iy - 2.6), (ix - 1, iy - 7), (ix + 4, iy - 7), (ix + 5, iy - 2.6)], closed=True, fc=RED, ec="none", zorder=7))
+label(ix, iy, ["I-58  SUBMARINE", "Type B3, six kaiten  ·  submerged patrol  ·  " + grid(*I58)], RED, ix - 262, iy + 52, size=8.6, anchor=(ix - 262, iy + 52))
 
 # IJN AGUNI's label, moved: Airbase Kakuta stands where it was (the first edition's is taken out of the page below)
 ag = ax.text(812, 1306, "IJN AGUNI (粟国)\nUkuru-class escort — coastal patrol\nStation: DEPOT MIKAWA", fontsize=7.4, fontfamily=[SERIF, "Noto Serif CJK JP"],
@@ -203,6 +211,7 @@ ALLIED = [
     ("PT BASE HALSEY", "US Navy PT-boat base: PT-107, 108 and 110; PCE-842's berth. Ships rearm and refuel here.", grid(*HA), frm(*HA)),
     ("DEPOT NIMITZ", "US Navy supply depot; its Liberty ship supplies PT Base Halsey.", grid(*NI), frm(*NI)),
     ("USS PCE-842", "US Navy patrol craft escort (PCE-842 class, 184 ft), working the coast off PT Base Halsey.", grid(*HA), "—"),
+    ("USS RONCADOR", "US Navy fleet submarine (SS-301, Balao class, 312 ft): the escorts' exercise boat off PT Base Halsey.", grid(*HA), "—"),
 ]
 PATROL = [
     ("UKURU", "鵜来", "PORT NAGUMO", "F5", "1.0 nm  ·  16 kt"),
@@ -234,8 +243,8 @@ for n, adm, ty, g, fr, d in ENEMY:
     T(2016.0, y - 0.5, g, 9.718, fam=MONO, w="bold")
     T(2073.6, y - 0.7, fr, 8.588, fam=MONO)
     T(2163.6, y - 0.8, d, 7.232)
-    rule(y + 12.6)
-    y += 23.2
+    rule(y + 12.4)
+    y += 21.6  # (23.2 in the first edition: tightened for I-58 and Roncador)
 y += 6
 heading(y, "ALLIED FACILITIES")
 y += 31.5
@@ -244,8 +253,8 @@ for n, desc, g, fr in ALLIED:
     T(1814.4, y - 0.7, desc, 7.797)
     T(2250.0, y - 0.5, g, 9.718, fam=MONO, w="bold")
     T(2300.4, y - 0.9, fr, 8.362, fam=MONO)
-    rule(y + 10.2)
-    y += 20.5
+    rule(y + 10.0)
+    y += 19.6
 y += 10
 heading(y, "ENEMY COASTAL PATROL VESSELS  (Ukuru-class kaibōkan)")
 for x, h in zip([C0, 1846.8, 2098.8, 2235.6], ["SHIP", "STATION", "PATROL AREA", "RACETRACK"]):
@@ -262,13 +271,14 @@ for n, kj, st, g, rt_ in PATROL:
 y += 4.5
 T(C0, y, "Ukuru class escort: 940 tons, 255 ft, 19.5 kt; three 12 cm DP guns, Type 96 25 mm twin AA, depth charges; crew about 150.", 7.458, st="italic")
 T(C0, y + 11.5, "Type T-14 motor torpedo boats, two at each of Port Nagumo, Port Ugaki, Airbases Ōnishi and Fukudome, Depots Mikawa and Kurita: 15 m, 33 kt; two 45 cm torpedoes, one 25 mm.", 7.458, st="italic")
-y += 37
+T(C0, y + 23.0, "Submarine I-58 (Type B3, 357 ft, May 1945): six kaiten on deck, snorkel; patrols submerged at 4 kt in " + grid(*I58) + ", attacks with 53 cm Type 95 torpedoes from 3,300 yd.", 7.458, st="italic")
+y += 48.5
 heading(y, "NOTES")
 y += 29.5
 for s in NOTES:
     T(C0, y, s, 7.91, fam=MONO)
-    y += 12.6
-COL_END = y - 12.6
+    y += 12.0
+COL_END = y - 12.0
 assert COL_END < 1406, COL_END  # clear of the ENGAGEMENT box (its top at 1412.6)
 print("column ends at", round(COL_END, 1))
 fig.savefig("/tmp/_map_overlay.pdf", transparent=True)

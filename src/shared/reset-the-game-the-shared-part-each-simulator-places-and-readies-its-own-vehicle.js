@@ -6,6 +6,7 @@ function reset() {
   for (const s of SIMS.list) if (s !== SIMS.cur) s.showSelf(false); /* a page with several simulators: only the one played is seen */
   SIMS.cur.resetBegin(); /* its own weapons and systems */
   if (typeof AIRSUP !== 'undefined') AIRSUP.clear(); /* no air support up or called */
+  if (typeof SUBS !== 'undefined') SUBS.clear(); /* the enemy submarine and her torpedoes gone (she comes again) */
   if (SITE.t14w)
     for (const g of SITE.t14w.groups || []) ((g.mag = g.mag0), g.B.forEach((b) => b.fish.set(2))); /* the torpedo boats' bases restocked, their tubes full */
   killed = 0;

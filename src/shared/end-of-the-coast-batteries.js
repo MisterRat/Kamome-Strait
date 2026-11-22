@@ -785,7 +785,8 @@ const SITES = [],
     TSP = 21.6,
     TRUN = 2000;
   const t14Hot = () => SIMS.cur.shipsOn() && SIMS.cur.afloat && started && !crashed && !(typeof RPL !== 'undefined' && RPL.busy);
-  const t14Fish = (RUN, x, z, yw) => {
+  /* ty (optional): { spd: m/s, run: m } for another type of torpedo (I-58's Type 95: SUBS) */
+  const t14Fish = (RUN, x, z, yw, ty) => {
     const o = new THREE.Object3D();
     const wk = shipWakeMesh(8 / 78, 0.05);
     wk.scale.z *= 0.3; /* a straight, narrow bubble track (a ship's wake squeezed sideways: no Kelvin arms) */
@@ -793,7 +794,7 @@ const SITES = [],
     o.position.set(x, coastSea(), z);
     o.rotation.y = yw;
     scene.add(o);
-    RUN.push({ o, x, z, dx: Math.cos(yw), dz: -Math.sin(yw), r: 0 });
+    RUN.push({ o, x, z, dx: Math.cos(yw), dz: -Math.sin(yw), r: 0, spd: (ty && ty.spd) || TSP, run: (ty && ty.run) || TRUN });
     T14W.fired++;
     (T14W.log || (T14W.log = [])).push([Math.round(x), Math.round(z), +yw.toFixed(3), Math.round(pos.x), Math.round(pos.z)]) > 20 &&
       T14W.log.shift(); /* for the tests */
@@ -810,13 +811,13 @@ const SITES = [],
   const t14Torps = (RUN, dt) => {
     for (let i = RUN.length - 1; i >= 0; i--) {
       const t = RUN[i];
-      t.x += t.dx * TSP * dt;
-      t.z += t.dz * TSP * dt;
-      t.r += TSP * dt;
+      t.x += t.dx * t.spd * dt;
+      t.z += t.dz * t.spd * dt;
+      t.r += t.spd * dt;
       t.o.position.set(t.x, coastSea(), t.z);
       t.o.updateMatrixWorld(true);
       const p = new THREE.Vector3(t.x, coastSea() + 0.2, t.z); /* at her waterline (the hull test's frame starts at the sea) */
-      let end = t.r > TRUN,
+      let end = t.r > t.run,
         boom = false;
       if (SIMS.cur.afloat && Math.abs(pos.x - t.x) < 60 && Math.abs(pos.z - t.z) < 60 && SIMS.cur.struck(p)) {
         boom = end = true;
@@ -835,11 +836,13 @@ const SITES = [],
           RUN.splice(i, 1),
           (T14W.ends || (T14W.ends = [])).push([
             Math.round(t.r),
-            boom ? (t.r > TRUN ? 'x' : HR(t.x, t.z) > coastSea() - 1.5 ? 'bottom' : 'hit') : 'run out',
+            boom ? (t.r > t.run ? 'x' : HR(t.x, t.z) > coastSea() - 1.5 ? 'bottom' : 'hit') : 'run out',
             Math.round(Math.hypot(pos.x - t.x, pos.z - t.z)),
           ]) > 20 && T14W.ends.shift());
     }
   };
+  /* the torpedoes for other boats to fire (I-58: SUBS): fire(RUN, x, z, yaw, { spd, run }), step(RUN, dt) */
+  SITE.torps = { fire: t14Fish, step: t14Torps };
   /* n boats in loose line ahead (gap m apart, staggered 12 m to seaward) round a racetrack at sp m/s; returns the per-frame update */
   const mkT14s = (F, u0, u1, d0, R, n, sp, gap) => {
     const per = 2 * (u1 - u0) + 2 * Math.PI * R,

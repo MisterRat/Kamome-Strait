@@ -67,6 +67,7 @@ SIMS.add({
   struck: (p) => shipStruck(p),
   torpedoed: () => sdmHit('torpedo'),
   coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
+  subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the Subs setting: I-58 on patrol (SUBS) */,
   shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the Ships setting: the Ukuru escorts and the T-14s fight her */,
   shelled: () => sdmHit('shell'),
   orbitDist: 85,

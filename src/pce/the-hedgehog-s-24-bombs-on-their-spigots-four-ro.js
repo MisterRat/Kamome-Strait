@@ -110,6 +110,10 @@ function hhStep(dt) {
         s = Math.max(-32, Math.min(32, w.dot(d)));
       hit = w.addScaledVector(d, -s).length() < 3.3;
     }
+    /* the enemy's boat (I-58): a bomb on her hull sinks her */
+    let foe = null;
+    if (b.wet && !hit) for (const s of SUBS.L) if (s.side === 'jp' && s.on && !s.sunk && SUBS.capsule(s, b.p) <= 0) foe = s;
+    if (foe) ((hit = true), SUBS.sink(foe));
     if (hit || b.p.y < OCEAN.Y - 120 || b.p.y < HR(b.p.x, b.p.z) + 0.3) {
       scene.remove(b.m);
       HH.L.splice(i, 1);

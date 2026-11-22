@@ -1,4 +1,6 @@
-/* ---------- the sonar: echo ranging; the exercise submarine (practice targets) and the shoals answer ---------- */
+/* ---------- the sonar: echo ranging; the submarines (the exercise boat, Roncador, and the enemy's, I-58) and the shoals answer ---------- */
+/* the submarines her sonar can find: the exercise boat while the practice targets are out, and the enemy's at sea (SUBS) */
+const pceSubs = () => [...(PT.on ? PT.L.filter((t) => t.kind === 'sub') : []), ...SUBS.L.filter((s) => s.side === 'jp' && s.on && !s.sunk)];
 const SONAR = { brg: 0 /* train, rel. to the bow, rad (+ starboard) */, R: [1000, 2000, 4000], ri: 1, t: 0, paper: null, last: null, dir: 1, rep: 0 };
 function sonarRange(d) {
   SONAR.ri = Math.max(0, Math.min(2, SONAR.ri + d));
@@ -21,9 +23,7 @@ function sonarPing(here) {
       break;
     }
   }
-  if (PT.on)
-    for (const t of PT.L) {
-      if (t.kind !== 'sub') continue;
+  for (const t of pceSubs()) {
       const ex = t.p.x - pos.x,
         ez = t.p.z - pos.z,
         r = Math.hypot(ex, ez);
@@ -33,7 +33,7 @@ function sonarPing(here) {
       if (off > 0.16) continue;
       /* Doppler: the target's motion along the line of sight, less the ship's own */
       const rv = ((t.v.x - vel.x) * ex + (t.v.z - vel.z) * ez) / r;
-      E.push({ r, k: 1 - off / 0.2, dop: -rv, w: 3, sub: true, b });
+      E.push({ r, k: 1 - off / 0.2, dop: -rv, w: 3, sub: true, b, t });
     }
   SONAR.last = { E, t: 0 };
   commsEcho(E, here);

@@ -212,6 +212,14 @@ function ptUpdate(dt) {
       const c = o.c || PT.c;
       t.p.set(c.x + Math.cos(o.a) * o.R, OCEAN.Y - o.d, c.z - Math.sin(o.a) * o.R);
       t.v.set(-Math.sin(o.a), 0, -Math.cos(o.a)).multiplyScalar(o.w * o.R);
+      /* the exercise boat is USS Roncador (SS-301) (SUBS): seen when she comes up after an attack (o.surfT: the debrief) */
+      const S = t.S || (t.S = Object.assign(SUBS.make('us-roncador', { side: 'us', d: o.d, name: 'Roncador' }), { ex: true }));
+      S.p.x = t.p.x;
+      S.p.z = t.p.z;
+      S.v.copy(t.v);
+      S.yw = Math.atan2(-t.v.z, t.v.x);
+      o.surfT = Math.max(0, (o.surfT || 0) - dt);
+      S.dT = o.surfT > 0 ? 0 : o.d;
       continue;
     }
     if (t.gone > 0 && (t.gone -= dt) <= 0) {

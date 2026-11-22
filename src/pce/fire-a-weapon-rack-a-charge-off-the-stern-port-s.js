@@ -82,6 +82,7 @@ function dcStep(dt) {
       const d = top.distanceTo(cam.position);
       SND.burst(700, 40, 2.2, Math.min(1, 1.6 / (1 + d / 200)), 0.6, 'lowpass', Math.min(2, d / 1500));
       SND.tone(55, 25, 1.6, Math.min(0.8, 1.2 / (1 + d / 200)), 'sine', Math.min(2, d / 1500));
+      SUBS.burst(c.p); /* the enemy's boat (I-58): sunk, hurt or driven deep */
       /* the practice attack: how close it went off to the exercise submarine */
       if (PT.on) {
         const sub = PT.L.find((t) => t.kind === 'sub');

@@ -100,7 +100,7 @@ DRILLS.push({
       'HEDGEHOG: ' + (H ? 'FIRED WITH HIM ' + Math.round(H.al) + ' YD AHEAD, ' + Math.round(Math.abs(H.cr)) + ' YD ' + (H.cr < 0 ? 'TO PORT' : 'TO STARBOARD') + ' (BEST: 250 AHEAD, DEAD ON THE BOW)' : '<b style="color:#ff8a6a">NOT FIRED</b>'),
       'PATTERN: ' + (Pt ? 'ORDERED WITH HIM ' + Math.round(Pt.al) + ' YD ' + (Pt.al >= 0 ? 'AHEAD' : 'ASTERN') + ' (BEST AT HER SPEED AND HIS DEPTH: ' + Math.round(D.pat.best) + ' ' + (D.pat.best >= 0 ? 'AHEAD' : 'ASTERN') + ')' : '<b style="color:#ff8a6a">NOT ORDERED</b>'),
     ]);
-    if (PT.on) ptToggle();
+    D.sub.o.surfT = 150; /* Roncador surfaces */
   },
   box(D) {
     const L = D.last;
