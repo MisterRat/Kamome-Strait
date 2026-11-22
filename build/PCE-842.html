@@ -453,7 +453,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <table class="t2">
 <tr><td><b>1</b> OOD</td><td>The pilothouse: conn the ship (W / S rings the engines, A / D the rudder) at the wheel, the telegraphs and the compass; X for the binoculars. G: your orders in action (below). T: the OOD's training drills.</td></tr>
 <tr><td><b>2</b> Engineering</td><td>The forward engine room: the telegraph rings, the red needle is the order and the black one the answer; the gauges follow the engines. T: the engineer's training drills; in action, the repairs and the engine room's own troubles come to you here (below).</td></tr>
-<tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
+<tr><td><b>3</b> Communications</td><td>Radar, sonar and radio (press 3 again for each set). <b>Radar:</b> lay the bearing cursor (Q / E) and range strobe (R / F) on a contact and report it (Space); two reports 40 s apart give its course and speed. <b>Sonar:</b> search with the beam (Q / E), take the cuts (Z / X), call the Doppler (U / B / N) and report (Space): the OOD attacks on your reports, so lose the contact and the attack fails. <b>Radio:</b> acknowledge (Space) and route to the bridge (B). The paper keeps everything: the traffic and every message that popped up on the screen, so you can read what you missed at other stations. Scroll it with the mouse wheel or Page Up / Page Down; Home goes to the oldest, End back to the newest. Away from the station an AI operator does it all. <b>T</b> here: the Comms school for the set you are at.</td></tr>
 <tr><td><b>4</b> Gunner</td><td>The 3&Prime;/50 forward, the 20 mm amidships and the twin 40 mm aft (press 4 again for each). The mouse lays the gun; hold the backtick (`) to move it six times faster.</td></tr>
 <tr><td><b>5</b> Torpedoman</td><td>The Hedgehog, the port and starboard K-guns and the stern racks. You cannot steer from here: the OOD cons the ship.</td></tr>
 <tr><td><b>C</b> chase view</td><td>The camera outside the ship; C again returns to your station.</td></tr>
@@ -585,7 +585,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.125';
+const VERSION = '0.126';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -681,6 +681,7 @@ const HOOKS = {
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
      sound(SND, { t, set, live, cockpit }): set them each frame
@@ -771,6 +772,7 @@ const SIMS = {
     mouseUp: () => {},
     mouseMove: () => false,
     wheel: () => false,
+    noted: () => {},
     dragLook: () => false,
     lookScale: () => 1,
     orbitMin: 4,
@@ -822,6 +824,9 @@ SIMS.add({
   keyStation: (e) => {
     /* the OOD's and the engineer's training drills (and the engineer's repair jobs in action); their keys repeat (the hose) */
     if (started && !paused && camMode == 1 && (SHIP.stn === 1 || SHIP.stn === 2) && drillKey(e.code, e.repeat)) return e.preventDefault(), true;
+    /* at the radio: Page Up / Down, Home and End scroll the paper (they repeat) */
+    const sc = { PageUp: 15, PageDown: -15, Home: 1e6, End: -1e6 }[e.code];
+    if (sc && started && !paused && radioAt()) return e.preventDefault(), RADIO.scroll(sc), true;
     if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
     e.preventDefault();
     return true;
@@ -865,7 +870,9 @@ SIMS.add({
     return true;
   },
   /* at a gun the wheel sets the range: 100 yd a notch */
+  noted: (t) => RADIO.note(t) /* every popup goes on the radio paper too, to read back later (the user's, 2026-11-22) */,
   wheel: (e) => {
+    if (radioAt()) return e.preventDefault(), RADIO.scroll(e.deltaY < 0 ? 3 : -3), true; /* at the radio: the wheel scrolls the paper */
     if (!(camMode == 1 && GUN.cur)) return false;
     e.preventDefault();
     gunRange(e.deltaY < 0 ? 91.44 : -91.44);
@@ -14328,6 +14335,7 @@ function note(x) {
   e.style.display = 'block';
   clearTimeout(note.t);
   note.t = setTimeout(() => (e.style.display = 'none'), 1600);
+  if (typeof SIMS !== 'undefined' && SIMS.cur) SIMS.cur.noted(String(x)) /* the simulator keeps it (the PCE: on the radio paper) */;
 }
 function damage(t, d) {
   if (t.dead) return;
@@ -28776,32 +28784,62 @@ function sonarBrgDraw(f) {
   dialFace(f.g, s, T, 'TRAIN');
   needle(f.g, s, SONAR.brg, '#b01a10', 0.42);
 }
-/* ---------- the radio: what the receiver prints ---------- */
-const RADIO = { log: [], dirty: true };
+/* ---------- the radio: what the receiver prints ----------
+   The paper keeps the last 300 entries: the traffic, and every message that popped up on the screen (note) wherever the player was, so
+   what was missed at another station can be read back here (the user's, 2026-11-22). At the radio the mouse wheel, Page Up / Down,
+   Home and End scroll it (RADIO.scroll); scrolled back, it stays where it is while new traffic prints below. */
+const RADIO = { log: [], sd: [], dirty: true, off: 0 /* lines scrolled back from the newest */, nl: 0 /* lines on the paper at the last print */, rec: [] /* [text, time] lately printed */ };
+const RADIO_MAX = 300;
+RADIO.stamp = () => {
+  const h = Math.floor(WX.hour || 0),
+    m = Math.floor(((WX.hour || 0) % 1) * 60);
+  return String(h).padStart(2, '0') + String(m).padStart(2, '0');
+};
+RADIO.put = function (line, sd, txt) {
+  this.log.push(line);
+  this.sd.push(sd) /* whose it is about: its colour on the paper */;
+  while (this.log.length > RADIO_MAX) (this.log.shift(), this.sd.shift());
+  const now = performance.now();
+  this.rec.push([String(txt).toUpperCase(), now]);
+  while (this.rec.length && now - this.rec[0][1] > 5000) this.rec.shift();
+  this.dirty = true;
+};
 RADIO.add = function (from, txt, o) {
   /* traffic from outside the ship comes to the radio operator (the player at the radio, or the AI operator) */
   if (!(o && o.own) && !['SONAR', 'RADAR', 'PCE 842', 'BRIDGE'].includes(from) && typeof radioIn === 'function') radioIn(from, txt);
-  const h = Math.floor(WX.hour || 0),
-    m = Math.floor(((WX.hour || 0) % 1) * 60);
-  this.log.push(String(h).padStart(2, '0') + String(m).padStart(2, '0') + ' ' + from + ': ' + txt);
-  (this.sd || (this.sd = [])).push(msgSide(txt, from)) /* whose it is about: its colour on the paper */;
-  if (this.sd.length > 30) this.sd.shift();
-  if (this.log.length > 30) this.log.shift();
+  this.put(this.stamp() + ' ' + from + ': ' + txt, msgSide(txt, from), txt);
+};
+/* a popup message (note): printed too, unless the same words were printed in the last few seconds */
+RADIO.note = function (t) {
+  const u = String(t || '').toUpperCase().trim();
+  if (!u) return;
+  const now = performance.now();
+  if (this.rec.some(([r, at]) => now - at < 5000 && (r === u || r.includes(u) || u.includes(r)))) return;
+  this.put(this.stamp() + ' > ' + u, msgSide(u), u);
+};
+/* scroll the paper n lines (+ older, - newer) */
+RADIO.scroll = function (n) {
+  this.off = Math.max(0, this.off + n);
   this.dirty = true;
 };
+/* is the player at the radio, looking at the paper */
+function radioAt() {
+  if (!(camMode == 1 && SHIP.stn === 3) || (typeof GUN !== 'undefined' && GUN.cur)) return false;
+  const st = PCEM.STN[3] && PCEM.STN[3][SHIP.sub];
+  return !!(st && st.dev === 'radio');
+}
 function radioDraw(f) {
   const g = f.g,
     W = 512,
     H = 434;
   g.fillStyle = '#efe9d2';
   g.fillRect(0, 0, W, H);
-  g.fillStyle = '#2a2a2a';
   g.font = 'bold 19px monospace';
   g.textAlign = 'left';
   const lines = [],
     INK = { jp: '#a81f1a', us: '#1f3a6e', '': '#2a2a2a' } /* red: the enemy; blue: the allies */;
   RADIO.log.forEach((l, k) => {
-    const c = INK[(RADIO.sd && RADIO.sd[k]) || ''];
+    const c = INK[RADIO.sd[k] || ''];
     let s = l;
     while (s.length > 40) {
       let i = s.lastIndexOf(' ', 40);
@@ -28811,10 +28849,36 @@ function radioDraw(f) {
     }
     lines.push([s, c], ['', c]);
   });
-  const show = lines.slice(-18);
+  /* scrolled back: keep the same lines in view while new ones print below */
+  if (RADIO.off > 0 && lines.length > RADIO.nl) RADIO.off += lines.length - RADIO.nl;
+  RADIO.nl = lines.length;
+  const N = 18,
+    maxOff = Math.max(0, lines.length - N);
+  RADIO.off = Math.min(RADIO.off, maxOff);
+  const back = RADIO.off > 0,
+    n = back ? N - 1 : N /* scrolled back: the last line says so */,
+    end = lines.length - RADIO.off,
+    show = lines.slice(Math.max(0, end - n), end);
   show.forEach(([l, c], i) => ((g.fillStyle = c), g.fillText(l, 14, 26 + i * 22.5)));
+  g.font = 'bold 15px monospace';
+  g.textAlign = 'right';
+  if (back) {
+    const newer = lines.slice(end).filter((l) => l[0] && !/^ {6}/.test(l[0])).length;
+    g.fillStyle = '#d9cfae';
+    g.fillRect(0, H - 40, W, 28);
+    g.fillStyle = '#5a1a10';
+    g.textAlign = 'center';
+    g.fillText('▼ ' + newer + ' NEWER  -  WHEEL / PG DN, END: LATEST', W / 2, H - 20);
+  }
   g.fillStyle = '#7a1a10';
   g.fillRect(0, H - 12, W, 12);
+  if (!back && end - n > 0) {
+    /* more above: say how to read it, in the paper's red edge */
+    g.fillStyle = '#e8c9a0';
+    g.font = 'bold 10px monospace';
+    g.textAlign = 'right';
+    g.fillText('▲ OLDER: WHEEL / PG UP', W - 8, H - 3);
+  }
 }
 /* ---------- COMMUNICATIONS: the operators' work, and the Comms school (T at station 3) ----------
    Radar: a bearing cursor (Q / E) and a range strobe (R / F) laid on a contact; Space reports it (true bearing, range in yards).

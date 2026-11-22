@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.101';
+const VERSION = '5.102';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -687,6 +687,7 @@ const HOOKS = {
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
      sound(SND, { t, set, live, cockpit }): set them each frame
@@ -777,6 +778,7 @@ const SIMS = {
     mouseUp: () => {},
     mouseMove: () => false,
     wheel: () => false,
+    noted: () => {},
     dragLook: () => false,
     lookScale: () => 1,
     orbitMin: 4,
@@ -15650,6 +15652,7 @@ function note(x) {
   e.style.display = 'block';
   clearTimeout(note.t);
   note.t = setTimeout(() => (e.style.display = 'none'), 1600);
+  if (typeof SIMS !== 'undefined' && SIMS.cur) SIMS.cur.noted(String(x)) /* the simulator keeps it (the PCE: on the radio paper) */;
 }
 function damage(t, d) {
   if (t.dead) return;

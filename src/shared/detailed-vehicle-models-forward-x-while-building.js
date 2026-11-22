@@ -415,6 +415,7 @@ function note(x) {
   e.style.display = 'block';
   clearTimeout(note.t);
   note.t = setTimeout(() => (e.style.display = 'none'), 1600);
+  if (typeof SIMS !== 'undefined' && SIMS.cur) SIMS.cur.noted(String(x)) /* the simulator keeps it (the PCE: on the radio paper) */;
 }
 function damage(t, d) {
   if (t.dead) return;

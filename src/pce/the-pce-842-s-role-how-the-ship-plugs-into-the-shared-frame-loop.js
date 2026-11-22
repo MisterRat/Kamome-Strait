@@ -18,6 +18,9 @@ SIMS.add({
   keyStation: (e) => {
     /* the OOD's and the engineer's training drills (and the engineer's repair jobs in action); their keys repeat (the hose) */
     if (started && !paused && camMode == 1 && (SHIP.stn === 1 || SHIP.stn === 2) && drillKey(e.code, e.repeat)) return e.preventDefault(), true;
+    /* at the radio: Page Up / Down, Home and End scroll the paper (they repeat) */
+    const sc = { PageUp: 15, PageDown: -15, Home: 1e6, End: -1e6 }[e.code];
+    if (sc && started && !paused && radioAt()) return e.preventDefault(), RADIO.scroll(sc), true;
     if (!(!e.repeat && started && !paused && camMode == 1 && SHIP.stn === 3 && commsKey(e.code))) return false;
     e.preventDefault();
     return true;
@@ -61,7 +64,9 @@ SIMS.add({
     return true;
   },
   /* at a gun the wheel sets the range: 100 yd a notch */
+  noted: (t) => RADIO.note(t) /* every popup goes on the radio paper too, to read back later (the user's, 2026-11-22) */,
   wheel: (e) => {
+    if (radioAt()) return e.preventDefault(), RADIO.scroll(e.deltaY < 0 ? 3 : -3), true; /* at the radio: the wheel scrolls the paper */
     if (!(camMode == 1 && GUN.cur)) return false;
     e.preventDefault();
     gunRange(e.deltaY < 0 ? 91.44 : -91.44);

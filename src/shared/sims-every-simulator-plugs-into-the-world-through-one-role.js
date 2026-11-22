@@ -41,6 +41,7 @@
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
      sound(SND, { t, set, live, cockpit }): set them each frame
@@ -131,6 +132,7 @@ const SIMS = {
     mouseUp: () => {},
     mouseMove: () => false,
     wheel: () => false,
+    noted: () => {},
     dragLook: () => false,
     lookScale: () => 1,
     orbitMin: 4,
