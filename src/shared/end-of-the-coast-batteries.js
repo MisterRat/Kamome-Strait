@@ -250,7 +250,7 @@ const SITES = [],
         L = Math.hypot(S.b[0] - S.a[0], S.b[1] - S.a[1]),
         run = L / (S.v || 2.1) /* her speed: a Daihatsu's 4 knots unless given */,
         cyc = 2 * (run + S.wait),
-        t = (performance.now() / 1000 + S.ph) % cyc;
+        t = (WT + S.ph) % cyc;
       let k, back;
       if (t < S.wait) ((k = 0), (back = false));
       else if (t < S.wait + run) ((k = (t - S.wait) / run), (back = false));
@@ -702,7 +702,7 @@ const SITES = [],
         const s0 = q.s,
           o0 = bd.off;
         COLL.steer(bd, dt, 600);
-        q.s = (q.s + q.sp * dt * bd.slow + per) % per;
+        q.s = (q.s + (sightAt(bd.x, bd.z) ? 10 : q.sp) * dt * bd.slow + per) % per; /* on the alert (SIGHT): at action speed */
         let s = q.s,
           u,
           d,
@@ -844,7 +844,9 @@ const SITES = [],
   /* the torpedoes for other boats to fire (I-58: SUBS): fire(RUN, x, z, yaw, { spd, run }), step(RUN, dt) */
   SITE.torps = { fire: t14Fish, step: t14Torps };
   /* n boats in loose line ahead (gap m apart, staggered 12 m to seaward) round a racetrack at sp m/s; returns the per-frame update */
-  const mkT14s = (F, u0, u1, d0, R, n, sp, gap) => {
+  /* o.home: the group lies at its base (the start of its track, each boat her own berth) until a sighting report (SIGHT) puts the area
+     on the alert; then it puts to sea, patrols its track and goes for her as any group; the alert over, it goes back and lies there */
+  const mkT14s = (F, u0, u1, d0, R, n, sp, gap, o) => {
     const per = 2 * (u1 - u0) + 2 * Math.PI * R,
       B = [],
       F0 = FR,
@@ -944,8 +946,10 @@ const SITES = [],
       });
     }
     FR = F0;
-    const s0 = Math.random() * per;
+    const s0 = o && o.home ? 0 : Math.random() * per;
     for (const b of B) b.s = s0 - b.off;
+    const home = !!(o && o.home);
+    G.home = home;
     const trackXZ = (b, s) => {
       const [u, d, h] = raceAt(((s % per) + per) % per, u0, u1, d0 + b.dz, R),
         du = Math.cos(h),
@@ -1010,18 +1014,21 @@ const SITES = [],
              second run for ten minutes); she attacks only while her side is at least half as strong as ours near her */
           b.cool = Math.max(0, (b.cool || 0) - dt);
           if (b.e.hp0 && b.e.hp < 0.6 * b.e.hp0 && !b.hurt) ((b.hurt = true), Object.assign(b, { mode: 'reload', mt: 0, rt: 0, x, z, yw, v }));
-          const R = Math.hypot(pos.x - x, pos.z - z);
+          const R = Math.hypot(pos.x - x, pos.z - z),
+            AL = sightAt(x, z) /* on the alert (SIGHT): she goes out for her from 7 km, over open water */,
+            TR = AL ? 7000 : 3000;
           if (
             hot &&
             b.fish.n === 2 &&
             !b.cool &&
             !b.hurt &&
-            R < 3000 &&
+            R < TR &&
             R > 1400 &&
-            HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4 &&
+            (AL ? deepRun(x, z, Math.atan2(-(pos.z - z), pos.x - x), R - 1400, 3) : HR((x + pos.x) / 2, (z + pos.z) / 2) < coastSea() - 4) &&
             (typeof ROE === 'undefined' || ROE.ratio('jp', b.e.c) >= 0.5)
           )
-            Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, ...t14Guess() });
+            Object.assign(b, { mode: 'run', mt: 0, x, z, yw, v, tr: TR, ...t14Guess() });
+          else if (home && !sightAt(...trackXZ(b, 0).slice(0, 2))) Object.assign(b, { mode: 'home', mt: 0, x, z, yw, v }); /* no alert: back to her berth */
         } else {
           b.mt += dt;
           const dx = pos.x - b.x,
@@ -1041,7 +1048,7 @@ const SITES = [],
               lz = dz + vz * tt,
               hw = Math.atan2(-lz, lx);
             freeMove(b, hw, 15.4, dt);
-            if (!hot || b.mt > 240 || R > 4500 || R < 500 || b.e.hp < 0.6 * b.e.hp0) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
+            if (!hot || b.mt > (b.tr > 3000 ? 600 : 240) || R > (b.tr || 3000) + 1500 || R < 500 || b.e.hp < 0.6 * b.e.hp0) b.mode = 'rejoin'; /* no shot, or too close in: she gives it up */
             else if (R < 1300 && Math.abs(wrap(hw - b.yw)) < 0.012 && deepRun(b.x, b.z, b.yw, tt * TSP + 150)) {
               /* both fish over the side, one a second after the other, then hard over away from her */
               t14Fish(RUN, b.x + Math.cos(b.yw) * 2, b.z - Math.sin(b.yw) * 2, b.yw + 0.012); /* the two spread a little, to bracket her */
@@ -1064,6 +1071,13 @@ const SITES = [],
             if (b.f2 > 0 && (b.f2 -= dt) <= 0) (t14Fish(RUN, b.x, b.z, b.fy - 0.012), b.fish.set(0)); /* the second fish a second later */
             freeMove(b, b.f2 > 0 ? b.fy : b.aw, 15.4, dt);
             if (b.mt > 30) b.mode = 'rejoin';
+          } else if (b.mode === 'home') {
+            /* at her berth off the base (her place at the start of the track): there, stopped, until an alert puts her to sea */
+            const [hx, hz] = trackXZ(b, -b.off),
+              hd = Math.hypot(hx - b.x, hz - b.z);
+            if (sightAt(...trackXZ(b, 0).slice(0, 2))) b.mode = 'rejoin';
+            else if (hd > 15) freeMove(b, Math.atan2(-(hz - b.z), hx - b.x), hd > 200 ? 12 : 3, dt);
+            else freeMove(b, b.yw, 0, dt);
           } else {
             /* back to the nearest point of her track, a little ahead of it */
             let bs = b.s,
@@ -1378,6 +1392,7 @@ const SITES = [],
     FARS = [],
     FAR_R = 31000,
     ZZ = Math.PI / 2;
+  SITE.FARS = FARS; /* the far sites (for the tests) */
   const rng = (seed) => {
     let s = (seed * 2654435761) % 2147483647 || 12345;
     return () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -1633,21 +1648,32 @@ const SITES = [],
     let s = Math.random() * per;
     /* two Type T-14s on an inner track, inshore of her, where the sea is deep enough */
     const tU1 = Math.min(u1, u0 + 900),
-      t14 = deepOK(F, u0, tU1, d0 - 180, 35, 30, 6, WH) ? mkT14s(F, u0, tU1, d0 - 180, 35, 2, 9.3, 45) : null;
+      home = F.navy === 'jp' /* the IJN base's escort and boats lie in harbour until a sighting report puts them to sea (SIGHT) */,
+      t14 = deepOK(F, u0, tU1, d0 - 180, 35, 30, 6, WH) ? mkT14s(F, u0, tU1, d0 - 180, 35, 2, 9.3, 45, { home }) : null;
     const P = { e, vis: true, track: { u0, u1, d0, R }, t14 };
+    const [bx, bz] = F.w(0, 300) /* her berth: 300 m off the base's shore point, clear of the mole */;
+    if (home) P.berth = { x: bx, z: bz, yw: F.ryS, out: false };
     const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }); /* she gives way (COLL) */
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
       /* RULES OF ENGAGEMENT: damaged past 40% she breaks off her patrol for her station's harbour (300 m off its shore point) and lies there */
-      if (!e.dead && !P.ret && e.hp0 && e.hp < 0.6 * e.hp0) P.ret = { x: m.position.x, z: m.position.z, yw: m.rotation.y };
-      if (!e.dead && P.ret) {
-        const r = P.ret,
-          [hx, hz] = F.w(0, 300),
+      if (!e.dead && !P.ret && e.hp0 && e.hp < 0.6 * e.hp0) ((P.ret = { x: m.position.x, z: m.position.z, yw: m.rotation.y }), (P.berth = null));
+      /* the IJN base's escort: in harbour with no alert; out to her patrol (to the start of her track) when one comes; back when it ends */
+      if (home && !e.dead && !P.ret) {
+        const al = sightAt(bx, bz);
+        if (!al && !P.berth) P.berth = { x: bd.x, z: bd.z, yw: bd.yaw, out: false };
+        else if (P.berth) P.berth.out = al;
+      }
+      const B_ = !P.ret && P.berth;
+      if (B_ && !e.dead && B_.out && Math.hypot(...F.w(u0, d0).map((c, i) => c - (i ? B_.z : B_.x))) < 30) ((s = 0), (P.berth = null)); /* on her track */
+      if (!e.dead && (P.ret || P.berth)) {
+        const r = P.ret || P.berth,
+          [hx, hz] = P.berth && P.berth.out ? F.w(u0, d0) : F.w(0, 300),
           dx = hx - r.x,
           dz = hz - r.z,
           dd = Math.hypot(dx, dz),
-          sp = dd > 30 ? Math.min(6, dd / 20) : 0;
+          sp = dd > 30 ? Math.min(P.berth && P.berth.out ? 10 : 6, dd / 20) : 0;
         if (sp) {
           const dy = Math.atan2(Math.sin(Math.atan2(-dz, dx) - r.yw), Math.cos(Math.atan2(-dz, dx) - r.yw));
           r.yw += Math.max(-0.05 * dt, Math.min(0.05 * dt, dy));
@@ -1663,7 +1689,7 @@ const SITES = [],
         const s0 = s,
           o0 = bd.off;
         COLL.steer(bd, dt, 600);
-        s = (s + 8.5 * dt * bd.slow + per) % per;
+        s = (s + (sightAt(bd.x, bd.z) ? 10 : 8.5) * dt * bd.slow + per) % per; /* on the alert (SIGHT): at action speed */
         let q = s,
           u,
           d,
@@ -2764,12 +2790,12 @@ const SITES = [],
     SITE.pat = (dt) => {
       if (_pat) _pat(dt);
       if (started && !civWas) {
-        const t0 = performance.now() / 1000;
+        const t0 = WT;
         for (const c of CIV) if (c.us) c.phase = 2 * (c.L / c.v + c.dock) - (t0 % (2 * (c.L / c.v + c.dock)));
       }
       civWas = started;
       for (const o of SITE.anch || []) SITE.rideAt(o, dt); /* the home port's ships and craft at anchor */
-      const t = performance.now() / 1000;
+      const t = WT;
       for (const s of FARS) if (s.pat && !s.far) s.pat.upd(dt);
       for (const c of CIV) {
         civFlee(c, t);

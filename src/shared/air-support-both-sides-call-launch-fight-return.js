@@ -55,7 +55,7 @@ var AIRSUP = (() => {
   const radio = (who, s) => typeof RADIO !== 'undefined' && RADIO.add(who, s);
   const busy = (who) => {
     if (L.some((u) => u.who === who && !u.down && u.st !== 'rtb')) return true;
-    const now = performance.now() / 1000;
+    const now = WT;
     for (let i = HAND.length - 1; i >= 0; i--) {
       const h = HAND[i],
         e = h.e;
@@ -240,7 +240,7 @@ var AIRSUP = (() => {
         if (u.side === 'jp' && started && !crashed && u.p.distanceTo(pos) < 5000) {
           if (SIMS.cur.afloat && typeof raidSpawn === 'function' && typeof ENEMY !== 'undefined' && ENEMY.has('planes')) {
             const e = raidOne(u);
-            if (e) HAND.push({ e, raid: true, who: u.who, end: performance.now() / 1000 + u.fuel });
+            if (e) HAND.push({ e, raid: true, who: u.who, end: WT + u.fuel });
             scene.remove(u.g);
             L.splice(i, 1);
             continue;
@@ -248,7 +248,7 @@ var AIRSUP = (() => {
           if (!SIMS.cur.afloat && typeof banditAt === 'function') {
             const e = banditAt(u.p.clone());
             e.scr = true;
-            HAND.push({ e, raid: false, who: u.who, end: performance.now() / 1000 + u.fuel });
+            HAND.push({ e, raid: false, who: u.who, end: WT + u.fuel });
             scene.remove(u.g);
             L.splice(i, 1);
             continue;
@@ -350,8 +350,10 @@ var AIRSUP = (() => {
     cv1: 'DEPOT MIKAWA',
     cv2: 'DEPOT KURITA',
   };
+  /* the named places: [site, name] (a site has O, its shore point, and R; FS.nav's have navy 'jp', 'us' or 'usdep') */
+  const places = () => [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), [SITE, 'PORT NAGUMO']];
   const whoAt = (p, side, ship) => {
-    const S = [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), [SITE, 'PORT NAGUMO']];
+    const S = places();
     for (const [s, n] of S) if (n && Math.hypot(p.x - s.O.x, p.z - s.O.z) < (s.R || 600) + 800) return n;
     return ship
       ? (side === 'us' ? 'US SHIP ' : 'SHIP ') + Math.round(p.x / 100) + '/' + Math.round(p.z / 100)
@@ -371,5 +373,5 @@ var AIRSUP = (() => {
     const near = T.some((q) => q.side === 'us' && !q.dead && q.c.distanceTo(p) < 1500) || (SIMS.cur.afloat && !SIMS.cur.oodCalls() && pos.distanceTo(p) < 1500);
     if (near) call('us', p.clone(), whoAt(p, 'us', true));
   };
-  return { L, call, hit, underAir, hurt, clear, fields, busy };
+  return { L, call, hit, underAir, hurt, clear, fields, busy, places, whoAt };
 })();

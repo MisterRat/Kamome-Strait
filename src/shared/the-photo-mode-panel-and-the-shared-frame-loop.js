@@ -67,6 +67,7 @@ function frame(now) {
     dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   adaptRes(now - last);
   last = now;
+  if (!paused) WT += dt;
   pollPad();
   touchUpdate();
   if ((orbDrag || R_.look()) && camMode == 1 && !pad.lx && !pad.ly) {
@@ -156,8 +157,8 @@ function frame(now) {
   sun.target.position.copy(pos);
 
   sky.position.copy(cam.position);
-  terrU.uTime.value = now / 1000;
-  OCEAN.U.uTime.value = now / 1000;
+  terrU.uTime.value = WT;
+  OCEAN.U.uTime.value = WT;
   {
     const nn = PHOTO.on || ROAM.on ? Math.max(0.3, Math.max(0, PHOTO.pos.y) * 0.004) : !orbitOn && (camMode == 1 || lb > 0.3) ? R_.near() : 1;
     if (cam.near !== nn) {
