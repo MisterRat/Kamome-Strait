@@ -534,14 +534,16 @@ const WORLD = (() => {
     V3 = new THREE.Vector3(),
     S3 = new THREE.Vector3(),
     Y3 = new THREE.Vector3(0, 1, 0);
-  /* the fields: a tilted grid of 340 m plots, each a crop colour with its rows, a dark hedge line between them (the same look as the home farms) */
+  /* the fields: a tilted grid of 340 m plots, six in ten rice paddies, the rest cane, sweet potato and red-earth fallow, each with its rows;
+     earth dykes between the paddies, pale coral walls round the dry fields (the same look as the home farms; the Pacific: no hedgerows) */
   const FARM_PAINT =
     '{float fk0=vFarm*(1.0-watK);if(fk0>0.003){vec2 u=vec2(vWP.x*' + FCA.toFixed(5) + '+vWP.z*' + FSA.toFixed(5) + ',-vWP.x*' + FSA.toFixed(5) + '+vWP.z*' + FCA.toFixed(5) + ')/' + FCS.toFixed(1) + ';' +
     'vec2 fi=floor(u),ff=fract(u);float r1=hf(fi+1.7),r2=hf(fi+9.1),r3=hf(fi+4.3);float th=0.25+0.5*hf(fi+3.3);float fk=smoothstep(th-0.3,th+0.3,vFarm)*(1.0-watK);' /* each plot fades in on its own as the farmland thickens, so the edge of a farm area is soft and does not follow the mesh triangles */ +
-    'vec3 cp=r1<0.10?mix(vec3(0.36,0.25,0.17),vec3(0.42,0.30,0.20),r2):(r1<0.50?mix(vec3(0.14,0.38,0.13),vec3(0.20,0.46,0.17),r2):(r1<0.82?mix(vec3(0.28,0.52,0.18),vec3(0.36,0.60,0.24),r2):mix(vec3(0.50,0.56,0.26),vec3(0.58,0.62,0.32),r2)));' +
+    'float pd=step(r1,0.6);vec3 cp=r1<0.6?(r2<0.3?mix(vec3(0.20,0.32,0.36),vec3(0.24,0.38,0.40),r2/0.3):mix(vec3(0.26,0.46,0.18),vec3(0.42,0.48,0.20),(r2-0.3)/0.7)):(r1<0.8?mix(vec3(0.32,0.48,0.16),vec3(0.38,0.54,0.20),r2):(r1<0.92?mix(vec3(0.16,0.32,0.12),vec3(0.20,0.38,0.15),r2):mix(vec3(0.44,0.26,0.17),vec3(0.50,0.31,0.20),r2)));' +
     'cp*=0.9+0.2*hf(fi+6.6);float dq=length(vWP-cameraPosition);float sk=1.0-smoothstep(500.0,2200.0,dq);' +
-    'float row=(r3<0.5?u.x:u.y)*' + FCS.toFixed(1) + '/19.0;cp*=1.0-0.14*sk*smoothstep(0.35,0.65,sin(row*6.2832)*0.5+0.5);' +
-    'vec2 e=min(ff,1.0-ff)*' + FCS.toFixed(1) + ';float hl=(1.0-smoothstep(1.2,3.2,min(e.x,e.y)))*(1.0-smoothstep(2500.0,6000.0,dq));cp=mix(cp,vec3(0.1,0.18,0.08),hl*0.8);' +
+    'float row=(r3<0.5?u.x:u.y)*' + FCS.toFixed(1) + '/19.0;cp*=1.0-(0.14-0.08*pd)*sk*smoothstep(0.35,0.65,sin(row*6.2832)*0.5+0.5);' +
+    'vec2 e=min(ff,1.0-ff)*' + FCS.toFixed(1) + ';float hl=(1.0-smoothstep(1.2,3.2,min(e.x,e.y)))*(1.0-smoothstep(2500.0,6000.0,dq));cp=mix(cp,mix(vec3(0.62,0.60,0.53),vec3(0.30,0.32,0.18),pd),hl*0.8);' +
+    'float wpd=pd*step(r2,0.3);vec3 Vd=normalize(cameraPosition-vWP);cp=mix(cp,vec3(0.40,0.52,0.62),wpd*(0.35+0.5*pow(1.0-clamp(Vd.y,0.0,1.0),3.0)));' /* flooded paddies show the sky */ +
     'diffuseColor.rgb=mix(diffuseColor.rgb,cp*0.68,fk);}}\n';
   /* =====================================================================================================================
      THE ROUTES: dirt roads from the two colonial ports to the nearest villages, and paved roads between the enemy bases.
@@ -997,7 +999,7 @@ const WORLD = (() => {
         .replace(
           '#include <map_fragment>',
           'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
-            TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')),
+            'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
         )
         .replace('#include <color_fragment>', '#include <color_fragment>\n' + FARM_PAINT + SHORE_PAINT);
     };
@@ -1560,7 +1562,7 @@ nearRoads(h.x, h.z);
       if (T.n) T.im.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3((x0 + x1) / 2, y1, (z0 + z1) / 2), Math.hypot(x1 - x0, z1 - z0) / 2 + 150);
     }
     /* the trees: a jittered grid, the same rules as the home map (forest noise, height, slope), fixed by position alone;
-       dense woods where a second noise says so, and hedgerows round the fields */
+       dense woods where a second noise says so, and a palm here and there along the field walls */
     for (const k in it.TR) {
       it.TR[k].src.n = 0;
       it.TR[k].src.grid.clear();
@@ -1615,15 +1617,10 @@ nearRoads(h.x, h.z);
           sc = 0.85 + q1 * 0.4;
           scy = 1;
         }
-        if (kind === 'oak' && q6 < 0.12) {
-          cr = 1.35;
-          cg = 1.0;
-          cb = 0.5;
-        } else {
-          cr = 0.82 + q3 * 0.38;
-          cg = 0.82 + q4 * 0.38;
-          cb = 0.82 + q5 * 0.38;
-        }
+        /* evergreen: no autumn-tinted trees in the tropics (the user's, 2026-11-23) */
+        cr = 0.82 + q3 * 0.38;
+        cg = 0.82 + q4 * 0.38;
+        cb = 0.82 + q5 * 0.38;
         const n = T.n++;
         Q4.setFromAxisAngle(Y3, hg(sd, sd2, 11) * 6.283);
         M4.compose(V3.set(x, hm, z), Q4, S3.set(sc, scy, sc));
@@ -1680,7 +1677,7 @@ nearRoads(h.x, h.z);
         }
         yield 4;
       }
-      /* the hedgerows: oaks every 55-95 m along the boundaries of the fields, where the ground is not steep */
+      /* palms along the field walls and dykes, now and then (no hedgerow oaks: the Pacific, the user's, 2026-11-23) */
       {
         const ca = FCA,
           sa = FSA,
@@ -1725,11 +1722,11 @@ nearRoads(h.x, h.z);
                   x = (uu * ca - vv * sa) * FCS + (hg(a, b, 60 + (d | 0)) - 0.5) * 4,
                   z = (uu * sa + vv * ca) * FCS + (hg(a, b, 70 + (d | 0)) - 0.5) * 4;
                 if (x < c.x0 || x >= c.x1 || z < c.z0 || z >= c.z1) continue;
-                if (hg(a, b, 80 + (d | 0)) > 0.5) continue;
+                if (hg(a, b, 80 + (d | 0)) > 0.25) continue;
                 if (it.rg[Math.floor((z - c.z0) / GC) * GN + Math.floor((x - c.x0) / GC)]) continue;
                 const hm = meshH(x, z);
                 if (hm < 3.5) continue;
-                put(hg(a, b, 77 + (d | 0)) < 0.65 ? 'palm' : 'oak', x, z, hm, a * 131 + (d | 0), b * 977 + dir);
+                put('palm', x, z, hm, a * 131 + (d | 0), b * 977 + dir);
               }
             }
             if (a % 2 === 0) yield 4;

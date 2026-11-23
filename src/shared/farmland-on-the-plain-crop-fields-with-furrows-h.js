@@ -1,5 +1,7 @@
-/* ---------- farmland on the plain: crop fields with furrows, hedgerows (3D near the road) and farm tracks ---------- */
-const FARM = { a: 0.31, cs: 340, hedges: [] };
+/* ---------- farmland on the plain: rice paddies first, then cane, sweet potato and red-earth fallow; coral walls round the dry fields
+   (3D near the road), earth dykes between the paddies, and farm tracks (the user's, 2026-11-23: the Pacific, not Normandy: no hedgerows;
+   more paddies than crop fields) ---------- */
+const FARM = { a: 0.31, cs: 340, walls: [] };
 {
   const FW = 2048,
     HS = 4700,
@@ -18,18 +20,21 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
     h = Math.imul(h ^ (h >>> 13), 1274126177);
     return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
   };
+  /* [colour, paddy]: six in ten plots are rice paddies (flooded, or green with young rice, or ripening), the rest sugar cane, sweet
+     potato and fallow red earth */
   const crops = [
-    [0.46, 0.62, 0.22],
-    [0.52, 0.68, 0.26],
-    [0.6, 0.72, 0.28],
-    [0.78, 0.72, 0.36],
-    [0.82, 0.76, 0.42],
-    [0.58, 0.44, 0.27],
-    [0.5, 0.36, 0.24],
-    [0.66, 0.78, 0.4],
-    [0.4, 0.56, 0.2],
-    [0.72, 0.7, 0.34],
+    [[0.56, 0.68, 0.74], 1] /* flooded, just planted: the water shows the sky */,
+    [[0.48, 0.6, 0.68], 1],
+    [[0.36, 0.58, 0.26], 1] /* young rice */,
+    [[0.42, 0.64, 0.24], 1],
+    [[0.5, 0.66, 0.26], 1],
+    [[0.66, 0.66, 0.3], 1] /* ripening */,
+    [[0.5, 0.66, 0.24], 0] /* sugar cane */,
+    [[0.44, 0.6, 0.2], 0],
+    [[0.3, 0.46, 0.2], 0] /* sweet potato */,
+    [[0.62, 0.4, 0.28], 0] /* fallow: the islands' red earth */,
   ];
+  const plot = (i, j) => crops[(hash(i, j, 1) * crops.length) | 0];
   const NC = Math.ceil(HS / cs) + 1,
     col = (c, k) =>
       'rgb(' +
@@ -48,7 +53,7 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
         mx = (A[0] + C[0]) / 2,
         mz = (A[1] + C[1]) / 2;
       if (Math.hypot(mx - cx, mz - cz) > PL.R * 0.94) continue;
-      const c = crops[(hash(i, j, 1) * crops.length) | 0],
+      const [c, pd] = plot(i, j),
         k = 0.9 + hash(i, j, 2) * 0.2,
         P = [A, B, C, D].map((q) => px(q[0], q[1]));
       g.beginPath();
@@ -62,29 +67,41 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
         ang = FARM.a + (hash(i, j, 3) < 0.5 ? 0 : Math.PI / 2);
       g.translate(m[0], m[1]);
       g.rotate(ang);
-      g.fillStyle = col(c, k * 0.88);
-      g.globalAlpha = 0.55;
-      for (let y = -90; y < 90; y += 4.2) g.fillRect(-90, y, 180, 1.6);
+      g.fillStyle = col(c, k * (pd ? 1.12 : 0.88));
+      g.globalAlpha = pd ? 0.25 : 0.55; /* a paddy's rows of rice are fine and faint, the water between them a little lighter */
+      for (let y = -90; y < 90; y += pd ? 2.6 : 4.2) g.fillRect(-90, y, 180, pd ? 0.9 : 1.6);
       g.restore();
       g.globalAlpha = 1;
     }
-  /* hedgerows and walls do not run up and down big hills: skip a line where the ground is steep */
+  /* walls do not run up and down big hills: skip a line where the ground is steep */
   const steep = (x, z) => Math.hypot(HR(x + 12, z) - HR(x - 12, z), HR(x, z + 12) - HR(x, z - 12)) / 24 > 0.1;
-  const seg = (u0, v0, u1, v1, type) => {
+  const seg = (u0, v0, u1, v1, type, paddies) => {
     const a = U2W(u0, v0),
       b = U2W(u1, v1);
     if (Math.hypot((a[0] + b[0]) / 2 - cx, (a[1] + b[1]) / 2 - cz) > PL.R * 0.9) return;
     for (let q = 0; q <= 6; q++) if (steep(a[0] + ((b[0] - a[0]) * q) / 6, a[1] + ((b[1] - a[1]) * q) / 6)) return;
     const A = px(a[0], a[1]),
       B = px(b[0], b[1]);
-    if (type < 0.56) {
-      g.strokeStyle = 'rgba(30,52,24,.85)';
-      g.lineWidth = 2.6;
+    if (paddies) {
+      /* between two paddies: a low earth dyke, grassed on top */
+      g.strokeStyle = 'rgba(96,104,58,.7)';
+      g.lineWidth = 0.9;
       g.beginPath();
       g.moveTo(A[0], A[1]);
       g.lineTo(B[0], B[1]);
       g.stroke();
-      FARM.hedges.push({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] });
+    } else if (type < 0.56) {
+      /* a dry field's boundary: a rough coral wall, pale grey-cream with its shadow */
+      g.strokeStyle = 'rgba(70,72,60,.35)';
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.moveTo(A[0], A[1]);
+      g.lineTo(B[0], B[1]);
+      g.stroke();
+      g.strokeStyle = 'rgba(214,208,190,.6)';
+      g.lineWidth = 0.8;
+      g.stroke();
+      FARM.walls.push({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] });
     } else if (type < 0.8) {
       g.strokeStyle = 'rgba(176,150,106,.95)';
       g.lineWidth = 2.2;
@@ -99,8 +116,8 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
   };
   for (let i = -NC; i < NC; i++)
     for (let j = -NC; j < NC; j++) {
-      seg(i * cs, j * cs, i * cs, (j + 1) * cs, hash(i, j, 10));
-      seg(i * cs, j * cs, (i + 1) * cs, j * cs, hash(i, j, 11));
+      seg(i * cs, j * cs, i * cs, (j + 1) * cs, hash(i, j, 10), plot(i, j)[1] && plot(i - 1, j)[1]);
+      seg(i * cs, j * cs, (i + 1) * cs, j * cs, hash(i, j, 11), plot(i, j)[1] && plot(i, j - 1)[1]);
     }
   g.globalCompositeOperation = 'destination-out';
   g.lineCap = 'round';

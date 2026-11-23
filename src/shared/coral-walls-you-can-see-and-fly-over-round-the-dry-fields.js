@@ -1,18 +1,29 @@
-/* hedgerows you can see and fly over: low leafy walls along the field boundaries that lie near the road */
+/* coral walls you can see and fly over: rough walls of coral blocks round the dry fields that lie near the road (the user's, 2026-11-23:
+   the Pacific, not Normandy: these were leafy hedgerows). 1.0-1.5 m high, 0.6-0.8 m thick, pale grey-cream coral with dark joints */
 {
   const lc = document.createElement('canvas');
   lc.width = lc.height = 64;
   const lg = lc.getContext('2d');
-  lg.fillStyle = '#3f6a2a';
+  lg.fillStyle = '#4a4a42'; /* the joints */
   lg.fillRect(0, 0, 64, 64);
   let sd = 5;
   const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 420; i++) {
-    const v = rn();
-    lg.fillStyle = v < 0.35 ? '#2a4d1c' : v < 0.7 ? '#4f7f33' : '#6e9a42';
-    lg.beginPath();
-    lg.arc(rn() * 64, rn() * 64, 1.5 + rn() * 3.2, 0, 7);
-    lg.fill();
+  /* courses of rough blocks, each a little different in size and shade, pitted */
+  for (let y = 0; y < 64; y += 11) {
+    let x = -rn() * 10;
+    while (x < 64) {
+      const w = 9 + rn() * 9,
+        v = 0.78 + rn() * 0.2;
+      lg.fillStyle = 'rgb(' + Math.round(222 * v) + ',' + Math.round(214 * v) + ',' + Math.round(192 * v) + ')';
+      lg.beginPath();
+      lg.ellipse(x + w / 2, y + 5.5, w / 2 - 0.6, 4.8, 0, 0, 7);
+      lg.fill();
+      x += w;
+    }
+  }
+  for (let i = 0; i < 260; i++) {
+    lg.fillStyle = rn() < 0.6 ? 'rgba(90,88,76,.45)' : 'rgba(250,246,232,.35)';
+    lg.fillRect(rn() * 64, rn() * 64, 1 + rn(), 1 + rn());
   }
   const lt = new THREE.CanvasTexture(lc);
   lt.wrapS = lt.wrapT = THREE.RepeatWrapping;
@@ -26,7 +37,7 @@
   const items = [];
   let sh = 11;
   const rnd = () => (sh = (sh * 16807) % 2147483647) / 2147483647;
-  for (const s of FARM.hedges) {
+  for (const s of FARM.walls) {
     const dx = s.x1 - s.x0,
       dz = s.z1 - s.z0,
       len = Math.hypot(dx, dz),
@@ -46,9 +57,9 @@
         z,
         yaw,
         15.6,
-        1.9 + rnd() * 1.5 + Math.sin(x * 0.07 + z * 0.05) * 0.45,
-        2.4 + rnd() * 1.0,
-        0.62 + rnd() * 0.3,
+        1.0 + rnd() * 0.5 /* height */,
+        0.6 + rnd() * 0.2 /* thickness */,
+        0.86 + rnd() * 0.14,
       ]);
     }
   }
@@ -68,7 +79,7 @@
       gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
     M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
     hm.setMatrixAt(i, M);
-    cc.setRGB(a[6] * 0.9, a[6] + 0.02, a[6] * 0.78);
+    cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
     hm.setColorAt(i, cc);
   });
   hm.count = items.length;
@@ -80,6 +91,6 @@
   );
   hm.frustumCulled = true;
   scene.add(hm);
-  FARM.hedgeCount = items.length;
+  FARM.wallCount = items.length;
 }
 

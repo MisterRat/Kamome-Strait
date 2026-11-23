@@ -18,6 +18,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path=chrome, args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'])
     pg = b.new_page(viewport={'width': 960, 'height': 540})
     pg.on('pageerror', lambda e: out['errors'].append(str(e)))
+    pg.on('console', lambda m: m.type=='error' and out['errors'].append(m.text[:300]))
     pg.goto('file://' + os.path.abspath(html))
     pg.wait_for_timeout(3000)
     pg.evaluate("()=>document.getElementById('go').click()")

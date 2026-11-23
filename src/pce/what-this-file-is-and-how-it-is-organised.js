@@ -10,7 +10,7 @@
 
      1. renderer, scene, camera, lights          R, scene, cam, V (= THREE.Vector3), helpers
      2. terrain + shaders                        H(x,z) / HR(x,z) heights, tmat, terrain tiles
-     3. mission area, farmland, hedgerows        ROADC / RP (road), DEPOT, BASE, nearRoad(), inCompound(), FARM
+     3. mission area, farmland, paddies, walls       ROADC / RP (road), DEPOT, BASE, nearRoad(), inCompound(), FARM
      4. GX shared geometry kit                   GX.part / GX.Acc / GX.xf: build a model from parts, bake to ONE geometry
      5. vegetation (trees, near and far levels)  TREEM, NT, growTree(), addSpecies()
      6. runway, airfield dressing + detail       RW, parked aircraft, markings

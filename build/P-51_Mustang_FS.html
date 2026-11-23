@@ -552,7 +552,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 
      1. renderer, scene, camera, lights          R, scene, cam, V (= THREE.Vector3), helpers
      2. terrain + shaders                        H(x,z) / HR(x,z) heights, tmat, terrain tiles
-     3. mission area, farmland, hedgerows        ROADC / RP (road), DEPOT, BASE, nearRoad(), inCompound(), FARM
+     3. mission area, farmland, paddies and coral walls        ROADC / RP (road), DEPOT, BASE, nearRoad(), inCompound(), FARM
      4. GX shared geometry kit                   GX.part / GX.Acc / GX.xf: build a model from parts, bake to ONE geometry
      5. vegetation (trees, near and far levels)  TREEM, NT, growTree(), addSpecies()
      6. runway, airfield dressing + detail       RW, parked aircraft, markings
@@ -591,7 +591,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.104';
+const VERSION = '5.105';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -2562,9 +2562,11 @@ const FARMU = { value: null },
 const TERR_NOISE =
   'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}\nfloat vn2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}\n';
 const TERR_DETAIL =
-  '\nvec2 fuv=(vWP.xz-farmG.xy)/(farmG.z*2.0)+0.5;float inF=step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0);vec4 fm=texture2D(farmTex,fuv);diffuseColor.rgb=mix(diffuseColor.rgb,fm.rgb,fm.a*inF*vLand*(1.0-watK));\n' +
+  '\nvec2 fuv=(vWP.xz-farmG.xy)/(farmG.z*2.0)+0.5;float inF=step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0);vec4 fm=texture2D(farmTex,fuv);diffuseColor.rgb=mix(diffuseColor.rgb,fm.rgb,fm.a*inF*vLand*(1.0-watK));' +
+  /* a flooded rice paddy (the farm texture bluer than green there): its water shows the sky, more at a low angle */
+  'float wpd=fm.a*inF*vLand*(1.0-watK)*smoothstep(0.01,0.06,fm.b-fm.g);{vec3 Vd=normalize(cameraPosition-vWP);float frd=pow(1.0-clamp(Vd.y,0.0,1.0),3.0);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.56,0.68,0.80),wpd*(0.45+0.5*frd));}\n' +
   'float dd=length(vWP-cameraPosition);float nearK=(1.0-smoothstep(150.0,1300.0,dd))*uDet*(1.0-watK);float flatK=smoothstep(0.70,0.92,vWN.y);float steep=1.0-smoothstep(0.50,0.80,vWN.y);\n' +
-  'if(nearK>0.003){float g1=vn2(vWP.xz*0.7),g2=vn2(vWP.xz*2.9),g3=vn2(vWP.xz*11.0);float gr=(g1*0.45+g2*0.33+g3*0.22)-0.5;vec3 tint=vec3(1.0+gr*1.0+(g2-0.5)*0.30,1.0+gr*1.15,1.0+gr*0.55);float blade=vn2(vec2(vWP.x*21.0,vWP.z*2.6))-0.5;float tuft=smoothstep(0.62,0.9,vn2(vWP.xz*1.6));diffuseColor.rgb*=mix(vec3(1.0),tint*(1.0+blade*0.34)*(1.0-tuft*0.18),nearK*flatK*vLand);}\n' +
+  'if(nearK>0.003){float g1=vn2(vWP.xz*0.7),g2=vn2(vWP.xz*2.9),g3=vn2(vWP.xz*11.0);float gr=(g1*0.45+g2*0.33+g3*0.22)-0.5;vec3 tint=vec3(1.0+gr*1.0+(g2-0.5)*0.30,1.0+gr*1.15,1.0+gr*0.55);float blade=vn2(vec2(vWP.x*21.0,vWP.z*2.6))-0.5;float tuft=smoothstep(0.62,0.9,vn2(vWP.xz*1.6));diffuseColor.rgb*=mix(vec3(1.0),tint*(1.0+blade*0.34)*(1.0-tuft*0.18),nearK*flatK*vLand*(1.0-wpd));}\n' +
   '{float band=sin(vWP.y*0.62+vn2(vWP.xz*0.018)*7.0)*0.5+0.5;float layer=smoothstep(0.38,0.62,band);float fine=vn2(vec2(vWP.x*0.9+vWP.z*0.7,vWP.y*5.5));float crack=smoothstep(0.035,0.0,abs(vn2(vWP.xz*0.55+vWP.y*1.3)-0.5));vec3 rock=mix(vec3(0.30,0.27,0.24),vec3(0.50,0.45,0.38),layer)*(0.82+0.36*fine)*(1.0-crack*0.45);diffuseColor.rgb=mix(diffuseColor.rgb,rock,steep*(1.0-watK)*mix(0.45,0.8,nearK));}\n';
 /* The colours of the shore (grass, tan sand, light-blue shallows, deep blue) are worked out per pixel from this height map instead of per
    100 m vertex, so every transition follows the real coastline smoothly. 8 bits over -64..+10 m (0.3 m steps), 12.7 m texels, linear filter. */
@@ -2749,8 +2751,10 @@ function inCompound(x, z) {
       z < BASE[1] + BASEF[3] + m)
   );
 }
-/* ---------- farmland on the plain: crop fields with furrows, hedgerows (3D near the road) and farm tracks ---------- */
-const FARM = { a: 0.31, cs: 340, hedges: [] };
+/* ---------- farmland on the plain: rice paddies first, then cane, sweet potato and red-earth fallow; coral walls round the dry fields
+   (3D near the road), earth dykes between the paddies, and farm tracks (the user's, 2026-11-23: the Pacific, not Normandy: no hedgerows;
+   more paddies than crop fields) ---------- */
+const FARM = { a: 0.31, cs: 340, walls: [] };
 {
   const FW = 2048,
     HS = 4700,
@@ -2769,18 +2773,21 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
     h = Math.imul(h ^ (h >>> 13), 1274126177);
     return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
   };
+  /* [colour, paddy]: six in ten plots are rice paddies (flooded, or green with young rice, or ripening), the rest sugar cane, sweet
+     potato and fallow red earth */
   const crops = [
-    [0.46, 0.62, 0.22],
-    [0.52, 0.68, 0.26],
-    [0.6, 0.72, 0.28],
-    [0.78, 0.72, 0.36],
-    [0.82, 0.76, 0.42],
-    [0.58, 0.44, 0.27],
-    [0.5, 0.36, 0.24],
-    [0.66, 0.78, 0.4],
-    [0.4, 0.56, 0.2],
-    [0.72, 0.7, 0.34],
+    [[0.56, 0.68, 0.74], 1] /* flooded, just planted: the water shows the sky */,
+    [[0.48, 0.6, 0.68], 1],
+    [[0.36, 0.58, 0.26], 1] /* young rice */,
+    [[0.42, 0.64, 0.24], 1],
+    [[0.5, 0.66, 0.26], 1],
+    [[0.66, 0.66, 0.3], 1] /* ripening */,
+    [[0.5, 0.66, 0.24], 0] /* sugar cane */,
+    [[0.44, 0.6, 0.2], 0],
+    [[0.3, 0.46, 0.2], 0] /* sweet potato */,
+    [[0.62, 0.4, 0.28], 0] /* fallow: the islands' red earth */,
   ];
+  const plot = (i, j) => crops[(hash(i, j, 1) * crops.length) | 0];
   const NC = Math.ceil(HS / cs) + 1,
     col = (c, k) =>
       'rgb(' +
@@ -2799,7 +2806,7 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
         mx = (A[0] + C[0]) / 2,
         mz = (A[1] + C[1]) / 2;
       if (Math.hypot(mx - cx, mz - cz) > PL.R * 0.94) continue;
-      const c = crops[(hash(i, j, 1) * crops.length) | 0],
+      const [c, pd] = plot(i, j),
         k = 0.9 + hash(i, j, 2) * 0.2,
         P = [A, B, C, D].map((q) => px(q[0], q[1]));
       g.beginPath();
@@ -2813,29 +2820,41 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
         ang = FARM.a + (hash(i, j, 3) < 0.5 ? 0 : Math.PI / 2);
       g.translate(m[0], m[1]);
       g.rotate(ang);
-      g.fillStyle = col(c, k * 0.88);
-      g.globalAlpha = 0.55;
-      for (let y = -90; y < 90; y += 4.2) g.fillRect(-90, y, 180, 1.6);
+      g.fillStyle = col(c, k * (pd ? 1.12 : 0.88));
+      g.globalAlpha = pd ? 0.25 : 0.55; /* a paddy's rows of rice are fine and faint, the water between them a little lighter */
+      for (let y = -90; y < 90; y += pd ? 2.6 : 4.2) g.fillRect(-90, y, 180, pd ? 0.9 : 1.6);
       g.restore();
       g.globalAlpha = 1;
     }
-  /* hedgerows and walls do not run up and down big hills: skip a line where the ground is steep */
+  /* walls do not run up and down big hills: skip a line where the ground is steep */
   const steep = (x, z) => Math.hypot(HR(x + 12, z) - HR(x - 12, z), HR(x, z + 12) - HR(x, z - 12)) / 24 > 0.1;
-  const seg = (u0, v0, u1, v1, type) => {
+  const seg = (u0, v0, u1, v1, type, paddies) => {
     const a = U2W(u0, v0),
       b = U2W(u1, v1);
     if (Math.hypot((a[0] + b[0]) / 2 - cx, (a[1] + b[1]) / 2 - cz) > PL.R * 0.9) return;
     for (let q = 0; q <= 6; q++) if (steep(a[0] + ((b[0] - a[0]) * q) / 6, a[1] + ((b[1] - a[1]) * q) / 6)) return;
     const A = px(a[0], a[1]),
       B = px(b[0], b[1]);
-    if (type < 0.56) {
-      g.strokeStyle = 'rgba(30,52,24,.85)';
-      g.lineWidth = 2.6;
+    if (paddies) {
+      /* between two paddies: a low earth dyke, grassed on top */
+      g.strokeStyle = 'rgba(96,104,58,.7)';
+      g.lineWidth = 0.9;
       g.beginPath();
       g.moveTo(A[0], A[1]);
       g.lineTo(B[0], B[1]);
       g.stroke();
-      FARM.hedges.push({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] });
+    } else if (type < 0.56) {
+      /* a dry field's boundary: a rough coral wall, pale grey-cream with its shadow */
+      g.strokeStyle = 'rgba(70,72,60,.35)';
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.moveTo(A[0], A[1]);
+      g.lineTo(B[0], B[1]);
+      g.stroke();
+      g.strokeStyle = 'rgba(214,208,190,.6)';
+      g.lineWidth = 0.8;
+      g.stroke();
+      FARM.walls.push({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] });
     } else if (type < 0.8) {
       g.strokeStyle = 'rgba(176,150,106,.95)';
       g.lineWidth = 2.2;
@@ -2850,8 +2869,8 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
   };
   for (let i = -NC; i < NC; i++)
     for (let j = -NC; j < NC; j++) {
-      seg(i * cs, j * cs, i * cs, (j + 1) * cs, hash(i, j, 10));
-      seg(i * cs, j * cs, (i + 1) * cs, j * cs, hash(i, j, 11));
+      seg(i * cs, j * cs, i * cs, (j + 1) * cs, hash(i, j, 10), plot(i, j)[1] && plot(i - 1, j)[1]);
+      seg(i * cs, j * cs, (i + 1) * cs, j * cs, hash(i, j, 11), plot(i, j)[1] && plot(i, j - 1)[1]);
     }
   g.globalCompositeOperation = 'destination-out';
   g.lineCap = 'round';
@@ -2902,21 +2921,32 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
   FARMU.value = tx;
   FARMG.value.set(cx, cz, HS, 0);
 }
-/* hedgerows you can see and fly over: low leafy walls along the field boundaries that lie near the road */
+/* coral walls you can see and fly over: rough walls of coral blocks round the dry fields that lie near the road (the user's, 2026-11-23:
+   the Pacific, not Normandy: these were leafy hedgerows). 1.0-1.5 m high, 0.6-0.8 m thick, pale grey-cream coral with dark joints */
 {
   const lc = document.createElement('canvas');
   lc.width = lc.height = 64;
   const lg = lc.getContext('2d');
-  lg.fillStyle = '#3f6a2a';
+  lg.fillStyle = '#4a4a42'; /* the joints */
   lg.fillRect(0, 0, 64, 64);
   let sd = 5;
   const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 420; i++) {
-    const v = rn();
-    lg.fillStyle = v < 0.35 ? '#2a4d1c' : v < 0.7 ? '#4f7f33' : '#6e9a42';
-    lg.beginPath();
-    lg.arc(rn() * 64, rn() * 64, 1.5 + rn() * 3.2, 0, 7);
-    lg.fill();
+  /* courses of rough blocks, each a little different in size and shade, pitted */
+  for (let y = 0; y < 64; y += 11) {
+    let x = -rn() * 10;
+    while (x < 64) {
+      const w = 9 + rn() * 9,
+        v = 0.78 + rn() * 0.2;
+      lg.fillStyle = 'rgb(' + Math.round(222 * v) + ',' + Math.round(214 * v) + ',' + Math.round(192 * v) + ')';
+      lg.beginPath();
+      lg.ellipse(x + w / 2, y + 5.5, w / 2 - 0.6, 4.8, 0, 0, 7);
+      lg.fill();
+      x += w;
+    }
+  }
+  for (let i = 0; i < 260; i++) {
+    lg.fillStyle = rn() < 0.6 ? 'rgba(90,88,76,.45)' : 'rgba(250,246,232,.35)';
+    lg.fillRect(rn() * 64, rn() * 64, 1 + rn(), 1 + rn());
   }
   const lt = new THREE.CanvasTexture(lc);
   lt.wrapS = lt.wrapT = THREE.RepeatWrapping;
@@ -2930,7 +2960,7 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
   const items = [];
   let sh = 11;
   const rnd = () => (sh = (sh * 16807) % 2147483647) / 2147483647;
-  for (const s of FARM.hedges) {
+  for (const s of FARM.walls) {
     const dx = s.x1 - s.x0,
       dz = s.z1 - s.z0,
       len = Math.hypot(dx, dz),
@@ -2950,9 +2980,9 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
         z,
         yaw,
         15.6,
-        1.9 + rnd() * 1.5 + Math.sin(x * 0.07 + z * 0.05) * 0.45,
-        2.4 + rnd() * 1.0,
-        0.62 + rnd() * 0.3,
+        1.0 + rnd() * 0.5 /* height */,
+        0.6 + rnd() * 0.2 /* thickness */,
+        0.86 + rnd() * 0.14,
       ]);
     }
   }
@@ -2972,7 +3002,7 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
       gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
     M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
     hm.setMatrixAt(i, M);
-    cc.setRGB(a[6] * 0.9, a[6] + 0.02, a[6] * 0.78);
+    cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
     hm.setColorAt(i, cc);
   });
   hm.count = items.length;
@@ -2984,7 +3014,7 @@ const FARM = { a: 0.31, cs: 340, hedges: [] };
   );
   hm.frustumCulled = true;
   scene.add(hm);
-  FARM.hedgeCount = items.length;
+  FARM.wallCount = items.length;
 }
 
 /* a road that ends on another road stops at that road's edge instead of running into it */
@@ -5963,7 +5993,7 @@ const KI84 = (() => {
 let TREES = null;
 const CLOUDS = [],
   CIRRUS = [];
-/* vegetation: conifers, broadleaf trees, palms on the beaches and shrubs, with hedgerow trees on the farmland, near and far levels */
+/* vegetation: conifers, broadleaf trees, palms on the beaches and shrubs, with palms by the farmland's walls, near and far levels */
 const TWIND = { value: 0 },
   TREEM = [];
 function mergeParts(parts) {
@@ -6508,7 +6538,7 @@ function addSpecies(key, items) {
     palm = [],
     CAP = { con: 4800, oak: 800, shr: 1300, palm: 300 };
   const jit = () => [0.82 + rnd() * 0.38, 0.82 + rnd() * 0.38, 0.82 + rnd() * 0.38],
-    autumn = () => (rnd() < 0.12 ? [1.35, 1.0, 0.5] : jit());
+    autumn = () => jit(); /* evergreen: no autumn colours in the tropics (the user's, 2026-11-23) */
   for (let k = 0; k < 130000 && (con.length < CAP.con || oak.length < CAP.oak || shr.length < CAP.shr); k++) {
     const x = (rnd() - 0.5) * 20000,
       z = (rnd() - 0.5) * 20000;
@@ -6553,18 +6583,19 @@ function addSpecies(key, items) {
       j = jit();
     palm.push([x, HMESH(x, z), z, rnd() * 6.283, sc, 1, j[0], j[1], j[2]]);
   }
-  for (const s of FARM.hedges) {
+  /* a palm here and there by the coral walls (no hedgerow oaks: the Pacific, the user's, 2026-11-23) */
+  for (const s of FARM.walls) {
     const dx = s.x1 - s.x0,
       dz = s.z1 - s.z0,
       len = Math.hypot(dx, dz);
     if (!nearRoad((s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2, 1800)) continue;
     for (let d = 20; d < len - 20; d += 55 + rnd() * 40) {
-      if (rnd() > 0.4) continue;
+      if (rnd() > 0.2 || palm.length >= CAP.palm + 150) continue;
       const x = s.x0 + (dx * d) / len + (rnd() - 0.5) * 4,
         z = s.z0 + (dz * d) / len + (rnd() - 0.5) * 4;
       if (nearRoad(x, z, 34) || inCompound(x, z) || HR(x, z) < 3.5) continue;
-      const j = autumn();
-      oak.push([x, HMESH(x, z), z, rnd() * 6.283, 1.05 + rnd() * 0.5, 1 + rnd() * 0.3, j[0], j[1], j[2]]);
+      const j = jit();
+      palm.push([x, HMESH(x, z), z, rnd() * 6.283, 0.85 + rnd() * 0.4, 1, j[0], j[1], j[2]]);
     }
   }
   /* a dense wood on a quiet hill about 4.6 km north-west of the start (heading 323): nothing else is built there, so the trees can be admired close up */
@@ -18976,14 +19007,16 @@ const WORLD = (() => {
     V3 = new THREE.Vector3(),
     S3 = new THREE.Vector3(),
     Y3 = new THREE.Vector3(0, 1, 0);
-  /* the fields: a tilted grid of 340 m plots, each a crop colour with its rows, a dark hedge line between them (the same look as the home farms) */
+  /* the fields: a tilted grid of 340 m plots, six in ten rice paddies, the rest cane, sweet potato and red-earth fallow, each with its rows;
+     earth dykes between the paddies, pale coral walls round the dry fields (the same look as the home farms; the Pacific: no hedgerows) */
   const FARM_PAINT =
     '{float fk0=vFarm*(1.0-watK);if(fk0>0.003){vec2 u=vec2(vWP.x*' + FCA.toFixed(5) + '+vWP.z*' + FSA.toFixed(5) + ',-vWP.x*' + FSA.toFixed(5) + '+vWP.z*' + FCA.toFixed(5) + ')/' + FCS.toFixed(1) + ';' +
     'vec2 fi=floor(u),ff=fract(u);float r1=hf(fi+1.7),r2=hf(fi+9.1),r3=hf(fi+4.3);float th=0.25+0.5*hf(fi+3.3);float fk=smoothstep(th-0.3,th+0.3,vFarm)*(1.0-watK);' /* each plot fades in on its own as the farmland thickens, so the edge of a farm area is soft and does not follow the mesh triangles */ +
-    'vec3 cp=r1<0.10?mix(vec3(0.36,0.25,0.17),vec3(0.42,0.30,0.20),r2):(r1<0.50?mix(vec3(0.14,0.38,0.13),vec3(0.20,0.46,0.17),r2):(r1<0.82?mix(vec3(0.28,0.52,0.18),vec3(0.36,0.60,0.24),r2):mix(vec3(0.50,0.56,0.26),vec3(0.58,0.62,0.32),r2)));' +
+    'float pd=step(r1,0.6);vec3 cp=r1<0.6?(r2<0.3?mix(vec3(0.20,0.32,0.36),vec3(0.24,0.38,0.40),r2/0.3):mix(vec3(0.26,0.46,0.18),vec3(0.42,0.48,0.20),(r2-0.3)/0.7)):(r1<0.8?mix(vec3(0.32,0.48,0.16),vec3(0.38,0.54,0.20),r2):(r1<0.92?mix(vec3(0.16,0.32,0.12),vec3(0.20,0.38,0.15),r2):mix(vec3(0.44,0.26,0.17),vec3(0.50,0.31,0.20),r2)));' +
     'cp*=0.9+0.2*hf(fi+6.6);float dq=length(vWP-cameraPosition);float sk=1.0-smoothstep(500.0,2200.0,dq);' +
-    'float row=(r3<0.5?u.x:u.y)*' + FCS.toFixed(1) + '/19.0;cp*=1.0-0.14*sk*smoothstep(0.35,0.65,sin(row*6.2832)*0.5+0.5);' +
-    'vec2 e=min(ff,1.0-ff)*' + FCS.toFixed(1) + ';float hl=(1.0-smoothstep(1.2,3.2,min(e.x,e.y)))*(1.0-smoothstep(2500.0,6000.0,dq));cp=mix(cp,vec3(0.1,0.18,0.08),hl*0.8);' +
+    'float row=(r3<0.5?u.x:u.y)*' + FCS.toFixed(1) + '/19.0;cp*=1.0-(0.14-0.08*pd)*sk*smoothstep(0.35,0.65,sin(row*6.2832)*0.5+0.5);' +
+    'vec2 e=min(ff,1.0-ff)*' + FCS.toFixed(1) + ';float hl=(1.0-smoothstep(1.2,3.2,min(e.x,e.y)))*(1.0-smoothstep(2500.0,6000.0,dq));cp=mix(cp,mix(vec3(0.62,0.60,0.53),vec3(0.30,0.32,0.18),pd),hl*0.8);' +
+    'float wpd=pd*step(r2,0.3);vec3 Vd=normalize(cameraPosition-vWP);cp=mix(cp,vec3(0.40,0.52,0.62),wpd*(0.35+0.5*pow(1.0-clamp(Vd.y,0.0,1.0),3.0)));' /* flooded paddies show the sky */ +
     'diffuseColor.rgb=mix(diffuseColor.rgb,cp*0.68,fk);}}\n';
   /* =====================================================================================================================
      THE ROUTES: dirt roads from the two colonial ports to the nearest villages, and paved roads between the enemy bases.
@@ -19439,7 +19472,7 @@ const WORLD = (() => {
         .replace(
           '#include <map_fragment>',
           'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
-            TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')),
+            'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
         )
         .replace('#include <color_fragment>', '#include <color_fragment>\n' + FARM_PAINT + SHORE_PAINT);
     };
@@ -20002,7 +20035,7 @@ nearRoads(h.x, h.z);
       if (T.n) T.im.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3((x0 + x1) / 2, y1, (z0 + z1) / 2), Math.hypot(x1 - x0, z1 - z0) / 2 + 150);
     }
     /* the trees: a jittered grid, the same rules as the home map (forest noise, height, slope), fixed by position alone;
-       dense woods where a second noise says so, and hedgerows round the fields */
+       dense woods where a second noise says so, and a palm here and there along the field walls */
     for (const k in it.TR) {
       it.TR[k].src.n = 0;
       it.TR[k].src.grid.clear();
@@ -20057,15 +20090,10 @@ nearRoads(h.x, h.z);
           sc = 0.85 + q1 * 0.4;
           scy = 1;
         }
-        if (kind === 'oak' && q6 < 0.12) {
-          cr = 1.35;
-          cg = 1.0;
-          cb = 0.5;
-        } else {
-          cr = 0.82 + q3 * 0.38;
-          cg = 0.82 + q4 * 0.38;
-          cb = 0.82 + q5 * 0.38;
-        }
+        /* evergreen: no autumn-tinted trees in the tropics (the user's, 2026-11-23) */
+        cr = 0.82 + q3 * 0.38;
+        cg = 0.82 + q4 * 0.38;
+        cb = 0.82 + q5 * 0.38;
         const n = T.n++;
         Q4.setFromAxisAngle(Y3, hg(sd, sd2, 11) * 6.283);
         M4.compose(V3.set(x, hm, z), Q4, S3.set(sc, scy, sc));
@@ -20122,7 +20150,7 @@ nearRoads(h.x, h.z);
         }
         yield 4;
       }
-      /* the hedgerows: oaks every 55-95 m along the boundaries of the fields, where the ground is not steep */
+      /* palms along the field walls and dykes, now and then (no hedgerow oaks: the Pacific, the user's, 2026-11-23) */
       {
         const ca = FCA,
           sa = FSA,
@@ -20167,11 +20195,11 @@ nearRoads(h.x, h.z);
                   x = (uu * ca - vv * sa) * FCS + (hg(a, b, 60 + (d | 0)) - 0.5) * 4,
                   z = (uu * sa + vv * ca) * FCS + (hg(a, b, 70 + (d | 0)) - 0.5) * 4;
                 if (x < c.x0 || x >= c.x1 || z < c.z0 || z >= c.z1) continue;
-                if (hg(a, b, 80 + (d | 0)) > 0.5) continue;
+                if (hg(a, b, 80 + (d | 0)) > 0.25) continue;
                 if (it.rg[Math.floor((z - c.z0) / GC) * GN + Math.floor((x - c.x0) / GC)]) continue;
                 const hm = meshH(x, z);
                 if (hm < 3.5) continue;
-                put(hg(a, b, 77 + (d | 0)) < 0.65 ? 'palm' : 'oak', x, z, hm, a * 131 + (d | 0), b * 977 + dir);
+                put('palm', x, z, hm, a * 131 + (d | 0), b * 977 + dir);
               }
             }
             if (a % 2 === 0) yield 4;

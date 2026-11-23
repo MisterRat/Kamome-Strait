@@ -364,7 +364,7 @@ function addSpecies(key, items) {
     palm = [],
     CAP = { con: 4800, oak: 800, shr: 1300, palm: 300 };
   const jit = () => [0.82 + rnd() * 0.38, 0.82 + rnd() * 0.38, 0.82 + rnd() * 0.38],
-    autumn = () => (rnd() < 0.12 ? [1.35, 1.0, 0.5] : jit());
+    autumn = () => jit(); /* evergreen: no autumn colours in the tropics (the user's, 2026-11-23) */
   for (let k = 0; k < 130000 && (con.length < CAP.con || oak.length < CAP.oak || shr.length < CAP.shr); k++) {
     const x = (rnd() - 0.5) * 20000,
       z = (rnd() - 0.5) * 20000;
@@ -409,18 +409,19 @@ function addSpecies(key, items) {
       j = jit();
     palm.push([x, HMESH(x, z), z, rnd() * 6.283, sc, 1, j[0], j[1], j[2]]);
   }
-  for (const s of FARM.hedges) {
+  /* a palm here and there by the coral walls (no hedgerow oaks: the Pacific, the user's, 2026-11-23) */
+  for (const s of FARM.walls) {
     const dx = s.x1 - s.x0,
       dz = s.z1 - s.z0,
       len = Math.hypot(dx, dz);
     if (!nearRoad((s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2, 1800)) continue;
     for (let d = 20; d < len - 20; d += 55 + rnd() * 40) {
-      if (rnd() > 0.4) continue;
+      if (rnd() > 0.2 || palm.length >= CAP.palm + 150) continue;
       const x = s.x0 + (dx * d) / len + (rnd() - 0.5) * 4,
         z = s.z0 + (dz * d) / len + (rnd() - 0.5) * 4;
       if (nearRoad(x, z, 34) || inCompound(x, z) || HR(x, z) < 3.5) continue;
-      const j = autumn();
-      oak.push([x, HMESH(x, z), z, rnd() * 6.283, 1.05 + rnd() * 0.5, 1 + rnd() * 0.3, j[0], j[1], j[2]]);
+      const j = jit();
+      palm.push([x, HMESH(x, z), z, rnd() * 6.283, 0.85 + rnd() * 0.4, 1, j[0], j[1], j[2]]);
     }
   }
   /* a dense wood on a quiet hill about 4.6 km north-west of the start (heading 323): nothing else is built there, so the trees can be admired close up */
