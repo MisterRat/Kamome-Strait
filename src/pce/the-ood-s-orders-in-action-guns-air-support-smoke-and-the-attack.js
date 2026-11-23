@@ -208,6 +208,17 @@ function ordStep(dt) {
   const E = subEst(),
     Fx = C || (A.run && E && E.age < 60 ? E : null),
     S = Fx && ordEnemySub(Fx);
+  /* he is sunk (a Hedgehog bomb on his hull, or charges close enough): the attack is over, and the torpedoman is told so and makes the
+     charges safe (the user's, 2026-11-23: after a Hedgehog hit nobody said whether it was over) */
+  if (A.run && A.sub && A.sub.sunk) {
+    ordRunEnd(A, 'CHECK FIRE, CHECK FIRE. HE IS SUNK. PUT THE SAFETY FORKS BACK IN AND SECURE THE CHARGES.');
+    A.sub = null;
+    A.cool = 0;
+    ASW.live = false;
+    if (!FM.use('orders')) for (const k of ['rack', 'port', 'stbd']) DC.arm[k] = false; /* game mode: the crews make them safe */
+    note('OOD: ENEMY SUBMARINE SUNK. SECURE FROM THE ATTACK.');
+    return;
+  }
   if (!S || atHelm() || DRILL.on || ASW.ph !== 'idle' || RTB.on) {
     if (A.run || ASW.live) ordRunEnd(A, A.run ? 'LOST CONTACT. ATTACK BROKEN OFF.' : '');
     return;
@@ -226,10 +237,11 @@ function ordStep(dt) {
   if (!A.run) {
     if (yd > 1500) return;
     A.run = true;
+    A.sub = S.side === 'jp' ? S : null;
     A.f = {};
     ASW.O = [];
     ASW.depth = OODO.dep;
-    say('SUBMARINE CONTACT BEARING ' + raidBrg(Fx.p) + ', ' + Math.round(yd / 25) * 25 + ' YARDS. WE ARE ATTACKING. MAN THE HEDGEHOG. SET ALL CHARGES ' + OODO.dep + ' FEET.');
+    say('SUBMARINE CONTACT BEARING ' + raidBrg(Fx.p) + ', ' + Math.round(yd / 25) * 25 + ' YARDS. WE ARE ATTACKING. MAN THE HEDGEHOG. SET ALL CHARGES ' + OODO.dep + ' FEET AND PULL THE SAFETY FORKS.');
     if (!(camMode == 1 && SHIP.stn === 5)) note('OOD: ATTACKING THE SUBMARINE');
   }
   ASW.depth = OODO.dep;
@@ -247,7 +259,7 @@ function ordStep(dt) {
   }
   if (!f.sbc && tos < 25) {
     f.sbc = 1;
-    say('STAND BY CHARGES. ' + OODO.dep + ' FEET.', 'rack');
+    say('STAND BY CHARGES. ' + OODO.dep + ' FEET. SAFETY FORKS OUT.', 'rack');
     /* game mode: the crews pull the safety forks and set the ordered depth on "stand by"; Hardcore: the torpedoman does both */
     if (!FM.use('orders')) for (const k of ['rack', 'port', 'stbd']) ((DC.arm[k] = true), (DC.dep[k] = OODO.dep));
   }

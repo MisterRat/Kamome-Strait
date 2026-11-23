@@ -107,7 +107,7 @@ function aswStep(dt, here) {
       }
       if (!f.sbc && tos < 25) {
         f.sbc = 1;
-        aswSay('STAND BY CHARGES.', 'rack');
+        aswSay('STAND BY CHARGES. SAFETY FORKS OUT.', 'rack');
         /* game mode: the crews pull the safety forks on "stand by"; Hardcore: the torpedoman arms each position himself (X) */
         if (!FM.use('orders')) DC.arm = { rack: true, port: true, stbd: true };
       }
