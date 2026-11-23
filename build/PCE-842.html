@@ -586,7 +586,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.134';
+const VERSION = '0.135';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -738,9 +738,9 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
-    coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
-    subsOn: () => false /* the enemy submarine, I-58, on patrol (SUBS): the PCE's Subs setting */,
-    shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
+    coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* the coast guns fire (Settings > Enemy: Shore) */,
+    subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the enemy submarine, I-58, on patrol (SUBS): Settings > Enemy: Subs */,
+    shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (Settings > Enemy: Ships) */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
     gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
@@ -883,9 +883,6 @@ SIMS.add({
   afloat: true,
   struck: (p) => shipStruck(p),
   torpedoed: () => sdmHit('torpedo'),
-  coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* her Enemy setting */,
-  subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the Subs setting: I-58 on patrol (SUBS) */,
-  shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the Ships setting: the Ukuru escorts and the T-14s fight her */,
   shelled: (mm) => sdmHit(mm && mm < 100 ? 'shell3' : 'shell') /* an 8 cm (the coast guns) or a 12 cm (the escorts) */,
   orbitDist: 85,
   docsTab: 'ctl',
@@ -22318,7 +22315,7 @@ var AIRSUP = (() => {
             L.splice(i, 1);
             continue;
           }
-          if (!SIMS.cur.afloat && typeof banditAt === 'function') {
+          if (!SIMS.cur.afloat && typeof banditAt === 'function' && typeof ENEMY !== 'undefined' && ENEMY.has('planes')) {
             const e = banditAt(u.p.clone());
             e.scr = true;
             HAND.push({ e, raid: false, who: u.who, end: WT + u.fuel });
@@ -24759,26 +24756,53 @@ $$('dmgOn').onchange = (e) => {
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
-/* ENEMY (Settings): which enemies the game sends against her. Saved; none by default. Planes: the air raids (THE AIR RAIDS).
-   Shore: the P-51 world's ground fire (AA.on: the 25 mm guns and searchlights, laid on the ship) and THE COAST BATTERIES.
-   Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (the role's shipsOn). Subs: I-58 on patrol (SUBS, the role's subsOn). */
+/* ENEMY (Settings > Enemy, the same menu in every simulator): which enemies the game sends against the player. Saved per simulator.
+   Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground fire (AA.on: the 25 mm guns and
+   searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (shipsOn).
+   Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note text in ENEMY.sims. */
 const ENEMY = {
-  mode: store.get('enemy', 'none'),
+  mode: 'none',
+  sims: {},
   has(k) {
     return this.mode === 'all' || this.mode === k;
   },
+  /* the current simulator's entry */
+  cur() {
+    for (const k in this.sims) if (SIMS.on(k)) return this.sims[k];
+    return null;
+  },
 };
 function enemySync() {
-  if (!SIMS.on('pce')) return; /* a page with several simulators: her enemies (and the ground fire they set) only while she is played */
+  const S = ENEMY.cur();
+  if (!S || !$$('enMode')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
   $$('enMode').value = ENEMY.mode;
   AA.on = ENEMY.has('shore');
   store.set('aa', AA.on);
   AA.apply();
-  $$('aaOn').checked = AA.on;
-  $$('enNote').textContent =
-    ENEMY.mode === 'none'
-      ? 'No enemies: patrol and practice in peace.'
-      : (ENEMY.has('planes')
+  if ($$('aaOn')) $$('aaOn').checked = AA.on;
+  if ($$('enNote')) $$('enNote').textContent = ENEMY.mode === 'none' ? S.none : S.note();
+}
+/* each simulator's entry calls this once it has registered: the saved choice, the menu's handler, and the setting applied */
+ENEMY.init = () => {
+  const S = ENEMY.cur();
+  if (!S) return;
+  ENEMY.mode = store.get(S.key, S.def());
+  if ($$('enMode'))
+    $$('enMode').onchange = (e) => {
+      ENEMY.mode = e.target.value;
+      store.set(S.key, ENEMY.mode);
+      enemySync();
+      note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
+    };
+  enemySync();
+};
+/* ENEMY, the PCE-842's entry (the menu and its workings are shared: ENEMY): saved as 'enemy', none by default */
+ENEMY.sims.pce = {
+  key: 'enemy',
+  def: () => 'none',
+  none: 'No enemies: patrol and practice in peace.',
+  note: () =>
+    (ENEMY.has('planes')
           ? 'Planes: Ki-84 Hayates strafe her, two at a time, when a Japanese ship, gun or base she fires on calls for air support: they take off from the nearest enemy airfield and fly out to her. '
           : '') +
         (ENEMY.has('shore')
@@ -24787,16 +24811,9 @@ function enemySync() {
         (ENEMY.has('ships')
           ? "Ships: the Ukuru-class escorts' 12 cm guns open fire inside about 12 km, and the T-14 torpedo boats make torpedo runs from about 3 km. "
           : '') +
-        (ENEMY.has('subs') ? 'Subs: I-58 (a Type B3 with six kaiten) patrols deep in mid-strait, comes to periscope depth to look, and attacks with Type 95 torpedoes from 3 km; your sonar finds her, the Hedgehog and the charges kill her.' : '');
-}
-if ($$('enMode'))
-  $$('enMode').onchange = (e) => {
-    ENEMY.mode = e.target.value;
-    store.set('enemy', ENEMY.mode);
-    enemySync();
-    note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
-  };
-enemySync();
+        (ENEMY.has('subs') ? 'Subs: I-58 (a Type B3 with six kaiten) patrols deep in mid-strait, comes to periscope depth to look, and attacks with Type 95 torpedoes from 3 km; your sonar finds her, the Hedgehog and the charges kill her.' : ''),
+};
+ENEMY.init();
 /* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {

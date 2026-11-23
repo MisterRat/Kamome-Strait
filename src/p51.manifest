@@ -220,6 +220,8 @@ shared/display-options-the-ui-object-shows-hides-and-remembers-the-boxes.js
 shared/pause-menu.js
 shared/controller-keyboard-focus-inside-the-settings-ta.js
 shared/hardcore-simulation-mode-page.js
+shared/enemy-setting-which-enemies-fight-the-player-the-same-menu-in-every-simulator.js
+p51/enemy-setting-the-p-51d-s-entry.js
 shared/settings-ground-fire-bail-out-sound-full-screen-boxes-and-graphics.js
 shared/swipe-a-box-off-the-screen-touch.js
 p51/nose-art-options.js

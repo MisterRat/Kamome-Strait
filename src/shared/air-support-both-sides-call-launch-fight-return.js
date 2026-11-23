@@ -245,7 +245,7 @@ var AIRSUP = (() => {
             L.splice(i, 1);
             continue;
           }
-          if (!SIMS.cur.afloat && typeof banditAt === 'function') {
+          if (!SIMS.cur.afloat && typeof banditAt === 'function' && typeof ENEMY !== 'undefined' && ENEMY.has('planes')) {
             const e = banditAt(u.p.clone());
             e.scr = true;
             HAND.push({ e, raid: false, who: u.who, end: WT + u.fuel });

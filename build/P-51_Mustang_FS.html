@@ -335,11 +335,13 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <label>Wind strength <select id="wxWs"><option value="normal">Normal for the weather</option><option value="calm">Calm</option><option value="light">Light</option><option value="strong">Strong</option><option value="extreme">Extreme</option></select></label></div>
 <div class="note">The wind, gusts, turbulence, wet runway and icing only act in Hardcore mode (Hardcore page). The runway points north and south.</div>
 <label style="display:block;margin:4px 0"><input type="checkbox" id="wxFlow" style="accent-color:#ffb43a"> Time passes (one hour per real minute) <span id="wxClock" style="opacity:.7"></span></label>
-<h3>BATTLE DAMAGE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: hits can hurt the engine, wings, tail, fuel tank and hydraulics, with smoke and fire</label>
-<h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label>
+<h3>ENEMY</h3><div class="row"><label>Enable enemy <select id="enMode"><option value="none">None</option><option value="planes">Planes</option><option value="ships">Ships</option><option value="shore">Shore</option><option value="subs">Subs</option><option value="all">All</option></select></label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: hits can hurt the engine, wings, tail, fuel tank and hydraulics, with smoke and fire</label>
+<div class="note" id="enNote"></div>
+<div style="display:none"><h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label></div>
 <h3>SOUND</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="sndOn" style="accent-color:#ffb43a"> Sound (U switches it on and off)</label>
 <label style="display:block;margin:4px 0">Volume <input type="range" id="sndVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="sndVolV"></span></label>
-<label style="display:block;margin:4px 0">Engine &amp; Wind <input type="range" id="engVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="engVolV"></span></label>
+<label style="display:block;margin:4px 0">Engine &amp; wind <input type="range" id="engVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="engVolV"></span></label>
 <h3>GRAPHICS</h3><div class="row" id="pmGfx"><button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
 <div style="font-size:11.5px;opacity:.75;margin-top:8px">On a touch screen you can also swipe any instrument box off the screen. P or Esc opens this menu, M opens the Missions tab.</div>
 </div>
@@ -489,7 +491,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Photo mode</td><td>Pause menu &gt; <b>Photo mode</b>, or F9. The game freezes and you get a free camera: W A S D move, Q / E down and up, Z / C roll, left-drag looks around, right-drag moves the camera along the ground (sideways and forward / back), middle-drag moves it up and down, the wheel moves it in and out in small steps (it never runs out), and holding the backtick key (`) makes the drags and the wheel move six times as far. The panel sets the field of view, the time of day and the weather (these revert when you leave), the picture size (up to 4K), the JPG quality, and whether the HUD boxes and your aircraft are shown. &ldquo;Stamp info&rdquo; prints the version, date, mode, position, speed, game time and weather on the photo, which helps when reporting a problem. Enter or Space takes the photo and your browser saves the JPG. H switches the HUD, F hides the panel, Esc leaves. &ldquo;Action: running&rdquo; lets the flight continue while you move the camera.</td></tr>
 <tr><td>Time &amp; weather</td><td>Settings &gt; Time of day &amp; weather. <b>Time</b>: your local clock, dawn, morning, midday, afternoon, evening or night; tick &ldquo;Time passes&rdquo; to run a day in 24 minutes. <b>Weather</b>: clear, partly cloudy, overcast, rain, thunderstorm or fog. Overcast, rain, storm and fog cut how far you can see and dim the sun. Overcast, rain and thunderstorm have a <b>solid cloud deck</b> (about 1,700 m, 1,300 m and 1,000 m up, 450 to 900 m thick, with a few gaps in overcast): you see its grey underside from below, you fly through white-out inside it (the view shrinks to about 100 m, and icing can build), and you climb out onto a bright white top with clear sky, full sun and no rain above it. Searchlight beams and gun crews cannot see through it. At night you get a moon, stars, runway lights, lit building windows, the hangars and the tower, and wingtip and tail lights (red left, green right, white tail). Rain streaks past the canopy; a thunderstorm adds lightning and thunder. Fly the runway lights in, and watch your altitude. <b>Night:</b> the instrument panel dims, and with the landing gear down the landing light puts a pool of light on the ground ahead of the nose.</td></tr>
 <tr><td>DAMAGE</td><td>Enemy hits hurt one system at a time (Settings &gt; Battle damage). <b>Engine</b>: less power, smoke, then fire or a dead engine. <b>Wing</b>: the plane rolls toward the damaged side and the aileron weakens (lost when badly hit). <b>Tail</b>: weaker elevator and rudder. <b>Fuel tank</b>: a leak. <b>Hydraulics</b>: flaps jam and the gear will not retract. A fire burns the hull: dive fast for about 3 seconds to put it out. Land and stop with the throttle at idle to repair everything. If it is hopeless, bail out (J twice, or hold both bumpers, or Pause menu &gt; Bail out): the canopy blows off, you climb out of the seat, fall clear and the parachute opens. <b>Drag the mouse</b> (or use the right stick) to look all around, down at the ground and up at the canopy. You need about 100 m of height when you climb out for the parachute to open in time; Enter restarts at any time. The aircraft is lost.</td></tr>
-<tr><td>Sound</td><td>The engine note follows the throttle and propeller speed, with wind, tyre rumble, guns, rockets, bombs and explosions (heard late when far away), and a chirp and squeal of rubber when you touch down fast. Warning tones: a pulsing buzzer for a stall, a steady wail past the redline, a two-tone warble in a spin, and fast beeps for overstress. Settings &gt; Sound has the overall volume and a separate Engine &amp; Wind volume; U mutes.</td></tr>
+<tr><td>Sound</td><td>The engine note follows the throttle and propeller speed, with wind, tyre rumble, guns, rockets, bombs and explosions (heard late when far away), and a chirp and squeal of rubber when you touch down fast. Warning tones: a pulsing buzzer for a stall, a steady wail past the redline, a two-tone warble in a spin, and fast beeps for overstress. Settings &gt; Sound has the overall volume and a separate Engine &amp; wind volume; U mutes.</td></tr>
 <tr><td>OVERSTRESS <small>(Hardcore)</small></td><td>You are pulling more G than the airframe is rated for. Ease off at once: the damage adds up, and about 1.5 times the limit breaks the wing. Landing and stopping at idle repairs it.</td></tr>
 <tr><td>SPIN <small>(Hardcore)</small></td><td>The aircraft is spinning. Opposite rudder and the stick forward; throttle back. Then pull out gently.</td></tr>
 <tr><td>ENGINE OVERHEAT <small>(Hardcore)</small></td><td>Too long above 90% throttle. Reduce power until the temperature falls. The oil and coolant gauges and the HUD TEMP readout show it.</td></tr>
@@ -591,7 +593,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.108';
+const VERSION = '5.109';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -743,9 +745,9 @@ const SIMS = {
     hit: () => false,
     afloat: false,
     struck: () => false,
-    coastOn: () => AA.on /* the coast guns fire (the Ground Fire setting) */,
-    subsOn: () => false /* the enemy submarine, I-58, on patrol (SUBS): the PCE's Subs setting */,
-    shipsOn: () => AA.on /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (here with the Ground Fire setting) */,
+    coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* the coast guns fire (Settings > Enemy: Shore) */,
+    subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the enemy submarine, I-58, on patrol (SUBS): Settings > Enemy: Subs */,
+    shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (Settings > Enemy: Ships) */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
     gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
@@ -24535,7 +24537,7 @@ var AIRSUP = (() => {
             L.splice(i, 1);
             continue;
           }
-          if (!SIMS.cur.afloat && typeof banditAt === 'function') {
+          if (!SIMS.cur.afloat && typeof banditAt === 'function' && typeof ENEMY !== 'undefined' && ENEMY.has('planes')) {
             const e = banditAt(u.p.clone());
             e.scr = true;
             HAND.push({ e, raid: false, who: u.who, end: WT + u.fuel });
@@ -30676,6 +30678,63 @@ $$('dmgOn').onchange = (e) => {
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
+/* ENEMY (Settings > Enemy, the same menu in every simulator): which enemies the game sends against the player. Saved per simulator.
+   Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground fire (AA.on: the 25 mm guns and
+   searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (shipsOn).
+   Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note text in ENEMY.sims. */
+const ENEMY = {
+  mode: 'none',
+  sims: {},
+  has(k) {
+    return this.mode === 'all' || this.mode === k;
+  },
+  /* the current simulator's entry */
+  cur() {
+    for (const k in this.sims) if (SIMS.on(k)) return this.sims[k];
+    return null;
+  },
+};
+function enemySync() {
+  const S = ENEMY.cur();
+  if (!S || !$$('enMode')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
+  $$('enMode').value = ENEMY.mode;
+  AA.on = ENEMY.has('shore');
+  store.set('aa', AA.on);
+  AA.apply();
+  if ($$('aaOn')) $$('aaOn').checked = AA.on;
+  if ($$('enNote')) $$('enNote').textContent = ENEMY.mode === 'none' ? S.none : S.note();
+}
+/* each simulator's entry calls this once it has registered: the saved choice, the menu's handler, and the setting applied */
+ENEMY.init = () => {
+  const S = ENEMY.cur();
+  if (!S) return;
+  ENEMY.mode = store.get(S.key, S.def());
+  if ($$('enMode'))
+    $$('enMode').onchange = (e) => {
+      ENEMY.mode = e.target.value;
+      store.set(S.key, ENEMY.mode);
+      enemySync();
+      note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
+    };
+  enemySync();
+};
+/* ENEMY, the P-51D's entry (the menu and its workings are shared: ENEMY): saved as 'enemyP51'. Before the menu the fighters always came
+   and the Ground fire checkbox brought the guns and the ships, so the first default follows that checkbox: All with it on, Planes without */
+ENEMY.sims.p51 = {
+  key: 'enemyP51',
+  def: () => (store.get('aa', false) === true ? 'all' : 'planes'),
+  none: 'No enemies: fly and practice in peace (the Dogfight and Bandit missions still bring their own Ki-84s).',
+  note: () =>
+    (ENEMY.has('planes')
+      ? 'Planes: two Ki-84 Hayates take off from the nearest Japanese airfield and come for you when a Japanese ship, gun or base you attack calls for air support. '
+      : '') +
+    (ENEMY.has('shore')
+      ? "Shore: the 25 mm guns and searchlights at the ports and airfields open fire inside 2.5 km, and the ports' 8 cm coast guns fire at aircraft too. "
+      : '') +
+    (ENEMY.has('ships') ? "Ships: the Ukuru-class escorts' 12 cm and 25 mm guns and the T-14 torpedo boats' 25 mm fire at you. " : '') +
+    (ENEMY.has('subs') ? 'Subs: I-58 patrols in mid-strait; when she comes up to look she is a target for your guns and bombs.' : ''),
+};
+ENEMY.init();
 /* settings: ground fire, bail out, sound and engine volume, full screen, all / clean boxes, graphics quality (the pause menu's controls) */
 $$('aaOn').checked = AA.on;
 $$('aaOn').onchange = (e) => {
