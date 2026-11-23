@@ -31,8 +31,11 @@ const COLL = (() => {
     let best = null;
     for (const o of B) {
       if (o === b || o === ex || o === b.self || o.on === false || !!o.sea !== !!b.sea) continue;
-      if (Math.abs(o.x - b.x) > L + b.hl + o.hl + 60 || Math.abs(o.z - b.z) > L + b.hl + o.hl + 60) continue;
-      fresh(o);
+      fresh(o); /* its place now, before judging how far it is (a body that only moves through get() was skipped for good) */
+      if (Math.abs(o.x - b.x) > L + b.hl + o.hl + 660 || Math.abs(o.z - b.z) > L + b.hl + o.hl + 660) continue;
+      /* a moving body is seen where it is and where it will be when b gets there (the user's, 2026-11-23: a PT boat ran through the
+         PCE as she crossed its bow; only the hull as it lay now was looked at) */
+      const fw = !o.fixed && o.v > 0.5 ? Math.min(600, o.v * Math.min(40, Math.hypot(o.x - b.x, o.z - b.z) / Math.max(1, b.v || 0))) : 0;
       const n = Math.max(1, Math.round(o.hl / Math.max(o.r * 1.5, 1))),
         oc = Math.cos(o.yaw),
         os = -Math.sin(o.yaw),
@@ -40,8 +43,9 @@ const COLL = (() => {
       let d = Infinity,
         lo = Infinity,
         hi = -Infinity;
+      for (let k = 0; k <= (fw ? 2 : 0); k++)
       for (let i = -n; i <= n; i++) {
-        const t = (o.hl * i) / n,
+        const t = (o.hl * i) / n + (fw * k) / 2 /* now, half way, and when b arrives */,
           rx = o.x + oc * t - b.x,
           rz = o.z + os * t - b.z,
           along = rx * hx + rz * hz - b.hl,
@@ -84,8 +88,8 @@ const COLL = (() => {
       mg = b.mg == null ? 4 : b.mg;
     for (const o of B) {
       if (o === b || o.on === false || !!o.sea !== !!b.sea) continue;
+      fresh(o); /* its place now, before judging how far it is (a body that only moves through get() was skipped for good) */
       if (Math.abs(o.x - b.x) > b.hl + o.hl + 200 || Math.abs(o.z - b.z) > b.hl + o.hl + 200) continue;
-      fresh(o);
       const n = Math.max(1, Math.round(o.hl / Math.max(o.r * 1.5, 1))),
         oc = Math.cos(o.yaw),
         os = -Math.sin(o.yaw),
@@ -125,8 +129,8 @@ const COLL = (() => {
       A1 = circles(b, fwd);
     for (const o of B) {
       if (o === b || o === b.self || o.on === false || !!o.sea !== !!b.sea) continue;
+      fresh(o); /* its place now, before judging how far it is (a body that only moves through get() was skipped for good) */
       if (Math.abs(o.x - b.x) > b.hl + o.hl + fwd + 10 || Math.abs(o.z - b.z) > b.hl + o.hl + fwd + 10) continue;
-      fresh(o);
       const Op = circles(o, 0),
         g1 = gap(A1, b.r, Op, o.r);
       if (g1 < 3 && g1 < gap(A0, b.r, Op, o.r) - 0.01) return true;
@@ -139,8 +143,8 @@ const COLL = (() => {
       A1 = circles({ x, z, yaw, hl: b.hl, r: b.r }, 0);
     for (const o of B) {
       if (o === b || o === b.self || o.on === false || !!o.sea !== !!b.sea) continue;
+      fresh(o); /* its place now, before judging how far it is (a body that only moves through get() was skipped for good) */
       if (Math.abs(o.x - x) > b.hl + o.hl + 10 || Math.abs(o.z - z) > b.hl + o.hl + 10) continue;
-      fresh(o);
       const Op = circles(o, 0),
         g1 = gap(A1, b.r, Op, o.r);
       if (g1 < 2 && g1 < gap(A0, b.r, Op, o.r) - 0.001) return true;
@@ -176,7 +180,8 @@ const COLL = (() => {
     const q = look(b, L);
     if (!q) {
       b.passO = null;
-      return { turn: 0, slow: 1, q };
+      /* the last word holds even with nothing ahead: a hull coming in from the side stops b rather than b running into it */
+      return { turn: 0, slow: blocked(b, Math.max(1, Math.max(0.5, b.v || 0) * 2)) ? 0 : 1, q };
     }
     const s = side(b, q, L),
       gp = Math.abs(shift(q, s)),
