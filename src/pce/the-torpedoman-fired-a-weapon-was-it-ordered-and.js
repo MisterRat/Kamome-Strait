@@ -1,5 +1,17 @@
 /* the torpedoman fired a weapon: was it ordered, and on time? */
 function aswFired(tp) {
+  /* in action (the AI OOD's attack on a live submarine): the order carried out, and the attack's assessment (ordAtk) begun */
+  if (ASW.live && ASW.ph !== 'run') {
+    const o = ASW.O.find((o) => o.k === tp && o.st === 'open');
+    if (o) o.st = ASW.t - o.t0 > (FM.use('orders') ? 4 : 6) ? 'late' : 'ok';
+    const A = !DRILL.on && ordAtk();
+    if (A) {
+      A.last = SHIP.t;
+      if (tp === 'hh') A.hh = aswRelTo(A.s.p);
+      else if (!A.pat) A.pat = { rel: aswRelTo(A.s.p), best: aswBest(ASW.depth) };
+    }
+    return;
+  }
   if (ASW.ph !== 'run') return;
   if ((tp === 'rack' || tp === 'port' || tp === 'stbd') && DC.dep[tp] !== ASW.depth) ASW.bad = true;
   const o = ASW.O.find((o) => o.k === tp && o.st === 'open');

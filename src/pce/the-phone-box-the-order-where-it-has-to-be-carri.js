@@ -22,7 +22,7 @@ function aswBox(here) {
     h +=
       '<br><b style="color:#8fe39a">' + ASW.deb + '</b>' + (ASW.plot ? '<br><img src="' + ASW.plot + '" style="width:220px;height:220px;margin-top:6px;border-radius:4px">' : '') +
       '<br>EXERCISE COMPLETE. <b>' + kbText('targets') + '</b>: ANOTHER RUN.';
-  else if (!PT.on) h += '<br>NO CONTACT. <b>' + kbText('targets') + '</b>: PRACTICE TARGETS (THE EXERCISE SUB).';
+  else if (!PT.on && !ASW.live) h += '<br>NO CONTACT. <b>' + kbText('targets') + '</b>: PRACTICE TARGETS (THE EXERCISE SUB).';
   else {
     const o = ASW.O.filter((o) => o.st === 'open').pop();
     if (o) {
@@ -35,9 +35,10 @@ function aswBox(here) {
     } else h += '<br>' + (ASW.msg || '');
     const tpc = at >= 0 && tpList()[at] ? tpList()[at].tp : null,
       dv = DC.dep[tpc],
-      dOK = !dv || ASW.ph !== 'run' || dv === ASW.depth;
+      run = ASW.ph === 'run' || ASW.live,
+      dOK = !dv || !run || dv === ASW.depth;
     h +=
-      '<br><span style="color:#9aa">YOU: ' + atN + (dv ? ' &middot; DEPTH <b style="color:' + (dOK ? '#dfe6e8' : '#ff8a6a') + '">' + dv + ' FT</b>' + (ASW.ph === 'run' ? ' (ORDERED ' + ASW.depth + ')' : '') + ' &middot; <b style="color:' + (DC.arm[tpc] ? '#8fe39a' : '#ffb27a') + '">' + (DC.arm[tpc] ? 'ARMED' : 'SAFE') + '</b>' + (DC.arm[tpc] ? '' : ' (<b>' + kbText('gSight') + '</b> arms)') : '') +
+      '<br><span style="color:#9aa">YOU: ' + atN + (dv ? ' &middot; DEPTH <b style="color:' + (dOK ? '#dfe6e8' : '#ff8a6a') + '">' + dv + ' FT</b>' + (run ? ' (ORDERED ' + ASW.depth + ')' : '') + ' &middot; <b style="color:' + (DC.arm[tpc] ? '#8fe39a' : '#ffb27a') + '">' + (DC.arm[tpc] ? 'ARMED' : 'SAFE') + '</b>' + (DC.arm[tpc] ? '' : ' (<b>' + kbText('gSight') + '</b> arms)') : '') +
       ' &middot; HEDGEHOG ' + HH.n + '/24' + (HH.ld > 0 && HH.n < 24 ? ' LOADING' : '') + '</span>';
   }
   el.innerHTML = h;

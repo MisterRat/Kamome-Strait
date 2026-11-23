@@ -586,7 +586,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.129';
+const VERSION = '0.130';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -31483,7 +31483,7 @@ const ORD_PRI = [
 ];
 const ordPriName = () => (ORD_PRI.find((p) => p[0] === OODO.pri) || ORD_PRI[0])[1];
 function ordReset() {
-  Object.assign(OODO, { menu: false, sel: 0, hold: false, pri: 'air', dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false }, atk: null });
+  Object.assign(OODO, { menu: false, sel: 0, hold: false, pri: 'air', dep: 150, pat: null, depSet: false, sub: false, ai: { cool: 0, smoke: false, run: false, f: {} }, atk: null });
 }
 /* the player is the OOD: at station 1 in the pilothouse */
 const ordPlayer = () => camMode == 1 && SHIP.stn === 1;
@@ -31658,29 +31658,85 @@ function ordStep(dt) {
   /* smoke under shellfire, secured three minutes after the last hit */
   if (SHIP.t - ENG.hitT < 3 && !SMK.on && SMK.oil > 0 && (SIMS.cur.coastOn() || SIMS.cur.shipsOn())) ((A.smoke = true), smkOrder(true, 'ai'));
   if (A.smoke && SMK.on && SHIP.t - ENG.hitT > 180) ((A.smoke = false), smkOrder(false, 'ai'));
-  /* the attack on an enemy submarine: he cons her (not while the player has the helm, a drill, a torpedoman's run or the way home) */
-  const S = C && ordEnemySub(C);
-  if (!S || atHelm() || DRILL.on || ASW.ph !== 'idle' || RTB.on) return;
-  const r = aswRelTo(C.p),
+  /* the attack on an enemy submarine: he cons her (not while the player has the helm, a drill, a torpedoman's run or the way home).
+     Once the run has begun he goes on by sonar's last fix carried on for up to a minute: close in the echo is lost under her bow,
+     and the attack is finished by the plot (the user's, 2026-11-23: she ran over I-58 and no order was ever given) */
+  const E = subEst(),
+    Fx = C || (A.run && E && E.age < 60 ? E : null),
+    S = Fx && ordEnemySub(Fx);
+  if (!S || atHelm() || DRILL.on || ASW.ph !== 'idle' || RTB.on) {
+    if (A.run || ASW.live) ordRunEnd(A, A.run ? 'LOST CONTACT. ATTACK BROKEN OFF.' : '');
+    return;
+  }
+  const r = aswRelTo(Fx.p),
     yd = Math.hypot(r.al, r.cr);
   if (A.cool > 0 && yd < 900) return; /* opening out after an attack, to come round again */
   /* down sonar's bearing, with the helmsman's lag taken out (he is ordered past it by as much as she is off it) */
-  const brg = Math.atan2(-(C.p.x - pos.x), -(C.p.z - pos.z));
+  const brg = Math.atan2(-(Fx.p.x - pos.x), -(Fx.p.z - pos.z));
   if (yd > 150) SHIP.hold = brg + Math.max(-0.3, Math.min(0.3, angW(brg - SHIP.hdg)));
   SHIP.tel = yd < 1500 ? 0.67 : 1;
   if (!OODO.depSet && S.d !== undefined) OODO.dep = ORD_DEP.reduce((a, b) => (Math.abs(b - S.d / 0.3048) < Math.abs(a - S.d / 0.3048) ? b : a));
-  const torp = camMode == 1 && SHIP.stn === 5 /* the player is the torpedoman: the order is his to carry out */;
-  if (r.al > 200 && r.al < 300 && Math.abs(r.cr) < 40 && HH.n > 0 && !HH.L.length && !HH.q.length && !A.hh) {
-    A.hh = true;
-    if (torp) RADIO.add('BRIDGE', 'TORPEDOMAN, BRIDGE. FIRE HEDGEHOG!', { own: true });
-    else ordGive('hh', 'ai');
+  const torp = camMode == 1 && SHIP.stn === 5 /* the player is the torpedoman: the orders are his to carry out */,
+    say = ordPhone;
+  /* the run begins: the torpedoman is told what is coming and the depth to set, on his phone (station 5) */
+  if (!A.run) {
+    if (yd > 1500) return;
+    A.run = true;
+    A.f = {};
+    ASW.O = [];
+    ASW.depth = OODO.dep;
+    say('SUBMARINE CONTACT BEARING ' + raidBrg(Fx.p) + ', ' + Math.round(yd / 25) * 25 + ' YARDS. WE ARE ATTACKING. MAN THE HEDGEHOG. SET ALL CHARGES ' + OODO.dep + ' FEET.');
+    if (!(camMode == 1 && SHIP.stn === 5)) note('OOD: ATTACKING THE SUBMARINE');
   }
-  if (!OODO.pat && r.al < aswBest(OODO.dep) && r.al > -20 && Math.abs(r.cr) < 60) {
-    if (torp) RADIO.add('BRIDGE', 'TORPEDOMAN, BRIDGE. FIRE THE PATTERN! SET ' + OODO.dep + ' FEET.', { own: true });
-    else ordGive('pat', 'ai');
-    A.cool = 60;
-    A.hh = false;
+  ASW.depth = OODO.dep;
+  const f = A.f,
+    fw = new THREE.Vector3(-Math.sin(SHIP.hdg), 0, -Math.cos(SHIP.hdg)),
+    stern = pos.clone().addScaledVector(fw, tpXF(90)),
+    tos = ((Fx.p.x - stern.x) * fw.x + (Fx.p.z - stern.z) * fw.z) / Math.max(1, SHIP.u) /* seconds until her stern is over him */;
+  if (!f.sbh && r.al < 460 && HH.n > 0) ((f.sbh = 1), say('STAND BY HEDGEHOG.', 'hh'));
+  if (!f.hh && r.al < 300 && r.al > 150) {
+    f.hh = 1;
+    if (Math.abs(r.cr) < 50 && HH.n > 0 && !HH.L.length && !HH.q.length) {
+      const o = say('FIRE HEDGEHOG!', 'hh', true);
+      if (!torp) (ordGive('hh', 'ai'), (o.st = 'ok')) /* the Hedgehog's crew fire it */;
+    } else if (HH.n > 0) say('CHECK FIRE HEDGEHOG - HE IS OFF THE BOW. CHARGES ONLY.', 'rack');
   }
+  if (!f.sbc && tos < 25) {
+    f.sbc = 1;
+    say('STAND BY CHARGES. ' + OODO.dep + ' FEET.', 'rack');
+    /* game mode: the crews pull the safety forks and set the ordered depth on "stand by"; Hardcore: the torpedoman does both */
+    if (!FM.use('orders')) for (const k of ['rack', 'port', 'stbd']) ((DC.arm[k] = true), (DC.dep[k] = OODO.dep));
+  }
+  if (torp) {
+    if (!f.r1 && tos < 9) ((f.r1 = 1), say('FIRE ONE!', 'rack', true));
+    if (!f.ks && tos < 5) ((f.ks = 1), say('FIRE STARBOARD K-GUNS!', 'stbd', true));
+    if (!f.kp && tos < 1) ((f.kp = 1), say('FIRE PORT K-GUNS!', 'port', true));
+    if (!f.r2 && tos < -6) ((f.r2 = 1), say('FIRE TWO!', 'rack', true));
+    if (f.r2 && tos < -12) ordRunEnd(A, 'OPENING OUT TO COME ROUND AGAIN. RELOAD.');
+  } else if (!OODO.pat && r.al < aswBest(OODO.dep) && r.al > -20 && Math.abs(r.cr) < 60) {
+    ordGive('pat', 'ai');
+    say('FIRE THE PATTERN! ' + OODO.dep + ' FEET.');
+    ordRunEnd(A, 'OPENING OUT TO COME ROUND AGAIN. RELOAD.');
+  }
+  if (A.run && tos < -20) ordRunEnd(A, 'PASSED OVER HIM. OPENING OUT TO COME ROUND AGAIN.');
+}
+/* an order on the torpedoman's phone (station 5's box); it sounds only there */
+function ordPhone(t, k, fire) {
+  ASW.live = true;
+  if (camMode == 1 && SHIP.stn === 5) return aswSay('TORPEDOMAN, BRIDGE. ' + t, k, fire);
+  const o = { txt: 'TORPEDOMAN, BRIDGE. ' + t, k: k || null, t0: ASW.t, st: fire ? 'open' : 'info' };
+  ASW.O.push(o);
+  ASW.msg = o.txt;
+  return o;
+}
+/* the run is over: open out for a minute before coming round again; the torpedoman told why */
+function ordRunEnd(A, why) {
+  for (const o of ASW.O) if (o.st === 'open') o.st = 'gone';
+  if (why) ordPhone(why);
+  if (A.run) A.cool = 60;
+  A.run = false;
+  A.hh = false;
+  if (!why || /LOST/.test(why)) ASW.live = false;
 }
 HOOKS.tick.push(ordStep);
 /* the Comms box: what the operator needs, and the instructor */
@@ -32212,6 +32268,18 @@ function aswSay(txt, k, fire) {
 }
 /* the torpedoman fired a weapon: was it ordered, and on time? */
 function aswFired(tp) {
+  /* in action (the AI OOD's attack on a live submarine): the order carried out, and the attack's assessment (ordAtk) begun */
+  if (ASW.live && ASW.ph !== 'run') {
+    const o = ASW.O.find((o) => o.k === tp && o.st === 'open');
+    if (o) o.st = ASW.t - o.t0 > (FM.use('orders') ? 4 : 6) ? 'late' : 'ok';
+    const A = !DRILL.on && ordAtk();
+    if (A) {
+      A.last = SHIP.t;
+      if (tp === 'hh') A.hh = aswRelTo(A.s.p);
+      else if (!A.pat) A.pat = { rel: aswRelTo(A.s.p), best: aswBest(ASW.depth) };
+    }
+    return;
+  }
   if (ASW.ph !== 'run') return;
   if ((tp === 'rack' || tp === 'port' || tp === 'stbd') && DC.dep[tp] !== ASW.depth) ASW.bad = true;
   const o = ASW.O.find((o) => o.k === tp && o.st === 'open');
@@ -32458,7 +32526,7 @@ function aswBox(here) {
     h +=
       '<br><b style="color:#8fe39a">' + ASW.deb + '</b>' + (ASW.plot ? '<br><img src="' + ASW.plot + '" style="width:220px;height:220px;margin-top:6px;border-radius:4px">' : '') +
       '<br>EXERCISE COMPLETE. <b>' + kbText('targets') + '</b>: ANOTHER RUN.';
-  else if (!PT.on) h += '<br>NO CONTACT. <b>' + kbText('targets') + '</b>: PRACTICE TARGETS (THE EXERCISE SUB).';
+  else if (!PT.on && !ASW.live) h += '<br>NO CONTACT. <b>' + kbText('targets') + '</b>: PRACTICE TARGETS (THE EXERCISE SUB).';
   else {
     const o = ASW.O.filter((o) => o.st === 'open').pop();
     if (o) {
@@ -32471,9 +32539,10 @@ function aswBox(here) {
     } else h += '<br>' + (ASW.msg || '');
     const tpc = at >= 0 && tpList()[at] ? tpList()[at].tp : null,
       dv = DC.dep[tpc],
-      dOK = !dv || ASW.ph !== 'run' || dv === ASW.depth;
+      run = ASW.ph === 'run' || ASW.live,
+      dOK = !dv || !run || dv === ASW.depth;
     h +=
-      '<br><span style="color:#9aa">YOU: ' + atN + (dv ? ' &middot; DEPTH <b style="color:' + (dOK ? '#dfe6e8' : '#ff8a6a') + '">' + dv + ' FT</b>' + (ASW.ph === 'run' ? ' (ORDERED ' + ASW.depth + ')' : '') + ' &middot; <b style="color:' + (DC.arm[tpc] ? '#8fe39a' : '#ffb27a') + '">' + (DC.arm[tpc] ? 'ARMED' : 'SAFE') + '</b>' + (DC.arm[tpc] ? '' : ' (<b>' + kbText('gSight') + '</b> arms)') : '') +
+      '<br><span style="color:#9aa">YOU: ' + atN + (dv ? ' &middot; DEPTH <b style="color:' + (dOK ? '#dfe6e8' : '#ff8a6a') + '">' + dv + ' FT</b>' + (run ? ' (ORDERED ' + ASW.depth + ')' : '') + ' &middot; <b style="color:' + (DC.arm[tpc] ? '#8fe39a' : '#ffb27a') + '">' + (DC.arm[tpc] ? 'ARMED' : 'SAFE') + '</b>' + (DC.arm[tpc] ? '' : ' (<b>' + kbText('gSight') + '</b> arms)') : '') +
       ' &middot; HEDGEHOG ' + HH.n + '/24' + (HH.ld > 0 && HH.n < 24 ? ' LOADING' : '') + '</span>';
   }
   el.innerHTML = h;
