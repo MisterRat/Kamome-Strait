@@ -80,5 +80,5 @@ const MMSHIP = (() => {
         mark(g, lw, s.p.x, s.p.z, Math.cos(s.yw), -Math.sin(s.yw), true, s.side === 'us');
       }
   });
-  return { reach, seen };
+  return { reach, seen, sees: visible /* could the player see this ship now? (the route's lookouts: WAYPOINT NAVIGATION) */ };
 })();

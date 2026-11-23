@@ -161,6 +161,8 @@ shared/rules-of-engagement-who-fights-who-runs.js
 shared/air-support-both-sides-call-launch-fight-return.js
 shared/sighting-reports-the-enemy-s-shore-stations-report-a-ship-they-see.js
 shared/ships-on-the-minimap-friend-blue-foe-red-within-sight.js
+shared/waypoint-navigation-the-player-s-route-for-whoever-is-at-the-helm.js
+shared/the-chart-the-player-lays-the-route-with-the-mouse-and-the-keys.js
 shared/submarines-at-sea-diving-surfacing-sinking-and-i-58-on-patrol.js
 shared/aftermath-burning-wrecks-smoke-columns-craters-a.js
 shared/convoy-one-at-a-time-timed.js
@@ -323,6 +325,7 @@ pce/the-pattern-plot-each-burst-dud-and-hedgehog-spl.js
 pce/the-phone-box-the-order-where-it-has-to-be-carri.js
 pce/the-torpedoman-s-station-each-frame-walk-hardcor.js
 pce/the-faces.js
+pce/the-chart-table-station-1-s-second-position-the-route-on-the-table.js
 pce/the-station-s-own-keys-page-up-down-and-the-trig.js
 pce/is-the-player-steering-the-ood-or-the-chase-view.js
 shared/loop.js

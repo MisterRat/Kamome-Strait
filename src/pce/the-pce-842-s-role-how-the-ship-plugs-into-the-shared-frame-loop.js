@@ -16,6 +16,8 @@ SIMS.add({
   },
   /* at communications the operator's own keys */
   keyStation: (e) => {
+    /* at the chart table: the route's keys (THE CHART TABLE) */
+    if (chartKey(e)) return true;
     /* the OOD's and the engineer's training drills (and the engineer's repair jobs in action); their keys repeat (the hose) */
     if (started && !paused && camMode == 1 && (SHIP.stn === 1 || SHIP.stn === 2) && drillKey(e.code, e.repeat)) return e.preventDefault(), true;
     /* at the radio: Page Up / Down, Home and End scroll the paper (they repeat) */
@@ -33,6 +35,7 @@ SIMS.add({
   /* at a gun: the pointer is captured and plain mouse movement lays the gun (all three guns); the left button fires, and the right
      button held also lays it as the mouse is dragged */
   mouseDown: (e) => {
+    if (chartDown(e)) return true; /* at the chart table: the route (THE CHART TABLE) */
     if (!(camMode == 1 && GUN.cur)) return false;
     if (e.button === 2) {
       GUN.drag = true;
@@ -45,12 +48,14 @@ SIMS.add({
     return true;
   },
   mouseUp: () => {
+    chartUp();
     GUN.rmb = false;
     GUN.drag = false;
   },
   /* at a gun the mouse moves the gun (no button needed; the pointer is captured while on station), finer through the telescope;
      looking up from the sight (X) it turns the head */
   mouseMove: (e) => {
+    if (chartMove(e)) return true; /* dragging on the chart */
     if (!(camMode == 1 && GUN.cur && !docsOpen && !pmOpen && started)) return false;
     if (!gunMoveOk(e)) return true; /* a false jump of the pointer, as it is captured */
     if (GUN.look) {
@@ -66,6 +71,7 @@ SIMS.add({
   /* at a gun the wheel sets the range: 100 yd a notch */
   noted: (t) => RADIO.note(t) /* every popup goes on the radio paper too, to read back later (the user's, 2026-11-22) */,
   wheel: (e) => {
+    if (chartWheel(e)) return true; /* the chart zooms */
     if (radioAt()) return e.preventDefault(), RADIO.scroll(e.deltaY < 0 ? 3 : -3), true; /* at the radio: the wheel scrolls the paper */
     if (!(camMode == 1 && GUN.cur)) return false;
     e.preventDefault();

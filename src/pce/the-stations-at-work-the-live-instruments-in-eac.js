@@ -26,7 +26,7 @@ const STN_OF = (id) => (/^radar|^sonar|^radio/.test(id) ? 3 : /^e/.test(id) ? 2 
 function stnInit() {
   if (STN.init || !SHIPM.mesh) return;
   STN.init = true;
-  const big = { radar: [512, 512], sonarRec: [512, 430], radio: [512, 434], dcBoard: [512, 374] };
+  const big = { radar: [512, 512], sonarRec: [512, 430], radio: [512, 434], dcBoard: [512, 374], qmChart: [NAVCHART.W, NAVCHART.H] };
   for (const f of PCEM.FACES) {
     const [w, h] = big[f.id] || [256, 256],
       c = document.createElement('canvas');

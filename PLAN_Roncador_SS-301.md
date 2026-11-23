@@ -386,6 +386,10 @@ Rule: no duplicated code. Anything both ship simulators need moves to `src/share
 the distant forms), `ROE`, `COAST`, the air raids and the Ki-84s, `RADIO`'s paper and `msgSide` colours, collision avoidance, the time of
 day and weather, the mission menu and coach box, the briefing map tool, the settings and Hardcore switch, the shared crew figures.
 
+The route and the chart (`NAV`, `NAVCHART`, added 2026-11-23 for every simulator with an AI driving): the navigator's chart in the
+control room or conning tower carries the patrol route the helmsman follows. Enemy in sight (or on sound or radar, the role's
+`navContact`) suspends it; 30 s clear re-engages it. `navLegOK` keeps legs off land and out of water too shallow to dive.
+
 ### 11.2 To move from `src/pce` to `src/shared`
 
 | Piece | Why |

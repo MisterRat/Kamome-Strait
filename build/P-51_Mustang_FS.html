@@ -593,7 +593,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.112';
+const VERSION = '5.113';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -748,6 +748,8 @@ const SIMS = {
     coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* the coast guns fire (Settings > Enemy: Shore) */,
     subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the enemy submarine, I-58, on patrol (SUBS): Settings > Enemy: Subs */,
     shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (Settings > Enemy: Ships) */,
+    navAble: false /* an AI drives it, and it follows the player's route (WAYPOINT NAVIGATION, THE CHART) */,
+    navContact: () => false /* an enemy held on its own sensors (the PCE's sonar): the route is suspended */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
     gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,
@@ -8754,6 +8756,8 @@ const PCEM = (() => {
     /* the chart table aft and a stool */
     B(0.9, 0.06, 1.1, WOOD, x0 + 0.6, y0 + 0.95, 1.4);
     B(0.85, 0.9, 1.05, 0x4d5257, x0 + 0.6, y0 + 0.47, 1.4);
+    /* the chart on it (THE CHART: the route the helmsman follows), read from the table's forward edge looking aft: its top is aft */
+    face('qmChart', [x0 + 0.6, y0 + 0.985, 1.4], 1.06, 0.86, [0, 1, 0], [-1, 0, 0]);
     lamp(x1 - 1.2, y1, 0);
     lamp(x0 + 0.8, y1, 0);
   }
@@ -8953,7 +8957,11 @@ const PCEM = (() => {
   /* ---------- the stations: eye in the model frame, the way the eye looks (yaw: + to starboard), and a name ---------- */
   const STN = {
     /* the OOD in the pilothouse, at the wheel and telegraphs (he has the quartermaster's duties too: the user's, 2026-11-21) */
-    1: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' }],
+    1: [
+      { e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' },
+      /* the chart table (press 1 again): leaning over its forward edge, looking aft and down at the chart (the user's, 2026-11-23) */
+      { e: [X_PH1 + 1.12, Y2 + 1.97, 1.45], yaw: PI, pitch: -1.1, fov: 50, name: 'OOD - CHART TABLE', dev: 'chart' },
+    ],
     2: [{ e: [ER.x0 + 1.4, ER.y0 + 1.65, -0.35], yaw: 0.62, pitch: -0.12, fov: 52, name: 'ENGINEERING - FORWARD ENGINE ROOM' }],
     3: [
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -0.61, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADAR', dev: 'radar' },
@@ -24827,7 +24835,563 @@ const MMSHIP = (() => {
         mark(g, lw, s.p.x, s.p.z, Math.cos(s.yw), -Math.sin(s.yw), true, s.side === 'us');
       }
   });
-  return { reach, seen };
+  return { reach, seen, sees: visible /* could the player see this ship now? (the route's lookouts: WAYPOINT NAVIGATION) */ };
+})();
+/* ---------- WAYPOINT NAVIGATION: the player's route for the AI at the helm (the user's, 2026-11-23) ----------
+   Every simulator with an AI driving (the role's navAble: the PCE's helmsman now; the tank's driver and the submarine's helmsman to
+   come) follows the player's route: a list of waypoints laid on THE CHART. NAV holds the route and decides where the AI steers; the
+   simulator does the steering (NAV.aim(): the point to steer for, or null).
+   ENGAGED   the player engages the route (Enter at the chart). The AI steers for the current waypoint; within NAV.R of it, the next.
+             At the last one: round again if Loop is on, else the route is complete and disengages (the simulator stops).
+   SUSPENDED an enemy in sight (NAV.threat: an enemy warship or torpedo boat seen, a submarine seen on the surface or held on the
+             simulator's own sensors (the role's navContact), an enemy aircraft in sight) suspends it: the AI steers no more and the
+             player or the AI in command fights. 30 s with nothing in sight and it re-engages by itself, for the waypoint it was making for.
+   OFF       the player takes the helm himself (the simulator calls NAV.off) or disengages it at the chart. The route is kept.
+   The route is saved for each simulator. It is drawn on the minimap too (dashed when not engaged). */
+const NAV = (() => {
+  const S = {
+    pts: [] /* { x, z } */,
+    i: 0 /* the waypoint being made for */,
+    on: false /* engaged */,
+    sus: false /* suspended: an enemy in sight */,
+    clrT: 0 /* seconds clear of the enemy */,
+    loop: false,
+    sel: -1 /* the waypoint selected at the chart */,
+    R: 250 /* arrived within this (m) */,
+    chkT: 0,
+    seen: false,
+  };
+  const key = () => 'nav_' + ((SIMS.cur && SIMS.cur.id) || '');
+  const save = () => store.set(key(), { pts: S.pts.map((p) => [Math.round(p.x), Math.round(p.z)]), loop: S.loop });
+  const load = () => {
+    const d = store.get(key(), null);
+    S.pts = d && Array.isArray(d.pts) ? d.pts.filter((p) => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).map((p) => ({ x: p[0], z: p[1] })) : [];
+    S.loop = !!(d && d.loop);
+    S.i = 0;
+    S.on = S.sus = false;
+    S.sel = S.pts.length ? 0 : -1;
+  };
+  const able = () => !!(SIMS.cur && SIMS.cur.navAble);
+  const say = (t) => (SIMS.cur.navSay ? SIMS.cur.navSay(t) : note(t));
+  const brg = (p) => Math.round(((Math.atan2(p.x - pos.x, -(p.z - pos.z)) * 180) / Math.PI + 360) % 360);
+  const fmtB = (p) => String(brg(p)).padStart(3, '0');
+  /* ---- an enemy in sight ---- */
+  const threat = () => {
+    if (SIMS.cur.navContact && SIMS.cur.navContact()) return 'SUBMARINE CONTACT';
+    const night = (WX.lt || 0) > 0.35,
+      fogR = scene.fog && scene.fog.far ? scene.fog.far * 1.2 : 1e9;
+    /* enemy warships and torpedo boats, as the minimap sees them (size, light, weather, horizon, hills), while the enemy's ships fight */
+    if (SIMS.cur.shipsOn() && typeof ROE !== 'undefined')
+      for (const q of T) {
+        if (q.dead || q.side === 'us' || q.type !== 'ship' || !q.m || q.m.visible === false) continue;
+        const k = ROE.tkind(q);
+        if (k !== 'escort' && k !== 't14') continue;
+        const w = q.m.getWorldPosition(new THREE.Vector3());
+        if (MMSHIP.sees(q.m, w.x, w.z, (q.r || 0) > 12)) return k === 'escort' ? 'ENEMY WARSHIP IN SIGHT' : 'ENEMY TORPEDO BOATS IN SIGHT';
+      }
+    /* a submarine on the surface */
+    if (typeof SUBS !== 'undefined')
+      for (const s of SUBS.L) if (s.side === 'jp' && s.on && !s.sunk && s.d <= 1.5 && MMSHIP.sees(s.m, s.p.x, s.p.z, true)) return 'SUBMARINE IN SIGHT';
+    /* enemy aircraft: by day 10 km, at night 3 km, never past the weather */
+    const aR = Math.min(night ? 3000 : 10000, fogR),
+      near = (p) => p && Math.hypot(p.x - pos.x, p.z - pos.z) < aR;
+    if (typeof EN !== 'undefined') for (const e of EN) if (!e.dying && !e.drone && near(e.p)) return 'ENEMY AIRCRAFT IN SIGHT';
+    if (typeof RAID !== 'undefined') for (const e of RAID.L) if (e.st !== 'down' && near(e.p)) return 'ENEMY AIRCRAFT IN SIGHT';
+    if (typeof AIRSUP !== 'undefined') for (const u of AIRSUP.L) if (u.side === 'jp' && u.up && !u.down && near(u.p)) return 'ENEMY AIRCRAFT IN SIGHT';
+    return '';
+  };
+  /* ---- each frame ---- */
+  const tick = (dt) => {
+    if (!able() || !started || paused || crashed || !S.on || !S.pts.length) return;
+    if (S.i >= S.pts.length) S.i = 0;
+    /* the lookouts: twice a second */
+    if ((S.chkT -= dt) <= 0) {
+      S.chkT = 0.5;
+      const t = threat();
+      if (t) {
+        S.clrT = 0;
+        if (!S.sus) {
+          S.sus = true;
+          say(t + ': ROUTE SUSPENDED. THE OOD HAS HER.');
+        }
+      } else if (S.sus && (S.clrT += 0.5) >= 30) {
+        S.sus = false;
+        say('ALL CLEAR: RESUMING THE ROUTE. COURSE ' + fmtB(S.pts[S.i]) + ' FOR WAYPOINT ' + (S.i + 1) + '.');
+      }
+    }
+    if (S.sus) return;
+    /* arrived: on to the next */
+    const p = S.pts[S.i];
+    if (Math.hypot(p.x - pos.x, p.z - pos.z) < S.R) {
+      if (S.i + 1 < S.pts.length || S.loop) {
+        const was = S.i;
+        S.i = (S.i + 1) % S.pts.length;
+        say('WAYPOINT ' + (was + 1) + ' REACHED. COURSE ' + fmtB(S.pts[S.i]) + ' FOR WAYPOINT ' + (S.i + 1) + '.');
+      } else {
+        S.on = false;
+        S.i = 0;
+        say('LAST WAYPOINT REACHED: ROUTE COMPLETE.');
+        if (SIMS.cur.navDone) SIMS.cur.navDone();
+      }
+    }
+  };
+  HOOKS.tick.push(tick);
+  /* ---- the route on the minimap: the legs ahead, solid when engaged ---- */
+  HOOKS.mapDraw.push((g, lw) => {
+    if (!able() || !started || !S.pts.length || (typeof NAVCHART !== 'undefined' && NAVCHART.drawing())) return; /* the chart draws its own */
+    g.save();
+    g.strokeStyle = S.on && !S.sus ? 'rgba(255,214,90,.95)' : 'rgba(255,214,90,.55)';
+    g.lineWidth = lw(2);
+    if (!(S.on && !S.sus)) g.setLineDash([lw(6), lw(5)]);
+    g.beginPath();
+    g.moveTo(pos.x, pos.z);
+    for (let k = 0; k < S.pts.length; k++) {
+      const p = S.pts[(S.i + k) % S.pts.length];
+      if (!S.loop && (S.i + k) >= S.pts.length) break;
+      g.lineTo(p.x, p.z);
+    }
+    g.stroke();
+    g.setLineDash([]);
+    for (let k = 0; k < S.pts.length; k++) {
+      const p = S.pts[k];
+      g.fillStyle = k === S.i ? '#ffd65a' : 'rgba(255,214,90,.6)';
+      g.beginPath();
+      g.arc(p.x, p.z, lw(k === S.i ? 4 : 3), 0, 7);
+      g.fill();
+    }
+    g.restore();
+  });
+  /* ---- what the simulator and the chart call ---- */
+  return Object.assign(S, {
+    able,
+    load,
+    save,
+    brg,
+    threat,
+    /* the point to steer for now, or null (not engaged, suspended, or no route) */
+    aim: () => (able() && S.on && !S.sus && S.pts.length ? S.pts[Math.min(S.i, S.pts.length - 1)] : null),
+    engage(v) {
+      if (v && !S.pts.length) return say('NO ROUTE: LAY WAYPOINTS ON THE CHART FIRST.');
+      S.on = !!v;
+      S.sus = false;
+      S.clrT = 0;
+      S.chkT = 0;
+      if (S.on) {
+        if (S.i >= S.pts.length) S.i = 0;
+        say('ROUTE ENGAGED. COURSE ' + fmtB(S.pts[S.i]) + ' FOR WAYPOINT ' + (S.i + 1) + '.');
+        if (SIMS.cur.navGo) SIMS.cur.navGo();
+      } else say('ROUTE DISENGAGED.');
+    },
+    /* the player takes the helm himself */
+    off(why) {
+      if (!S.on) return;
+      S.on = false;
+      S.sus = false;
+      say(why || 'ROUTE DISENGAGED: THE OOD HAS HER.');
+    },
+    add(x, z, at) {
+      const k = at == null || at > S.pts.length ? S.pts.length : Math.max(0, at);
+      S.pts.splice(k, 0, { x, z });
+      if (S.on && k <= S.i && S.pts.length > 1) S.i++;
+      else if (!S.on) S.i = 0;
+      S.sel = k;
+      save();
+      return k;
+    },
+    move(k, x, z) {
+      if (!S.pts[k]) return;
+      S.pts[k].x = x;
+      S.pts[k].z = z;
+    },
+    del(k) {
+      if (!S.pts[k]) return;
+      S.pts.splice(k, 1);
+      if (k < S.i || S.i >= S.pts.length) S.i = Math.max(0, Math.min(S.i - (k < S.i ? 1 : 0), S.pts.length - 1));
+      S.sel = S.pts.length ? Math.min(k, S.pts.length - 1) : -1;
+      if (!S.pts.length && S.on) S.off('ROUTE CLEARED.');
+      save();
+    },
+    /* move waypoint k to place j in the order */
+    reorder(k, j) {
+      if (!S.pts[k] || j < 0 || j >= S.pts.length || j === k) return;
+      const cur = S.pts[S.i],
+        [p] = S.pts.splice(k, 1);
+      S.pts.splice(j, 0, p);
+      S.i = S.on ? Math.max(0, S.pts.indexOf(cur)) : 0 /* not engaged: she will start from the first */;
+      S.sel = j;
+      save();
+    },
+    clear() {
+      S.pts = [];
+      S.i = 0;
+      S.sel = -1;
+      if (S.on) S.off('ROUTE CLEARED.');
+      save();
+    },
+    setLoop(v) {
+      S.loop = !!v;
+      save();
+      say(S.loop ? 'ROUTE: LOOP ON (ROUND AGAIN AFTER THE LAST WAYPOINT).' : 'ROUTE: LOOP OFF (STOP AT THE LAST WAYPOINT).');
+    },
+    /* make waypoint k the one she steers for */
+    goto(k) {
+      if (!S.pts[k]) return;
+      S.i = k;
+      S.sel = k;
+      if (S.on) say('COURSE ' + fmtB(S.pts[k]) + ' FOR WAYPOINT ' + (k + 1) + '.');
+    },
+  });
+})();
+/* ---------- THE CHART: the player lays the route (WAYPOINT NAVIGATION) with the mouse and the keys (the user's, 2026-11-23) ----------
+   One chart for every simulator with an AI driving: north up, the world's own map (the minimap's), a 1 km / 5 km grid, the named places,
+   the ships in sight, the player's own vehicle and the route. A simulator shows the canvas where it belongs (the PCE: on the chart
+   table in the pilothouse) and passes the mouse and the keys on, in the canvas's own pixels (NAVCHART.W x NAVCHART.H).
+   MOUSE  click the sea: a waypoint at the end of the route; click on a leg: one put into that leg; drag a waypoint: move it; right-click
+          a waypoint: remove it; drag the chart: pan; the wheel: zoom about the pointer. In the list at the side: click a row to select
+          it, drag a row up or down to reorder; double-click a row: steer for that waypoint now.
+   KEYS   Enter engage / disengage the route; Delete or Backspace remove the selected waypoint (Shift+Delete: clear the route);
+          [ and ] move the selected waypoint earlier / later; Tab and Shift+Tab select the next / previous; L loop on / off;
+          - and = zoom out / in; Home centre on her.
+   A leg that crosses what the simulator cannot pass (the role's navLegOK: for a ship, land and shoal water) is drawn red. */
+const NAVCHART = (() => {
+  const W = 1024,
+    H = 830,
+    MW = 772 /* the chart; the route list beside it */,
+    ZM = [2.5, 5, 10, 20, 40, 80] /* metres a pixel: the chart about 2 to 60 km across */,
+    V = { x: null, z: null, zi: 2 },
+    D = { k: null /* 'pt', 'pan', 'row' */, i: -1, x0: 0, y0: 0, moved: false, vx: 0, vz: 0, over: -1, lastRow: -1, lastT: 0 },
+    legOK = new Map(),
+    ROW = 26,
+    LTOP = 118;
+  let drawing = false;
+  const m = () => ZM[V.zi];
+  const toPx = (x, z) => [MW / 2 + (x - V.x) / m(), H / 2 + (z - V.z) / m()];
+  const toW = (px, py) => [V.x + (px - MW / 2) * m(), V.z + (py - H / 2) * m()];
+  const centre = () => ((V.x = pos.x), (V.z = pos.z));
+  /* can the vehicle go along this leg? (cached by its ends) */
+  const ok = (a, b) => {
+    const k = a.x + ',' + a.z + ',' + b.x + ',' + b.z;
+    if (!legOK.has(k)) {
+      if (legOK.size > 400) legOK.clear();
+      legOK.set(k, SIMS.cur.navLegOK ? SIMS.cur.navLegOK(a.x, a.z, b.x, b.z) : true);
+    }
+    return legOK.get(k);
+  };
+  const hitPt = (px, py) => {
+    let best = -1,
+      bd = 14;
+    NAV.pts.forEach((p, k) => {
+      const [x, y] = toPx(p.x, p.z),
+        d = Math.hypot(x - px, y - py);
+      if (d < bd) ((bd = d), (best = k));
+    });
+    return best;
+  };
+  /* a leg near the pixel: the index to put a new waypoint at (between k-1 and k), or -1 */
+  const hitLeg = (px, py) => {
+    for (let k = 1; k < NAV.pts.length; k++) {
+      const [ax, ay] = toPx(NAV.pts[k - 1].x, NAV.pts[k - 1].z),
+        [bx, by] = toPx(NAV.pts[k].x, NAV.pts[k].z),
+        L2 = (bx - ax) ** 2 + (by - ay) ** 2,
+        t = L2 ? Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / L2)) : 0;
+      if (t > 0.05 && t < 0.95 && Math.hypot(ax + (bx - ax) * t - px, ay + (by - ay) * t - py) < 8) return k;
+    }
+    return -1;
+  };
+  const rowAt = (px, py) => (px >= MW && py >= LTOP ? Math.floor((py - LTOP) / ROW) : -1);
+  const km = (a, b) => (Math.hypot(a.x - b.x, a.z - b.z) / 1000).toFixed(1);
+  const bearing = (a, b) => String(Math.round(((Math.atan2(b.x - a.x, -(b.z - a.z)) * 180) / Math.PI + 360) % 360)).padStart(3, '0');
+  /* ---- the picture ---- */
+  function draw(g) {
+    if (V.x === null) centre();
+    const s = 1 / m(),
+      lw = (px) => px * m();
+    g.save();
+    g.fillStyle = '#d9cfb0';
+    g.fillRect(0, 0, W, H);
+    /* the chart */
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, MW, H);
+    g.clip();
+    g.fillStyle = '#183049';
+    g.fillRect(0, 0, MW, H);
+    g.translate(MW / 2, H / 2);
+    g.scale(s, s);
+    g.translate(-V.x, -V.z);
+    g.imageSmoothingEnabled = true;
+    if (typeof mmFar === 'function') {
+      mmFar();
+      g.drawImage(MMF, -MFS / 2, -MFS / 2, MFS, MFS);
+    }
+    if (typeof mmTiles === 'function' && V.zi <= 3) mmTiles(g, Math.max(MW, H) * m() * 0.75);
+    if (typeof MMT !== 'undefined') g.drawImage(MMT, -SZ / 2, -SZ / 2, SZ, SZ);
+    /* a paper wash over it, so the ink reads */
+    g.fillStyle = 'rgba(235,225,195,.18)';
+    g.fillRect(V.x - MW * m(), V.z - H * m(), 2 * MW * m(), 2 * H * m());
+    /* the grid: 1 km close in, 5 km farther out */
+    const gs = V.zi <= 2 ? 1000 : 5000,
+      x0 = Math.floor((V.x - MW * m()) / gs) * gs,
+      z0 = Math.floor((V.z - H * m()) / gs) * gs;
+    g.strokeStyle = 'rgba(20,30,40,.28)';
+    g.lineWidth = lw(1);
+    g.beginPath();
+    for (let x = x0; x < V.x + MW * m(); x += gs) (g.moveTo(x, V.z - H * m()), g.lineTo(x, V.z + H * m()));
+    for (let z = z0; z < V.z + H * m(); z += gs) (g.moveTo(V.x - MW * m(), z), g.lineTo(V.x + MW * m(), z));
+    g.stroke();
+    /* the ships in sight and the rest of the minimap's marks (the route there is the chart's own, below) */
+    drawing = true;
+    for (const fn of HOOKS.mapDraw)
+      try {
+        fn(g, lw);
+      } catch (e) {}
+    drawing = false;
+    /* the named places */
+    if (typeof AIRSUP !== 'undefined' && AIRSUP.places) {
+      g.font = lw(15) + 'px sans-serif';
+      g.textAlign = 'center';
+      for (const [site, name] of AIRSUP.places()) {
+        if (!name || !site || !site.O) continue;
+        g.fillStyle = 'rgba(15,20,25,.85)';
+        g.fillText(name, site.O.x, site.O.z - lw(10));
+        g.beginPath();
+        g.arc(site.O.x, site.O.z, lw(3), 0, 7);
+        g.fill();
+      }
+    }
+    /* the route: legs (red where she cannot pass), the leg she is on from her, and the waypoints */
+    const P = NAV.pts;
+    g.lineWidth = lw(2.5);
+    for (let k = 1; k < P.length + (NAV.loop && P.length > 2 ? 1 : 0); k++) {
+      const a = P[k - 1],
+        b = P[k % P.length];
+      g.strokeStyle = ok(a, b) ? (k % P.length === NAV.i && NAV.on ? '#b8860b' : '#2b3a8c') : '#d0281e';
+      if (k === P.length) g.setLineDash([lw(8), lw(6)]);
+      g.beginPath();
+      g.moveTo(a.x, a.z);
+      g.lineTo(b.x, b.z);
+      g.stroke();
+      g.setLineDash([]);
+    }
+    if (P.length) {
+      const t = P[Math.min(NAV.i, P.length - 1)];
+      g.strokeStyle = NAV.on && !NAV.sus ? (ok(pos, t) ? '#b8860b' : '#d0281e') : 'rgba(43,58,140,.6)';
+      g.setLineDash([lw(6), lw(5)]);
+      g.beginPath();
+      g.moveTo(pos.x, pos.z);
+      g.lineTo(t.x, t.z);
+      g.stroke();
+      g.setLineDash([]);
+    }
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = 'bold ' + lw(13) + 'px sans-serif';
+    P.forEach((p, k) => {
+      const cur = k === NAV.i && NAV.on;
+      g.fillStyle = cur ? '#ffd65a' : '#f3ecd6';
+      g.strokeStyle = k === NAV.sel ? '#000' : '#2b3a8c';
+      g.lineWidth = lw(k === NAV.sel ? 3 : 2);
+      g.beginPath();
+      g.arc(p.x, p.z, lw(11), 0, 7);
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#111';
+      g.fillText(String(k + 1), p.x, p.z + lw(1));
+    });
+    /* her: a hull pointing her way */
+    g.save();
+    g.translate(pos.x, pos.z);
+    g.rotate(Math.atan2(fwd.x, -fwd.z));
+    g.scale(lw(1), lw(1));
+    g.fillStyle = '#111';
+    g.strokeStyle = '#fff';
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(0, -13);
+    g.lineTo(5, -3);
+    g.lineTo(5, 9);
+    g.lineTo(-5, 9);
+    g.lineTo(-5, -3);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.restore();
+    g.restore();
+    /* the chart's frame, north arrow and scale */
+    g.strokeStyle = '#3b3122';
+    g.lineWidth = 3;
+    g.strokeRect(1.5, 1.5, MW - 3, H - 3);
+    g.fillStyle = '#1b1b1b';
+    g.font = 'bold 22px serif';
+    g.textAlign = 'center';
+    g.fillText('N', 34, 30);
+    g.beginPath();
+    g.moveTo(34, 40);
+    g.lineTo(26, 62);
+    g.lineTo(34, 56);
+    g.lineTo(42, 62);
+    g.closePath();
+    g.fill();
+    const sb = [20000, 10000, 5000, 2000, 1000, 500].find((v) => v / m() <= 220) || 500,
+      sw = sb / m();
+    g.fillStyle = 'rgba(243,236,214,.85)';
+    g.fillRect(14, H - 44, sw + 24, 32);
+    g.fillStyle = '#1b1b1b';
+    g.fillRect(26, H - 24, sw, 5);
+    g.font = '15px sans-serif';
+    g.textAlign = 'left';
+    g.fillText(sb / 1000 + ' km', 26, H - 32);
+    /* the route list */
+    g.fillStyle = '#efe6c9';
+    g.fillRect(MW, 0, W - MW, H);
+    g.fillStyle = '#1b1b1b';
+    g.font = 'bold 22px sans-serif';
+    g.fillText('ROUTE', MW + 14, 30);
+    g.font = 'bold 16px sans-serif';
+    g.fillStyle = NAV.on ? (NAV.sus ? '#b3261e' : '#1f6b2a') : '#5a5a5a';
+    g.fillText(NAV.on ? (NAV.sus ? 'SUSPENDED: ENEMY' : 'ENGAGED') : P.length ? 'NOT ENGAGED' : 'NO WAYPOINTS', MW + 14, 58);
+    g.fillStyle = '#1b1b1b';
+    g.font = '15px sans-serif';
+    g.fillText('Loop ' + (NAV.loop ? 'ON' : 'OFF') + ' · ' + P.length + ' waypoint' + (P.length === 1 ? '' : 's'), MW + 14, 82);
+    let tot = 0;
+    for (let k = 1; k < P.length; k++) tot += Math.hypot(P[k].x - P[k - 1].x, P[k].z - P[k - 1].z);
+    g.fillText('Total ' + (tot / 1000).toFixed(1) + ' km', MW + 14, 102);
+    const rows = Math.floor((H - LTOP - 150) / ROW);
+    for (let k = 0; k < Math.min(P.length, rows); k++) {
+      const y = LTOP + k * ROW,
+        from = k === 0 ? pos : P[k - 1];
+      if (k === NAV.sel) {
+        g.fillStyle = 'rgba(43,58,140,.22)';
+        g.fillRect(MW + 4, y, W - MW - 8, ROW - 2);
+      }
+      g.fillStyle = k === NAV.i && NAV.on ? '#8a5a00' : '#1b1b1b';
+      g.font = (k === NAV.i && NAV.on ? 'bold ' : '') + '16px monospace';
+      g.fillText((k === NAV.i && NAV.on ? '▶' : ' ') + String(k + 1).padStart(2) + '  ' + bearing(from, P[k]) + '°  ' + km(from, P[k]).padStart(5) + ' km' + (k && !ok(P[k - 1], P[k]) ? ' !' : ''), MW + 10, y + 18);
+    }
+    if (D.k === 'row' && D.over >= 0) {
+      g.fillStyle = '#2b3a8c';
+      g.fillRect(MW + 6, LTOP + D.over * ROW - 2, W - MW - 12, 3);
+    }
+    if (P.length > rows) g.fillText('… ' + (P.length - rows) + ' more', MW + 14, LTOP + rows * ROW + 18);
+    /* the keys */
+    g.fillStyle = '#3b3122';
+    g.font = '13px sans-serif';
+    const help = [
+      'Click sea: add · on a leg: insert',
+      'Drag waypoint: move',
+      'Right-click waypoint: remove',
+      'Drag chart: pan · Wheel: zoom',
+      'Drag a row: reorder',
+      'Double-click row: steer for it',
+      'Enter engage / disengage',
+      'Del remove · Shift+Del clear',
+      '[ ] earlier / later · Tab select',
+      'L loop · - = zoom · Home: her',
+    ];
+    help.forEach((t, k) => g.fillText(t, MW + 10, H - 150 + k * 15));
+    g.restore();
+  }
+  /* ---- the mouse, in the canvas's pixels ---- */
+  function down(px, py, btn) {
+    if (V.x === null) centre();
+    const r = rowAt(px, py);
+    if (px >= MW) {
+      if (r >= 0 && r < NAV.pts.length) {
+        const now = performance.now();
+        if (r === D.lastRow && now - D.lastT < 400) NAV.goto(r);
+        D.lastRow = r;
+        D.lastT = now;
+        NAV.sel = r;
+        Object.assign(D, { k: 'row', i: r, over: -1, moved: false, x0: px, y0: py });
+      }
+      return true;
+    }
+    const k = hitPt(px, py);
+    if (btn === 2) {
+      if (k >= 0) NAV.del(k);
+      return true;
+    }
+    if (k >= 0) {
+      NAV.sel = k;
+      Object.assign(D, { k: 'pt', i: k, moved: false, x0: px, y0: py });
+    } else Object.assign(D, { k: 'pan', moved: false, x0: px, y0: py, vx: V.x, vz: V.z });
+    return true;
+  }
+  function move(px, py) {
+    if (!D.k) return false;
+    if (Math.hypot(px - D.x0, py - D.y0) > 4) D.moved = true;
+    if (D.k === 'pt' && D.moved) {
+      const [x, z] = toW(Math.min(MW - 2, Math.max(2, px)), Math.min(H - 2, Math.max(2, py)));
+      NAV.move(D.i, x, z);
+    } else if (D.k === 'pan' && D.moved) {
+      V.x = D.vx - (px - D.x0) * m();
+      V.z = D.vz - (py - D.y0) * m();
+    } else if (D.k === 'row' && D.moved) D.over = Math.max(0, Math.min(NAV.pts.length, Math.round((py - LTOP) / ROW)));
+    return true;
+  }
+  function up(px, py) {
+    if (!D.k) return false;
+    if (D.k === 'pan' && !D.moved && px != null && px < MW) {
+      const [x, z] = toW(px, py),
+        L = hitLeg(px, py);
+      NAV.add(x, z, L >= 0 ? L : null);
+    } else if (D.k === 'pt' && D.moved) NAV.save();
+    else if (D.k === 'row' && D.moved && D.over >= 0) NAV.reorder(D.i, D.over > D.i ? D.over - 1 : D.over);
+    D.k = null;
+    D.over = -1;
+    return true;
+  }
+  function wheel(px, py, dy) {
+    if (px >= MW) return true;
+    const [x, z] = toW(px, py),
+      zi = Math.max(0, Math.min(ZM.length - 1, V.zi + (dy > 0 ? 1 : -1)));
+    if (zi === V.zi) return true;
+    V.zi = zi;
+    /* keep the point under the pointer where it is */
+    V.x = x - (px - MW / 2) * m();
+    V.z = z - (py - H / 2) * m();
+    return true;
+  }
+  /* ---- the keys ---- */
+  function key(code, shift) {
+    const n = NAV.pts.length;
+    switch (code) {
+      case 'Enter':
+      case 'NumpadEnter':
+        NAV.engage(!NAV.on);
+        return true;
+      case 'Delete':
+      case 'Backspace':
+        if (shift && code === 'Delete') NAV.clear();
+        else if (NAV.sel >= 0) NAV.del(NAV.sel);
+        return true;
+      case 'BracketLeft':
+        if (NAV.sel > 0) NAV.reorder(NAV.sel, NAV.sel - 1);
+        return true;
+      case 'BracketRight':
+        if (NAV.sel >= 0 && NAV.sel < n - 1) NAV.reorder(NAV.sel, NAV.sel + 1);
+        return true;
+      case 'Tab':
+        if (n) NAV.sel = (NAV.sel + (shift ? n - 1 : 1) + n) % n;
+        return true;
+      case 'KeyL':
+        NAV.setLoop(!NAV.loop);
+        return true;
+      case 'Minus':
+      case 'NumpadSubtract':
+        V.zi = Math.min(ZM.length - 1, V.zi + 1);
+        return true;
+      case 'Equal':
+      case 'NumpadAdd':
+        V.zi = Math.max(0, V.zi - 1);
+        return true;
+      case 'Home':
+        centre();
+        return true;
+    }
+    return false;
+  }
+  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, drawing: () => drawing, toPx, toW };
 })();
 /* =====================================================================================================================
    SUBMARINES AT SEA (the user's, 2026-11-21): USS Roncador (SS-301) and I-58 (Type B3, May 1945) in the water. Each boat

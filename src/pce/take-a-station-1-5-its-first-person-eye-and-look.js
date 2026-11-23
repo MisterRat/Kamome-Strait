@@ -128,8 +128,12 @@ function shipStep(dt) {
     engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 1))) /* Hardcore: only the engine room and the pilothouse (the OOD) work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
     hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
-    rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */,
-    atGun = ((!atHelm() || ASW.ph !== 'idle') && !hand) || rtb;
+    rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */;
+  /* the player's route (WAYPOINT NAVIGATION): the helmsman steers for the waypoint; the player's own hand on the rudder takes her back */
+  let navP = !rtb && ASW.ph === 'idle' ? NAV.aim() : null;
+  if (navP && hand) (NAV.off('ROUTE DISENGAGED: THE OOD HAS THE HELM. ENTER AT THE CHART TABLE RE-ENGAGES IT.'), (navP = null));
+  if (navP) SHIP.hold = Math.atan2(-(navP.x - pos.x), -(navP.z - pos.z));
+  const atGun = ((!atHelm() || ASW.ph !== 'idle') && !hand) || rtb || !!navP;
   if (ASW.ph !== 'idle') {
     /* the OOD cons the ship through the attack run */
     SHIP.tel = ASW.tel;

@@ -100,6 +100,8 @@ const SIMS = {
     coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* the coast guns fire (Settings > Enemy: Shore) */,
     subsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('subs') /* the enemy submarine, I-58, on patrol (SUBS): Settings > Enemy: Subs */,
     shipsOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('ships') /* the enemy warships fight: the Ukuru escorts' guns, the T-14s' torpedo runs (Settings > Enemy: Ships) */,
+    navAble: false /* an AI drives it, and it follows the player's route (WAYPOINT NAVIGATION, THE CHART) */,
+    navContact: () => false /* an enemy held on its own sensors (the PCE's sonar): the route is suspended */,
     shelled: () => {} /* a shell has struck the player's vehicle, (calibre in mm): a coast gun's (76) or a warship's */,
     holdFire: () => false /* the player's own vehicle's AI gunners are ordered to hold their fire (the PCE's OOD) */,
     gunPri: () => '' /* the kind of target its AI gunners take first ('' their own choice; 'air', 'escort', 't14', 'cargo', 'coast', 'aa') */,

@@ -172,6 +172,8 @@ shared/rules-of-engagement-who-fights-who-runs.js
 shared/air-support-both-sides-call-launch-fight-return.js
 shared/sighting-reports-the-enemy-s-shore-stations-report-a-ship-they-see.js
 shared/ships-on-the-minimap-friend-blue-foe-red-within-sight.js
+shared/waypoint-navigation-the-player-s-route-for-whoever-is-at-the-helm.js
+shared/the-chart-the-player-lays-the-route-with-the-mouse-and-the-keys.js
 shared/submarines-at-sea-diving-surfacing-sinking-and-i-58-on-patrol.js
 shared/aftermath-burning-wrecks-smoke-columns-craters-a.js
 shared/convoy-one-at-a-time-timed.js

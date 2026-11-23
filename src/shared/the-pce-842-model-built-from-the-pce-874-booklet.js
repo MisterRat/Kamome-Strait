@@ -1660,6 +1660,8 @@ const PCEM = (() => {
     /* the chart table aft and a stool */
     B(0.9, 0.06, 1.1, WOOD, x0 + 0.6, y0 + 0.95, 1.4);
     B(0.85, 0.9, 1.05, 0x4d5257, x0 + 0.6, y0 + 0.47, 1.4);
+    /* the chart on it (THE CHART: the route the helmsman follows), read from the table's forward edge looking aft: its top is aft */
+    face('qmChart', [x0 + 0.6, y0 + 0.985, 1.4], 1.06, 0.86, [0, 1, 0], [-1, 0, 0]);
     lamp(x1 - 1.2, y1, 0);
     lamp(x0 + 0.8, y1, 0);
   }
@@ -1859,7 +1861,11 @@ const PCEM = (() => {
   /* ---------- the stations: eye in the model frame, the way the eye looks (yaw: + to starboard), and a name ---------- */
   const STN = {
     /* the OOD in the pilothouse, at the wheel and telegraphs (he has the quartermaster's duties too: the user's, 2026-11-21) */
-    1: [{ e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' }],
+    1: [
+      { e: [X_PH0 - 2.35, Y2 + 1.66, 0], yaw: 0, pitch: -0.04, name: 'OOD - PILOTHOUSE' },
+      /* the chart table (press 1 again): leaning over its forward edge, looking aft and down at the chart (the user's, 2026-11-23) */
+      { e: [X_PH1 + 1.12, Y2 + 1.97, 1.45], yaw: PI, pitch: -1.1, fov: 50, name: 'OOD - CHART TABLE', dev: 'chart' },
+    ],
     2: [{ e: [ER.x0 + 1.4, ER.y0 + 1.65, -0.35], yaw: 0.62, pitch: -0.12, fov: 52, name: 'ENGINEERING - FORWARD ENGINE ROOM' }],
     3: [
       { e: [X_RR1 + 2.21, Y2 + 1.22, -0.45], yaw: -0.61, pitch: 0.075, fov: 38, name: 'COMMUNICATIONS - RADAR', dev: 'radar' },

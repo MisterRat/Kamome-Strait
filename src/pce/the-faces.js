@@ -71,6 +71,10 @@ function stnDraw(f, dt) {
     case 'eg7':
       gauge(g, s, kn, 0, 20, 4, 'KNOTS');
       break;
+    case 'qmChart':
+      /* the chart: every time while she is at it, now and then from the wheel */
+      if (chartAt() || (f.n = (f.n || 0) + 1) % 10 === 1) NAVCHART.draw(g);
+      break;
     case 'qmClock': {
       const T = [];
       for (let i = 0; i < 12; i++) T.push([(i * Math.PI) / 6, String(i || 12), true]);

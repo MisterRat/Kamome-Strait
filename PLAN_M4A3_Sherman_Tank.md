@@ -417,6 +417,11 @@ Terrain functions (`WH`, `H`), the far world and its rural network, weather and 
 crews' figures, the minimap, the briefing map tool, settings and Hardcore, the mission menu, the radio paper and its colours, the sound
 engine.
 
+The route and the chart (`NAV`, `NAVCHART`, added 2026-11-23 for every simulator with an AI driving): the commander lays the driver's
+route on the chart (a map board in the turret, station 1's second position). The AI driver follows it; an enemy in sight suspends it,
+and 30 s clear re-engages it. The tank's role supplies `navAble`, `navContact` (its own spotting), `navLegOK` (no leg through deep
+water, cliffs or the coral walls' gaps it cannot cross) and the driver's steering for `NAV.aim()`.
+
 ### Moved to `src/shared` (once, for the Roncador and the tank alike)
 
 The drill and station frameworks, the damage-control jobs, the gun crews and ballistics, the orders box, the interphone pattern (the
