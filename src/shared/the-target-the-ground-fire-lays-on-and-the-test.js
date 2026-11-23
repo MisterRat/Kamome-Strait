@@ -117,7 +117,9 @@ function updAA(dt) {
   if (dzE) dzE.style.opacity = AA.dz * 0.55;
   /* ----- guns ----- */
   for (const g of AA.gun) {
-    const dead = g.t.dead || (g.site && trn.mode !== 'free');
+    /* a ship's gun fires only while its ship is being moved (near enough to be drawn): until it has been placed on her it lies at the
+       world's origin, under the home runway, and it shot the P-51 from there (the user's, 2026-11-23) */
+    const dead = g.t.dead || (g.site && trn.mode !== 'free') || (g.ship && !(g.at >= AA.t - 0.5));
     if (g.site) g.grp.visible = trn.mode === 'free';
     let can = false,
       R = 1e9,

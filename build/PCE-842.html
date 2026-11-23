@@ -586,7 +586,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.133';
+const VERSION = '0.134';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -15651,7 +15651,9 @@ function updAA(dt) {
   if (dzE) dzE.style.opacity = AA.dz * 0.55;
   /* ----- guns ----- */
   for (const g of AA.gun) {
-    const dead = g.t.dead || (g.site && trn.mode !== 'free');
+    /* a ship's gun fires only while its ship is being moved (near enough to be drawn): until it has been placed on her it lies at the
+       world's origin, under the home runway, and it shot the P-51 from there (the user's, 2026-11-23) */
+    const dead = g.t.dead || (g.site && trn.mode !== 'free') || (g.ship && !(g.at >= AA.t - 0.5));
     if (g.site) g.grp.visible = trn.mode === 'free';
     let can = false,
       R = 1e9,
@@ -19508,6 +19510,7 @@ const SITES = [],
         g.piv.copy(tmp);
         g.x = tmp.x;
         g.z = tmp.z;
+        g.at = AA.t; /* placed on her this frame: until then the gun is not at sea and holds its fire (AA) */
       }
     };
   }
@@ -19858,6 +19861,7 @@ const SITES = [],
         m.localToWorld(g.piv);
         g.x = g.piv.x;
         g.z = g.piv.z;
+        g.at = AA.t;
         if (typeof OCEAN !== 'undefined')
           OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
       }
@@ -20493,6 +20497,7 @@ const SITES = [],
         g.piv.copy(tmp);
         g.x = tmp.x;
         g.z = tmp.z;
+        g.at = AA.t; /* placed on her this frame: until then the gun is not at sea and holds its fire (AA) */
       }
     };
     return P;

@@ -760,6 +760,7 @@ const SITES = [],
         g.piv.copy(tmp);
         g.x = tmp.x;
         g.z = tmp.z;
+        g.at = AA.t; /* placed on her this frame: until then the gun is not at sea and holds its fire (AA) */
       }
     };
   }
@@ -1110,6 +1111,7 @@ const SITES = [],
         m.localToWorld(g.piv);
         g.x = g.piv.x;
         g.z = g.piv.z;
+        g.at = AA.t;
         if (typeof OCEAN !== 'undefined')
           OCEAN.place(b.hull || (b.hull = OCEAN.hull({ kind: 't14', cut: 'deck' })), x, z, Math.cos(yw), -Math.sin(yw), Math.max(v, 1), m.position.y + b.wl, 0);
       }
@@ -1745,6 +1747,7 @@ const SITES = [],
         g.piv.copy(tmp);
         g.x = tmp.x;
         g.z = tmp.z;
+        g.at = AA.t; /* placed on her this frame: until then the gun is not at sea and holds its fire (AA) */
       }
     };
     return P;
