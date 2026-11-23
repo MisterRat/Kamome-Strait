@@ -154,6 +154,25 @@ sy = iy + 16  # the symbol in the circle's lower part (IJN UKURU's label lies ov
 ax.add_patch(Polygon([(ix - 13, sy), (ix - 9, sy - 2.6), (ix + 11, sy - 2.6), (ix + 14, sy), (ix + 11, sy + 2.6), (ix - 9, sy + 2.6)], closed=True, fc=RED, ec="none", zorder=7))
 ax.add_patch(Polygon([(ix - 2, sy - 2.6), (ix - 1, sy - 7), (ix + 4, sy - 7), (ix + 5, sy - 2.6)], closed=True, fc=RED, ec="none", zorder=7))
 label(ix, sy, ["I-58  SUBMARINE", "Type B3, six kaiten  ·  submerged patrol  ·  " + grid(*I58)], RED, ix + 48, sy + 22, size=8.6, anchor=(ix + 48, sy + 22))
+# Camp Buckner (the M4A3 Sherman battalion's tank park, PLAN_M4A3_Sherman_Tank 4.5) and Beach Orange below it: Allied, blue
+CB = (13100, 27700)
+BO = (13300, 27200)
+cx_, cy_ = P(*CB)
+depot_sym(cx_, cy_, BLUE)
+label(cx_, cy_, ["CAMP BUCKNER", "US Army tank park, M4A3 Shermans  ·  " + grid(*CB), "Beach Orange (landing) 500 yd north"], BLUE, cx_ + 92, cy_ - 34,
+      size=8.6, anchor=(cx_ + 92, cy_ - 34))
+# Submarine Base Lockwood (PLAN_Roncador_SS-301 4: an atoll, a ring reef 6-8 km across; planned): the only open water 25-35 km from PT Base
+# Halsey that is 30 km from every enemy site and clear of their guns lies north-east of it (tools: the site search of 2026-11-23)
+SB = (33300, -18200)
+sx_, sy_ = P(*SB)
+ax.add_patch(Circle((sx_, sy_), 3500 * S, fc=(0.12, 0.23, 0.43, 0.08), ec=BLUE, lw=1.6, ls=(0, (4, 3)), zorder=4))  # the atoll's reef, planned
+anchor_sym(sx_, sy_, BLUE)
+ss = sy_ + 22
+ax.add_patch(Polygon([(sx_ - 13, ss), (sx_ - 9, ss - 2.6), (sx_ + 11, ss - 2.6), (sx_ + 14, ss), (sx_ + 11, ss + 2.6), (sx_ - 9, ss + 2.6)], closed=True, fc=BLUE, ec="none", zorder=7))
+ax.add_patch(Polygon([(sx_ - 2, ss - 2.6), (sx_ - 1, ss - 7), (sx_ + 4, ss - 7), (sx_ + 5, ss - 2.6)], closed=True, fc=BLUE, ec="none", zorder=7))
+label(sx_, sy_, ["SUBMARINE BASE LOCKWOOD", "US Navy submarine base (atoll, planned)  ·  " + grid(*SB), "USS Roncador's base  ·  tender in the lagoon"], BLUE,
+      sx_ + 50, sy_ - 40, size=8.6, anchor=(sx_ + 50, sy_ - 40))
+
 # IJN UKURU's label drawn again over I-58's patrol area, where the first edition has it (box 1098.3 - 1235.8 by 735.4 - 765.0): the circle
 # passes behind it
 ax.text(1100.9, 750.2, "IJN UKURU (鵜来)\nUkuru-class escort — coastal patrol\nStation: PORT NAGUMO", fontsize=7.4, fontfamily=[SERIF, "Noto Serif CJK JP"],
@@ -217,7 +236,9 @@ ALLIED = [
     ("PT BASE HALSEY", "US Navy PT-boat base: PT-107, 108 and 110; PCE-842's berth. Ships rearm and refuel here.", grid(*HA), frm(*HA)),
     ("DEPOT NIMITZ", "US Navy supply depot; its Liberty ship supplies PT Base Halsey.", grid(*NI), frm(*NI)),
     ("USS PCE-842", "US Navy patrol craft escort (PCE-842 class, 184 ft), working the coast off PT Base Halsey.", grid(*HA), "—"),
-    ("USS RONCADOR", "US Navy fleet submarine (SS-301, Balao class, 312 ft): the escorts' exercise boat off PT Base Halsey.", grid(*HA), "—"),
+    ("USS RONCADOR", "US Navy fleet submarine (SS-301, Balao class, 312 ft), based at Sub Base Lockwood.", grid(*SB), frm(*SB)),
+    ("CAMP BUCKNER", "US Army tank park: M4A3 Shermans (75 mm), M32 recovery; Beach Orange and Buckner Range by it.", grid(*CB), frm(*CB)),
+    ("SUB BASE LOCKWOOD", "US Navy submarine base on an atoll (planned): Fulton-class tender, fleet boats, airstrip.", grid(*SB), frm(*SB)),
 ]
 PATROL = [
     ("UKURU", "鵜来", "PORT NAGUMO", "F5", "1.0 nm  ·  16 kt"),
@@ -251,7 +272,7 @@ for n, adm, ty, g, fr, d in ENEMY:
     T(2163.6, y - 0.8, d, 7.232)
     rule(y + 12.4)
     y += 21.6  # (23.2 in the first edition: tightened for I-58 and Roncador)
-y += 6
+y += 2
 heading(y, "ALLIED FACILITIES")
 y += 31.5
 for n, desc, g, fr in ALLIED:
@@ -259,9 +280,9 @@ for n, desc, g, fr in ALLIED:
     T(1814.4, y - 0.7, desc, 7.797)
     T(2250.0, y - 0.5, g, 9.718, fam=MONO, w="bold")
     T(2300.4, y - 0.9, fr, 8.362, fam=MONO)
-    rule(y + 10.0)
-    y += 19.6
-y += 10
+    rule(y + 9.0)
+    y += 16.8
+y += 6
 heading(y, "ENEMY COASTAL PATROL VESSELS  (Ukuru-class kaibōkan)")
 for x, h in zip([C0, 1846.8, 2098.8, 2235.6], ["SHIP", "STATION", "PATROL AREA", "RACETRACK"]):
     T(x, y + 29.5, h, 8.362, fam=MONO, w="bold")
@@ -272,21 +293,100 @@ for n, kj, st, g, rt_ in PATROL:
     T(1846.8, y - 0.4, st, 9.04)
     T(2098.8, y - 0.6, g, 9.718, fam=MONO, w="bold")
     T(2235.6, y - 0.5, rt_, 8.588, fam=MONO)
-    rule(y + 9.4)
-    y += 19.5
-y += 4.5
+    rule(y + 9.0)
+    y += 17.5
+y += 3.0
 T(C0, y, "Ukuru class escort: 940 tons, 255 ft, 19.5 kt; three 12 cm DP guns, Type 96 25 mm twin AA, depth charges; crew about 150.", 7.458, st="italic")
 T(C0, y + 11.5, "Type T-14 motor torpedo boats, two at each of Port Nagumo, Port Ugaki, Airbases Ōnishi and Fukudome, Depots Mikawa and Kurita: 15 m, 33 kt; two 45 cm torpedoes, one 25 mm.", 7.458, st="italic")
 T(C0, y + 23.0, "Submarine I-58 (Type B3, 357 ft, May 1945): six kaiten on deck, snorkel; patrols submerged at 4 kt in " + grid(*I58) + ", attacks with 53 cm Type 95 torpedoes from 3,300 yd.", 7.458, st="italic")
-y += 48.5
+y += 46.0
 heading(y, "NOTES")
 y += 29.5
 for s in NOTES:
     T(C0, y, s, 7.91, fam=MONO)
-    y += 12.0
-COL_END = y - 12.0
+    y += 11.4
+COL_END = y - 11.4
 assert COL_END < 1406, COL_END  # clear of the ENGAGEMENT box (its top at 1412.6)
 print("column ends at", round(COL_END, 1))
+# ---- WEATHERING (the user's, 2026-11-23: more wear at the edges): a map carried in a flight-suit pocket and pinned to briefing-room
+# walls. Over everything, as one translucent layer: the edges browned and scuffed (deepest at the corners), small nicks and tears along
+# them, two water tide-marks, foxing spots near the edges, and the fold lines worn where they meet the edge. Seeded: the same each time.
+def weathering():
+    import numpy as np
+    from scipy.ndimage import gaussian_filter, zoom
+    rng = np.random.default_rng(1945)
+    h, w = H // 2, W // 2  # drawn at half size, smoothed up
+
+    def noise(sc, amp=1.0):
+        n = rng.random((h // sc + 2, w // sc + 2))
+        return zoom(n, (h / n.shape[0] + 0.01, w / n.shape[1] + 0.01), order=3)[:h, :w] * amp
+
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    edge = np.minimum.reduce([xx, yy, w - 1 - xx, h - 1 - yy])
+    corner = np.minimum.reduce([np.hypot(xx, yy), np.hypot(w - xx, yy), np.hypot(xx, h - yy), np.hypot(w - xx, h - yy)])
+    n1 = noise(40) * 0.6 + noise(12) * 0.3 + noise(4) * 0.1
+    # browning: a ragged band 30-75 px (full size) in from the edge, darker at the corners
+    band = 28 + 36 * n1 + np.clip(80 - corner / 5, 0, 60)
+    a = np.clip(1 - edge / band, 0, 1) ** 1.35 * 0.78
+    a = np.maximum(a, np.clip(1 - edge / 3.5, 0, 1) * 0.85)  # the very edge, worn dark
+    # scuffs: lighter, rubbed patches just inside the brown, where the ink has worn
+    rub = np.clip(1 - np.abs(edge - band * 1.3) / 10, 0, 1) * (noise(25) > 0.62) * 0.18
+    # nicks and short tears: dark notches into the edge
+    tear = np.zeros((h, w))
+    for _ in range(80):
+        side = rng.integers(4)
+        t = rng.random()
+        L = rng.uniform(5, 26)
+        wd = rng.uniform(1.5, 5)
+        if side == 0:
+            cx, cy, dx, dy = t * w, 0, 0, 1
+        elif side == 1:
+            cx, cy, dx, dy = t * w, h - 1, 0, -1
+        elif side == 2:
+            cx, cy, dx, dy = 0, t * h, 1, 0
+        else:
+            cx, cy, dx, dy = w - 1, t * h, -1, 0
+        ang = rng.uniform(-0.5, 0.5)
+        ux, uy = dx * np.cos(ang) - dy * np.sin(ang), dx * np.sin(ang) + dy * np.cos(ang)
+        along = (xx - cx) * ux + (yy - cy) * uy
+        across = np.abs(-(xx - cx) * uy + (yy - cy) * ux)
+        tear = np.maximum(tear, ((along > 0) & (along < L) & (across < wd * (1 - along / L) + 0.6)).astype(float))
+    tear = gaussian_filter(tear, 0.6)
+    # water stains: tide-mark rings with a faint fill (one near the lower left, one on the upper right margin)
+    stain = np.zeros((h, w))
+    for (sx, sy, r) in [(w * 0.10, h * 0.86, 70), (w * 0.93, h * 0.12, 55), (w * 0.62, h * 0.97, 40)]:
+        d = np.hypot(xx - sx, (yy - sy) * 1.15) / (r * (0.85 + 0.3 * noise(30)))
+        stain = np.maximum(stain, np.clip(1 - np.abs(d - 1) * 14, 0, 1) * 0.35 + (d < 1) * 0.07)
+    # foxing: small brown spots, thicker near the edges
+    fox = np.zeros((h, w))
+    for _ in range(900):
+        x, y = rng.random() * w, rng.random() * h
+        e = min(x, y, w - x, h - y)
+        if rng.random() > np.exp(-e / 140):
+            continue
+        r = rng.uniform(0.6, 2.4)
+        y0, y1, x0, x1 = int(max(0, y - 4)), int(min(h, y + 5)), int(max(0, x - 4)), int(min(w, x + 5))
+        fox[y0:y1, x0:x1] = np.maximum(fox[y0:y1, x0:x1], np.clip(1 - np.hypot(xx[y0:y1, x0:x1] - x, yy[y0:y1, x0:x1] - y) / r, 0, 1) * rng.uniform(0.2, 0.5))
+    # the folds (the first edition's thirds and halves) worn where they reach the edges
+    fold = np.zeros((h, w))
+    for fx in (w / 3, 2 * w / 3):
+        fold = np.maximum(fold, np.clip(1 - np.abs(xx - fx) / 2.5, 0, 1) * np.clip(1 - np.minimum(yy, h - yy) / 120, 0, 1) * 0.35)
+    fy = h / 2
+    fold = np.maximum(fold, np.clip(1 - np.abs(yy - fy) / 2.5, 0, 1) * np.clip(1 - np.minimum(xx, w - xx) / 120, 0, 1) * 0.35)
+    alpha = np.clip(np.maximum.reduce([a, tear * 0.85, stain, fox, fold]) * (0.85 + 0.3 * noise(6)), 0, 0.9)
+    col = np.zeros((h, w, 3))
+    brown = np.array([0.36, 0.24, 0.12])
+    col[:] = brown
+    col = col * (1 - 0.35 * tear[..., None])  # the tears darker (the board behind)
+    img = np.dstack([col, alpha])
+    # the rubbed patches: a pale layer
+    img2 = np.dstack([np.ones((h, w, 3)) * np.array([0.93, 0.88, 0.75]), rub])
+    up = lambda im: zoom(im, (2, 2, 1), order=1)
+    ax.imshow(up(img2), extent=(0, W, H, 0), zorder=19, interpolation="bilinear")
+    ax.imshow(up(img), extent=(0, W, H, 0), zorder=20, interpolation="bilinear")
+
+
+weathering()
 fig.savefig("/tmp/_map_overlay.pdf", transparent=True)
 
 src, out = sys.argv[1], sys.argv[2]
