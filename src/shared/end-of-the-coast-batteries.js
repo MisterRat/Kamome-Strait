@@ -340,6 +340,7 @@ const SITES = [],
     ],
   };
   const ukuru = () => {
+    UK.TUR = [[], []] /* the two 12 cm gun houses, apart from the hull: they train (ukTurrets) */;
     const P = [],
       L = UK.L,
       X0 = UK.X0,
@@ -459,12 +460,13 @@ const SITES = [],
       const x = 27,
         y = dk(27);
       P.push(part(cyl(1.7, 1.9, 0.5, 16), 0x585d62, x, y + 0.25, 0), part(cyl(1.0, 1.2, 0.5, 12), 0x41454a, x, y + 0.65, 0));
-      P.push(
+      /* the gun house and barrel train on their base ring (UK.TUR[0], made a moving part by ukTurrets) */
+      UK.TUR[0].push(
         box(2.0, 1.45, 2.3, 0x737a81, x - 0.1, y + 1.5, 0),
         box(2.1, 0.12, 2.4, GREY3, x - 0.1, y + 2.28, 0),
         box(0.1, 0.6, 1.2, 0x15171a, x + 0.95, y + 1.55, 0),
       );
-      P.push(rod(0.23, 1.6, 0x3a3d40, x + 1.3, y + 1.6, 0), rod(0.12, 4.6, GUN, x + 3.3, y + 1.6, 0), rod(0.17, 0.45, GUN, x + 5.6, y + 1.6, 0));
+      UK.TUR[0].push(rod(0.23, 1.6, 0x3a3d40, x + 1.3, y + 1.6, 0), rod(0.12, 4.6, GUN, x + 3.3, y + 1.6, 0), rod(0.17, 0.45, GUN, x + 5.6, y + 1.6, 0));
       P.push(box(0.6, 0.5, 0.9, 0x6b5c40, x - 1.9, y + 0.3, 1.4), box(0.6, 0.5, 0.9, 0x6b5c40, x - 1.9, y + 0.3, -1.4));
     }
     /* bridge: house, upper bridge, compass bridge, wings, windows, searchlights, directors */
@@ -541,18 +543,16 @@ const SITES = [],
       for (let k = 0; k < 4; k++) for (const s of [-1, 1]) P.push(box(0.8, 0.5, 0.06, WIN, x - 1.5 + k * 2.4, y + 1.4, s * 3.33));
       P.push(box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, 1.4), box(0.05, 1.3, 0.8, 0x3a3d40, x + 7.04, y + 0.7, -1.4));
       const gy = y + 2.44;
-      P.push(
-        part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0),
-        box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.25, 0),
-        box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.05, 0),
-      ); /* the gun house, on its base ring */
+      P.push(part(cyl(1.9, 2.0, 0.5, 16), 0x585d62, x, gy + 0.25, 0)); /* the base ring */
+      /* the gun house and its two barrels train on it (UK.TUR[1]) */
+      UK.TUR[1].push(box(2.6, 1.5, 3.0, 0x737a81, x - 0.2, gy + 1.25, 0), box(2.7, 0.12, 3.1, GREY3, x - 0.2, gy + 2.05, 0));
       for (const s of [-1, 1])
-        P.push(
+        UK.TUR[1].push(
           rod(0.2, 1.4, 0x3a3d40, x + 1.2, gy + 1.3, s * 0.55),
           rod(0.11, 4.2, GUN, x + 3.1, gy + 1.3, s * 0.55),
           rod(0.15, 0.4, GUN, x + 5.2, gy + 1.3, s * 0.55),
         );
-      P.push(box(0.1, 0.55, 1.9, 0x15171a, x + 1.1, gy + 1.4, 0));
+      UK.TUR[1].push(box(0.1, 0.55, 1.9, 0x15171a, x + 1.1, gy + 1.4, 0));
       for (const s of [-1, 1])
         P.push(
           part(cyl(0.55, 0.55, 0.12, 12), 0xa8742e, x + 1.5, y + 1.3, s * 3.42, Z),
@@ -610,11 +610,31 @@ const SITES = [],
   };
   /* her real draught (3.06 m) below the waterline; the model is otherwise built to her plans */
   const ukuruR = () => GX.fit(ukuru(), { D: 3.06 }, new THREE.Matrix4());
+  /* her two 12 cm gun houses as moving parts on the hull e (built by target from ukuruR): each trains about its base ring's centre
+     (forward x 27, aft x -22, on the centreline); ROE turns them to what their guns fire at (e.m.userData.tur) */
+  const UK_TP = [27, -22];
+  let ukTG = null;
+  const ukTurrets = (e) => {
+    if (!ukTG) {
+      if (!UK.TUR) ukuru();
+      ukTG = UK.TUR.map((L, k) => new GX.Acc().add(L, GX.xf(-UK_TP[k], 0, 0, 0, 1)).geometry());
+    }
+    const oy = -e.k0 - e.s1 / 2,
+      mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    e.m.userData.tur = ukTG.map((g, k) => {
+      const t = new THREE.Mesh(g, mat);
+      t.position.set(UK_TP[k], oy, 0);
+      t.matrixAutoUpdate = true;
+      e.m.add(t);
+      return t;
+    });
+  };
   /* the port's patrol vessel: a second Ukuru, alongside (the Japanese side's one patrol type) */
   {
     const d = anchorD(SITE, -175, 78, 3.06, 200, HR),
       e = ship(ukuruR(), 78, -175, d, 140);
     e.esc = true; /* a warship: her 12 cm guns are manned (ROE's gun posts) */
+    ukTurrets(e);
     ANCH.push({ m: e.m, y0: e.m.position.y, yaw: SITE.ryS, ride: RIDE.make(33.5, 4.2, 8), e });
   }
   {
@@ -646,6 +666,7 @@ const SITES = [],
       e = ship(ukuruR(), 78, u0, d0, 140),
       y0 = (e.esc = true) && e.m.position.y /* a warship: her 12 cm guns are manned */,
       oy = -e.k0 - e.s1 / 2; /* mesh-local y = model y + oy */
+    ukTurrets(e);
     const MAT = () => new THREE.MeshLambertMaterial({ vertexColors: true, side: 2 }),
       guns = [];
     /* the same Type 96 25 mm twin mounts as the bases: AA.gun entries that ride on the hull and fire under the Ground Fire option */
@@ -1580,6 +1601,7 @@ const SITES = [],
       }
     return true;
   };
+  const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
   const mkPatrol = (F) => {
     const R = 60;
     let pick = null;
@@ -1645,7 +1667,9 @@ const SITES = [],
       AA.gun.push(g);
       guns.push(g);
     }
-    e.m.add(shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */);
+    const wk = shipWakeMesh(1, -e.k0 - e.s1 / 2 + 0.45) /* on the water, just above her waterline */;
+    e.m.add(wk);
+    ukTurrets(e) /* her 12 cm guns train on what they fire at (ROE) */;
     e.m.matrixAutoUpdate = true;
     let s = Math.random() * per;
     /* two Type T-14s on an inner track, inshore of her, where the sea is deep enough */
@@ -1661,6 +1685,28 @@ const SITES = [],
       const m = e.m;
       /* RULES OF ENGAGEMENT: damaged past 40% she breaks off her patrol for her station's harbour (300 m off its shore point) and lies there */
       if (!e.dead && !P.ret && e.hp0 && e.hp < 0.6 * e.hp0) ((P.ret = { x: m.position.x, z: m.position.z, yw: m.rotation.y }), (P.berth = null));
+      /* PURSUIT (the user's, 2026-11-23: the Ugaki escort lay in harbour, or kept to her patrol, while the PCE fought the port). With
+         the enemy's ships fighting (Ships), she goes for the player's ship when she can see her (12 km by day, 4 km at night) and
+         an alert is out where she is, or when she has been hit in the last 2 minutes: she closes to about 4.5 km and fights broadside
+         on, keeps out of shoal water (and out of another hull), and goes no more than 20 km from her base. A minute without her and she
+         goes back: to her patrol, or to her berth if the alert is over. */
+      if (P.hpL != null && e.hp < P.hpL) P.hitT = WT;
+      P.hpL = e.hp;
+      {
+        const dP = Math.hypot(pos.x - m.position.x, pos.z - m.position.z),
+          hit = P.hitT != null && WT - P.hitT < 120,
+          see = (WX.lt || 0) > 0.35 ? 4000 : 12000,
+          want = !e.dead && !P.ret && SIMS.cur.afloat && started && !crashed && SIMS.cur.shipsOn() && Math.hypot(pos.x - bx, pos.z - bz) < 20000 && ((dP < see && sightAt(m.position.x, m.position.z)) || (hit && dP < 16000));
+        if (want) P.chT = 60;
+        else if (P.chT > 0 && (P.chT -= dt) <= 0) {
+          /* back: to the start of her patrol (or her berth with no alert), from where she is */
+          const c = P.ch || { x: bd.x, z: bd.z, yw: bd.yaw };
+          P.berth = { x: c.x, z: c.z, yw: c.yw, out: !home || sightAt(bx, bz) };
+          P.ch = null;
+        }
+        if (!(P.chT > 0) || e.dead || P.ret) P.ch = null;
+        else if (!P.ch) P.ch = { x: bd.x, z: bd.z, yw: bd.yaw };
+      }
       /* the IJN base's escort: in harbour with no alert; out to her patrol (to the start of her track) when one comes; back when it ends */
       if (home && !e.dead && !P.ret) {
         const al = sightAt(bx, bz);
@@ -1669,7 +1715,38 @@ const SITES = [],
       }
       const B_ = !P.ret && P.berth;
       if (B_ && !e.dead && B_.out && Math.hypot(...F.w(u0, d0).map((c, i) => c - (i ? B_.z : B_.x))) < 30) ((s = 0), (P.berth = null)); /* on her track */
-      if (!e.dead && (P.ret || P.berth)) {
+      if (!e.dead && P.ch) {
+        const r = P.ch,
+          dx = pos.x - r.x,
+          dz = pos.z - r.z;
+        let want = Math.atan2(-dz, dx);
+        if (Math.hypot(dx, dz) < 4500) {
+          /* in range: broadside on, turning the shorter way */
+          const a1 = want + Math.PI / 2,
+            a2 = want - Math.PI / 2;
+          want = Math.abs(wrapA(a1 - r.yw)) < Math.abs(wrapA(a2 - r.yw)) ? a1 : a2;
+        }
+        /* deep water ahead (her 3 m draught and a margin), or the nearest heading that has it */
+        const deep = (yw) => {
+          for (let k = 1; k <= 4; k++) if (HR(r.x + Math.cos(yw) * k * 150, r.z - Math.sin(yw) * k * 150) > coastSea() - 8) return false;
+          return true;
+        };
+        let h = null;
+        for (let k = 0; k <= 12 && h === null; k++)
+          if (deep(want + k * 0.26)) h = want + k * 0.26;
+          else if (deep(want - k * 0.26)) h = want - k * 0.26;
+        r.yw += Math.max(-0.05 * dt, Math.min(0.05 * dt, wrapA((h === null ? r.yw + Math.PI : h) - r.yw)));
+        let sp = h === null ? 2 : 10 /* about 19.5 knots, her best */;
+        const nx = r.x + Math.cos(r.yw) * sp * dt,
+          nz = r.z - Math.sin(r.yw) * sp * dt;
+        if (COLL.intrudes(bd, nx, nz, r.yw)) sp = 0;
+        else ((r.x = nx), (r.z = nz));
+        const rd = e.ride || (e.ride = RIDE.make(33.5, 4.2, 8));
+        Object.assign(bd, { x: r.x, z: r.z, yaw: r.yw, v: sp });
+        RIDE.step(rd, r.x, r.z, Math.cos(r.yw), -Math.sin(r.yw), dt, 0);
+        m.position.set(r.x, y0 + rd.hv, r.z);
+        m.rotation.set(rd.ro, r.yw, rd.pi, 'YXZ');
+      } else       if (!e.dead && (P.ret || P.berth)) {
         const r = P.ret || P.berth,
           [hx, hz] = P.berth && P.berth.out ? F.w(u0, d0) : F.w(0, 300),
           dx = hx - r.x,
@@ -1736,6 +1813,7 @@ const SITES = [],
         m.position.set(x, y0 + rd.hv, z);
         m.rotation.set(rd.ro, yw, rd.pi, 'YXZ');
       } else bd.v = 0;
+      wk.visible = bd.v > 0.5; /* no wake while she lies stopped */
       m.updateMatrixWorld(true);
       for (const g of guns) {
         g.tur.matrixAutoUpdate = g.bar.matrixAutoUpdate = true;
@@ -2772,7 +2850,8 @@ const SITES = [],
       if (nw - tm < 400) return;
       tm = nw;
       for (const s of FARS) {
-        const d = Math.hypot(cam.position.x - s.cx, cam.position.z - s.cz),
+        /* near the site, or near its patrol ship (she may be out after the player, far from her base) */
+        const d = Math.min(Math.hypot(cam.position.x - s.cx, cam.position.z - s.cz), s.pat ? Math.hypot(cam.position.x - s.pat.e.m.position.x, cam.position.z - s.pat.e.m.position.z) : 1e9),
           f = !(PHOTO.on || ROAM.on) && d > Math.min(FAR_R, scene.fog.far + 3500) + (s.F.kind === 'air' ? 1500 : 0);
         if (f === s.far) continue;
         s.far = f;

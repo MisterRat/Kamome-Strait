@@ -181,7 +181,11 @@ var ROE = (() => {
     const L = [];
     const at = (m, side, kind, fit, dead, mag) => {
       let P = post.get(m);
-      if (!P || P.kind !== kind) post.set(m, (P = { m, side, kind, guns: mkGuns(fit), dead, mag }));
+      if (!P || P.kind !== kind) {
+        post.set(m, (P = { m, side, kind, guns: mkGuns(fit), dead, mag }));
+        /* a ship with training gun houses (the Ukuru's: m.userData.tur): the forward gun works the forward house, the others the after one */
+        if (m.userData && m.userData.tur) P.guns.forEach((g, i) => ((g.ti = i ? 1 : 0), (g.drv = i < 2)));
+      }
       L.push(P);
     };
     for (const q of T) {
@@ -308,6 +312,19 @@ var ROE = (() => {
           g.ct = 0.5;
           o.copy(g.p).applyMatrix4(P.m.matrixWorld);
           g.tg = pick(P, g, o);
+        }
+        /* the gun house trains on the target (about 15 deg a second) and the gun fires only once it bears; with none, it trains back
+           fore and aft (the user's, 2026-11-23: the Ukuru's guns pointed one way and fired another) */
+        if (g.ti != null) {
+          const t = P.m.userData.tur[g.ti];
+          let want = 0;
+          if (g.tg && g.tg.p) {
+            const lp = P.m.worldToLocal(w.copy(g.tg.p));
+            want = Math.atan2(-(lp.z - t.position.z), lp.x - t.position.x);
+          }
+          const err = Math.atan2(Math.sin(want - t.rotation.y), Math.cos(want - t.rotation.y));
+          if (g.drv) t.rotation.y += Math.max(-0.26 * dt, Math.min(0.26 * dt, err));
+          if (g.tg && Math.abs(err) > 0.1) continue; /* not on yet */
         }
         if (!g.tg || g.cd > 0) continue;
         if (P.mag && (MAG[g.id] || 0) <= 0) continue;
