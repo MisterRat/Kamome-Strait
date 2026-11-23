@@ -48,7 +48,37 @@ function pceStart(x0, z0) {
     const d = Math.hypot(at[0] - w[0], at[1] - w[1]) - w[2];
     if (d < nd) ((nd = d), (n = w));
   }
-  const hdg = n ? Math.atan2(-(at[0] - n[0]), -(at[1] - n[1])) : null;
+  let hdg = n ? Math.atan2(-(at[0] - n[0]), -(at[1] - n[1])) : null;
+  /* she faces away from the nearest port or base within 10 km (the user's, 2026-11-23: she started heading toward PT Base Halsey),
+     turned as little as needs be to have 3 km of deep water ahead */
+  let pt = null,
+    pd = 10000;
+  for (const F of [...FS.list.filter((q) => q.kind === 'port'), ...(FS.nav || [])]) {
+    const d = Math.hypot(F.O.x - at[0], F.O.z - at[1]);
+    if (d < pd) ((pd = d), (pt = F.O));
+  }
+  if (pt) {
+    const h0 = Math.atan2(-(pt.x - at[0]), -(pt.z - at[1])) + Math.PI,
+      open = (h) => {
+        for (let k = 1; k <= 12; k++) {
+          const x = at[0] - Math.sin(h) * 250 * k,
+            z = at[1] - Math.cos(h) * 250 * k;
+          if (HR(x, z) > coastSea() - 12) return false;
+        }
+        return true;
+      };
+    hdg = h0;
+    for (let k = 0; k <= 18; k++) {
+      if (open(h0 + k * 0.0873)) {
+        hdg = h0 + k * 0.0873;
+        break;
+      }
+      if (open(h0 - k * 0.0873)) {
+        hdg = h0 - k * 0.0873;
+        break;
+      }
+    }
+  }
   return { x: at[0], z: at[1], hdg };
 }
 function shipReset() {
