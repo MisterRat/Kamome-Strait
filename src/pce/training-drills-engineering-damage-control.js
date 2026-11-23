@@ -60,24 +60,34 @@ DRILLS.push({
   },
 });
 /* ---- in action: her battle damage brings the jobs to the player when he is in the engine room (sdmHit calls this) ---- */
-function dcxFromHit(kind, fire, eng) {
-  if (SHIP.stn !== 2 || camMode != 1 || DRILL.on || !DM.on) return;
+/* a repair job for the damage she has, with what it mends when done (each tells the bridge what it did) */
+function dcxJob(k) {
   const hc = drillHC(),
-    add = (k, f) => {
-      const j = dcxAdd(k, hc);
-      if (j) j.onDone = (j) => !j.failed && f(j);
-    };
-  if (kind !== 'small')
-    add('flood', () => {
+    j = dcxAdd(k, hc);
+  if (!j) return;
+  const fix = {
+    flood: () => {
       SDM.holes = Math.max(0, SDM.holes - (hc ? 0.6 : 1.5));
       SDM.pump = hc ? 20 : 40; /* the pumps the player started */
-    });
-  if (fire)
-    add('fire', () => {
+      return SDM.holes > 0 ? 'HOLE SHORED, PUMPS ON. MORE HOLES TO SHORE.' : 'ALL HOLES SHORED, PUMPS ON.';
+    },
+    fire: () => {
       SDM.fire = hc ? SDM.fire * 0.3 : 0;
       if (SDM.fire < 0.05) SDM.fire = 0;
-    });
-  if (eng) add('pipe', () => (SDM.eng = Math.max(0, SDM.eng - (hc ? 0.15 : 0.3))));
+      return SDM.fire ? 'FIRE KNOCKED DOWN.' : 'THE FIRE IS OUT.';
+    },
+    pipe: () => {
+      SDM.eng = Math.max(0, SDM.eng - (hc ? 0.15 : 0.3));
+      return SDM.eng > 0 ? 'ENGINE REPAIRED IN PART: ' + Math.round(SDM.eng * 100) + '% DAMAGE LEFT.' : 'ENGINES REPAIRED. FULL POWER AVAILABLE.';
+    },
+  }[k];
+  j.onDone = (j) => !j.failed && sdmSay('BRIDGE, ENGINE ROOM. ' + fix());
+}
+function dcxFromHit(kind, fire, eng) {
+  if (SHIP.stn !== 2 || camMode != 1 || DRILL.on || !DM.on) return;
+  if (kind !== 'small') dcxJob('flood');
+  if (fire) dcxJob('fire');
+  if (eng) dcxJob('pipe');
   if (DCX.msgT <= 0) ((DCX.msgT = 20), drillSay('ENGINE ROOM', 'DAMAGE IN THE ENGINE ROOM. YOU HAVE THE REPAIRS.'));
 }
 /* each frame in action: the jobs at station 2; leave it and the repair parties take them over */
@@ -87,6 +97,14 @@ function dcxLiveStep(dt) {
   if (SHIP.stn !== 2 || camMode != 1) {
     if (DCX.L.length) DCX.L.length = 0;
     return;
+  }
+  /* the damage she already has (from before the player came down, or left after a job): a job for each kind of it, until it is
+     all mended (the user's, 2026-11-23: arriving after the hits, there were no jobs for them and nothing was mended) */
+  if (DM.on && started && !SDM.lost && (DCX.chk = (DCX.chk || 0) - dt) <= 0) {
+    DCX.chk = 1;
+    if (SDM.holes > 0.05) dcxJob('flood');
+    if (SDM.fire > 0) dcxJob('fire');
+    if (SDM.eng > 0.02) dcxJob('pipe');
   }
   /* a heavy list: counter-flood */
   if (SDM.flood > 0.15 && !SDM.cf && !DCX.L.some((j) => j.k === 'list') && started && !SDM.lost) {

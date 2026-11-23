@@ -56,15 +56,31 @@ function sdmStep(dt) {
     if (SHIPM.mesh && SDM.sink > 40) SHIPM.mesh.visible = false;
     return;
   }
-  if (!SDM.holes && !SDM.flood && !SDM.fire) return;
+  /* the engine room's own crew repair the engines when no fire is near them (the user's, 2026-11-23: nothing ever mended them) */
+  if (SDM.eng > 0 && SDM.fire < 0.3 && !dcxManned()) {
+    SDM.eng = Math.max(0, SDM.eng - 0.0015 * dt) /* a 12 cm hit's damage in about 3 1/2 minutes */;
+    if (SDM.eng === 0) sdmSay('BRIDGE, ENGINE ROOM. BOTH ENGINES REPAIRED. FULL POWER AVAILABLE.');
+  }
+  if (!SDM.holes && !SDM.flood && !SDM.fire) {
+    SHIP.dmgK = Math.min(SDM.shaft, 1 - 0.85 * SDM.eng);
+    return;
+  }
   /* Hardcore with the player in the engine room on his jobs: he is the repair party, so nothing is shored or put out but by him
      (DAMAGE CONTROL AT STATION 2); the pumps he started (SDM.pump) clear the water faster */
   const own = dcxManned();
   SDM.pump = Math.max(0, (SDM.pump || 0) - dt);
   SDM.flood = Math.max(0, SDM.flood + (0.002 * SDM.holes - 0.0012 - (SDM.pump > 0 ? 0.004 : 0)) * dt);
-  if (!own) SDM.holes = Math.max(0, SDM.holes - 0.004 * dt); /* shored up */
+  /* shored up: a 12 cm shell's hole in about 2 minutes (it took 3 1/2 and the user saw nothing mended, 2026-11-23); calibrated so
+     that one torpedo still sinks her in about 4 1/2 minutes unless the player's own repairs (station 2) win */
+  if (!own && SDM.holes > 0) {
+    SDM.holes = Math.max(0, SDM.holes - 0.007 * dt);
+    if (SDM.holes === 0) sdmSay('BRIDGE, DAMAGE CONTROL. ALL HOLES SHORED.' + (SDM.flood > 0.02 ? ' PUMPING HER OUT.' : ''));
+  }
+  if (SDM.flood === 0 && SDM.holes === 0 && SDM.cf) SDM.cf = 0;
   if (SDM.fire > 0) {
-    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - (own ? 0 : 0.006)) * dt)); /* a small one is put out, a big one spreads */
+    /* a fire grows with its size; the repair parties beat any fire they can reach (half a fire out in about a minute). It was
+       0.006 a second: a torpedo's fire (0.5) only held even and burned for ever (the user's, 2026-11-23) */
+    SDM.fire = Math.max(0, Math.min(1, SDM.fire + (0.012 * SDM.fire - (own ? 0 : 0.014)) * dt));
     if (SDM.fire > 0.6) SDM.eng = Math.min(1, SDM.eng + 0.004 * dt);
     if ((SDM.smokeT -= dt) <= 0) {
       SDM.smokeT = 0.35;

@@ -129,8 +129,21 @@ function dcxFinish(j) {
 }
 /* the words for the job being worked */
 function dcxText() {
-  const j = DCX.L[0];
-  if (!j) return 'ALL JOBS DONE.';
+  const j = DCX.L[0],
+    st = typeof SDM !== 'undefined' && !DRILL.on ? sdmState() : '';
+  if (!j) return (st ? st + '<br>' : '') + 'ALL JOBS DONE.';
+  return (st ? st + '<br>' : '') + dcxJobText(j);
+}
+/* the ship's damage now, so the player sees his repairs take effect */
+function sdmState() {
+  const L = [];
+  if (SDM.holes > 0.01) L.push('HOLES ' + SDM.holes.toFixed(1));
+  if (SDM.flood > 0.01) L.push('FLOODING ' + Math.round(SDM.flood * 100) + '%');
+  if (SDM.fire > 0) L.push('FIRE ' + Math.round(SDM.fire * 100) + '%');
+  if (SDM.eng > 0.01) L.push('ENGINES ' + Math.round(SDM.eng * 100) + '% DAMAGED');
+  return '<span style="color:#9fd0ff">SHIP: ' + (L.length ? L.join(' &middot; ') : 'NO DAMAGE') + '</span>';
+}
+function dcxJobText(j) {
   const more = DCX.L.length > 1 ? ' <span style="color:#9aa">(' + (DCX.L.length - 1) + ' MORE WAITING)</span>' : '';
   const H = '<b style="font-size:16px;color:#ff8a6a">' + DCX_NAME[j.k] + '</b>' + more + '<br>';
   if (DCX_K[j.k]) return H + DCX_K[j.k].text(j);
