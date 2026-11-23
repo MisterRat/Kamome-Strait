@@ -593,7 +593,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.115';
+const VERSION = '5.116';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -22066,7 +22066,12 @@ const SITES = [],
             const [rx, rz] = trackXZ(b, 0),
               rd = Math.hypot(rx - b.x, rz - b.z);
             if (rd > 25) freeMove(b, Math.atan2(-(rz - b.z), rx - b.x), rd > 200 ? 15.4 : 4, dt);
-            else if (b.hurt) freeMove(b, b.yw, 0, dt); /* damaged: she stays at her base */
+            else if (b.hurt) {
+              /* damaged: she lies at her base while the base's people repair her (the user's, 2026-11-23: a damaged ship that reaches a
+                 friendly port is repaired there); from 60% to whole in about 5 minutes, then she reloads and rejoins */
+              freeMove(b, b.yw, 0, dt);
+              if (!b.e.dead && (b.e.hp = Math.min(b.e.hp0, b.e.hp + (b.e.hp0 / 750) * dt)) >= b.e.hp0) b.hurt = false;
+            }
             else if ((b.rt += dt) > 120 || G.mag < 2) {
               if (G.mag >= 2) ((G.mag -= 2), b.fish.set(2));
               b.mode = 'rejoin';
@@ -22746,6 +22751,15 @@ const SITES = [],
         RIDE.step(rd, r.x, r.z, Math.cos(r.yw), -Math.sin(r.yw), dt, 0);
         m.position.set(r.x, y0 + rd.hv, r.z);
         m.rotation.set(rd.ro, r.yw, rd.pi, 'YXZ');
+        /* damaged and in her harbour (a friendly port): her base repairs her, from 60% to whole in about 10 minutes, and she goes back
+           on duty: out to her patrol, or to her berth if there is no alert (the user's, 2026-11-23) */
+        if (P.ret && !sp) {
+          e.hp = Math.min(e.hp0, e.hp + (e.hp0 / 1500) * dt);
+          if (e.hp >= e.hp0) {
+            P.ret = null;
+            P.berth = { x: r.x, z: r.z, yw: r.yw, out: !home || sightAt(bx, bz) };
+          }
+        }
       } else if (!e.dead) {
         const s0 = s,
           o0 = bd.off;

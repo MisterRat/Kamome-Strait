@@ -73,7 +73,9 @@ COMSUBPAC. The name is a proposal (section 13).
 ### 4.1 Where
 
 An atoll in the far world on the Allied side, far enough from every enemy airbase and battery that it is a sanctuary (WI 930), and
-far enough from the patrol areas that the passage out is a real part of a patrol. A first proposal: south-east of PT Base Halsey, 25-35
+far enough from the patrol areas that the passage out is a real part of a patrol. Chosen (the user's, 2026-11-23, on the briefing map): about 33 km north-east of PT Base Halsey at (33,300, -18,200), the
+only open water 25-35 km from Halsey that is 30 km from every enemy site and clear of their guns (36 km from the nearest), in
+water over 30 m deep for 5 km round. The first proposal was south-east of PT Base Halsey, 25-35
 km from it, at least 30 km from Port Ugaki, the IJN base and every enemy airfield. The user chooses the spot on the briefing map as
 they did for Halsey; `ROE.reach` and the airbases' ranges are checked automatically (a test like `halsey.py`).
 
