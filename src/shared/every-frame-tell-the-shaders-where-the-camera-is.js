@@ -72,14 +72,29 @@ function updNearTrees(cx, cy, cz, force) {
   NTU.a.value = rEff * 0.8;
 }
 const GEO = {};
+/* the islands' pine: the Ryukyu pine (Pinus luchuensis), not a spruce (the user's, 2026-11-23: the Pacific): a bare trunk leaning a
+   little, and a flat crown of layered pads up top */
 GEO.con = (() => {
-  const a = new THREE.ConeGeometry(3.7, 7.2, 6, 1, true);
-  a.translate(0, 4.5, 0);
-  const b = new THREE.ConeGeometry(2.5, 6, 6, 1, true);
-  b.translate(0, 8.6, 0);
+  const tr = new THREE.CylinderGeometry(0.2, 0.36, 8.2, 5, 3, true),
+    p = tr.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const k = (p.getY(i) + 4.1) / 8.2;
+    p.setX(i, p.getX(i) + k * k * 0.9);
+  }
+  tr.translate(0, 4.1, 0);
+  tr.computeVertexNormals();
+  const pad = (r, x, y, z, sy) => {
+    const g = new THREE.IcosahedronGeometry(r, 0);
+    g.scale(1, sy, 1);
+    g.translate(x, y, z);
+    return g;
+  };
   return mergeParts([
-    { g: a, c: [0.1, 0.27, 0.11] },
-    { g: b, c: [0.12, 0.33, 0.13] },
+    { g: tr, c: [0.34, 0.24, 0.16] },
+    { g: pad(3.3, 1.0, 8.7, 0.1, 0.36), c: [0.12, 0.3, 0.12] },
+    { g: pad(2.5, -1.3, 7.7, 1.0, 0.4), c: [0.1, 0.27, 0.11] },
+    { g: pad(2.2, 1.9, 9.6, -1.0, 0.36), c: [0.14, 0.34, 0.13] },
+    { g: pad(1.7, -0.3, 10.3, -0.7, 0.42), c: [0.13, 0.32, 0.12] },
   ]);
 })();
 GEO.oak = (() => {
@@ -98,16 +113,45 @@ GEO.oak = (() => {
     { g: bl(2.4, -1.8, 5.1, -1.0, 0.85), c: [0.17, 0.37, 0.11] },
   ]);
 })();
+/* the low trees and bushes of the islands: pandanus (screw pine), a leaning stem or two on stilt roots, each crowned with a rosette of long
+   strap leaves (the user's, 2026-11-23: the Pacific) */
 GEO.shr = (() => {
-  const a = new THREE.IcosahedronGeometry(1.0, 0);
-  a.scale(1.35, 0.8, 1.3);
-  a.translate(0, 0.75, 0);
-  const b = new THREE.IcosahedronGeometry(0.7, 0);
-  b.translate(0.9, 0.55, 0.3);
-  return mergeParts([
-    { g: a, c: [0.2, 0.36, 0.14] },
-    { g: b, c: [0.27, 0.43, 0.17] },
-  ]);
+  const parts = [];
+  const stem = (lean, ry) => {
+    const g = new THREE.CylinderGeometry(0.06, 0.1, 1.7, 5, 1, true);
+    g.translate(0, 0.85, 0);
+    g.rotateZ(lean);
+    g.rotateY(ry);
+    parts.push({ g, c: [0.42, 0.36, 0.26] });
+    const top = new THREE.Vector3(0, 1.7, 0).applyAxisAngle(new THREE.Vector3(0, 0, 1), lean).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
+    for (let k = 0; k < 9; k++) {
+      const lf = new THREE.PlaneGeometry(1.25, 0.16, 3, 1);
+      lf.translate(0.62, 0, 0);
+      lf.rotateX(-Math.PI / 2);
+      const q = lf.attributes.position;
+      for (let m = 0; m < q.count; m++) {
+        const x = q.getX(m);
+        q.setY(m, 0.35 * x - 0.45 * x * x); /* up, then arching over */
+      }
+      lf.rotateZ(0.5 - (k % 3) * 0.25);
+      lf.rotateY((k / 9) * Math.PI * 2 + ry);
+      lf.translate(top.x, top.y, top.z);
+      lf.computeVertexNormals();
+      parts.push({ g: lf, c: [0.24 + (k % 2) * 0.05, 0.42, 0.18] });
+    }
+  };
+  stem(0.25, 0);
+  stem(-0.35, 1.9);
+  /* stilt roots from the foot of the stems */
+  for (let k = 0; k < 4; k++) {
+    const g = new THREE.CylinderGeometry(0.03, 0.04, 0.6, 4, 1, true);
+    g.translate(0, 0.3, 0);
+    g.rotateZ(0.6);
+    g.rotateY((k / 4) * Math.PI * 2);
+    g.translate(0, 0, 0);
+    parts.push({ g, c: [0.4, 0.34, 0.24] });
+  }
+  return mergeParts(parts);
 })();
 GEO.palm = (() => {
   const tr = new THREE.CylinderGeometry(0.27, 0.45, 9.5, 6, 4, true),

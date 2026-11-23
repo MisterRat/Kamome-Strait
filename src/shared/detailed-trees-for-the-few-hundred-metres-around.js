@@ -202,7 +202,7 @@ function growTree(kind, seed) {
     }
     return out;
   };
-  const CEN = new V3(0, kind === 'oak' ? 6 : 5.5, 0);
+  const CEN = new V3(0, kind === 'oak' ? 6 : 8.5, 0);
   /* a card of leaves (or needles): two crossed quads along the twig, lit with a normal pointing away from the crown's centre */
   const card = (p, d, size, aspect, tone) => {
     const c = p.clone().addScaledVector(d, size * 0.5),
@@ -260,33 +260,24 @@ function growTree(kind, seed) {
       }
     }
   } else {
-    const trunk = branch(new V3(0, -0.3, 0), new V3((rnd() - 0.5) * 0.04, 1, (rnd() - 0.5) * 0.04), 11.8, 0.42, 6, 7, {
-        gnarl: 0.05,
-        force: 0,
-        end: 0.07,
-      }),
-      whorls = 14;
-    for (let w = 0; w < whorls; w++) {
-      const t = 0.09 + (0.88 * w) / (whorls - 1),
-        f = t * (trunk.length - 1),
-        i = Math.min(trunk.length - 2, Math.floor(f)),
-        pt = trunk[i].p.clone().lerp(trunk[i + 1].p, f - i),
-        nb = w > 10 ? 5 : 7,
-        ph0 = rnd() * 6.283;
-      for (let k = 0; k < nb; k++) {
-        const ph = ph0 + (k / nb) * 6.283 + (rnd() - 0.5) * 0.5,
-          ang = 1.3 + (rnd() - 0.5) * 0.2 - 0.25 * t,
-          dir = new V3(Math.cos(ph) * Math.sin(ang), Math.cos(ang), Math.sin(ph) * Math.sin(ang)),
-          L = (3.3 * Math.pow(1 - t, 0.85) + 0.55) * rr(0.9, 1.1),
-          S = branch(pt, dir, L, 0.07 * (1 - t) + 0.03, 2, 3, { gnarl: 0.1, force: -0.3 + 0.3 * t, end: 0.4 }),
-          sz = (1.7 + 0.7 * (1 - t)) * rr(0.9, 1.1);
-        for (const fr of [0.2, 0.6, 1]) {
-          const j = Math.min(S.length - 1, Math.round(fr * (S.length - 1)));
-          card(S[j].p, S[j].d, sz, 0.5, 1);
+    /* the Ryukyu pine (not a spruce: the Pacific, the user's, 2026-11-23): a trunk bare for most of its height, leaning and bending a
+       little; the branches spread from its upper third, near level and turning up at the ends, their needles in flat pads */
+    const lean = new V3((rnd() - 0.5) * 0.35, 1, (rnd() - 0.5) * 0.35).normalize(),
+      trunk = branch(new V3(0, -0.3, 0), lean, rr(8.5, 10.5), 0.36, 7, 7, { gnarl: 0.14, force: 0.15, end: 0.45 });
+    for (const c1 of kids(trunk, 8, { t0: 0.6, t1: 0.98, ang: 1.25 })) {
+      const S1 = branch(c1.p, c1.d, rr(2.6, 4.0), c1.r * 0.55, 4, 5, { gnarl: 0.3, force: 0.2, end: 0.3 });
+      for (const c2 of kids(S1, 4, { t0: 0.35, t1: 1, ang: 0.85 })) {
+        const S2 = branch(c2.p, c2.d, rr(1.0, 1.6), c2.r * 0.6, 2, 3, { gnarl: 0.4, force: 0.35, end: 0.25 });
+        /* the needle pads: wide, flat, lying near level */
+        for (const f of [0.3, 0.65, 1]) {
+          const q = Math.min(S2.length - 1, Math.round(f * (S2.length - 1))),
+            d = S2[q].d.clone().setY(S2[q].d.y * 0.35).normalize();
+          card(S2[q].p, d, rr(2.2, 3.0), 0.75, 1);
         }
       }
+      card(S1[S1.length - 1].p, S1[S1.length - 1].d.clone().setY(0.2).normalize(), rr(2.4, 3.0), 0.75, 1);
     }
-    card(trunk[trunk.length - 1].p.clone().add(new V3(0, -0.8, 0)), UP, 1.8, 0.5, 1);
+    card(trunk[trunk.length - 1].p.clone(), UP, 2.4, 0.75, 1);
   }
   const nb = BP.length / 3,
     g = new THREE.BufferGeometry(),
