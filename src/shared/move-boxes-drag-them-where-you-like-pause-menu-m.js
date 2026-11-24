@@ -15,7 +15,9 @@ UI.MV = [
   'tRkt',
   'tBmb',
   'tBar',
-];
+  'tCtx',
+  'tStn',
+].filter((id) => document.getElementById(id)) /* only the boxes this page has (the PCE: no gear or bomb buttons; its own station buttons) */;
 UI.editing = false;
 UI.all = {};
 UI.pos = {};

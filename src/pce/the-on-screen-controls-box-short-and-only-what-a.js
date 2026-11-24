@@ -10,7 +10,8 @@ function helpBox() {
   const mk = (pad) => {
     const t = (id) => (pad ? padText(id) : kbText(id));
     let l;
-    if (gun)
+    if (pad) l = pcePadHelp(pceCtx()) /* the controller: from THE CONTROLLER AND TOUCH's table */;
+    else if (gun)
       l = pad
         ? ['<b>Aim</b> stick &middot; <b>Fire</b> trigger']
         : [

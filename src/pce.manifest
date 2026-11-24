@@ -204,6 +204,7 @@ shared/roam-camera-y-a-free-camera-that-works-like-phot.js
 shared/gamepad.js
 pce/control-bindings-the-one-place-that-says-which-k.js
 shared/controls-the-lookup-tables-and-key-names-built-from-the-current-simulator.js
+pce/the-controller-and-touch-each-station-s-buttons-from-one-table.js
 pce/doc-rows-label-ids-literal-html-note-box-line-a.js
 shared/the-help-built-from-the-current-simulator-s-doc-rows.js
 pce/the-on-screen-controls-box-short-and-only-what-a.js

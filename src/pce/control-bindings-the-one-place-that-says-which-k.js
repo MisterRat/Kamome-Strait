@@ -1,29 +1,31 @@
 /* ---------- control bindings: the ONE place that says which key / button does what ----------
    The controls piece builds its lookup tables from these (kb(), PB.x, KEYID) and the on-screen controls box and the Controls tab of the
    pause menu are generated from them, so the help can never disagree with the controls.
-   To change a control: edit its row here. Menu navigation (arrows, Tab, D-pad in menus) is documented as text. */
+   To change a control: edit its row here. Menu navigation (arrows, Tab, D-pad in menus) is documented as text.
+   The controller's station work (bumpers, D-pad, A / B / X, LT, the right stick at Comms) and the touch buttons are in THE
+   CONTROLLER AND TOUCH: they press these same keys, so every station, drill and menu answers them as it answers the keyboard. */
 SIMS.add({ id: 'pce', bind: [
   /* id, doc word, keyboard codes, controller button (null = none) */
   ['pitchUp', 'pull up', [], null],
   ['pitchDn', 'push down', [], null],
   ['rollL', 'left', ['KeyA', 'ArrowLeft'], null],
   ['rollR', 'right', ['KeyD', 'ArrowRight'], null],
-  ['rudL', 'left', [], 4],
-  ['rudR', 'right', [], 5],
-  ['thrUp', 'more ahead', ['KeyW', 'ArrowUp'], 12],
-  ['thrDn', 'more astern', ['KeyS', 'ArrowDown'], 13],
+  ['rudL', 'left', [], null] /* the bumpers change station (THE CONTROLLER AND TOUCH) */,
+  ['rudR', 'right', [], null],
+  ['thrUp', 'more ahead', ['KeyW', 'ArrowUp'], null] /* the D-pad rings them as the arrow keys */,
+  ['thrDn', 'more astern', ['KeyS', 'ArrowDown'], null],
   ['sTrL', 'train left', ['KeyQ'], null],
   ['sTrR', 'train right', ['KeyE'], null],
-  ['flapDn', 'down', ['KeyF'], 15],
-  ['flapUp', 'up', ['KeyV'], 14],
-  ['gear', '', [], 0],
+  ['flapDn', 'down', ['KeyF'], null],
+  ['flapUp', 'up', ['KeyV'], null],
+  ['gear', '', [], null],
   ['orders', "the OOD's orders (at the OOD's station)", ['KeyG'], null],
-  ['brake', 'hold', ['KeyB'], 1] /* on the ground: wheel brakes. In the air: calls / clears a bandit */,
+  ['brake', 'hold', ['KeyB'], null] /* on the ground: wheel brakes. In the air: calls / clears a bandit */,
   ['guns', 'hold', ['Space'], 7],
-  ['rocket', '', [], 6],
+  ['rocket', '', [], null],
   ['hhLoad', 'reload (20 mm drum, the Hedgehog)', ['KeyR'], null],
   ['tpJump', 'Torpedoman: go to the ordered weapon', ['KeyJ'], null],
-  ['bomb', '', ['KeyZ'], 2],
+  ['bomb', '', ['KeyZ'], null],
   ['camera', 'chase / bridge', ['KeyC'], 3],
   ['clear', 'chase / roam camera', ['KeyY'], null],
   ['st1', 'OOD', ['Digit1', 'Numpad1'], null],
@@ -35,7 +37,7 @@ SIMS.add({ id: 'pce', bind: [
   ['targets', 'practice targets on / off', ['KeyT'], null],
   ['gRngUp', 'sight range up', ['PageUp'], null],
   ['gRngDn', 'sight range down', ['PageDown'], null],
-  ['r3', '', [], 11] /* tap: difficulty */,
+  ['r3', '', [], null],
   ['restart', '', ['Enter'], 9],
   ['pause', 'pause menu', ['KeyP', 'Escape'], 8],
   ['manual', 'manual', ['KeyI'], 10],

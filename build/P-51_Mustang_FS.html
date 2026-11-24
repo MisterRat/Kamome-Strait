@@ -173,12 +173,22 @@ body.mob .deskOnly{display:none}
 #tBar .tb{position:relative;width:36px;height:36px}
 #tTd{position:absolute;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:#7dffa8;left:50%;top:50%}
 #tTilt{border-radius:8px}
+/* the PCE's touch controls: its station's own buttons, the station bar, the telegraph lever's STOP line */
+#tCtx{position:absolute;left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(4,46px);gap:6px;pointer-events:none}
+#tCtx .tb{position:relative;width:46px;height:46px;border-radius:12px;font-size:9px}
+#tStn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(110px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:4px;pointer-events:none}
+#tStn .tb{position:relative;width:50px;height:28px;border-radius:8px;font-size:8px;line-height:1}
+#tStn .tb.cur{border-color:#ffb43a;color:#ffb43a}
+#tThrZ{position:absolute;left:0;right:0;bottom:33.33%;height:2px;background:rgba(255,255,255,.55)}
+#tStn,#tCtx{touch-action:none}
+.dbMob{font-size:10.5px!important;line-height:1.35!important;max-height:calc(100vh - 210px);overflow:auto;padding:5px 8px!important}
 @media (orientation:portrait){
  #tBar{left:calc(8px + env(safe-area-inset-left,0px));transform:none;top:calc(128px + env(safe-area-inset-top,0px));gap:5px}
  #tBar .tb{width:33px;height:33px}
  body.mob .p#hud{font-size:10.5px}
  #tRL,#tRR{bottom:calc(122px + env(safe-area-inset-bottom,0px))}
  #tThr{height:min(34vh,220px)}
+ #tCtx{bottom:calc(178px + env(safe-area-inset-bottom,0px))}
 }
 #tBase{position:fixed;width:110px;height:110px;margin:-55px;border:2px solid rgba(255,255,255,.4);border-radius:50%;display:none;pointer-events:none;z-index:4}
 #tKnob{position:fixed;width:44px;height:44px;margin:-22px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid #fff;display:none;pointer-events:none;z-index:4}
@@ -593,7 +603,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.119';
+const VERSION = '5.120';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -689,6 +699,9 @@ const HOOKS = {
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     padStep(gp, edge, held, dt): its own controller buttons and sticks each frame, after the shared ones (in play, nothing open)
+     touchBtn(id, down): its own meaning for a shared touch button (true: handled); thrTouch(v | null): the throttle slider moved
+       (0..1) or let go, instead of setting the throttle; touchDown(e), touchMove(e), touchUp(e): a finger on the 3D view it takes
      noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
@@ -766,6 +779,12 @@ const SIMS = {
     padMenu: false,
     r3: () => {},
     touchUI: () => {},
+    padStep: () => {},
+    touchBtn: () => false,
+    thrTouch: null,
+    touchDown: () => false,
+    touchMove: () => {},
+    touchUp: () => {},
     bail: () => {},
     hcKeys: [],
     kbDoc: [],
@@ -26085,8 +26104,26 @@ const NAVCHART = (() => {
       'L loop · - = zoom · Home: her',
     ];
     help.forEach((t, k) => g.fillText(t, MW + 10, H - 150 + k * 15));
+    /* a controller's cursor (the simulator sets it with setCur) */
+    if (cur) {
+      g.strokeStyle = '#c01818';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(cur[0], cur[1], 9, 0, 2 * Math.PI);
+      g.moveTo(cur[0] - 16, cur[1]);
+      g.lineTo(cur[0] - 4, cur[1]);
+      g.moveTo(cur[0] + 4, cur[1]);
+      g.lineTo(cur[0] + 16, cur[1]);
+      g.moveTo(cur[0], cur[1] - 16);
+      g.lineTo(cur[0], cur[1] - 4);
+      g.moveTo(cur[0], cur[1] + 4);
+      g.lineTo(cur[0], cur[1] + 16);
+      g.stroke();
+    }
     g.restore();
   }
+  let cur = null;
+  const setCur = (px, py) => (cur = px == null ? null : [px, py]);
   /* ---- the mouse, in the canvas's pixels ---- */
   function down(px, py, btn) {
     if (V.x === null) centre();
@@ -26187,7 +26224,7 @@ const NAVCHART = (() => {
     }
     return false;
   }
-  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, drawing: () => drawing, toPx, toW };
+  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, setCur, drawing: () => drawing, toPx, toW };
 })();
 /* =====================================================================================================================
    SUBMARINES AT SEA (the user's, 2026-11-21): USS Roncador (SS-301) and I-58 (Type B3, May 1945) in the water. Each boat
@@ -31167,9 +31204,11 @@ function setMob(on) {
 const kd = (code, down) =>
   window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, bubbles: true }));
 /* ---- buttons ---- */
+/* a simulator may give a button its own meaning (its role's touchBtn(id, down): true = handled); a page without the button skips it */
 function holdBtn(id, down, up) {
-  const el = $$(id),
-    on = (e) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const on = (e) => {
       e.preventDefault();
       try {
         el.setPointerCapture(e.pointerId);
@@ -31177,23 +31216,24 @@ function holdBtn(id, down, up) {
         /* the pointer was already released: harmless */
       }
       el.classList.add('on');
-      down();
+      if (!SIMS.cur.touchBtn(id, true)) down();
     },
     off = () => {
       if (el.classList.contains('on')) {
         el.classList.remove('on');
-        up();
+        if (!SIMS.cur.touchBtn(id, false)) up();
       }
     };
   el.addEventListener('pointerdown', on);
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, off));
 }
 function tapBtn(id, fn) {
-  const el = $$(id);
+  const el = document.getElementById(id);
+  if (!el) return;
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     el.classList.add('on');
-    fn();
+    if (!SIMS.cur.touchBtn(id, true)) fn();
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
     el.addEventListener(ev, () => el.classList.remove('on')),
@@ -31270,7 +31310,9 @@ tapBtn('tFs', () => toggleFS());
       let v = 1 - (e.clientY - r.top) / r.height;
       if (v < 0.06) v = 0;
       if (v > 0.94) v = 1;
-      thr = Math.max(0, Math.min(1, v));
+      v = Math.max(0, Math.min(1, v));
+      if (SIMS.cur.thrTouch) SIMS.cur.thrTouch(v) /* the PCE: the engine telegraph */;
+      else thr = v;
     };
   let on = false;
   el.addEventListener('pointerdown', (e) => {
@@ -31286,7 +31328,12 @@ tapBtn('tFs', () => toggleFS());
   el.addEventListener('pointermove', (e) => {
     if (on) set(e);
   });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, () => (on = false)));
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) =>
+    el.addEventListener(ev, () => {
+      if (on && SIMS.cur.thrTouch) SIMS.cur.thrTouch(null);
+      on = false;
+    }),
+  );
 }
 /* ---- touching the 3D view: virtual stick (right side, when tilt is off), look around, pinch zoom, double-tap resets the view ---- */
 const TP = new Map();
@@ -31312,6 +31359,12 @@ cv.addEventListener('pointerdown', (e) => {
     /* the pointer was already released: harmless */
   }
   const P = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), role: 'look' };
+  /* the simulator takes the finger first (the PCE's chart table) */
+  if (TP.size === 0 && started && SIMS.cur.touchDown(e)) {
+    P.role = 'sim';
+    TP.set(e.pointerId, P);
+    return;
+  }
   const first = TP.size === 1 ? [...TP.values()][0] : null;
   if (TP.size === 0 && started && !(TC.cfg.on && TC.state === 'ok') && e.clientX > innerWidth * 0.42) P.role = 'stick';
   else if (
@@ -31337,6 +31390,7 @@ cv.addEventListener('pointermove', (e) => {
     dy = e.clientY - P.y;
   P.x = e.clientX;
   P.y = e.clientY;
+  if (P.role === 'sim') return SIMS.cur.touchMove(e);
   if (P.role === 'stick') {
     const R = 58;
     let ox = P.x - P.sx,
@@ -31360,6 +31414,7 @@ const tpEnd = (e) => {
   const P = TP.get(e.pointerId);
   if (!P) return;
   TP.delete(e.pointerId);
+  if (P.role === 'sim') return SIMS.cur.touchUp(e);
   if (P.role === 'stick') {
     TC.sr = TC.sp = 0;
     stickShow(0, 0, 0, 0, false);
@@ -31649,7 +31704,10 @@ function tcUI() {
   $$('tsInv').checked = TC.cfg.invP;
   $$('tsInvR').checked = TC.cfg.invR;
   const gt = $$('goTilt');
-  if (gt) gt.textContent = TC.state === 'ok' ? 'Fly with TILT controls (ready)' : 'Fly with TILT controls';
+  if (gt) {
+    gt.dataset.l = gt.dataset.l || gt.textContent; /* each simulator's own words on its start screen */
+    gt.textContent = gt.dataset.l + (TC.state === 'ok' ? ' (ready)' : '');
+  }
 }
 $$('tsOn').onchange = (e) => {
   TC.cfg.on = e.target.checked;
@@ -32280,7 +32338,9 @@ UI.MV = [
   'tRkt',
   'tBmb',
   'tBar',
-];
+  'tCtx',
+  'tStn',
+].filter((id) => document.getElementById(id)) /* only the boxes this page has (the PCE: no gear or bomb buttons; its own station buttons) */;
 UI.editing = false;
 UI.all = {};
 UI.pos = {};
@@ -32975,6 +33035,10 @@ function pollPad() {
     trimPadUsed = false;
     if (e(PB.pause)) SIMS.cur.act.pause();
   }
+  /* the simulator's own buttons and sticks (the PCE: stations, engines, each station's jobs) */
+  const now = performance.now();
+  SIMS.cur.padStep(gp, e, bp, Math.min(0.1, (now - (pollPad.t || now)) / 1000));
+  pollPad.t = now;
   padPrev = b.map((x) => x.pressed);
 }
 function refreshHelp() {

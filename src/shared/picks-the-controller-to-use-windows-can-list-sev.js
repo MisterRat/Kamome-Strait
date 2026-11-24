@@ -139,6 +139,10 @@ function pollPad() {
     trimPadUsed = false;
     if (e(PB.pause)) SIMS.cur.act.pause();
   }
+  /* the simulator's own buttons and sticks (the PCE: stations, engines, each station's jobs) */
+  const now = performance.now();
+  SIMS.cur.padStep(gp, e, bp, Math.min(0.1, (now - (pollPad.t || now)) / 1000));
+  pollPad.t = now;
   padPrev = b.map((x) => x.pressed);
 }
 function refreshHelp() {

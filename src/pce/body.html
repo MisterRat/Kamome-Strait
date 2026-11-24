@@ -8,11 +8,11 @@
 <div class="p" id="adf" title="ADF radio compass: click to change station"><canvas id="adfc" width="170" height="214"></canvas></div>
 <div class="p" id="help"><div class="hk" id="hkBody"></div>
 <div class="ht"><b style="color:var(--acc)">CONTROLS &ndash; PHONE</b> (swipe to hide)<br>
-<b>Tilt</b> (hold sideways): turn like a steering wheel = roll &middot; top edge toward you = climb &middot; twist = rudder<br>
-<b>Throttle</b> slider on the left &middot; &#9664; &#9654; rudder<br>
-<b>FIRE</b> hold &middot; RKT rocket &middot; BOMB &middot; GEAR &middot; BRAKE hold &middot; FLAP &#9650;&#9660;<br>
-<b>No tilt:</b> drag the right half as a stick<br>
-<b>Pinch</b> zooms the camera &middot; double-tap resets it<br>
+<b>Lever</b> on the left: the engines &middot; &#9664; &#9654; or tilting the phone: the rudder<br>
+<b>1-5</b> on the right: the stations (tap again for the next position) &middot; the station's own buttons bottom left<br>
+<b>FIRE</b> fires, reports or gives the order (at the chart: engages the route)<br>
+<b>Drag the right half</b> as a stick: lays a gun, trains the radar or sonar, walks the deck, steers<br>
+<b>Chart table:</b> tap the sea for a waypoint, drag to move it or the chart<br>
 Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middot; &#127919; calibrate</div>
 <div class="hp" id="hpBody"></div>
 </div>
@@ -43,14 +43,15 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="p" id="start"><h1>PCE-842</h1>
 <div>USS PCE-842 &middot; Patrol Craft Escort<br>Coastal patrol &middot; March 1945<br><small class="verTag" style="opacity:.6"></small></div>
 <div id="dl" style="margin-top:16px;display:none">ENEMY SKILL (vs P-51)<br><button data-d="0">LOW 40%</button><button data-d="1">MEDIUM 65%</button><button data-d="2">HARD 100%</button></div>
-<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways like a steering wheel. <b>Tilt</b> left / right to roll, <b>top edge toward you</b> to climb, <b>twist</b> it left / right for rudder. Throttle is the slider on the left, FIRE is on the right. Without tilt, drag on the right half of the screen as a stick.</div>
-<div id="goRow"><button id="goTilt" style="display:none">Fly with TILT controls</button><button id="go">Coastal patrol</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
+<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways. The <b>lever</b> on the left rings the engines; the <b>arrows</b> (or tilting the phone) put the rudder over. The <b>1-5</b> buttons on the right take a station, and that station's own buttons appear at the bottom left. Drag on the right half of the screen as a stick: it lays a gun, trains the radar or sonar, or steers. At the chart table, tap and drag on the chart itself.</div>
+<div id="goRow"><button id="goTilt" style="display:none">Steer with TILT controls</button><button id="go">Coastal patrol</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
 
 <div id="tc">
- <div class="tb" id="tThr"><div id="tThrF"></div><div id="tThrH"></div><div id="tThrL">THR 0%</div></div>
- <div id="tL"><div class="tb" id="tGear"><i>&#9650;</i>GEAR UP</div><div class="tb" id="tBrk"><i>&#9632;</i>BRAKE</div><div class="tb" id="tFlU"><i>&#9650;</i>FLAP UP</div><div class="tb" id="tFlD"><i>&#9660;</i>FLAP</div></div>
+ <div class="tb tel" id="tThr"><div id="tThrF"></div><div id="tThrZ"></div><div id="tThrH"></div><div id="tThrL">STOP</div></div>
+ <div id="tCtx"></div>
  <div class="tb" id="tRL"><i>&#9664;</i></div><div class="tb" id="tRR"><i>&#9654;</i></div>
- <div class="tb" id="tFire">FIRE</div><div class="tb" id="tRkt"><i>&#128640;</i>RKT</div><div class="tb" id="tBmb"><i>&#128163;</i>BOMB</div>
+ <div class="tb" id="tFire">FIRE</div>
+ <div id="tStn"><div class="tb" data-n="1">1<br>OOD</div><div class="tb" data-n="2">2<br>ENG</div><div class="tb" data-n="3">3<br>COMMS</div><div class="tb" data-n="4">4<br>GUNS</div><div class="tb" data-n="5">5<br>DC</div></div>
  <div id="tBar"><div class="tb" id="tMenu"><i>&#9776;</i></div><div class="tb" id="tPause"><i>&#9208;</i></div><div class="tb" id="tCam"><i>&#128247;</i></div><div class="tb" id="tCal"><i>&#127919;</i></div><div class="tb" id="tSet"><i>&#9881;</i></div><div class="tb" id="tFs"><i>&#9974;</i></div><div class="tb" id="tTilt"><b id="tTd"></b></div></div>
 </div>
 <div id="tBase"></div><div id="tKnob"></div>

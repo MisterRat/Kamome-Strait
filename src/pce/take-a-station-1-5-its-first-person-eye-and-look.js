@@ -127,7 +127,7 @@ function shipStep(dt) {
   const tp6 = SHIP.stn === 5 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
     engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 1))) /* Hardcore: only the engine room and the pilothouse (the OOD) work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
-    hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
+    hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oY + (pceStickSteers() ? pad.r + TC.oR : 0) /* the stick lays a gun or trains Comms there */,
     rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */;
   /* the player's route (WAYPOINT NAVIGATION): the helmsman steers for the waypoint; the player's own hand on the rudder takes her back */
   let navP = !rtb && ASW.ph === 'idle' ? NAV.aim() : null;

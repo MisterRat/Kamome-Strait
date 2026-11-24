@@ -41,6 +41,9 @@
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     padStep(gp, edge, held, dt): its own controller buttons and sticks each frame, after the shared ones (in play, nothing open)
+     touchBtn(id, down): its own meaning for a shared touch button (true: handled); thrTouch(v | null): the throttle slider moved
+       (0..1) or let go, instead of setting the throttle; touchDown(e), touchMove(e), touchUp(e): a finger on the 3D view it takes
      noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
@@ -118,6 +121,12 @@ const SIMS = {
     padMenu: false,
     r3: () => {},
     touchUI: () => {},
+    padStep: () => {},
+    touchBtn: () => false,
+    thrTouch: null,
+    touchDown: () => false,
+    touchMove: () => {},
+    touchUp: () => {},
     bail: () => {},
     hcKeys: [],
     kbDoc: [],

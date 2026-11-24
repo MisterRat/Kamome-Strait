@@ -16,12 +16,13 @@ SIMS.add({
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'quality', 'mute'], '', 4],
 ],
   padDoc: [
-  ['Rudder', 'Right stick left / right, or the bumpers', '', 1],
-  ['Engines', ['thrUp', 'thrDn'], 'the order stays where you leave it', 1],
-  ['Look around', 'Left stick: bridge free-look, release to recenter', '', 2],
-  ['At a gun', 'the stick aims, the trigger fires', '', 2],
-  ['Camera', ['camera'], 'chase / bridge', 2],
-  ['Restart', ['restart'], '', 3],
+  ['Rudder', 'Right stick left / right (at the radar, sonar and radio it works the set instead)', 'let go and she steadies', 0],
+  ['Engines', 'D-pad up / down', 'the order stays where you leave it', 0],
+  ['Stations', 'LB / RB: the station before / after; from the chase view, back to her station', '', 0],
+  ['Look around', 'Left stick (at a gun it aims; at the chart table it moves the cursor)', '', 0],
+  ['Camera', ['camera'], 'chase / station', 0],
+  ...pcePadDoc(),
+  ['Restart', ['restart'], '', 0],
   [
     'Menus',
     () =>

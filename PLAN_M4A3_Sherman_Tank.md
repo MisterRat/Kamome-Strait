@@ -5,7 +5,9 @@ resources. Plan everything, including allied and enemy bases, hedgerows, road, a
 they will looks like, how they will be played in training and live missions." Revised the same day with the user's answers: **the
 setting is the Pacific; coral walls may replace the hedgerows; the locations and names are left to this plan; the tank is the M4A3 with
 the 75 mm main gun, the .50 on the turret and the .30s inside (coaxial and bow)**; and Huber's *Japan's Battle of Okinawa* was added to
-`References/`. Nothing in this plan is built yet. The remaining open questions are in section 15.
+`References/`. Revised 2026-11-24 with the user's new `References/M4A3/` folder (spec sheet, M3 gun data, line drawings,
+sub-variant drawings, TM 9-759): the figures in section 3 now come from the spec sheet, and section 3.1 lists them in full. Nothing in
+this plan is built yet. The remaining open questions are in section 15.
 
 The working rules in `PLAN_Kamome-Strait.md` section 7 apply unchanged: versions on every change, screenshots of visual changes, no
 floating parts, blueprints, quick tests, shared code in `src/shared`, the single-page games kept, and a sync to `C:\Code\Kamome-Strait`.
@@ -52,6 +54,7 @@ hurt, the Japanese ones could not move but could hardly be hurt. That is the gam
 | **Marine tank sources** (Alexander, *The Final Campaign*, NPS; Gilbert; Zaloga) | Tank telephones on the hull; the infantry covering the tanks; with those tactics and open ground, close assaults cost the Marines almost no tanks. |
 | **Japanese weapons** (Wikipedia; Lone Sentry; Pacific Wrecks) | Type 1 47 mm AT gun (about 2,300 built); the Type 97 Shinhoto Chi-Ha with the 47 mm tank gun, dangerous to light tanks and to a Sherman's side and rear. |
 | **Okinawan villages** (Chen and Nakama, J. Japanese Society of Coastal Forest 2011; Chen and Akamine 2021) | Villages wrapped in several planted belts of windbreak trees (fukugi), houses with rows of fukugi and coral stone walls round them, lanes in a grid. |
+| **`References/M4A3/`** (the user's tank folder, 2026-11-24) | `M4A3-75W-specsheet.png`: Medium Tank M4A3(75)W late production, every figure in section 3.1 (the primary source for the vehicle; it wins over every other figure in this plan). `M3-gun-data-image.png`: the 75 mm M2/M3/M6 data sheet (Sherman Tank Site, from Hunnicutt): bore, weights, muzzle velocities, max ranges, penetration at 500-2,000 yd. `M4A3-line-color.png`: side, front, rear and top line drawings of an M4A3 75 (small hatch, dry), for the blueprint's hull, running gear and turret shapes. `M4A3-sub-variants-1.png`: side drawings of six M4A3s; the **M4A3 75W Large Hatch** (third) is the game's tank, so the hull front, hatches and cupola follow it, not the small-hatch drawing. `M4A3 Original Manual TM9_759_1942.pdf`: the TM (local copy). `M4A3 Sherman.jpg`: photo. Also the user's link, theshermantank.com's M4A3 page: Ford GAA, final drive 2.84:1, welded hull, 12,596 built June 1942-June 1945, large-hatch hulls the later standard. |
 | **The user's references** (`References/`) | M4A3 Sherman.jpg, M3A1 Half-Track.jpg, GMC CCKW 353.jpg, M2 Cletrac.jpg, Type 95 Ha-Go.jpg; `docs/research_1945_bases.md` gives the M4A3's size (5.90 x 2.62 x 2.74 m) and the Ha-Go's. |
 
 ---
@@ -62,18 +65,47 @@ M4A3(75)W: the Ford GAA V-8 Sherman with the 75 mm M3 gun and wet ammunition sto
 
 | System | Real | What the game models |
 |---|---|---|
-| Size and weight | 5.90 x 2.62 x 2.74 m; about 31 t | Its body for collision, crossing (trench, step), bogging and toppling |
-| Engine and drive | Ford GAA V-8, 500 hp gasoline; 5-speed synchromesh gearbox and reverse; controlled differential steered by two laterals; about 26 mph on roads | Engine rpm and torque, gears (the driver shifts, or automatic in game mode), lateral steering (one track braked), braking, fuel (range), engine heat; the sounds |
-| Running gear | VVSS, three bogies a side, 16.5 in tracks | Per-wheel ground contact, pitch and roll, track tension; a track thrown by a mine, a satchel charge or a hard turn on rock |
-| Armour | Glacis 2.5 in at 47 deg (the wet hull), turret front 3 in, sides 1.5 in, rear 1.5 in, roof and belly thin | An armour map by zone (thickness and slope) for the penetration rule (section 8); the belly exposed when she climbs a wall or a terrace |
-| **Main gun** | **75 mm M3 L/40** in the M34A1 mount; M61 APC, M48 HE (normal and supercharge), M89 smoke, M64 WP; about 104 rounds | The shared shell ballistics with the M3's table; the ready rack and the wet racks under the floor; loading time by where the round comes from |
+| Size and weight | 6.27 m long (247 in, with sandshields; no gun overhang), 2.67 m wide (105 in, with sandshields), 2.94 m high over the cupola (115.7 in); 31.6 t combat loaded (69,600 lb). The older 5.90 x 2.62 x 2.74 m in `docs/research_1945_bases.md` is without sandshields and cupola | Its body for collision, crossing (trench 2.29 m, wall 0.61 m), bogging and toppling |
+| Engine and drive | Ford GAA V-8, 450 hp net (500 gross) at 2,600 rpm, 950 lb-ft net at 2,200; 5-speed synchromesh and reverse; controlled differential steered by two laterals; 26 mph sustained on a level road | Engine rpm and torque curve, the real gear ratios (3.1), the driver shifting or automatic in game mode, lateral steering, braking, 168 gal of fuel for about 100 miles, engine heat; the sounds |
+| Running gear | VVSS, three bogies a side, 12 road wheels 20 x 9 in, 16.56 in tracks, 147 in on the ground, 14.3 psi | Per-wheel ground contact, pitch and roll, track tension; a track thrown by a mine, a satchel charge or a hard turn on rock |
+| Armour | Upper glacis 2.5 in at 47 deg; lower nose 4.25-2 in; hull sides 1.5 in vertical, rear 1.5 in, roof 0.75 in, floor 1.0 front / 0.5 rear; turret gun shield 3.5 in, rotor shield 2.0, front 3.0 at 30 deg, sides 2.0 at 5 deg, rear 2.0, roof 1.0 | An armour map by zone (thickness and slope) for the penetration rule (section 8); the belly exposed when she climbs a wall or a terrace |
+| **Main gun** | **75 mm M3 L/40** in the M34A1 mount; traverse 360 deg in 15 s (power) or by hand; elevation -12 to +25 deg; 20 rounds a minute at most; stabilizer in elevation only; M61 APC, M72 AP, M48 HE (normal and supercharge), M89 smoke, M64 WP; 104 rounds | The shared shell ballistics with the M3's table (3.1); the ready rack and the wet racks under the floor; loading time by where the round comes from |
 | **Turret machine gun** | **.50 cal M2HB on the turret roof**; 450-550 rounds a minute; 600 rounds; its tripod carried, a rear bracket to stow it | Fired by the commander head out (or the loader standing in his hatch, as crews did); the gunner exposed while he fires it; against infantry, cave mouths and aircraft; stowed on the bracket for travel |
 | **Internal machine guns** | **.30 cal M1919A4 coaxial** beside the 75, fired by the gunner; **.30 cal M1919A4 in the bow ball mount**, fired by the assistant driver; 450-550 rounds a minute; 6,250 rounds for the .30s | Belts, bursts, barrel heat (a coax barrel can burn out in a long fight and is changed); the spare M1919A4 and its one tripod for a dismounted gun |
 | Crew arms | Five M3 sub-machine guns (600 rounds of .45), M1911A1 pistols, grenades | For bailing out and fighting beside a stalled tank (Hardcore) |
 | Fire control | Gunner: periscope M4A1 with telescope M38A2 and the direct telescope M70F; power and hand traverse; elevation handwheel; foot switches; the one-axis gyrostabilizer | Two sight views (periscope 1.44x wide, telescope 3x), the reticle with range lines, traverse and elevation rates, the stabilizer holding elevation roughly on the move |
 | Vision | Commander's vision cupola (late M4A3) or split hatch with a rotating periscope; M6 periscopes for the others | Each station's periscopes and blocks; head out or buttoned up |
 | Radio | SCR-508/528 FM set in the turret bustle; interphone for the crew; an external tank-infantry telephone on the rear hull | The company and platoon nets; the crew interphone; the infantry phone |
-| Smoke | 2 in mortar (smoke) in the turret roof; WP from the 75 | Screens; marking targets for aircraft |
+| Smoke | 2 in mortar (smoke) in the turret roof, 18 rounds; WP from the 75 | Screens; marking targets for aircraft |
+
+### 3.1 The spec sheet in full (`References/M4A3/M4A3-75W-specsheet.png`, M3 gun data sheet)
+
+These are the numbers the code and the blueprint use. Where they differ from anything else in this plan, these win.
+
+| Group | Figures |
+|---|---|
+| General | Crew 5. Length 247 in (6.27 m) gun forward or rear, with sandshields; gun overhang 0. Width 105 in (2.67 m). Height over cupola 115.7 in (2.94 m). Tread (track centres) 83 in (2.11 m). Ground clearance 17 in (0.43 m). Fire height 88 in (2.24 m). Turret ring 69 in inside (1.75 m). Weight 69,600 lb loaded (31.6 t), 63,100 lb unstowed. 12.9 hp/t net. Ground pressure 14.3 psi |
+| Engine | Ford GAA, 8 cyl 60 deg V, liquid cooled, magneto; 1,100 cu in; bore x stroke 5.4 x 6 in; CR 7.5:1; 450 hp net / 500 gross at 2,600 rpm; 950 lb-ft net / 1,040 gross at 2,200 rpm; 1,560 lb dry; 168 gal 80-octane; 32 qt oil |
+| Power train | Dry 2-plate clutch; synchromesh 5F 1R: 1st 7.56, 2nd 3.11, 3rd 1.78, 4th 1.11, 5th 0.73, R 5.65; controlled differential, bevel 3.53:1, steer 1.5515:1; mechanical external-contracting brakes; herringbone final drive 2.84:1; front sprocket 13 teeth, pitch diameter 25.038 in |
+| Running gear | VVSS: 12 wheels in 6 bogies (3 a side), tyres 20 x 9 in; 6 return rollers (one at the rear of each bogie); adjustable idler at the rear, 22 x 9 in; T48/T49/T51/T54E1 tracks, 16.56 in wide, 6 in pitch, 79 shoes a side; 147 in on the ground |
+| Armour (in, angle from vertical) | Hull: upper front 2.5 @ 47; lower front 4.25-2 @ 0-56; sides 1.5 @ 0; rear 1.5 @ 0-22; top 0.75 @ 83-90; floor front 1.0, rear 0.5. Turret: gun shield 3.5; rotor shield 2.0; front 3.0 @ 30; sides 2.0 @ 5; rear 2.0; top 1.0 @ 90 |
+| Armament | 75 mm M3 in mount M34A1: 360 deg, 15 s per 360 deg max, hydraulic and manual; elevation -12 to +25 deg manual; 20 rounds/min max; manual loading; stabilizer elevation only. .50 M2HB flexible AA mount on the turret; .30 M1919A4 coaxial; .30 M1919A4 bow; 2 in smoke mortar fixed in the turret; 5 M3 .45 SMGs |
+| Ammunition | 104 x 75 mm; 600 x .50; 6,750 x .30; 900 x .45; 12 grenades; 18 x 2 in smoke |
+| Fire control and vision | Gunner: periscope M4A1 (with telescope M38) for direct fire; azimuth indicator M19, gunner's quadrant M1, elevation quadrant M9 for indirect fire. Vision: driver hatch + 2 M6; assistant driver hatch + 2 M6; commander vision cupola and hatch + 1 M6; gunner periscope M4A1; loader pistol port + 1 M6. Total M4A1 x 1, M6 x 6; 1 pistol port (turret) |
+| Electrical | 24 V; main generator 24 V 50 A off the engine; auxiliary generator 30 V 50 A on its own engine; two 12 V batteries in series |
+| Communications | SCR 508, 528 or 538 in the rear of the turret (SCR 506 in the right front sponson, command tanks only); interphone for 5 stations; flag set M238, panel set AP50A, spotlight, siren; flares |
+| Fire protection | 2 fixed 10 lb CO2; 2 portable 4 lb CO2; 2 decontaminating apparatus |
+| Performance | 26 mph sustained, level road; 60% grade; trench 7.5 ft (2.29 m); vertical wall 24 in (0.61 m); fording 36 in (0.91 m); turning circle 62 ft diameter (18.9 m); about 100 miles on roads |
+| 75 mm M3 gun | 893 lb; 118.38 in muzzle to breech face (40.1 cal); bore 2.95 in, 37.5 cal; 24 grooves, 1 turn in 25.59 cal; semi-automatic sliding wedge, horizontal in the M34A1; fixed rounds, percussion; 38,000 psi |
+| 75 mm rounds (M3) | M61 APC-HE-T: 14.96 lb, 2,030 ft/s (619 m/s), 14,000 yd. M72 AP-T: 13.94 lb, 2,030 ft/s, 10,650 yd. M48 HE supercharge: 14.70 lb, 1,980 ft/s (604 m/s), 14,000 yd; normal: 1,470 ft/s (448 m/s), 11,400 yd. M89 smoke: 6.61 lb, 850 ft/s, about 1,500 yd. (T45 HVAP was experimental only: not in the game) |
+| Penetration, homogeneous plate at 30 deg | M61: 2.6 / 2.4 / 2.2 / 2.0 in at 500 / 1,000 / 1,500 / 2,000 yd (a second table on the same sheet gives 2.4 / 2.2 / 2.0 / 1.8: the game uses the lower, the safer). M72: 2.4 / 2.1 / 1.8 / 1.5 in (or 3.0 / 2.5 / 2.0 / 1.7). Against face-hardened plate at 30 deg: M61 2.7 / 2.4 / 2.2 / 1.9 in |
+
+**Corrections to the earlier plan:** the size (6.27 x 2.67 x 2.94 m, was 5.90 x 2.62 x 2.74), turret sides and rear 2.0 in (were 1.5),
+.30 ammunition 6,750 (was 6,250), .45 ammunition 900 (was 600), the net horsepower (450; 500 is gross). The gunner's sight: the spec
+sheet gives the periscope M4A1 with telescope M38 and no direct telescope; the M70F direct telescope in section 5.2 came with the M34A1
+mount on many late tanks, so the game keeps both views but the blueprint and help name what the sheet names, with the M70F as fitted.
+The blueprint follows the large-hatch 75W profile (`M4A3-sub-variants-1.png`, third drawing), taking the running gear, turret and
+rear deck from `M4A3-line-color.png`, scaled to the spec sheet's length, width and height.
 
 ---
 

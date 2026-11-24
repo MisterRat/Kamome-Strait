@@ -1,7 +1,9 @@
 /* ---- buttons ---- */
+/* a simulator may give a button its own meaning (its role's touchBtn(id, down): true = handled); a page without the button skips it */
 function holdBtn(id, down, up) {
-  const el = $$(id),
-    on = (e) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const on = (e) => {
       e.preventDefault();
       try {
         el.setPointerCapture(e.pointerId);
@@ -9,23 +11,24 @@ function holdBtn(id, down, up) {
         /* the pointer was already released: harmless */
       }
       el.classList.add('on');
-      down();
+      if (!SIMS.cur.touchBtn(id, true)) down();
     },
     off = () => {
       if (el.classList.contains('on')) {
         el.classList.remove('on');
-        up();
+        if (!SIMS.cur.touchBtn(id, false)) up();
       }
     };
   el.addEventListener('pointerdown', on);
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, off));
 }
 function tapBtn(id, fn) {
-  const el = $$(id);
+  const el = document.getElementById(id);
+  if (!el) return;
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     el.classList.add('on');
-    fn();
+    if (!SIMS.cur.touchBtn(id, true)) fn();
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
     el.addEventListener(ev, () => el.classList.remove('on')),

@@ -131,12 +131,21 @@ function dbShow(id, c, place) {
   const el = dbEl(id);
   el.style.display = c ? 'block' : 'none';
   if (!c) return;
-  if (el.dataset.place !== place) {
-    el.dataset.place = place;
+  if (el.dataset.place !== place + MOB) {
+    el.dataset.place = place + MOB;
     const side = { left: '12px', right: 'auto', top: '160px', bottom: 'auto', transform: 'none', width: 'min(440px,42vw)' };
+    /* on a phone: smaller, side by side above the touch buttons, clear of the readout, the minimap and the station buttons */
+    if (MOB) {
+      Object.assign(side, { left: 'calc(70px + env(safe-area-inset-left,0px))', top: '70px', width: 'min(360px,37vw)' });
+      el.classList.add('dbMob');
+    } else el.classList.remove('dbMob');
     Object.assign(
       el.style,
-      place === 'left'
+      MOB && place === 'right'
+        ? { ...side, left: 'auto', right: 'calc(var(--mm) + 22px + env(safe-area-inset-right,0px))' }
+        : MOB && place === 'bottom'
+          ? { left: '50%', right: 'auto', top: 'auto', bottom: '70px', transform: 'translateX(-50%)', width: 'min(360px,46vw)' }
+          : place === 'left'
         ? side
         : place === 'right'
           ? { ...side, left: 'auto', right: '12px', top: '212px' /* under the minimap */ }

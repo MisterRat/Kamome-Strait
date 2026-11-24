@@ -4,8 +4,8 @@ function tpWalk(dt) {
   SHIP.look[1] = Math.max(-1.2, Math.min(1.0, SHIP.look[1] + viewPitch));
   viewYaw = viewPitch = 0;
   const a = SHIP.look[0],
-    fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
-    sd = kb('rollR') - kb('rollL'),
+    fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0) - TC.oP /* the touch stick too */,
+    sd = kb('rollR') - kb('rollL') + TC.oR,
     p = TPW.p;
   if (fw || sd) {
     const n = Math.hypot(fw, sd),

@@ -11,8 +11,8 @@ function gunUpdate(dt) {
   if (G && play) {
     /* the mouse lays the gun (in the mousemove handler); a controller lays it with the left stick */
     const k = G.s.free ? 0.9 : 1,
-      dtr = -pad.lx * G.s.trR * k,
-      del = -pad.ly * G.s.elR * k;
+      dtr = -(pad.lx + TC.oR) * G.s.trR * k /* the controller's left stick, the touch stick or tilt */,
+      del = -(pad.ly + TC.oP) * G.s.elR * k;
     if (dtr || del) gunLay(dtr * dt, del * dt);
     /* the 3"/50's sight: the gun is laid above the line of sight by the superelevation for the range set on the sight */
     if (G.s.sight === 'scope') {

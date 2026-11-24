@@ -173,12 +173,22 @@ body.mob .deskOnly{display:none}
 #tBar .tb{position:relative;width:36px;height:36px}
 #tTd{position:absolute;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:#7dffa8;left:50%;top:50%}
 #tTilt{border-radius:8px}
+/* the PCE's touch controls: its station's own buttons, the station bar, the telegraph lever's STOP line */
+#tCtx{position:absolute;left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(4,46px);gap:6px;pointer-events:none}
+#tCtx .tb{position:relative;width:46px;height:46px;border-radius:12px;font-size:9px}
+#tStn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(110px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:4px;pointer-events:none}
+#tStn .tb{position:relative;width:50px;height:28px;border-radius:8px;font-size:8px;line-height:1}
+#tStn .tb.cur{border-color:#ffb43a;color:#ffb43a}
+#tThrZ{position:absolute;left:0;right:0;bottom:33.33%;height:2px;background:rgba(255,255,255,.55)}
+#tStn,#tCtx{touch-action:none}
+.dbMob{font-size:10.5px!important;line-height:1.35!important;max-height:calc(100vh - 210px);overflow:auto;padding:5px 8px!important}
 @media (orientation:portrait){
  #tBar{left:calc(8px + env(safe-area-inset-left,0px));transform:none;top:calc(128px + env(safe-area-inset-top,0px));gap:5px}
  #tBar .tb{width:33px;height:33px}
  body.mob .p#hud{font-size:10.5px}
  #tRL,#tRR{bottom:calc(122px + env(safe-area-inset-bottom,0px))}
  #tThr{height:min(34vh,220px)}
+ #tCtx{bottom:calc(178px + env(safe-area-inset-bottom,0px))}
 }
 #tBase{position:fixed;width:110px;height:110px;margin:-55px;border:2px solid rgba(255,255,255,.4);border-radius:50%;display:none;pointer-events:none;z-index:4}
 #tKnob{position:fixed;width:44px;height:44px;margin:-22px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid #fff;display:none;pointer-events:none;z-index:4}
@@ -267,11 +277,11 @@ body.mob.editing #tc{display:block}
 <div class="p" id="adf" title="ADF radio compass: click to change station"><canvas id="adfc" width="170" height="214"></canvas></div>
 <div class="p" id="help"><div class="hk" id="hkBody"></div>
 <div class="ht"><b style="color:var(--acc)">CONTROLS &ndash; PHONE</b> (swipe to hide)<br>
-<b>Tilt</b> (hold sideways): turn like a steering wheel = roll &middot; top edge toward you = climb &middot; twist = rudder<br>
-<b>Throttle</b> slider on the left &middot; &#9664; &#9654; rudder<br>
-<b>FIRE</b> hold &middot; RKT rocket &middot; BOMB &middot; GEAR &middot; BRAKE hold &middot; FLAP &#9650;&#9660;<br>
-<b>No tilt:</b> drag the right half as a stick<br>
-<b>Pinch</b> zooms the camera &middot; double-tap resets it<br>
+<b>Lever</b> on the left: the engines &middot; &#9664; &#9654; or tilting the phone: the rudder<br>
+<b>1-5</b> on the right: the stations (tap again for the next position) &middot; the station's own buttons bottom left<br>
+<b>FIRE</b> fires, reports or gives the order (at the chart: engages the route)<br>
+<b>Drag the right half</b> as a stick: lays a gun, trains the radar or sonar, walks the deck, steers<br>
+<b>Chart table:</b> tap the sea for a waypoint, drag to move it or the chart<br>
 Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middot; &#127919; calibrate</div>
 <div class="hp" id="hpBody"></div>
 </div>
@@ -302,14 +312,15 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="p" id="start"><h1>PCE-842</h1>
 <div>USS PCE-842 &middot; Patrol Craft Escort<br>Coastal patrol &middot; March 1945<br><small class="verTag" style="opacity:.6"></small></div>
 <div id="dl" style="margin-top:16px;display:none">ENEMY SKILL (vs P-51)<br><button data-d="0">LOW 40%</button><button data-d="1">MEDIUM 65%</button><button data-d="2">HARD 100%</button></div>
-<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways like a steering wheel. <b>Tilt</b> left / right to roll, <b>top edge toward you</b> to climb, <b>twist</b> it left / right for rudder. Throttle is the slider on the left, FIRE is on the right. Without tilt, drag on the right half of the screen as a stick.</div>
-<div id="goRow"><button id="goTilt" style="display:none">Fly with TILT controls</button><button id="go">Coastal patrol</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
+<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways. The <b>lever</b> on the left rings the engines; the <b>arrows</b> (or tilting the phone) put the rudder over. The <b>1-5</b> buttons on the right take a station, and that station's own buttons appear at the bottom left. Drag on the right half of the screen as a stick: it lays a gun, trains the radar or sonar, or steers. At the chart table, tap and drag on the chart itself.</div>
+<div id="goRow"><button id="goTilt" style="display:none">Steer with TILT controls</button><button id="go">Coastal patrol</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
 
 <div id="tc">
- <div class="tb" id="tThr"><div id="tThrF"></div><div id="tThrH"></div><div id="tThrL">THR 0%</div></div>
- <div id="tL"><div class="tb" id="tGear"><i>&#9650;</i>GEAR UP</div><div class="tb" id="tBrk"><i>&#9632;</i>BRAKE</div><div class="tb" id="tFlU"><i>&#9650;</i>FLAP UP</div><div class="tb" id="tFlD"><i>&#9660;</i>FLAP</div></div>
+ <div class="tb tel" id="tThr"><div id="tThrF"></div><div id="tThrZ"></div><div id="tThrH"></div><div id="tThrL">STOP</div></div>
+ <div id="tCtx"></div>
  <div class="tb" id="tRL"><i>&#9664;</i></div><div class="tb" id="tRR"><i>&#9654;</i></div>
- <div class="tb" id="tFire">FIRE</div><div class="tb" id="tRkt"><i>&#128640;</i>RKT</div><div class="tb" id="tBmb"><i>&#128163;</i>BOMB</div>
+ <div class="tb" id="tFire">FIRE</div>
+ <div id="tStn"><div class="tb" data-n="1">1<br>OOD</div><div class="tb" data-n="2">2<br>ENG</div><div class="tb" data-n="3">3<br>COMMS</div><div class="tb" data-n="4">4<br>GUNS</div><div class="tb" data-n="5">5<br>DC</div></div>
  <div id="tBar"><div class="tb" id="tMenu"><i>&#9776;</i></div><div class="tb" id="tPause"><i>&#9208;</i></div><div class="tb" id="tCam"><i>&#128247;</i></div><div class="tb" id="tCal"><i>&#127919;</i></div><div class="tb" id="tSet"><i>&#9881;</i></div><div class="tb" id="tFs"><i>&#9974;</i></div><div class="tb" id="tTilt"><b id="tTd"></b></div></div>
 </div>
 <div id="tBase"></div><div id="tKnob"></div>
@@ -586,7 +597,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.0';
+const VERSION = '1.1';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -682,6 +693,9 @@ const HOOKS = {
      pause menu's first help page), canBail (the crew can bail out), showSelf(on) (photo mode shows or hides the vehicle),
      padMenu (controller button 8 opens the missions), r3() (what releasing the right stick does), touchUI() (its touch buttons' labels), bail() (the crew bails out: the controller's two bumpers, the pause menu)
      mouseDown(e), mouseUp(), mouseMove(e), wheel(e): its own use of the mouse (true: handled); dragLook(e) a drag its own camera takes;
+     padStep(gp, edge, held, dt): its own controller buttons and sticks each frame, after the shared ones (in play, nothing open)
+     touchBtn(id, down): its own meaning for a shared touch button (true: handled); thrTouch(v | null): the throttle slider moved
+       (0..1) or let go, instead of setting the throttle; touchDown(e), touchMove(e), touchUp(e): a finger on the 3D view it takes
      noted(t)           a popup message (note) was shown: the sim may keep it (the PCE logs it on the radio paper)
      lookScale() how fast the mouse turns the head in first person; orbitMin the orbit camera's nearest distance
      voices(SND, { osc, filt, gain, noise, m }): build its own sounds into the shared sound when audio starts;
@@ -759,6 +773,12 @@ const SIMS = {
     padMenu: false,
     r3: () => {},
     touchUI: () => {},
+    padStep: () => {},
+    touchBtn: () => false,
+    thrTouch: null,
+    touchDown: () => false,
+    touchMove: () => {},
+    touchUp: () => {},
     bail: () => {},
     hcKeys: [],
     kbDoc: [],
@@ -23871,8 +23891,26 @@ const NAVCHART = (() => {
       'L loop · - = zoom · Home: her',
     ];
     help.forEach((t, k) => g.fillText(t, MW + 10, H - 150 + k * 15));
+    /* a controller's cursor (the simulator sets it with setCur) */
+    if (cur) {
+      g.strokeStyle = '#c01818';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(cur[0], cur[1], 9, 0, 2 * Math.PI);
+      g.moveTo(cur[0] - 16, cur[1]);
+      g.lineTo(cur[0] - 4, cur[1]);
+      g.moveTo(cur[0] + 4, cur[1]);
+      g.lineTo(cur[0] + 16, cur[1]);
+      g.moveTo(cur[0], cur[1] - 16);
+      g.lineTo(cur[0], cur[1] - 4);
+      g.moveTo(cur[0], cur[1] + 4);
+      g.lineTo(cur[0], cur[1] + 16);
+      g.stroke();
+    }
     g.restore();
   }
+  let cur = null;
+  const setCur = (px, py) => (cur = px == null ? null : [px, py]);
   /* ---- the mouse, in the canvas's pixels ---- */
   function down(px, py, btn) {
     if (V.x === null) centre();
@@ -23973,7 +24011,7 @@ const NAVCHART = (() => {
     }
     return false;
   }
-  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, drawing: () => drawing, toPx, toW };
+  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, setCur, drawing: () => drawing, toPx, toW };
 })();
 /* =====================================================================================================================
    SUBMARINES AT SEA (the user's, 2026-11-21): USS Roncador (SS-301) and I-58 (Type B3, May 1945) in the water. Each boat
@@ -25256,9 +25294,11 @@ function setMob(on) {
 const kd = (code, down) =>
   window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, bubbles: true }));
 /* ---- buttons ---- */
+/* a simulator may give a button its own meaning (its role's touchBtn(id, down): true = handled); a page without the button skips it */
 function holdBtn(id, down, up) {
-  const el = $$(id),
-    on = (e) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const on = (e) => {
       e.preventDefault();
       try {
         el.setPointerCapture(e.pointerId);
@@ -25266,23 +25306,24 @@ function holdBtn(id, down, up) {
         /* the pointer was already released: harmless */
       }
       el.classList.add('on');
-      down();
+      if (!SIMS.cur.touchBtn(id, true)) down();
     },
     off = () => {
       if (el.classList.contains('on')) {
         el.classList.remove('on');
-        up();
+        if (!SIMS.cur.touchBtn(id, false)) up();
       }
     };
   el.addEventListener('pointerdown', on);
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, off));
 }
 function tapBtn(id, fn) {
-  const el = $$(id);
+  const el = document.getElementById(id);
+  if (!el) return;
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     el.classList.add('on');
-    fn();
+    if (!SIMS.cur.touchBtn(id, true)) fn();
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
     el.addEventListener(ev, () => el.classList.remove('on')),
@@ -25359,7 +25400,9 @@ tapBtn('tFs', () => toggleFS());
       let v = 1 - (e.clientY - r.top) / r.height;
       if (v < 0.06) v = 0;
       if (v > 0.94) v = 1;
-      thr = Math.max(0, Math.min(1, v));
+      v = Math.max(0, Math.min(1, v));
+      if (SIMS.cur.thrTouch) SIMS.cur.thrTouch(v) /* the PCE: the engine telegraph */;
+      else thr = v;
     };
   let on = false;
   el.addEventListener('pointerdown', (e) => {
@@ -25375,7 +25418,12 @@ tapBtn('tFs', () => toggleFS());
   el.addEventListener('pointermove', (e) => {
     if (on) set(e);
   });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, () => (on = false)));
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) =>
+    el.addEventListener(ev, () => {
+      if (on && SIMS.cur.thrTouch) SIMS.cur.thrTouch(null);
+      on = false;
+    }),
+  );
 }
 /* ---- touching the 3D view: virtual stick (right side, when tilt is off), look around, pinch zoom, double-tap resets the view ---- */
 const TP = new Map();
@@ -25401,6 +25449,12 @@ cv.addEventListener('pointerdown', (e) => {
     /* the pointer was already released: harmless */
   }
   const P = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), role: 'look' };
+  /* the simulator takes the finger first (the PCE's chart table) */
+  if (TP.size === 0 && started && SIMS.cur.touchDown(e)) {
+    P.role = 'sim';
+    TP.set(e.pointerId, P);
+    return;
+  }
   const first = TP.size === 1 ? [...TP.values()][0] : null;
   if (TP.size === 0 && started && !(TC.cfg.on && TC.state === 'ok') && e.clientX > innerWidth * 0.42) P.role = 'stick';
   else if (
@@ -25426,6 +25480,7 @@ cv.addEventListener('pointermove', (e) => {
     dy = e.clientY - P.y;
   P.x = e.clientX;
   P.y = e.clientY;
+  if (P.role === 'sim') return SIMS.cur.touchMove(e);
   if (P.role === 'stick') {
     const R = 58;
     let ox = P.x - P.sx,
@@ -25449,6 +25504,7 @@ const tpEnd = (e) => {
   const P = TP.get(e.pointerId);
   if (!P) return;
   TP.delete(e.pointerId);
+  if (P.role === 'sim') return SIMS.cur.touchUp(e);
   if (P.role === 'stick') {
     TC.sr = TC.sp = 0;
     stickShow(0, 0, 0, 0, false);
@@ -25738,7 +25794,10 @@ function tcUI() {
   $$('tsInv').checked = TC.cfg.invP;
   $$('tsInvR').checked = TC.cfg.invR;
   const gt = $$('goTilt');
-  if (gt) gt.textContent = TC.state === 'ok' ? 'Fly with TILT controls (ready)' : 'Fly with TILT controls';
+  if (gt) {
+    gt.dataset.l = gt.dataset.l || gt.textContent; /* each simulator's own words on its start screen */
+    gt.textContent = gt.dataset.l + (TC.state === 'ok' ? ' (ready)' : '');
+  }
 }
 $$('tsOn').onchange = (e) => {
   TC.cfg.on = e.target.checked;
@@ -25868,10 +25927,11 @@ SIMS.add({
     { id: 'cross', label: 'Guns', sel: '#cross', g: 'Sight rings', sc: 'none' },
     { id: 'rkring', label: 'Rockets', sel: '#rkip', g: 'Sight rings', sc: 'none' },
     { id: 'bmring', label: 'Bombs', sel: '#ccip', g: 'Sight rings', sc: 'none' },
-    { id: 'tThr', label: 'Throttle slider', sel: '#tThr', g: 'Touch controls', sc: 'mob' },
-    { id: 'tL', label: 'Gear, flap and brake buttons', sel: '#tL', g: 'Touch controls', sc: 'mob' },
+    { id: 'tThr', label: 'Engine telegraph lever', sel: '#tThr', g: 'Touch controls', sc: 'mob' },
+    { id: 'tCtx', label: "The station's own buttons", sel: '#tCtx', g: 'Touch controls', sc: 'mob' },
+    { id: 'tStn', label: 'Station buttons 1-5', sel: '#tStn', g: 'Touch controls', sc: 'mob' },
     { id: 'trud', label: 'Rudder arrows', sel: '#tRL,#tRR', g: 'Touch controls', sc: 'mob' },
-    { id: 'tweap', label: 'Fire, rocket and bomb buttons', sel: '#tFire,#tRkt,#tBmb', g: 'Touch controls', sc: 'mob' },
+    { id: 'tweap', label: 'Fire / report button', sel: '#tFire', g: 'Touch controls', sc: 'mob' },
     {
       id: 'tbar',
       label: 'Top bar buttons (the pause button stays)',
@@ -26334,7 +26394,9 @@ UI.MV = [
   'tRkt',
   'tBmb',
   'tBar',
-];
+  'tCtx',
+  'tStn',
+].filter((id) => document.getElementById(id)) /* only the boxes this page has (the PCE: no gear or bomb buttons; its own station buttons) */;
 UI.editing = false;
 UI.all = {};
 UI.pos = {};
@@ -26638,29 +26700,31 @@ const dzf = (v, d = 0.14) => {
 /* ---------- control bindings: the ONE place that says which key / button does what ----------
    The controls piece builds its lookup tables from these (kb(), PB.x, KEYID) and the on-screen controls box and the Controls tab of the
    pause menu are generated from them, so the help can never disagree with the controls.
-   To change a control: edit its row here. Menu navigation (arrows, Tab, D-pad in menus) is documented as text. */
+   To change a control: edit its row here. Menu navigation (arrows, Tab, D-pad in menus) is documented as text.
+   The controller's station work (bumpers, D-pad, A / B / X, LT, the right stick at Comms) and the touch buttons are in THE
+   CONTROLLER AND TOUCH: they press these same keys, so every station, drill and menu answers them as it answers the keyboard. */
 SIMS.add({ id: 'pce', bind: [
   /* id, doc word, keyboard codes, controller button (null = none) */
   ['pitchUp', 'pull up', [], null],
   ['pitchDn', 'push down', [], null],
   ['rollL', 'left', ['KeyA', 'ArrowLeft'], null],
   ['rollR', 'right', ['KeyD', 'ArrowRight'], null],
-  ['rudL', 'left', [], 4],
-  ['rudR', 'right', [], 5],
-  ['thrUp', 'more ahead', ['KeyW', 'ArrowUp'], 12],
-  ['thrDn', 'more astern', ['KeyS', 'ArrowDown'], 13],
+  ['rudL', 'left', [], null] /* the bumpers change station (THE CONTROLLER AND TOUCH) */,
+  ['rudR', 'right', [], null],
+  ['thrUp', 'more ahead', ['KeyW', 'ArrowUp'], null] /* the D-pad rings them as the arrow keys */,
+  ['thrDn', 'more astern', ['KeyS', 'ArrowDown'], null],
   ['sTrL', 'train left', ['KeyQ'], null],
   ['sTrR', 'train right', ['KeyE'], null],
-  ['flapDn', 'down', ['KeyF'], 15],
-  ['flapUp', 'up', ['KeyV'], 14],
-  ['gear', '', [], 0],
+  ['flapDn', 'down', ['KeyF'], null],
+  ['flapUp', 'up', ['KeyV'], null],
+  ['gear', '', [], null],
   ['orders', "the OOD's orders (at the OOD's station)", ['KeyG'], null],
-  ['brake', 'hold', ['KeyB'], 1] /* on the ground: wheel brakes. In the air: calls / clears a bandit */,
+  ['brake', 'hold', ['KeyB'], null] /* on the ground: wheel brakes. In the air: calls / clears a bandit */,
   ['guns', 'hold', ['Space'], 7],
-  ['rocket', '', [], 6],
+  ['rocket', '', [], null],
   ['hhLoad', 'reload (20 mm drum, the Hedgehog)', ['KeyR'], null],
   ['tpJump', 'Torpedoman: go to the ordered weapon', ['KeyJ'], null],
-  ['bomb', '', ['KeyZ'], 2],
+  ['bomb', '', ['KeyZ'], null],
   ['camera', 'chase / bridge', ['KeyC'], 3],
   ['clear', 'chase / roam camera', ['KeyY'], null],
   ['st1', 'OOD', ['Digit1', 'Numpad1'], null],
@@ -26672,7 +26736,7 @@ SIMS.add({ id: 'pce', bind: [
   ['targets', 'practice targets on / off', ['KeyT'], null],
   ['gRngUp', 'sight range up', ['PageUp'], null],
   ['gRngDn', 'sight range down', ['PageDown'], null],
-  ['r3', '', [], 11] /* tap: difficulty */,
+  ['r3', '', [], null],
   ['restart', '', ['Enter'], 9],
   ['pause', 'pause menu', ['KeyP', 'Escape'], 8],
   ['manual', 'manual', ['KeyI'], 10],
@@ -26760,6 +26824,386 @@ const bindText = (ids, pad) =>
       return w ? s + ' ' + w : s;
     })
     .join(ids.every((id) => !BI[id].word) ? ' / ' : ' &middot; ');
+/* ---------- THE CONTROLLER AND TOUCH: each station's buttons from one table (the user's, 2026-11-24) ----------
+   The PCE is worked from the keyboard: every station, drill, menu and the chart answers keys. The controller and the touch buttons
+   press those same keys, so they work everywhere the keyboard does and can never disagree with it.
+   Everywhere (controller): LB / RB the station before / after (from the chase view: back to her station), D-pad up / down the
+   engines (the arrow keys), Y the camera, the right stick the rudder (where it is not training Comms or a gun's stick), Back the
+   pause menu, L3 the manual, Start restarts. The station's own jobs are in PCEX below: each row [controller slot, key, touch label,
+   what it does, hold]. Slots: 0 A, 1 B, 2 X, 6 LT, 11 R3, 14 / 15 D-pad left / right, 'rx-' 'rx+' 'ry-' 'ry+' the right stick (or
+   the touch stick) pushed that way, '' touch only; 'click' at the chart is the controller's cursor. Each station's trigger (RT, the
+   touch FIRE button) is PCEX_FIRE.
+   Touch: the station buttons (1-5) on the right, the station's own buttons bottom left (up to twelve), the telegraph lever on the left,
+   the rudder arrows, and the stick (drag the right half) lays a gun, trains the radar or sonar, walks the deck (Hardcore) or steers. */
+const PCEX = {
+  chase: [
+    [0, 'KeyO', 'MAP', 'minimap on / off'],
+    [2, 'KeyT', 'TARGETS', 'practice targets'],
+    [14, 'Minus', 'MAP &minus;', 'minimap zoom out'],
+    [15, 'Equal', 'MAP +', 'minimap zoom in'],
+  ],
+  ood: [
+    [0, 'Digit1', 'CHART', 'to the chart table'],
+    [1, 'KeyG', 'ORDERS', "the OOD's orders"],
+    [2, 'KeyT', 'DRILLS', 'training drills'],
+    [6, 'KeyX', 'BINOCS', 'binoculars'],
+    [14, 'KeyQ', '&#9664;', 'choose (orders, drills)', 1],
+    [15, 'KeyE', '&#9654;', 'choose', 1],
+    [11, 'KeyR', 'PATTERN', 'fire the pattern (attack drill)'],
+  ],
+  chart: [
+    [0, 'click', '', 'place, pick or drag a waypoint; drag the chart (the left stick moves the cursor)'],
+    [1, 'Backspace', 'DELETE', 'remove the selected waypoint'],
+    [2, 'Digit1', 'WHEEL', 'back to the wheel'],
+    [6, 'Tab', 'NEXT WP', 'select the next waypoint'],
+    [11, 'KeyL', 'LOOP', 'loop the route on / off'],
+    ['', 'Home', 'CENTRE', 'centre on her'],
+    [14, 'Minus', 'ZOOM &minus;', 'zoom out'],
+    [15, 'Equal', 'ZOOM +', 'zoom in'],
+  ],
+  eng: [
+    [2, 'KeyT', 'DRILLS', 'training drills'],
+    [14, 'KeyQ', '&#9664;', 'choose, the smoke valve', 1],
+    [15, 'KeyE', '&#9654;', 'choose, the smoke valve', 1],
+    ['', 'ArrowUp', '&#9650;<br>AHEAD', 'answer / ring ahead', 1],
+    ['', 'ArrowDown', '&#9660;<br>ASTERN', 'answer / ring astern', 1],
+  ],
+  radar: [
+    [0, 'Digit3', 'NEXT', 'next: sonar, radio'],
+    [2, 'KeyT', 'SCHOOL', 'Comms school'],
+    ['rx-', 'KeyQ', '', 'cursor left', 1],
+    ['rx+', 'KeyE', '', 'cursor right', 1],
+    ['ry-', 'KeyR', 'STROBE +', 'range strobe out', 1],
+    ['ry+', 'KeyF', 'STROBE &minus;', 'range strobe in', 1],
+    [14, 'PageDown', 'SCALE &minus;', 'shorter scale'],
+    [15, 'PageUp', 'SCALE +', 'longer scale'],
+  ],
+  sonar: [
+    [0, 'Digit3', 'NEXT', 'next: radio, radar'],
+    [2, 'KeyT', 'SCHOOL', 'Comms school'],
+    ['rx-', 'KeyQ', '', 'train left', 1],
+    ['rx+', 'KeyE', '', 'train right', 1],
+    [6, 'KeyZ', 'CUT L', 'left cut'],
+    [1, 'KeyX', 'CUT R', 'right cut'],
+    ['ry-', 'KeyU', 'UP DOP', 'up Doppler'],
+    ['ry+', 'KeyB', 'DN DOP', 'down Doppler'],
+    [11, 'KeyN', 'NO DOP', 'no Doppler'],
+    [14, 'PageDown', 'RANGE &minus;', 'shorter range'],
+    [15, 'PageUp', 'RANGE +', 'longer range'],
+  ],
+  radio: [
+    [0, 'Digit3', 'NEXT', 'next: radar, sonar'],
+    [2, 'KeyT', 'SCHOOL', 'Comms school'],
+    [1, 'KeyB', 'BRIDGE', 'route the message to the bridge'],
+    ['ry-', 'PageUp', 'PAPER &#9650;', 'scroll the paper', 1],
+    ['ry+', 'PageDown', 'PAPER &#9660;', 'scroll the paper', 1],
+  ],
+  gun: [
+    [0, 'Digit4', 'NEXT GUN', 'next gun'],
+    [6, 'KeyX', 'SIGHT', 'sight / telescope / look round'],
+    [1, 'KeyR', 'DRUM', 'new drum (20 mm)'],
+    [2, 'KeyT', 'TARGETS', 'practice targets'],
+    [14, 'PageDown', 'RANGE &minus;', 'sight range (Hardcore)'],
+    [15, 'PageUp', 'RANGE +', 'sight range (Hardcore)'],
+  ],
+  torp: [
+    [0, 'Digit5', 'NEXT', 'next position'],
+    [2, 'KeyJ', 'ORDERED', 'go to the ordered weapon'],
+    [6, 'KeyX', 'ARM', 'arm / safe'],
+    [1, 'KeyR', 'LOAD HH', 'load the Hedgehog'],
+    [11, 'KeyT', 'SUB', 'the exercise sub'],
+    [14, 'PageDown', 'DEPTH &minus;', 'shallower'],
+    [15, 'PageUp', 'DEPTH +', 'deeper'],
+  ],
+};
+/* the trigger at each station: [key, touch label, what it does]. At a gun and at the torpedoman's weapons the controller's trigger
+   fires through pad.fire as before; there the touch button holds Space */
+const PCEX_FIRE = {
+  chase: null,
+  ood: ['Space', 'GIVE', 'give the order / start the drill'],
+  chart: ['Enter', 'ENGAGE', 'engage / disengage the route'],
+  eng: ['Space', 'OK', 'the job (hold: the hose)'],
+  radar: ['Space', 'REPORT', 'report the contact'],
+  sonar: ['Space', 'REPORT', 'report the contact'],
+  radio: ['Space', 'ACK', 'acknowledge'],
+  gun: ['Space', 'FIRE', 'fire'],
+  torp: ['Space', 'FIRE', 'fire the weapon you are at'],
+};
+const PCEX_SLOT = {
+  0: 'A',
+  1: 'B',
+  2: 'X',
+  6: 'LT',
+  11: 'R3',
+  14: 'D-pad &larr;',
+  15: 'D-pad &rarr;',
+  'rx-': 'R-stick &larr;',
+  'rx+': 'R-stick &rarr;',
+  'ry-': 'R-stick &uarr;',
+  'ry+': 'R-stick &darr;',
+};
+/* where the player is: which row of PCEX */
+function pceCtx() {
+  if (typeof SHIP === 'undefined' || camMode != 1) return 'chase';
+  if (typeof GUN !== 'undefined' && GUN.cur) return 'gun';
+  const st = PCEM.STN[SHIP.stn] && PCEM.STN[SHIP.stn][SHIP.sub],
+    dev = (st && st.dev) || '';
+  if (SHIP.stn === 1) return dev === 'chart' ? 'chart' : 'ood';
+  if (SHIP.stn === 2) return 'eng';
+  if (SHIP.stn === 3) return dev || 'radar';
+  return SHIP.stn === 5 ? 'torp' : 'gun';
+}
+/* does the stick (the controller's right stick, the touch stick, tilt) steer her here? not where it lays a gun or works Comms */
+function pceStickSteers() {
+  const c = pceCtx();
+  return c !== 'gun' && c !== 'radar' && c !== 'sonar' && c !== 'radio';
+}
+/* pressing keys: a tap (down and up), or held (down now, repeating as a held key does, up when let go). PX.held is keyed by who holds
+   it: 'p...' the controller, 't...' the touch buttons, 's...' the touch stick at Comms, 'tT' the telegraph lever, 'tF' FIRE */
+const PX = { held: {}, ctx: '', cur: null, curOn: false, A: false, tel: null, telT: 0, telLast: 0, tk: '', touch: [] };
+const pxKey = (code, down, rep) =>
+  window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, repeat: !!rep, bubbles: true }));
+const pxTap = (code) => (pxKey(code, true), pxKey(code, false));
+function pxHold(id, code, on) {
+  const h = PX.held[id];
+  if (on && !h) {
+    PX.held[id] = { code, t: performance.now(), r: 0 };
+    pxKey(code, true);
+  } else if (!on && h) {
+    delete PX.held[id];
+    if (h.code) pxKey(h.code, false);
+  }
+}
+function pxRelease(pre) {
+  for (const id in PX.held) if (!pre || id.startsWith(pre)) pxHold(id, null, false);
+}
+/* held keys repeat like the keyboard's: after 0.35 s, every 70 ms (the engine room's hose, the drills) */
+function pxRepeat() {
+  const n = performance.now();
+  for (const id in PX.held) {
+    const h = PX.held[id];
+    if (h.code && n - h.t > 350 && n - h.r > 70) {
+      h.r = n;
+      pxKey(h.code, true, true);
+    }
+  }
+}
+/* LB / RB: the station before / after; from the chase view, back to her station */
+const pxStn = (d) => pxTap('Digit' + (camMode != 1 ? SHIP.stn : ((SHIP.stn - 1 + d + 5) % 5) + 1));
+/* the controller, each frame after the shared buttons (the role's padStep) */
+function pcePad(gp, edge, held, dt) {
+  if (PHOTO.on || ROAM.on || crashed) {
+    pxRelease('p');
+    pceChartCur(false);
+    return;
+  }
+  const c = pceCtx(),
+    a = gp.axes;
+  if (c !== PX.ctx) {
+    pxRelease('p');
+    if (PX.A) NAVCHART.up(PX.cur[0], PX.cur[1]);
+    PX.A = false;
+    PX.ctx = c;
+  }
+  if (edge(4)) pxStn(-1);
+  if (edge(5)) pxStn(1);
+  pxHold('pU', 'ArrowUp', held(12));
+  pxHold('pD', 'ArrowDown', held(13));
+  const rx = a[2] || 0,
+    ry = a[3] || 0;
+  for (const [s, code, , , hold] of PCEX[c]) {
+    if (s === '' || s === 'click') continue;
+    if (typeof s === 'number') {
+      if (hold) pxHold('p' + s, code, held(s));
+      else if (edge(s)) pxTap(code);
+      continue;
+    }
+    const on = s === 'rx-' ? rx < -0.5 : s === 'rx+' ? rx > 0.5 : s === 'ry-' ? ry < -0.5 : ry > 0.5;
+    if (hold) pxHold('p' + s, code, on);
+    else if (on && !PX.held['p' + s]) {
+      /* a flick of the stick taps once */
+      pxTap(code);
+      PX.held['p' + s] = { code: '', t: 0, r: 0 };
+    } else if (!on) delete PX.held['p' + s];
+  }
+  if (!pceStickSteers()) pad.r = 0;
+  /* the trigger: at a gun and the torpedoman's weapons pad.fire fires; elsewhere it is the station's key */
+  const F = PCEX_FIRE[c];
+  pxHold('pF', F && F[0], !!(F && c !== 'gun' && c !== 'torp' && gp.buttons[7] && gp.buttons[7].value > 0.3));
+  if (c === 'chart') {
+    /* the left stick moves a cursor on the chart; A works it like the mouse's left button (hold A and move to drag) */
+    if (!PX.cur) PX.cur = [NAVCHART.MW / 2, NAVCHART.H / 2];
+    const sp = 520 * dt,
+      mx = pad.lx * sp,
+      my = pad.ly * sp;
+    pad.lx = pad.ly = 0; /* not the free look */
+    PX.cur[0] = Math.max(0, Math.min(NAVCHART.W, PX.cur[0] + mx));
+    PX.cur[1] = Math.max(0, Math.min(NAVCHART.H, PX.cur[1] + my));
+    if (mx || my) NAVCHART.move(PX.cur[0], PX.cur[1]);
+    if (edge(0)) {
+      PX.A = true;
+      NAVCHART.down(PX.cur[0], PX.cur[1], 0);
+    } else if (PX.A && !held(0)) {
+      PX.A = false;
+      NAVCHART.up(PX.cur[0], PX.cur[1]);
+    }
+    pceChartCur(true);
+  } else pceChartCur(false);
+  pxRepeat();
+}
+function pceChartCur(on) {
+  if (!on && !PX.curOn) return;
+  PX.curOn = on;
+  if (on) NAVCHART.setCur(PX.cur[0], PX.cur[1]);
+  else NAVCHART.setCur(null);
+}
+/* ---- touch ---- */
+/* the telegraph lever (the shared throttle slider): the finger picks an order (the nearest bell), and the engine keys ring it on until
+   she has it; nothing moving it for a second (Hardcore: only the pilothouse and the engine room ring the engines) gives up */
+const PX_NOTCH = [-0.5, -0.33, -0.17, 0, 0.17, 0.33, 0.5, 0.67, 0.83, 1];
+function pceTel(v) {
+  if (v === null) return;
+  const t = -0.5 + 1.5 * v;
+  PX.tel = PX_NOTCH.reduce((b, n) => (Math.abs(n - t) < Math.abs(b - t) ? n : b), 0);
+  PX.telT = performance.now();
+  PX.telLast = SHIP.tel;
+}
+function pceTelStep() {
+  if (PX.tel === null) return;
+  const d = PX.tel - SHIP.tel,
+    n = performance.now();
+  if (Math.abs(SHIP.tel - PX.telLast) > 0.002) {
+    PX.telLast = SHIP.tel;
+    PX.telT = n;
+  }
+  if (Math.abs(d) < 0.02 || n - PX.telT > 1000) {
+    if (Math.abs(d) < 0.02) SHIP.tel = PX.tel; /* on the bell exactly */
+    PX.tel = null;
+    pxRelease('tT');
+    return;
+  }
+  const k = d > 0 ? 'ArrowUp' : 'ArrowDown';
+  if (PX.held.tT && PX.held.tT.code !== k) pxHold('tT', null, false);
+  pxHold('tT', k, true);
+}
+/* the station's own buttons (#tCtx, made here) and the station bar (#tStn) */
+function pceTouchInit() {
+  const box = document.getElementById('tCtx'),
+    bar = document.getElementById('tStn');
+  if (!box || box.dataset.ok) return;
+  box.dataset.ok = 1;
+  box.innerHTML = Array.from({ length: 12 }, (_, i) => '<div class="tb" data-i="' + i + '" style="display:none"></div>').join('');
+  box.querySelectorAll('.tb').forEach((el) => {
+    const i = +el.dataset.i;
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch (_) {
+        /* the pointer was already released: harmless */
+      }
+      const r = PX.touch[i];
+      if (!r) return;
+      el.classList.add('on');
+      if (r[4]) pxHold('t' + i, r[1], true);
+      else pxTap(r[1]);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) =>
+      el.addEventListener(ev, () => {
+        el.classList.remove('on');
+        pxHold('t' + i, null, false);
+      }),
+    );
+  });
+  if (bar)
+    bar.querySelectorAll('.tb').forEach((el) =>
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        pxTap('Digit' + el.dataset.n);
+      }),
+    );
+}
+/* each touch-UI tick (the shared per-frame glue, about 12 times a second): the lever, the stick at Comms, the labels */
+function pceTouchUI() {
+  pceTouchInit();
+  pceTelStep();
+  const c = pceCtx();
+  /* the touch stick at Comms trains the radar or sonar and works the strobe or the paper, as the right stick does */
+  if ((c === 'radar' || c === 'sonar' || c === 'radio') && !(TC.cfg.on && TC.state === 'ok')) {
+    for (const [s, code, , , hold] of PCEX[c]) {
+      if (typeof s !== 'string' || s[0] !== 'r' || !hold) continue;
+      const on = s === 'rx-' ? TC.sr < -0.5 : s === 'rx+' ? TC.sr > 0.5 : s === 'ry-' ? TC.sp < -0.5 : TC.sp > 0.5;
+      pxHold('s' + s, code, on);
+    }
+  } else pxRelease('s');
+  pxRepeat();
+  /* the lever: the bar is the order rung, the white line where it is going */
+  const ord = PX.tel !== null ? PX.tel : SHIP.tel;
+  $$('tThrF').style.height = ((SHIP.tel + 0.5) / 1.5) * 100 + '%';
+  $$('tThrH').style.bottom = ((ord + 0.5) / 1.5) * 100 + '%';
+  $$('tThrL').innerHTML = Math.abs(ord) < 0.02 ? 'STOP' : (ord > 0 ? 'AHEAD' : 'ASTERN') + '<br>' + Math.round(Math.abs(ord) * 100) + '%';
+  const bar = document.getElementById('tStn');
+  if (bar) bar.querySelectorAll('.tb').forEach((el) => el.classList.toggle('cur', camMode == 1 && +el.dataset.n === SHIP.stn));
+  if (c === PX.tk) return;
+  PX.tk = c;
+  pxRelease('t');
+  PX.touch = PCEX[c].filter((r) => r[2]);
+  const box = document.getElementById('tCtx');
+  if (box)
+    box.querySelectorAll('.tb').forEach((el, i) => {
+      const r = PX.touch[i];
+      el.innerHTML = r ? r[2] : '';
+      el.style.display = r ? '' : 'none';
+    });
+  const F = PCEX_FIRE[c],
+    fb = document.getElementById('tFire');
+  if (fb) {
+    fb.innerHTML = F ? F[1] : '';
+    fb.style.visibility = F ? '' : 'hidden';
+  }
+}
+SIMS.add({
+  id: 'pce',
+  padStep: (gp, edge, held, dt) => pcePad(gp, edge, held, dt),
+  touchUI: () => pceTouchUI(),
+  thrTouch: (v) => pceTel(v),
+  /* the FIRE button holds the station's key (at the chart Enter engages the route); the other shared buttons as before */
+  touchBtn: (id, down) => {
+    if (id !== 'tFire') return false;
+    const F = PCEX_FIRE[pceCtx()];
+    pxHold('tF', F && F[0], down && !!F);
+    return true;
+  },
+  /* a finger on the chart table works it as the mouse does */
+  touchDown: (e) => chartDown(e),
+  touchMove: (e) => chartMove(e),
+  touchUp: () => chartUp(),
+});
+/* the controls box for the controller, from the table */
+function pcePadHelp(c) {
+  const L = ['<b>LB / RB</b> station &middot; <b>D-pad &uarr; &darr;</b> engines' + (pceStickSteers() ? ' &middot; <b>R-stick</b> rudder' : '')];
+  if (c === 'gun') L.push('<b>L-stick</b> aims &middot; <b>RT</b> fires');
+  else if (c === 'torp') L.push('<b>RT</b> fires the weapon you are at' + (FM.use('walk') ? ' &middot; <b>L-stick</b> walks' : ''));
+  else if (PCEX_FIRE[c]) L.push('<b>RT</b> ' + PCEX_FIRE[c][2]);
+  const t = PCEX[c].filter((r) => r[0] !== '').map((r) => '<b>' + PCEX_SLOT[r[0]] + '</b> ' + r[3].replace(/ \(.*\)$/, ''));
+  for (let i = 0; i < t.length; i += 3) L.push(t.slice(i, i + 3).join(' &middot; '));
+  return L;
+}
+/* the Controls page's controller rows: every station's buttons */
+function pcePadDoc() {
+  const name = { chase: 'Chase view', ood: 'OOD (1)', chart: 'Chart table (1 again)', eng: 'Engineering (2)', radar: 'Radar (3)', sonar: 'Sonar (3 again)', radio: 'Radio (3 again)', gun: 'Gunner (4)', torp: 'Torpedoman (5)' };
+  return Object.keys(PCEX).map((c) => [
+    name[c],
+    () =>
+      (PCEX_FIRE[c] ? '<b>RT</b> ' + PCEX_FIRE[c][2] + ' &middot; ' : '') +
+      PCEX[c]
+        .filter((r) => r[0] !== '')
+        .map((r) => '<b>' + PCEX_SLOT[r[0]] + '</b> ' + r[3])
+        .join(' &middot; '),
+    '',
+    0,
+  ]);
+}
 /* doc rows: [label, ids | literal html, note, box line] ; a string instead of an id list is literal text */
 /* the PCE's doc rows for the help (the shared help piece builds the tables from them; her controls box is helpBox) */
 SIMS.add({
@@ -26778,12 +27222,13 @@ SIMS.add({
   ['Display', ['help', 'map', 'mapOut', 'mapIn', 'quality', 'mute'], '', 4],
 ],
   padDoc: [
-  ['Rudder', 'Right stick left / right, or the bumpers', '', 1],
-  ['Engines', ['thrUp', 'thrDn'], 'the order stays where you leave it', 1],
-  ['Look around', 'Left stick: bridge free-look, release to recenter', '', 2],
-  ['At a gun', 'the stick aims, the trigger fires', '', 2],
-  ['Camera', ['camera'], 'chase / bridge', 2],
-  ['Restart', ['restart'], '', 3],
+  ['Rudder', 'Right stick left / right (at the radar, sonar and radio it works the set instead)', 'let go and she steadies', 0],
+  ['Engines', 'D-pad up / down', 'the order stays where you leave it', 0],
+  ['Stations', 'LB / RB: the station before / after; from the chase view, back to her station', '', 0],
+  ['Look around', 'Left stick (at a gun it aims; at the chart table it moves the cursor)', '', 0],
+  ['Camera', ['camera'], 'chase / station', 0],
+  ...pcePadDoc(),
+  ['Restart', ['restart'], '', 0],
   [
     'Menus',
     () =>
@@ -26846,7 +27291,8 @@ function helpBox() {
   const mk = (pad) => {
     const t = (id) => (pad ? padText(id) : kbText(id));
     let l;
-    if (gun)
+    if (pad) l = pcePadHelp(pceCtx()) /* the controller: from THE CONTROLLER AND TOUCH's table */;
+    else if (gun)
       l = pad
         ? ['<b>Aim</b> stick &middot; <b>Fire</b> trigger']
         : [
@@ -27024,6 +27470,10 @@ function pollPad() {
     trimPadUsed = false;
     if (e(PB.pause)) SIMS.cur.act.pause();
   }
+  /* the simulator's own buttons and sticks (the PCE: stations, engines, each station's jobs) */
+  const now = performance.now();
+  SIMS.cur.padStep(gp, e, bp, Math.min(0.1, (now - (pollPad.t || now)) / 1000));
+  pollPad.t = now;
   padPrev = b.map((x) => x.pressed);
 }
 function refreshHelp() {
@@ -27643,7 +28093,7 @@ function shipStep(dt) {
   const tp6 = SHIP.stn === 5 && (camMode == 1 || ASW.ph !== 'idle') /* the torpedoman cannot conn her: the OOD does */,
     engOK = !tp6 && (!FM.use('eng') || (camMode == 1 && (SHIP.stn === 2 || SHIP.stn === 1))) /* Hardcore: only the engine room and the pilothouse (the OOD) work the engines */,
     ord = engOK ? kb('thrUp') - kb('thrDn') + pad.thr : 0,
-    hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oR + TC.oY + (GUN.cur && camMode == 1 ? 0 : pad.r),
+    hand = tp6 ? 0 : kb('rollR') - kb('rollL') + pad.y + TC.oY + (pceStickSteers() ? pad.r + TC.oR : 0) /* the stick lays a gun or trains Comms there */,
     rtb = rtbStep(dt, ord, hand) /* returning to base: the helmsman has her */;
   /* the player's route (WAYPOINT NAVIGATION): the helmsman steers for the waypoint; the player's own hand on the rudder takes her back */
   let navP = !rtb && ASW.ph === 'idle' ? NAV.aim() : null;
@@ -28650,8 +29100,8 @@ function gunUpdate(dt) {
   if (G && play) {
     /* the mouse lays the gun (in the mousemove handler); a controller lays it with the left stick */
     const k = G.s.free ? 0.9 : 1,
-      dtr = -pad.lx * G.s.trR * k,
-      del = -pad.ly * G.s.elR * k;
+      dtr = -(pad.lx + TC.oR) * G.s.trR * k /* the controller's left stick, the touch stick or tilt */,
+      del = -(pad.ly + TC.oP) * G.s.elR * k;
     if (dtr || del) gunLay(dtr * dt, del * dt);
     /* the 3"/50's sight: the gun is laid above the line of sight by the superelevation for the range set on the sight */
     if (G.s.sight === 'scope') {
@@ -31299,12 +31749,21 @@ function dbShow(id, c, place) {
   const el = dbEl(id);
   el.style.display = c ? 'block' : 'none';
   if (!c) return;
-  if (el.dataset.place !== place) {
-    el.dataset.place = place;
+  if (el.dataset.place !== place + MOB) {
+    el.dataset.place = place + MOB;
     const side = { left: '12px', right: 'auto', top: '160px', bottom: 'auto', transform: 'none', width: 'min(440px,42vw)' };
+    /* on a phone: smaller, side by side above the touch buttons, clear of the readout, the minimap and the station buttons */
+    if (MOB) {
+      Object.assign(side, { left: 'calc(70px + env(safe-area-inset-left,0px))', top: '70px', width: 'min(360px,37vw)' });
+      el.classList.add('dbMob');
+    } else el.classList.remove('dbMob');
     Object.assign(
       el.style,
-      place === 'left'
+      MOB && place === 'right'
+        ? { ...side, left: 'auto', right: 'calc(var(--mm) + 22px + env(safe-area-inset-right,0px))' }
+        : MOB && place === 'bottom'
+          ? { left: '50%', right: 'auto', top: 'auto', bottom: '70px', transform: 'translateX(-50%)', width: 'min(360px,46vw)' }
+          : place === 'left'
         ? side
         : place === 'right'
           ? { ...side, left: 'auto', right: '12px', top: '212px' /* under the minimap */ }
@@ -33683,8 +34142,8 @@ function tpWalk(dt) {
   SHIP.look[1] = Math.max(-1.2, Math.min(1.0, SHIP.look[1] + viewPitch));
   viewYaw = viewPitch = 0;
   const a = SHIP.look[0],
-    fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
-    sd = kb('rollR') - kb('rollL'),
+    fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0) - TC.oP /* the touch stick too */,
+    sd = kb('rollR') - kb('rollL') + TC.oR,
     p = TPW.p;
   if (fw || sd) {
     const n = Math.hypot(fw, sd),

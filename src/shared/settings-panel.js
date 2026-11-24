@@ -34,7 +34,10 @@ function tcUI() {
   $$('tsInv').checked = TC.cfg.invP;
   $$('tsInvR').checked = TC.cfg.invR;
   const gt = $$('goTilt');
-  if (gt) gt.textContent = TC.state === 'ok' ? 'Fly with TILT controls (ready)' : 'Fly with TILT controls';
+  if (gt) {
+    gt.dataset.l = gt.dataset.l || gt.textContent; /* each simulator's own words on its start screen */
+    gt.textContent = gt.dataset.l + (TC.state === 'ok' ? ' (ready)' : '');
+  }
 }
 $$('tsOn').onchange = (e) => {
   TC.cfg.on = e.target.checked;

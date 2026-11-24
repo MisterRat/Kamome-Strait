@@ -22,6 +22,12 @@ cv.addEventListener('pointerdown', (e) => {
     /* the pointer was already released: harmless */
   }
   const P = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), role: 'look' };
+  /* the simulator takes the finger first (the PCE's chart table) */
+  if (TP.size === 0 && started && SIMS.cur.touchDown(e)) {
+    P.role = 'sim';
+    TP.set(e.pointerId, P);
+    return;
+  }
   const first = TP.size === 1 ? [...TP.values()][0] : null;
   if (TP.size === 0 && started && !(TC.cfg.on && TC.state === 'ok') && e.clientX > innerWidth * 0.42) P.role = 'stick';
   else if (
@@ -47,6 +53,7 @@ cv.addEventListener('pointermove', (e) => {
     dy = e.clientY - P.y;
   P.x = e.clientX;
   P.y = e.clientY;
+  if (P.role === 'sim') return SIMS.cur.touchMove(e);
   if (P.role === 'stick') {
     const R = 58;
     let ox = P.x - P.sx,
@@ -70,6 +77,7 @@ const tpEnd = (e) => {
   const P = TP.get(e.pointerId);
   if (!P) return;
   TP.delete(e.pointerId);
+  if (P.role === 'sim') return SIMS.cur.touchUp(e);
   if (P.role === 'stick') {
     TC.sr = TC.sp = 0;
     stickShow(0, 0, 0, 0, false);

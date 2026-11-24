@@ -245,8 +245,26 @@ const NAVCHART = (() => {
       'L loop · - = zoom · Home: her',
     ];
     help.forEach((t, k) => g.fillText(t, MW + 10, H - 150 + k * 15));
+    /* a controller's cursor (the simulator sets it with setCur) */
+    if (cur) {
+      g.strokeStyle = '#c01818';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(cur[0], cur[1], 9, 0, 2 * Math.PI);
+      g.moveTo(cur[0] - 16, cur[1]);
+      g.lineTo(cur[0] - 4, cur[1]);
+      g.moveTo(cur[0] + 4, cur[1]);
+      g.lineTo(cur[0] + 16, cur[1]);
+      g.moveTo(cur[0], cur[1] - 16);
+      g.lineTo(cur[0], cur[1] - 4);
+      g.moveTo(cur[0], cur[1] + 4);
+      g.lineTo(cur[0], cur[1] + 16);
+      g.stroke();
+    }
     g.restore();
   }
+  let cur = null;
+  const setCur = (px, py) => (cur = px == null ? null : [px, py]);
   /* ---- the mouse, in the canvas's pixels ---- */
   function down(px, py, btn) {
     if (V.x === null) centre();
@@ -347,5 +365,5 @@ const NAVCHART = (() => {
     }
     return false;
   }
-  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, drawing: () => drawing, toPx, toW };
+  return { W, H, MW, V, draw, down, move, up, wheel, key, centre, setCur, drawing: () => drawing, toPx, toW };
 })();
