@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bring the aircrew briefing map (docs/P-51_Mustang_FS_Briefing_Map.pdf) up to date with the sites built after its first edition,
+"""Bring the aircrew briefing map (P-51_Mustang_FS_Briefing_Map.pdf in the project root) up to date with the sites built after its first edition,
 as part of the chart itself (the user, 2026-11-21: no amendment panel; the information included as normal).
 
   python3 tools/briefing_map_update.py <first-edition.pdf> <out.pdf>

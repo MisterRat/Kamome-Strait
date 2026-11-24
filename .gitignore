@@ -5,9 +5,12 @@
 References/
 Claude outputs/
 *.xlsx
-docs/*.pdf
-Blueprints/*-1.png
-Blueprints/z sort README.md
+
+# working records: blueprints, test baselines, research notes and plans (not needed to build or run the game)
+Blueprints/
+baseline/
+docs/
+PLAN_*.md
 
 # the old copy-and-check sync's files, and git bundles carried to the workspace
 _sync.tar

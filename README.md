@@ -17,10 +17,10 @@ Every game is built from shared source pieces with plain Node (no dependencies):
 
 ```
 node build.js            # writes build/P-51_Mustang_FS.html and build/PCE-842.html
-node build.js --check    # also compares them byte for byte with baseline/
+node build.js --check    # also compares them byte for byte with baseline/ (kept on the disk, not in git)
 ```
 
-`src/shared/` holds code every game uses, `src/<game>/` what only that game has, and `src/<game>.manifest` the order the pieces are joined in. The plan is in [PLAN_Kamome-Strait.md](PLAN_Kamome-Strait.md). `Blueprints/` holds diagrams generated from the models. GitHub Pages publishes `build/Kamome_Strait.html` with the files in `site/` (`.github/workflows/pages.yml`).
+`src/shared/` holds code every game uses, `src/<game>/` what only that game has, and `src/<game>.manifest` the order the pieces are joined in. The aircrew briefing map is [P-51_Mustang_FS_Briefing_Map.pdf](P-51_Mustang_FS_Briefing_Map.pdf). GitHub Pages publishes `build/Kamome_Strait.html` with the files in `site/` (`.github/workflows/pages.yml`).
 
 ## License
 
