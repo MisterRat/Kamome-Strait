@@ -1,2 +1,25 @@
-build/
+# Kamome Strait: git keeps what builds and publishes the game (src/, build.js, build/ for GitHub Pages, site/, .github/) and the
+# project's own records. Everything else in the folder stays out.
+
+# reference material and outputs kept only on the disk
 References/
+Claude outputs/
+*.xlsx
+docs/*.pdf
+Blueprints/*-1.png
+Blueprints/z sort README.md
+
+# the old copy-and-check sync's files, and git bundles carried to the workspace
+_sync.tar
+_sync_delete.txt
+_repo.md5
+*.bundle
+
+# tools' scratch and the system's own files
+node_modules/
+__pycache__/
+*.pyc
+build/tests/
+Thumbs.db
+desktop.ini
+.DS_Store
