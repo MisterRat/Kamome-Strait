@@ -351,7 +351,7 @@ var AIRSUP = (() => {
     cv2: 'DEPOT KURITA',
   };
   /* the named places: [site, name] (a site has O, its shore point, and R; FS.nav's have navy 'jp', 'us' or 'usdep') */
-  const places = () => [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), [SITE, 'PORT NAGUMO']];
+  const places = () => [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), ...(FS.army || []).map((s) => [s, s.title.toUpperCase()]), [SITE, 'PORT NAGUMO']];
   const whoAt = (p, side, ship) => {
     const S = places();
     for (const [s, n] of S) if (n && Math.hypot(p.x - s.O.x, p.z - s.O.z) < (s.R || 600) + 800) return n;

@@ -2662,6 +2662,136 @@ const SITES = [],
         14,
       );
       AFLD.add(M.jeepD(), [F.w(-120, -12), F.w(120, -12)], 7, 20, 'veh');
+    } else if (F.navy === 'ussub') {
+      /* SUBMARINE BASE LOCKWOOD (PLAN_Roncador_SS-301 4.2, after Majuro 1944-45; the user's, 2026-11-23): on the base islet, a coral
+         yard with the timber pier and a pontoon pier for the tender's boats, the torpedo and machine shops (Elephant Quonsets), stores,
+         quarters, the hospital, a tank farm; the submarine camp's tents along the islet; in the lagoon the tender USS Sperry (AS-12)
+         moored with a nest of two fleet boats alongside; the signal station on the islet at the pass and the buoyed approach; the coral
+         airstrip on the north islet with its hangar and tower. */
+      const A = FS.ATOLL;
+      flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
+      const wy = pad + 0.6;
+      pierF(F, S, -60, F.po - 4, 140, 8, wy) /* the timber pier: the boats come alongside it between patrols */;
+      pierF(F, S, 70, F.po - 4, 60, 5, wy) /* the pontoon pier: the tender's boats and the LCM */;
+      use(-66, -54, 0, 140);
+      use(66, 74, 0, 60);
+      /* the tender, moored in the lagoon 650 m off, along the shore; two fleet boats alongside her, on her shoreward side */
+      {
+        const YT = YA,
+          len = 161.4,
+          T = mooredF(F, MODELS.get('us-fulton'), 0, 650, YT, len, 22.35);
+        T.ride = RIDE.make(0.43 * len, 0.45 * 22.35, 9);
+        T.hull.o.hw = 22.35 * 0.46;
+        const [tx, tz] = F.w(0, 650);
+        COLL.add({ sea: true, fixed: true, hl: len / 2, r: 11.2, mg: 4, x: tx, z: tz, yaw: YT, v: 0 });
+        for (const [k, dd] of [
+          [0, 11.2 + 1.5 + 4.15],
+          [1, 11.2 + 1.5 + 8.3 + 1.5 + 4.15],
+        ]) {
+          const o = mooredF(F, MODELS.get('us-roncador'), 10 - k * 6, 650 - dd, YT, 95, 8.3);
+          o.ride = RIDE.make(0.43 * 95, 0.45 * 8.3, 7);
+          const [x, z] = F.w(10 - k * 6, 650 - dd);
+          COLL.add({ sea: true, fixed: true, hl: 47.5, r: 4.15, mg: 3, x, z, yaw: YT, v: 0 });
+        }
+        /* her boat, running between the pontoon pier and her side */
+        const lc = mooredF(F, MODELS.get('us-lcm3'), 70 - 5, 70, YS, 15.3, 4.3);
+        lc.sh = { a: F.w(70 - 5, 70), b: F.w(-40, 650 - 11.2 - 1.5 - 8.3 - 1.5 - 8.3 - 4), wait: 120, ph: 30, v: 3 };
+      }
+      /* the shops, stores, quarters, mess and hospital */
+      for (const [u, d] of [
+        [-110, -60],
+        [-40, -60],
+      ]) {
+        S.at(MODELS.get('us-quonset', 'elephant'), u, d, YA, gy);
+        use(u - 20, u + 20, d - 18, d + 18);
+      }
+      for (let i = 0; i < 6; i++) {
+        const u = 0 + i * 22;
+        S.at(MODELS.get('us-quonset', 'std'), u, -100, YA, gy);
+        use(u - 8, u + 8, -108, -92);
+      }
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-fuel-tank'), 112 + (i % 2) * 12, -40 - (i >> 1) * 12, YA, gy) /* diesel and gasoline */;
+      use(100, 136, -60, -28);
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-dump', 5, 3, i + 1), -10 + (i % 2) * 8, -40 - (i >> 1) * 7, YA, gy) /* stores off the pier */;
+      use(-15, 15, -50, -30);
+      S.at(FLG.pole('us', 12, 2.8, 0, 0, 0, 0), 40, -20, YA);
+      S.at(M.cargoTruck(), 55, -45, YA - 0.1);
+      S.at(M.fuelTruck(0x6b7350), 90, -30, YS);
+      use(45, 98, -52, -22);
+      const walkU = (v, path, sp, wait) =>
+        AFLD.add(
+          CREW_RIG('us', v),
+          path.map(([u, d]) => F.w(u, d)),
+          sp,
+          wait,
+          'walk',
+        );
+      walkU(0, [[-110, -35], [-60, -10], [-60, 130]], 1.3, 10);
+      walkU(1, [[20, -85], [70, -10], [70, 55]], 1.2, 12);
+      walkU(2, [[-40, -35], [10, -75], [110, -80]], 1.3, 9);
+      AFLD.add(M.jeepD(), [F.w(-140, -15), F.w(140, -15)], 7, 20, 'veh');
+      /* the submarine camp (the crews between patrols): pyramidal tents in rows along the islet beyond the yard */
+      for (let i = 0; i < 4; i++)
+        for (let j = 0; j < 3; j++) {
+          const u = 215 + i * 11,
+            d = -175 + j * 11;
+          S.at(MODELS.get('us-tent'), u, d, YA);
+        }
+      for (let i = 0; i < 2; i++) S.at(MODELS.get('us-quonset', 'std'), 215 + i * 24, -130, YA) /* the mess and the beer hall */;
+      /* frames of the atoll's own places, in world terms (x east, z south) */
+      const frameAt = (x, z, th) => {
+        const Sx = Math.cos(th),
+          Sz = Math.sin(th),
+          Ax = -Sz,
+          Az = Sx;
+        return { O: { x, z }, S: { x: Sx, z: Sz }, A: { x: Ax, z: Az }, ryS: Math.atan2(-Sz, Sx), ryA: Math.atan2(-Az, Ax), w: (u, d) => [x + Ax * u + Sx * d, z + Az * u + Sz * d] };
+      };
+      /* the signal station on the islet at the pass: the tower, its flagstaff, a hut */
+      {
+        const c = A.isl[2],
+          G = frameAt((c.a[0] + c.b[0]) / 2, (c.a[1] + c.b[1]) / 2, A.TP),
+          S2 = siteAcc(G);
+        S2.at(MODELS.get('us-control-tower'), 0, -15, G.ryA);
+        S2.at(MODELS.get('us-quonset', 'std'), 0, -40, G.ryA);
+        S2.at(FLG.pole('us', 10, 2.2, 0, 0, 0, 0), 14, -10, G.ryA);
+        S2.flush();
+      }
+      /* the buoyed approach to the pass, from the open sea: red buoys to starboard going in, green to port, every 400 m out to 2 km */
+      {
+        const P = [],
+          ox = Math.cos(A.TP),
+          oz = Math.sin(A.TP),
+          [px, pz] = A.on(A.TP, 0);
+        for (let s = 300; s <= 2100; s += 400)
+          for (const sd of [-1, 1]) {
+            const off = (A.PW - 50) * sd,
+              x = px + ox * s - oz * off,
+              z = pz + oz * s + ox * off,
+              c = sd > 0 ? 0xb8302a : 0x2f7a3a /* going in (toward -o): +sd lies to starboard */;
+            P.push(part(cyl(0.9, 1.1, 1.6, 10), c, x, SEA.WL + 0.5, z), part(cyl(0.12, 0.5, 2.2, 8), c, x, SEA.WL + 2.4, z));
+          }
+        scene.add(new THREE.Mesh(new GX.Acc().add(P, null).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true })));
+      }
+      /* the airstrip on the north islet: a 1,700 x 45 m coral strip along the islet, its apron, a Butler hangar, the tower, two huts */
+      {
+        const a = A.on(A.TA0, -60),
+          b = A.on(A.TA1, -60),
+          mx = (a[0] + b[0]) / 2,
+          mz = (a[1] + b[1]) / 2,
+          L = Math.hypot(b[0] - a[0], b[1] - a[1]),
+          th = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2 /* S across the strip (toward the lagoon: +z here, south) */,
+          G = frameAt(mx, mz, th),
+          S2 = siteAcc(G),
+          y = WH(mx, mz) + 0.12;
+        flatD(G, -L / 2 + 20, L / 2 - 20, -22, 22, y, CORAL, 6);
+        flatD(G, -150, 60, 30, 110, y, CORAL, 6) /* the apron, lagoon side */;
+        S2.at(MODELS.get('us-butler-hangar'), -80, 80, G.ryS, y);
+        S2.at(MODELS.get('us-control-tower'), 40, 85, G.ryS, y);
+        S2.at(MODELS.get('us-quonset', 'std'), 0, 120, G.ryA);
+        S2.at(MODELS.get('us-quonset', 'std'), -25, 120, G.ryA);
+        S2.at(M.jeep(), 20, 60, G.ryA, y);
+        S2.flush();
+      }
     } else {
       /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
          a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
@@ -2809,6 +2939,94 @@ const SITES = [],
     return pat;
   };
   for (const F of FS.nav) farBuild(F, () => naval(F));
+  /* ----- THE ARMY'S SITES (PLAN_M4A3_Sherman_Tank 4.5; the user's, 2026-11-23: the bases common to every game, built now, the tank's
+     own pieces later): Beach Orange, Camp Buckner, Buckner Range and the battalion behind phase line Able. Each in its own frame;
+     everything stands on the drawn ground but Camp Buckner's park, which is levelled (FS.army's pad). The revetments are empty: the
+     battalion's Shermans come with the tank simulator. ----- */
+  const armySite = (F) => {
+    if (F.pu) WH(F.O.x, F.O.z); /* make sure the pad height is known */
+    const S = siteAcc(F),
+      YS = F.ryS,
+      YA = F.ryA,
+      r = rng(Math.round(F.O.x + F.O.z)),
+      walkU = (v, path, sp, wait) => AFLD.add(CREW_RIG('us', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
+    if (F.id === 'camp') {
+      const gy = F.H + 0.12;
+      flatD(F, -F.pu + 10, F.pu - 10, F.d0 + 10, F.d1 - 10, gy, GRAVEL, 10);
+      /* the tank park: ten revetments in a row, open to the north (the way out to the beach road) */
+      for (let i = 0; i < 10; i++) S.at(MODELS.get('us-revetment'), -150 + i * 33, -70, YS, gy);
+      /* the maintenance tent (an Elephant Quonset) and its hard standing; the ordnance and fuel dumps; the trucks */
+      S.at(MODELS.get('us-quonset', 'elephant'), -125, 55, YA, gy);
+      for (let i = 0; i < 6; i++) S.at(MODELS.get('us-dump', 6, 4, i + 3), 95 + (i % 3) * 14, 40 + (i >> 1 > 0 ? 12 : 0) + (i > 2 ? 14 : 0), YA, gy);
+      S.at(M.fuelTruck(0x6b7350), 70, 20, YA + 0.1);
+      S.at(M.cargoTruck(), 85, 10, YA - 0.05);
+      S.at(M.cargoTruck(), -80, 25, YS);
+      /* the company CP: two tents and the flag; the bivouac: tents in rows */
+      S.at(MODELS.get('us-tent'), -12, 40, YA, gy);
+      S.at(MODELS.get('us-tent'), 0, 40, YA, gy);
+      S.at(FLG.pole('us', 10, 2.2, 0, 0, 0, 0), 12, 32, YA);
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 3; j++) S.at(MODELS.get('us-tent'), -70 + i * 12, 85 + j * 12, YA, gy);
+      walkU(0, [[-125, 30], [-60, -40], [40, -40]], 1.3, 10);
+      walkU(1, [[0, 30], [95, 25], [130, 50]], 1.2, 12);
+      walkU(2, [[-40, 80], [-10, 45]], 1.3, 9);
+      AFLD.add(M.jeepD(), [F.w(-160, 0), F.w(160, 0), F.w(160, 120)], 7, 25, 'veh');
+    } else if (F.id === 'beach') {
+      /* the pontoon causeway out over the reef flat, two LCMs at it (each brings one tank from Depot Nimitz), the beach dumps, the
+         beachmaster's post and the aid station */
+      pierF(F, S, 0, -6, 110, 7, SEA.Y + 1.1);
+      for (const [u, d, k] of [
+        [9, 70],
+        [-9, 95],
+      ])
+        mooredF(F, MODELS.get('us-lcm3'), u, d, YS + Math.PI, 15.3, 4.3) /* her ramp to the beach */;
+      for (let i = 0; i < 5; i++) S.at(MODELS.get('us-dump', 6, 4, i + 11), -70 + i * 30, -75 - (i % 2) * 10, YA);
+      S.at(MODELS.get('us-tent'), -40, -115, YA);
+      S.at(FLG.pole('us', 8, 1.8, 0, 0, 0, 0), -30, -110, YA);
+      S.at(MODELS.get('us-tent'), 60, -120, YA);
+      S.at(MODELS.get('us-tent'), 72, -120, YA);
+      walkU(1, [[-40, -100], [0, -40], [0, 80]], 1.3, 10);
+      walkU(2, [[60, -105], [20, -60]], 1.2, 14);
+    } else if (F.id === 'range') {
+      /* the firing line (three sandbagged firing points), the range tower behind it, the red flag; the targets down range to the
+         south-east (-d) at 400 to 1,500 yards, and two hulks */
+      for (let i = 0; i < 3; i++) S.at(MODELS.get('us-sandbags', 3.5, 4), (i - 1) * 40, 0, YS + Math.PI);
+      S.at(MODELS.get('us-control-tower'), 0, 45, YS);
+      S.at(MODELS.get('us-range-flag'), 25, 30, YA);
+      S.at(MODELS.get('us-tent'), -30, 50, YA);
+      for (const [yd, u] of [
+        [400, -30],
+        [600, 40],
+        [800, -60],
+        [1000, 20],
+        [1200, -20],
+        [1500, 50],
+      ])
+        S.at(MODELS.get('us-target'), u, -yd * 0.9144, YS);
+      S.at(MODELS.get('jp-ha-go'), -80, -700, YS + 0.6);
+      S.at(MODELS.get('jp-ha-go'), 70, -1100, YS - 0.4);
+      walkU(0, [[0, 30], [-40, 5], [40, 5]], 1.2, 15);
+    } else if (F.id === 'front') {
+      /* behind phase line Able (x 10,500; this frame's sea, S, is west toward it): the foxhole line 50 to 100 m short of it, the 4.2 in
+         mortar platoon's pits, the battalion CP and the aid station, the jeep track */
+      for (let i = 0; i < 16; i++) S.at(MODELS.get('us-sandbags', 1.2, 1.0), -400 + i * 53 + r() * 12, 560 + r() * 30, YS + Math.PI);
+      for (let i = 0; i < 4; i++) {
+        const u = -60 + i * 40;
+        S.at(MODELS.get('us-sandbags', 2.2, 1.4), u, 250, YS + Math.PI);
+        S.at([part(cyl(0.06, 0.06, 1.5, 8), 0x3a3d30, 0.4, 0.8, 0, 0, 0, -0.9), part(bx(0.5, 0.06, 0.5), 0x3a3d30, 0, 0.05, 0)], u, 250, YS) /* the 4.2 in mortar */;
+      }
+      S.at(MODELS.get('us-tent'), -10, 0, YA);
+      S.at(MODELS.get('us-tent'), 4, 0, YA);
+      S.at(FLG.pole('us', 8, 1.8, 0, 0, 0, 0), 18, -8, YA);
+      S.at(MODELS.get('us-tent'), 70, -60, YA) /* the aid station */;
+      S.at(M.cargoTruck(), -40, -30, YA);
+      walkU(0, [[-10, 15], [0, 120], [-60, 250]], 1.3, 12);
+      walkU(1, [[70, -45], [20, 10]], 1.2, 15);
+      AFLD.add(M.jeepD(), [F.w(-20, -40), F.w(-20, -400), F.w(200, -650)], 8, 30, 'veh');
+    }
+    S.flush();
+    return null;
+  };
+  for (const F of FS.army) farBuild(F, () => armySite(F));
   /* Depot Mikawa's landing pier, added to the depot's own far site (so it shows and hides with it) */
   FARQ.push({ go: () => {
     const MK = FS.list.find((s) => s.id === 'cv1'),

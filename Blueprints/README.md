@@ -81,5 +81,13 @@ The PCE-842's frame-by-frame check against the PCE-874 plans is in `docs/PCE-842
 | Japanese army driver, seated (every moving Japanese vehicle) | Japanese army driver, 1945 (khaki-tan, field cap) | 0.82 x 0.55 x 1.39 | close | `Japanese_seated_driver_blueprint.png`, `Japanese_seated_driver_measurements.md` |
 | Japanese navy hand, jointed walker (CREW_RIG) | IJN working rig, 1945, as he walks (Port Ugaki's and the home port's hands) | 0.88 x 0.55 x 1.62 | close | `Japanese_navy_walker_blueprint.png`, `Japanese_navy_walker_measurements.md` |
 | Channel buoy (the dredged channel to Depot Mikawa) | Can buoy marking a dredged channel (red to port going in, green to starboard) | 2.09 x 2.20 x 3.80 | **check** | `Channel_buoy_blueprint.png`, `Channel_buoy_measurements.md` |
+| USS Sperry (AS-12), Fulton-class submarine tender, 1945 | Fulton-class submarine tender (Mare Island, commissioned 1 May 1942) | 162.45 x 28.47 x 45.13 | match | `US_AS-12_Sperry_Fulton-class_blueprint.png`, `US_AS-12_Sperry_Fulton-class_measurements.md` |
+| USS Sperry (AS-12): the distant form | Fulton-class submarine tender | 161.70 x 28.47 x 45.13 | match | `US_AS-12_Sperry_Fulton-class_distant_blueprint.png`, `US_AS-12_Sperry_Fulton-class_distant_measurements.md` |
+| US Army M1934 pyramidal tent (Camp Buckner, Beach Orange, the front) | Tent, pyramidal, M1934, 16 x 16 ft | 7.94 x 7.94 x 3.47 | **check** | `US_Army_pyramidal_tent_blueprint.png`, `US_Army_pyramidal_tent_measurements.md` |
+| Tank revetment, Camp Buckner | Bulldozed earth-and-coral revetment for one medium tank | 12.80 x 12.90 x 2.78 | **check** | `US_tank_revetment_blueprint.png`, `US_tank_revetment_measurements.md` |
+| Range target board, Buckner Range | Tank gunnery target panel | 0.85 x 3.00 x 3.20 | match | `Range_target_board_blueprint.png`, `Range_target_board_measurements.md` |
+| Sandbagged position (a foxhole's or a mortar pit's parapet) | Two-course sandbag parapet | 4.91 x 4.97 x 0.88 | match | `Sandbagged_position_blueprint.png`, `Sandbagged_position_measurements.md` |
+| Range flag (red, flown while firing) | Range danger flag on a pole | 0.12 x 1.49 x 6.00 | match | `Range_flag_blueprint.png`, `Range_flag_measurements.md` |
+| Field dump: 75 mm crates, jerrycans and drums | Ammunition and fuel dump on dunnage | 6.03 x 4.00 x 1.00 | match | `US_field_dump_blueprint.png`, `US_field_dump_measurements.md` |
 
 Check: the worst result in that model's table (match within 3%, close within 8%, **check** beyond).

@@ -1916,5 +1916,193 @@
   "notes": [
    "Every 400 m along both edges of the channel cut through the bank between Port Ugaki and Depot Mikawa's bay."
   ]
+ },
+ {
+  "id": "us-fulton",
+  "file": "US_AS-12_Sperry_Fulton-class",
+  "title": "USS Sperry (AS-12), Fulton-class submarine tender, 1945",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('us-fulton'));",
+  "type": "Fulton-class submarine tender (Mare Island, commissioned 1 May 1942)",
+  "ref": [
+   [
+    "Length",
+    161.4,
+    "529 ft 6 in overall (DANFS; Wikipedia, USS Fulton); AS-12 530 ft 7 in (HAER report, maritime.dot.gov)"
+   ],
+   [
+    "Beam",
+    22.35,
+    "73 ft 4 in (same sources)"
+   ],
+   [
+    "Draught",
+    6.83,
+    "22 ft 5 in mean (DANFS, Sperry)"
+   ]
+  ],
+  "notes": [
+   "Submarine Base Lockwood's tender, moored in the lagoon with a nest of fleet boats alongside (PLAN_Roncador_SS-301 4.2).",
+   "Hull and superstructure as the Dixie-class destroyer tenders: raised forecastle, three decks of shops and berthing amidships, the bridge at their forward end, one large funnel, a heavy crane either side, boats in davits.",
+   "Four single 5\"/38 (two forward, two aft, one above the other), 40 mm twins at the superstructure's corners. Measure 22.",
+   "Length and beam measured on the hull alone: overall she is 28.5 m wide with the cranes swung out over the side for the boats alongside."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('us-fulton'),[0x3a4652,0x6e2e26])[0]",
+   "Beam": "__partsSize(MODELS.get('us-fulton'),[0x3a4652,0x6e2e26])[2]"
+  }
+ },
+ {
+  "id": "us-fulton-distant",
+  "file": "US_AS-12_Sperry_Fulton-class_distant",
+  "title": "USS Sperry (AS-12): the distant form",
+  "kind": "ship",
+  "fwd": "+x",
+  "wl": "0",
+  "make": "return __bake(MODELS.get('us-fulton', { far: true }));",
+  "type": "Fulton-class submarine tender",
+  "ref": [
+   [
+    "Length",
+    161.4,
+    "as the near form"
+   ]
+  ],
+  "notes": [
+   "Fewer hull stations, no scuttles, windows or deck fittings."
+  ]
+ },
+ {
+  "id": "us-tent",
+  "file": "US_Army_pyramidal_tent",
+  "title": "US Army M1934 pyramidal tent (Camp Buckner, Beach Orange, the front)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-tent'));",
+  "type": "Tent, pyramidal, M1934, 16 x 16 ft",
+  "ref": [
+   [
+    "Length",
+    4.88,
+    "16 ft square (FM 20-15, Tents and tent pitching)"
+   ],
+   [
+    "Width",
+    4.88,
+    "16 ft"
+   ],
+   [
+    "Height",
+    3.35,
+    "11 ft at the centre pole; walls 3 ft"
+   ]
+  ],
+  "notes": [
+   "Olive-drab canvas, the door flap rolled up, guy lines to stakes at the corners (the stakes lie outside the 16 ft square)."
+  ],
+  "measure": {
+   "Length": "__partsSize(MODELS.get('us-tent'),[0x5b5a3e,0x4e4d35])[0]",
+   "Width": "__partsSize(MODELS.get('us-tent'),[0x5b5a3e,0x4e4d35])[2]",
+   "Height": "__partsSize(MODELS.get('us-tent'),[0x5b5a3e,0x4e4d35])[1]"
+  }
+ },
+ {
+  "id": "us-revetment",
+  "file": "US_tank_revetment",
+  "title": "Tank revetment, Camp Buckner",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-revetment'));",
+  "type": "Bulldozed earth-and-coral revetment for one medium tank",
+  "ref": [
+   [
+    "Height",
+    2.5,
+    "banks about 2.2 m and a course of sandbags: higher than an M4A3's hull (about 2.0 m to the hull top, 2.74 m overall)"
+   ]
+  ],
+  "notes": [
+   "A U of earth round a 9 x 5.5 m bay, open at +x (the way in), the banks stepped as a bulldozer leaves them and topped with sandbags."
+  ]
+ },
+ {
+  "id": "us-target",
+  "file": "Range_target_board",
+  "title": "Range target board, Buckner Range",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-target'));",
+  "type": "Tank gunnery target panel",
+  "ref": [
+   [
+    "Width",
+    3.0,
+    "a tank's front, about 3 m wide"
+   ],
+   [
+    "Height",
+    3.2,
+    "on its posts"
+   ]
+  ],
+  "notes": [
+   "Set on the slopes south-east of the firing points at 400 to 1,500 yd."
+  ]
+ },
+ {
+  "id": "us-sandbags",
+  "file": "Sandbagged_position",
+  "title": "Sandbagged position (a foxhole's or a mortar pit's parapet)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-sandbags', 2.2));",
+  "type": "Two-course sandbag parapet",
+  "ref": [
+   [
+    "Height",
+    0.88,
+    "two courses of bags, 0.44 m each"
+   ]
+  ],
+  "notes": [
+   "Open at +x for the way in; its radius set where it is used (a foxhole 1.2 m, a mortar pit 2.2 m, a CP 3.5 m)."
+  ]
+ },
+ {
+  "id": "us-range-flag",
+  "file": "Range_flag",
+  "title": "Range flag (red, flown while firing)",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-range-flag'));",
+  "type": "Range danger flag on a pole",
+  "ref": [
+   [
+    "Height",
+    6.0,
+    "the pole"
+   ]
+  ],
+  "notes": []
+ },
+ {
+  "id": "us-dump",
+  "file": "US_field_dump",
+  "title": "Field dump: 75 mm crates, jerrycans and drums",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-dump', 6, 4, 3));",
+  "type": "Ammunition and fuel dump on dunnage",
+  "ref": [
+   [
+    "Length",
+    6.0,
+    "the dunnage"
+   ],
+   [
+    "Width",
+    4.0,
+    "the dunnage"
+   ]
+  ],
+  "notes": [
+   "Crates 1.1 x 0.55 x 0.42 m stacked one to three high; jerrycans 0.35 x 0.17 x 0.47 m; 55-gallon drums 0.58 m across."
+  ]
  }
 ]

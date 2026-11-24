@@ -43,6 +43,47 @@ const FS = (() => {
     /* the US Navy supply depot (the user's, 2026-11-21): on the south shore of the islet 9.6 km west of the PT base, across the strait */
     mk('navusd', 'naval', 8959, 11470, Math.PI / 2),
   ]; /* O on the waterline (the sea is at -8) */
+  /* SUBMARINE BASE LOCKWOOD (the user's, 2026-11-23: the spot on the briefing map, north-east of PT Base Halsey; PLAN_Roncador_SS-301
+     4): an atoll after Majuro, scaled down: a ring reef about 6.6 km across, awash, with low islets on it a metre or two above the sea,
+     a lagoon 50 m deep and one deep pass, on the side toward PT Base Halsey. ATOLL.R(th) is the reef's radius at angle th (x east, z
+     south); the islets are capsules on it: the base islet (its yard is the naval pad below), the airstrip islet (a straight chord on
+     the north side, 1,700 m), the signal islet at the pass, and five small ones. */
+  const ATOLL = (() => {
+    const C = { x: 33300, z: -18200 },
+      R = (th) => 3300 + 250 * Math.sin(3 * th + 0.7) + 150 * Math.sin(5 * th + 2.1),
+      TP = Math.atan2(10749 - C.z, 18565 - C.x) /* the pass: toward PT Base Halsey */,
+      on = (th, k = 0) => [C.x + Math.cos(th) * (R(th) + k), C.z + Math.sin(th) * (R(th) + k)],
+      seg = (t0, t1, r, k = 0) => ({ a: on(t0, k), b: on(t1, k), r }),
+      TB = TP + 0.85 /* the base islet, west of the pass */,
+      TA0 = -Math.PI / 2 - 0.26,
+      TA1 = -Math.PI / 2 + 0.26 /* the airstrip islet, north */;
+    const isl = [
+      seg(TB - 0.13, TB + 0.13, 190, -40) /* the base islet */,
+      seg(TA0, TA1, 210, -60) /* the airstrip islet */,
+      seg(TP - 0.16, TP - 0.11, 70) /* the signal islet, at the pass's east side */,
+      seg(TP + 0.11, TP + 0.17, 60),
+      seg(TB + 0.45, TB + 0.62, 80),
+      seg(TA1 + 0.5, TA1 + 0.72, 90),
+      seg(TA1 + 1.4, TA1 + 1.6, 70),
+      seg(TP - 0.9, TP - 0.7, 80),
+    ];
+    return { C, R, TP, TB, TA0, TA1, on, isl, PW: 230 /* the pass's half width */ };
+  })();
+  /* the base's yard on the base islet's lagoon shore, its sea (S) into the lagoon */
+  {
+    const [bx, bz] = ATOLL.on(ATOLL.TB, -40 - 150);
+    nav.push(Object.assign(mk('navsub', 'naval', bx, bz, ATOLL.TB + Math.PI), { navy: 'ussub', R: 500, pu: 150, pi: -120, po: 6, pb: 60, pbo: 25, ph: -5.5, title: 'Submarine Base Lockwood' }));
+  }
+  /* THE ARMY'S SITES on the land south of Port Ugaki (PLAN_M4A3_Sherman_Tank 4.1, 4.5): Beach Orange on the south shore of the bay
+     (its sea north), Camp Buckner behind it on a levelled pad, Buckner Range's firing points on the rising ground to the south, and the
+     front: the battalion behind phase line Able (x 10,500). Each a frame like the others; pu, d0, d1: the pad (Camp Buckner's only),
+     R: the rural world keeps off */
+  const army = [
+    Object.assign(mk('beach', 'army', 13300, 26950, -Math.PI / 2), { R: 260, title: 'Beach Orange' }),
+    Object.assign(mk('camp', 'army', 13100, 27700, -Math.PI / 2), { R: 330, pu: 190, d0: -130, d1: 140, pb: 90, title: 'Camp Buckner' }),
+    Object.assign(mk('range', 'army', 13300, 28700, -Math.PI / 4 - Math.PI / 2), { R: 300, title: 'Buckner Range' }),
+    Object.assign(mk('front', 'army', 11150, 26800, Math.PI), { R: 450, title: 'Phase Line Able' }),
+  ];
   /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */
   Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
@@ -68,11 +109,18 @@ const FS = (() => {
       const t = Math.max(Math.max(0, Math.abs(u) - s.pu) / s.pb, Math.max(0, s.pi - d) / s.pb, Math.max(0, d - s.po) / s.pbo);
       return 1 - ssl(0, 1, t);
     }
+    if (s.kind === 'army') {
+      if (!s.pu) return 0;
+      const t = Math.max(Math.max(0, Math.abs(u) - s.pu) / s.pb, Math.max(0, s.d0 - d) / s.pb, Math.max(0, d - s.d1) / s.pb);
+      return 1 - ssl(0, 1, t);
+    }
     if (s.kind === 'air') return 1 - ssl(0, 230, Math.hypot(Math.max(0, Math.abs(u) - 780), Math.max(0, -1110 - d, d + 520)));
     return 1 - ssl(0, 120, Math.hypot(Math.max(0, Math.abs(u) - 200), Math.max(0, Math.abs(d) - 150)));
   };
   /* inside the pad (plus a margin m), where nothing of the rural world may be built */
   const near = (x, z, m) => {
+    for (const s of army) if (Math.hypot(x - s.O.x, z - s.O.z) < s.R + m) return true;
+    if (Math.hypot(x - ATOLL.C.x, z - ATOLL.C.z) < 4200 + m) return true; /* the atoll: its islets are the base's */
     for (const s of nav) {
       if (Math.abs(x - s.O.x) > s.R + 700 || Math.abs(z - s.O.z) > s.R + 700) continue;
       const [u, d] = s.uv(x, z);
@@ -96,7 +144,7 @@ const FS = (() => {
      40 m; cut into WH like the pads. The one through the bank between the IJN base and Depot Mikawa's bay (2-6 m of water over it),
      for the base's freighter (7.8 m draught) and anything else: 12 m deep */
   const chan = [{ a: [1823, 18476], b: [773, 20634], w: 60, y: -8.15 - 12 }];
-  return { list, nav, chan, wt, near, ssl, PORT_H: 1.4 };
+  return { list, nav, army, ATOLL, chan, wt, near, ssl, PORT_H: 1.4 };
 })();
 function WH0(x, z) {
   const ed = Math.max(Math.abs(x), Math.abs(z));
@@ -123,7 +171,33 @@ function WH0(x, z) {
     }
     return Math.min(250 + 1150 * Math.pow((n - 0.4) / 0.6, 1.6), 1400);
   }
-  return Math.max(n * 280, -64);
+  return atollH(x, z, Math.max(n * 280, -64));
+}
+/* the atoll (FS.ATOLL) raised off the deep sea floor h: the reef ring awash (0.7 m under), its outer face falling to the sea floor over
+   700 m and its inner one to the lagoon (-58: 50 m of water) over 350 m; the pass cut 18 m deep; the islets 3 m above the sea (Majuro's are about that) */
+function atollH(x, z, h) {
+  const A = FS.ATOLL;
+  if (!A) return h;
+  const dx = x - A.C.x,
+    dz = z - A.C.z;
+  if (Math.abs(dx) > 4700 || Math.abs(dz) > 4700) return h;
+  const th = Math.atan2(dz, dx),
+    f = Math.hypot(dx, dz) - A.R(th) /* + outside the ring */,
+    S = FS.ssl;
+  let r = f > 0 ? -8.7 + (-64 + 8.7) * S(140, 840, f) : -8.7 + (-58 + 8.7) * S(140, 490, -f);
+  /* the pass: across the ring, PW wide, 18 m deep */
+  const da = Math.atan2(Math.sin(th - A.TP), Math.cos(th - A.TP)),
+    lat = Math.abs(da) * (A.R(th) + f);
+  if (lat < A.PW + 120 && f > -700 && f < 900) r = Math.min(r, -26 + (r + 26) * S(A.PW, A.PW + 120, lat));
+  /* the islets */
+  for (const c of A.isl) {
+    const bx = c.b[0] - c.a[0],
+      bz = c.b[1] - c.a[1],
+      k = Math.max(0, Math.min(1, ((x - c.a[0]) * bx + (z - c.a[1]) * bz) / (bx * bx + bz * bz))),
+      d = Math.hypot(x - c.a[0] - bx * k, z - c.a[1] - bz * k);
+    if (d < c.r + 60) r = Math.max(r, -5.0 + (r + 5.0) * S(c.r - 30, c.r + 60, d));
+  }
+  return Math.max(h, r);
 }
 function WH(x, z) {
   let h = WH0(x, z);
@@ -155,6 +229,23 @@ function WH(x, z) {
     if (Math.abs(x - s.O.x) > s.R + 900 || Math.abs(z - s.O.z) > s.R + 900) continue;
     const w = FS.wt(s, x, z);
     if (w > 0) h += (s.ph - h) * w;
+  }
+  for (const s of FS.army) {
+    if (!s.pu || Math.abs(x - s.O.x) > s.R + 400 || Math.abs(z - s.O.z) > s.R + 400) continue;
+    if (s.H == null) {
+      /* the pad at the mean of its ground */
+      let sum = 0,
+        n = 0;
+      for (const u of [-s.pu, 0, s.pu])
+        for (const d of [s.d0, (s.d0 + s.d1) / 2, s.d1]) {
+          const [px, pz] = s.w(u, d);
+          sum += WH0(px, pz);
+          n++;
+        }
+      s.H = sum / n;
+    }
+    const w = FS.wt(s, x, z);
+    if (w > 0) h += (s.H - h) * w;
   }
   for (const c of FS.chan) {
     /* a dredged channel: the seabed no higher than its floor across its width, sloping back up over 40 m */

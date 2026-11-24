@@ -587,7 +587,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '0.142';
+const VERSION = '0.143';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -2023,6 +2023,47 @@ const FS = (() => {
     /* the US Navy supply depot (the user's, 2026-11-21): on the south shore of the islet 9.6 km west of the PT base, across the strait */
     mk('navusd', 'naval', 8959, 11470, Math.PI / 2),
   ]; /* O on the waterline (the sea is at -8) */
+  /* SUBMARINE BASE LOCKWOOD (the user's, 2026-11-23: the spot on the briefing map, north-east of PT Base Halsey; PLAN_Roncador_SS-301
+     4): an atoll after Majuro, scaled down: a ring reef about 6.6 km across, awash, with low islets on it a metre or two above the sea,
+     a lagoon 50 m deep and one deep pass, on the side toward PT Base Halsey. ATOLL.R(th) is the reef's radius at angle th (x east, z
+     south); the islets are capsules on it: the base islet (its yard is the naval pad below), the airstrip islet (a straight chord on
+     the north side, 1,700 m), the signal islet at the pass, and five small ones. */
+  const ATOLL = (() => {
+    const C = { x: 33300, z: -18200 },
+      R = (th) => 3300 + 250 * Math.sin(3 * th + 0.7) + 150 * Math.sin(5 * th + 2.1),
+      TP = Math.atan2(10749 - C.z, 18565 - C.x) /* the pass: toward PT Base Halsey */,
+      on = (th, k = 0) => [C.x + Math.cos(th) * (R(th) + k), C.z + Math.sin(th) * (R(th) + k)],
+      seg = (t0, t1, r, k = 0) => ({ a: on(t0, k), b: on(t1, k), r }),
+      TB = TP + 0.85 /* the base islet, west of the pass */,
+      TA0 = -Math.PI / 2 - 0.26,
+      TA1 = -Math.PI / 2 + 0.26 /* the airstrip islet, north */;
+    const isl = [
+      seg(TB - 0.13, TB + 0.13, 190, -40) /* the base islet */,
+      seg(TA0, TA1, 210, -60) /* the airstrip islet */,
+      seg(TP - 0.16, TP - 0.11, 70) /* the signal islet, at the pass's east side */,
+      seg(TP + 0.11, TP + 0.17, 60),
+      seg(TB + 0.45, TB + 0.62, 80),
+      seg(TA1 + 0.5, TA1 + 0.72, 90),
+      seg(TA1 + 1.4, TA1 + 1.6, 70),
+      seg(TP - 0.9, TP - 0.7, 80),
+    ];
+    return { C, R, TP, TB, TA0, TA1, on, isl, PW: 230 /* the pass's half width */ };
+  })();
+  /* the base's yard on the base islet's lagoon shore, its sea (S) into the lagoon */
+  {
+    const [bx, bz] = ATOLL.on(ATOLL.TB, -40 - 150);
+    nav.push(Object.assign(mk('navsub', 'naval', bx, bz, ATOLL.TB + Math.PI), { navy: 'ussub', R: 500, pu: 150, pi: -120, po: 6, pb: 60, pbo: 25, ph: -5.5, title: 'Submarine Base Lockwood' }));
+  }
+  /* THE ARMY'S SITES on the land south of Port Ugaki (PLAN_M4A3_Sherman_Tank 4.1, 4.5): Beach Orange on the south shore of the bay
+     (its sea north), Camp Buckner behind it on a levelled pad, Buckner Range's firing points on the rising ground to the south, and the
+     front: the battalion behind phase line Able (x 10,500). Each a frame like the others; pu, d0, d1: the pad (Camp Buckner's only),
+     R: the rural world keeps off */
+  const army = [
+    Object.assign(mk('beach', 'army', 13300, 26950, -Math.PI / 2), { R: 260, title: 'Beach Orange' }),
+    Object.assign(mk('camp', 'army', 13100, 27700, -Math.PI / 2), { R: 330, pu: 190, d0: -130, d1: 140, pb: 90, title: 'Camp Buckner' }),
+    Object.assign(mk('range', 'army', 13300, 28700, -Math.PI / 4 - Math.PI / 2), { R: 300, title: 'Buckner Range' }),
+    Object.assign(mk('front', 'army', 11150, 26800, Math.PI), { R: 450, title: 'Phase Line Able' }),
+  ];
   /* each yard is cut and filled to ph, 2.5 m above still water (SEA.Y -7.97); it meets the sea in a short bank (pbo) */
   Object.assign(nav[0], { navy: 'jp', R: 500, pu: 150, pi: -190, po: 6, pb: 110, pbo: 25, ph: -5.5 });
   Object.assign(nav[1], { navy: 'us', R: 500, pu: 160, pi: -150, po: 6, pb: 110, pbo: 25, ph: -5.5 });
@@ -2048,11 +2089,18 @@ const FS = (() => {
       const t = Math.max(Math.max(0, Math.abs(u) - s.pu) / s.pb, Math.max(0, s.pi - d) / s.pb, Math.max(0, d - s.po) / s.pbo);
       return 1 - ssl(0, 1, t);
     }
+    if (s.kind === 'army') {
+      if (!s.pu) return 0;
+      const t = Math.max(Math.max(0, Math.abs(u) - s.pu) / s.pb, Math.max(0, s.d0 - d) / s.pb, Math.max(0, d - s.d1) / s.pb);
+      return 1 - ssl(0, 1, t);
+    }
     if (s.kind === 'air') return 1 - ssl(0, 230, Math.hypot(Math.max(0, Math.abs(u) - 780), Math.max(0, -1110 - d, d + 520)));
     return 1 - ssl(0, 120, Math.hypot(Math.max(0, Math.abs(u) - 200), Math.max(0, Math.abs(d) - 150)));
   };
   /* inside the pad (plus a margin m), where nothing of the rural world may be built */
   const near = (x, z, m) => {
+    for (const s of army) if (Math.hypot(x - s.O.x, z - s.O.z) < s.R + m) return true;
+    if (Math.hypot(x - ATOLL.C.x, z - ATOLL.C.z) < 4200 + m) return true; /* the atoll: its islets are the base's */
     for (const s of nav) {
       if (Math.abs(x - s.O.x) > s.R + 700 || Math.abs(z - s.O.z) > s.R + 700) continue;
       const [u, d] = s.uv(x, z);
@@ -2076,7 +2124,7 @@ const FS = (() => {
      40 m; cut into WH like the pads. The one through the bank between the IJN base and Depot Mikawa's bay (2-6 m of water over it),
      for the base's freighter (7.8 m draught) and anything else: 12 m deep */
   const chan = [{ a: [1823, 18476], b: [773, 20634], w: 60, y: -8.15 - 12 }];
-  return { list, nav, chan, wt, near, ssl, PORT_H: 1.4 };
+  return { list, nav, army, ATOLL, chan, wt, near, ssl, PORT_H: 1.4 };
 })();
 function WH0(x, z) {
   const ed = Math.max(Math.abs(x), Math.abs(z));
@@ -2103,7 +2151,33 @@ function WH0(x, z) {
     }
     return Math.min(250 + 1150 * Math.pow((n - 0.4) / 0.6, 1.6), 1400);
   }
-  return Math.max(n * 280, -64);
+  return atollH(x, z, Math.max(n * 280, -64));
+}
+/* the atoll (FS.ATOLL) raised off the deep sea floor h: the reef ring awash (0.7 m under), its outer face falling to the sea floor over
+   700 m and its inner one to the lagoon (-58: 50 m of water) over 350 m; the pass cut 18 m deep; the islets 3 m above the sea (Majuro's are about that) */
+function atollH(x, z, h) {
+  const A = FS.ATOLL;
+  if (!A) return h;
+  const dx = x - A.C.x,
+    dz = z - A.C.z;
+  if (Math.abs(dx) > 4700 || Math.abs(dz) > 4700) return h;
+  const th = Math.atan2(dz, dx),
+    f = Math.hypot(dx, dz) - A.R(th) /* + outside the ring */,
+    S = FS.ssl;
+  let r = f > 0 ? -8.7 + (-64 + 8.7) * S(140, 840, f) : -8.7 + (-58 + 8.7) * S(140, 490, -f);
+  /* the pass: across the ring, PW wide, 18 m deep */
+  const da = Math.atan2(Math.sin(th - A.TP), Math.cos(th - A.TP)),
+    lat = Math.abs(da) * (A.R(th) + f);
+  if (lat < A.PW + 120 && f > -700 && f < 900) r = Math.min(r, -26 + (r + 26) * S(A.PW, A.PW + 120, lat));
+  /* the islets */
+  for (const c of A.isl) {
+    const bx = c.b[0] - c.a[0],
+      bz = c.b[1] - c.a[1],
+      k = Math.max(0, Math.min(1, ((x - c.a[0]) * bx + (z - c.a[1]) * bz) / (bx * bx + bz * bz))),
+      d = Math.hypot(x - c.a[0] - bx * k, z - c.a[1] - bz * k);
+    if (d < c.r + 60) r = Math.max(r, -5.0 + (r + 5.0) * S(c.r - 30, c.r + 60, d));
+  }
+  return Math.max(h, r);
 }
 function WH(x, z) {
   let h = WH0(x, z);
@@ -2135,6 +2209,23 @@ function WH(x, z) {
     if (Math.abs(x - s.O.x) > s.R + 900 || Math.abs(z - s.O.z) > s.R + 900) continue;
     const w = FS.wt(s, x, z);
     if (w > 0) h += (s.ph - h) * w;
+  }
+  for (const s of FS.army) {
+    if (!s.pu || Math.abs(x - s.O.x) > s.R + 400 || Math.abs(z - s.O.z) > s.R + 400) continue;
+    if (s.H == null) {
+      /* the pad at the mean of its ground */
+      let sum = 0,
+        n = 0;
+      for (const u of [-s.pu, 0, s.pu])
+        for (const d of [s.d0, (s.d0 + s.d1) / 2, s.d1]) {
+          const [px, pz] = s.w(u, d);
+          sum += WH0(px, pz);
+          n++;
+        }
+      s.H = sum / n;
+    }
+    const w = FS.wt(s, x, z);
+    if (w > 0) h += (s.H - h) * w;
   }
   for (const c of FS.chan) {
     /* a dredged channel: the seabed no higher than its floor across its width, sloping back up over 40 m */
@@ -5266,6 +5357,291 @@ const MODELS = (() => {
       return P;
     },
     { kind: 'ship', title: 'USS Roncador (SS-301), Balao class, 1945' },
+  );
+})();
+/* ---------- the Fulton-class submarine tender (AS-11 to AS-19): USS Sperry (AS-12), Submarine Base Lockwood's tender ----------
+   Sizes from DANFS and the HAER report on Sperry (maritime.dot.gov): 529 ft 6 in to 530 ft 7 in overall (161.4 m), beam 73 ft 4 in
+   (22.35 m), draught 22 ft 5 in mean (6.83 m); four single 5"/38 guns, 40 mm twins and 20 mm; complement 1,307. The hull and the
+   superstructure were the same as the Dixie-class destroyer tenders' and the Vulcan-class repair ships' (Wikipedia, Fulton class):
+   a high-sided hull with a raised forecastle, a long block of shop and berthing decks amidships with the bridge at its forward end,
+   one large funnel, heavy cranes either side for lifting torpedoes and machinery out of the boats alongside, boats in davits, and
+   the four 5"/38s two forward and two aft, each pair one above the other. Bow toward +x, waterline at y = 0, port side at -z.
+   Painted to Measure 22 (Navy Blue to the main deck, haze grey above). */
+(() => {
+  const { part, bx, cyl } = GX,
+    Z = Math.PI / 2,
+    L = 161.4,
+    X0 = -L / 2,
+    B = 22.35 / 2,
+    D = 6.83,
+    F = 8.2 /* main deck above the waterline amidships */,
+    FC = 10.6 /* forecastle deck at its after end */,
+    NAVY = 0x3a4652,
+    HAZE = 0x7f868c,
+    HAZE2 = 0x737a80,
+    DECKB = 0x48525c,
+    URED = 0x6e2e26,
+    BLK = 0x1c1c1c,
+    WIN = 0x161c20,
+    GUN = 0x5f666c;
+  const tender = (far) => {
+    const P = [];
+    /* the hull: a fine bow and a cruiser stern, square amidships, the forecastle deck rising to the stem */
+    const beam = (t) => (t < 0.12 ? 0.55 + 0.45 * Math.sin((t / 0.12) * Z) : t > 0.68 ? Math.max(0.02, Math.cos(((t - 0.68) / 0.32) * Z * 0.98)) : 1);
+    const keelUp = (t) => (t > 0.95 ? Math.pow((t - 0.95) / 0.05, 1.4) * D * 0.85 : t < 0.04 ? (1 - t / 0.04) * D * 0.5 : 0);
+    const sheer = (t) => (t > 0.62 ? FC + 2.4 * Math.pow((t - 0.62) / 0.38, 2) : F + 0.6 * Math.pow(Math.max(0, (0.25 - t) / 0.25), 2));
+    P.push(
+      ...GX.loft({
+        L,
+        X0,
+        N: far ? 16 : 40,
+        sect: (t) => {
+          const b = B * beam(t),
+            k = -D + keelUp(t),
+            d = sheer(t),
+            bil = Math.min(2.6, b * 0.9);
+          return [
+            [k, 0],
+            [k, Math.max(0.01, b - bil)],
+            [Math.max(k, -D + bil), b],
+            [Math.max(k, -0.6), b],
+            [Math.max(k, 0.3), b],
+            [Math.min(d, Math.max(k, 2.0)), b],
+            [d, b],
+          ];
+        },
+        paint: (y) => (y < -0.6 ? URED : y < 0.3 ? BLK : NAVY),
+        deck: DECKB,
+        transom: null,
+      }),
+    );
+    /* the forecastle break: the step from the main deck up to the forecastle, plated in */
+    const xFc = X0 + L * 0.62;
+    P.push(part(bx(0.3, FC - F + 0.1, B * 2 * 0.98), NAVY, xFc, (F + FC) / 2, 0));
+    if (!far)
+      for (const s of [-1, 1]) for (let x = X0 + 10; x < xFc - 4; x += 3.1) P.push(part(bx(0.45, 0.45, 0.02), WIN, x, F - 1.4, s * (B + 0.006))) /* scuttles along the hull */;
+    /* the superstructure: three decks of shops, berthing and offices from aft of the forecastle break to the quarterdeck, the bridge at
+       its forward end over the forecastle; each deck a little narrower */
+    const S0 = X0 + L * 0.22,
+      S1 = xFc + 4;
+    const tiers = [
+      [S0, S1, F, 2.8, 0.86, HAZE],
+      [S0 + 6, S1 - 2, F + 2.8, 2.7, 0.8, HAZE2],
+      [S0 + 18, S1 - 6, F + 5.5, 2.6, 0.62, HAZE],
+    ];
+    for (const [a, b, y, h, wf, c] of tiers) {
+      P.push(part(bx(b - a, h, B * 2 * wf), c, (a + b) / 2, y + h / 2, 0), part(bx(b - a + 0.6, 0.12, B * 2 * wf + 0.6), 0x2e3236, (a + b) / 2, y + h + 0.06, 0));
+      if (!far) for (const s of [-1, 1]) for (let x = a + 2; x < b - 1.5; x += 2.6) P.push(part(bx(0.7, 0.6, 0.02), WIN, x, y + h * 0.6, s * (B * wf + 0.006)));
+    }
+    /* the bridge: navigating bridge and pilothouse over the superstructure's forward end, its windows forward, wings either side */
+    const xb = S1 - 4,
+      yb = F + 8.1;
+    P.push(part(bx(7, 2.6, 12), HAZE2, xb, yb + 1.3, 0), part(bx(0.02, 0.9, 10), WIN, xb + 3.51, yb + 1.7, 0), part(bx(7.6, 0.14, 12.6), 0x2e3236, xb, yb + 2.67, 0));
+    P.push(part(bx(4, 1.1, B * 2 * 0.95), HAZE, xb + 0.5, yb + 0.55, 0)) /* the wings */;
+    P.push(part(bx(3.6, 2.2, 5), HAZE2, xb - 1, yb + 3.8, 0), part(bx(0.02, 0.7, 4), WIN, xb + 0.81, yb + 4.2, 0)) /* the chart house and fire control */;
+    /* the foremast: a pole mast on the bridge with a yard and the radar (SC on the topmast) */
+    const xm = xb - 2.5;
+    P.push(GX.rod([xm, yb + 2.7, 0], [xm, yb + 22, 0], 0.32, HAZE, 0.18, 8), part(bx(0.3, 0.3, 9), HAZE, xm, yb + 16, 0), part(bx(0.25, 1.8, 2.6), 0x2a2e30, xm + 0.3, yb + 20.5, 0));
+    /* the funnel: one large, oval, raked a little, on the top deck abaft amidships */
+    const xf = X0 + L * 0.4,
+      yf = F + 8.1;
+    P.push(part(cyl(3.2, 3.4, 9.5, 16), HAZE, xf, yf + 4.75, 0, 0, 0, 0.05, 1.5, 1, 1), part(cyl(3.25, 3.25, 0.7, 16), BLK, xf - 0.25, yf + 9.2, 0, 0, 0, 0.05, 1.5, 1, 1));
+    /* the heavy cranes: one each side abreast the funnel, a pedestal and a long lattice boom raised over the side (the boats alongside) */
+    for (const s of [-1, 1]) {
+      const xc = xf + 13,
+        zc = s * (B * 0.62),
+        y0 = F + 5.5;
+      P.push(part(cyl(1.3, 1.6, 4.5, 12), HAZE2, xc, y0 + 2.25, zc), part(bx(3.4, 3, 3), HAZE2, xc, y0 + 5.9, zc));
+      const heel = [xc + 1.6, y0 + 6, zc],
+        head = [xc + 13, y0 + 15, zc + s * 7];
+      P.push(GX.rod(heel, head, 0.55, HAZE, 0.35, 6), GX.rod(head, [xc, y0 + 7.4, zc], 0.04, 0x2a2a2a, 0.04, 4), GX.rod(head, [head[0], F + 1, head[2]], 0.03, 0x2a2a2a, 0.03, 4));
+    }
+    /* the mainmast aft, on the superstructure's after end */
+    {
+      const x = S0 + 10;
+      P.push(GX.rod([x, F + 5.5, 0], [x, F + 24, 0], 0.3, HAZE, 0.16, 8), part(bx(0.25, 0.25, 7), HAZE, x, F + 19, 0));
+    }
+    /* boats in davits along the superstructure's sides */
+    for (const s of [-1, 1])
+      for (const x of [xf - 12, xf - 22, xf + 24]) {
+        const z = s * (B * 0.86 + 1.4),
+          y = F + 3.6;
+        P.push(part(bx(8.5, 1.3, 2.4), 0x8e9498, x, y, z), part(bx(8, 0.2, 2.1), 0x5a4a38, x, y + 0.6, z));
+        for (const dx of [-3.4, 3.4]) P.push(GX.rod([x + dx, F + 2.8, s * (B * 0.86)], [x + dx, F + 5.4, z], 0.12, HAZE2, 0.1, 6));
+      }
+    /* the four 5"/38s in open single mounts with shields: two forward (the forecastle, and above it on the superstructure's front) and two
+       aft (the quarterdeck, and above it on the superstructure's after end); the barrels fore and aft */
+    const gun = (x, y, dir) => {
+      P.push(part(cyl(1.6, 1.8, 0.6, 12), HAZE2, x, y + 0.3, 0), part(bx(2.4, 1.7, 2.6), HAZE, x - dir * 0.2, y + 1.45, 0));
+      P.push(part(cyl(0.11, 0.13, 5.4, 8), GUN, x + dir * 3.6, y + 1.5, 0, 0, 0, dir * -Z));
+    };
+    gun(X0 + L * 0.79, FC + 0.9, 1);
+    gun(S1 + 0.4, F + 5.5, 1);
+    gun(X0 + 6, F + 0.4, -1);
+    gun(S0 - 4, F + 2.8, -1);
+    /* 40 mm twins in tubs at the superstructure's corners */
+    for (const [x, s] of [
+      [S1 - 2, -1],
+      [S1 - 2, 1],
+      [S0 + 3, -1],
+      [S0 + 3, 1],
+    ]) {
+      const y = F + 5.5;
+      P.push(part(cyl(1.4, 1.4, 1.1, 12), HAZE2, x, y + 0.55, s * (B * 0.62 + 0.8)));
+      for (const dz of [-0.25, 0.25]) P.push(part(cyl(0.06, 0.06, 2.6, 6), GUN, x + 1.4, y + 1.4, s * (B * 0.62 + 0.8) + dz, 0, 0, -Z));
+    }
+    /* the anchors and the windlass on the forecastle; the jack and ensign staffs */
+    if (!far) {
+      for (const s of [-1, 1]) P.push(part(bx(1.4, 1.6, 0.4), BLK, X0 + L * 0.95, FC + 0.6, s * 2.6));
+      P.push(part(bx(2.6, 1.1, 4.4), 0x2a2e30, X0 + L * 0.9, FC + 2.95, 0));
+      P.push(part(cyl(0.06, 0.08, 5, 6), 0x555555, X0 + 1.4, F + 2.7, 0), ...FLG.at('us', 2.4, X0 + 1.35, F + 4.5, 0, Math.PI));
+      P.push(part(cyl(0.05, 0.07, 3.5, 6), 0x555555, X0 + L - 1.6, FC + 4.2, 0));
+    }
+    return P;
+  };
+  MODELS.add('us-fulton', (o) => tender(!!(o && o.far)), {
+    name: 'Fulton-class submarine tender (USS Sperry, AS-12)',
+    L: 161.4,
+    W: 22.35,
+    D: 6.83,
+  });
+})();
+/* ---------- the US Army's camp and range pieces (PLAN_M4A3_Sherman_Tank 4.5): Camp Buckner, Beach Orange, Buckner Range, the front ----------
+   Each in metres, on its own ground at y = 0, its long side along x:
+   us-tent        the M1934 pyramidal tent, 16 ft square (4.88 m), 11 ft high at the pole (3.35 m), 3 ft walls (0.91 m), olive drab
+                  canvas, the door flap rolled up, guy lines to stakes (FM 20-15 Tents and tent pitching, 1945)
+   us-revetment   a tank revetment: a U of earth and coral bulldozed up 2.2 m high round a 9 x 5.5 m bay (an M4A3 is 5.9 x 2.6 m),
+                  open at one end (+x), its banks sloped and topped with sandbags
+   us-target      a range target board: a 3 x 2.4 m panel (a tank's front, painted) on two posts, with an aiming cross
+   us-sandbags    a sandbagged position: a ring of bagged wall 0.9 m high and r across (a foxhole's parapet, a mortar pit's, a CP's),
+                  two courses of bags; open at one side (+x) for the way in
+   us-range-flag  the red range flag on a 6 m pole (flown while the range is firing)
+   us-dump        a field dump: stacks of crates (75 mm rounds), jerrycans and drums on dunnage under a tarpaulin edge */
+(() => {
+  const { part, bx, cyl } = GX,
+    OD = 0x5b5a3e /* olive drab canvas */,
+    OD2 = 0x4e4d35,
+    EARTH = 0x8a7a5a,
+    EARTH2 = 0x7a6a4c,
+    BAG = 0x9a8a62,
+    BAG2 = 0x8a7b56,
+    WOODP = 0x7a6448;
+  MODELS.add(
+    'us-tent',
+    () => {
+      const P = [],
+        a = 4.88 / 2,
+        wh = 0.91,
+        hp = 3.35;
+      /* the four walls and the four roof faces (each face a box leaned in to meet at the pole's top) */
+      for (const [dx, dz, ry] of [
+        [a, 0, 0],
+        [-a, 0, Math.PI],
+        [0, a, -Math.PI / 2],
+        [0, -a, Math.PI / 2],
+      ]) {
+        P.push(part(bx(0.05, wh, 4.88), OD, dx, wh / 2, dz, 0, ry, 0));
+      }
+      /* the roof: a square pyramid from the walls' tops to the pole (a four-sided cone turned to sit square on the walls) */
+      P.push(part(cyl(0.08, a * Math.SQRT2, hp - wh, 4), OD2, 0, wh + (hp - wh) / 2, 0, 0, Math.PI / 4, 0));
+      /* the pole's top cap, the door (a dark opening, the flap rolled above it) */
+      P.push(part(cyl(0.25, 0.4, 0.35, 8), OD2, 0, hp - 0.1, 0));
+      P.push(part(bx(0.06, 0.85, 1.1), 0x1e2018, a + 0.03, 0.42, 0), part(cyl(0.12, 0.12, 1.2, 6), OD2, a + 0.12, 0.95, 0, Math.PI / 2, 0, 0));
+      /* guy stakes and lines at the corners */
+      for (const [sx, sz] of [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ]) {
+        const s0 = [sx * (a + 1.5), 0.05, sz * (a + 1.5)],
+          top = [sx * a, wh + 0.05, sz * a];
+        P.push(GX.rod(s0, top, 0.012, 0xc8bf9c, 0.012, 3), part(bx(0.06, 0.3, 0.06), WOODP, s0[0], 0.1, s0[2]));
+      }
+      return P;
+    },
+    { name: 'US Army M1934 pyramidal tent', L: 4.88, W: 4.88, H: 3.35 },
+  );
+  MODELS.add(
+    'us-revetment',
+    () => {
+      const P = [],
+        L0 = 9,
+        W0 = 5.5,
+        h = 2.2,
+        t = 1.4 /* the bank's top width */;
+      /* the back bank (-x) and the two side banks: a sloped trapezoid each (a box with its outer face leaned), topped with bags */
+      const bank = (cx, cz, len, ry) => {
+        /* stepped like a bulldozed berm: a wide foot, a narrower body, the top */
+        P.push(part(bx(len, h * 0.5, t + 2.4), EARTH, cx, h * 0.25, cz, 0, ry, 0));
+        P.push(part(bx(len, h * 0.5, t + 1.0), EARTH2, cx, h * 0.75, cz, 0, ry, 0));
+        P.push(part(bx(len, 0.3, t), EARTH2, cx, h + 0.15, cz, 0, ry, 0));
+        for (let k = 0; k < Math.floor(len / 0.9); k++) {
+          const f = -len / 2 + 0.45 + k * 0.9,
+            x = cx + (ry ? 0 : f),
+            z = cz + (ry ? f : 0);
+          P.push(part(bx(0.85, 0.28, 0.5), k % 2 ? BAG : BAG2, x, h + 0.44, z, 0, ry, 0));
+        }
+      };
+      bank(-L0 / 2 - 1.8, 0, W0 + 7.2, Math.PI / 2);
+      for (const s of [-1, 1]) bank(-0.4, s * (W0 / 2 + 1.8), L0 + 1.0, 0);
+      return P;
+    },
+    { name: 'Tank revetment (earth and coral, sandbag-topped)', L: 12.6, W: 12.7, H: 2.9 },
+  );
+  MODELS.add(
+    'us-target',
+    () => {
+      const P = [];
+      for (const z of [-1.3, 1.3]) P.push(part(bx(0.15, 3.2, 0.15), WOODP, -0.1, 1.6, z));
+      P.push(part(bx(0.06, 2.4, 3.0), 0xb8b0a0, 0, 1.6 + 0.4, 0), part(bx(0.07, 2.0, 0.12), 0x1e1e1e, 0.01, 2.0, 0), part(bx(0.07, 0.12, 2.6), 0x1e1e1e, 0.01, 2.0, 0));
+      P.push(part(bx(0.07, 0.8, 1.0), 0x8a2a22, 0.012, 2.0, 0)) /* the aiming mark */;
+      P.push(part(bx(0.8, 0.12, 0.3), WOODP, -0.4, 0.06, 1.3), part(bx(0.8, 0.12, 0.3), WOODP, -0.4, 0.06, -1.3)) /* the feet */;
+      return P;
+    },
+    { name: 'Range target board', L: 0.9, W: 3.0, H: 3.2 },
+  );
+  MODELS.add(
+    'us-sandbags',
+    (r = 2.2, open = 1.4) => {
+      const P = [],
+        n = Math.max(8, Math.round((2 * Math.PI * r) / 0.85));
+      for (let L = 0; L < 2; L++)
+        for (let k = 0; k < n; k++) {
+          const a = ((k + L * 0.5) / n) * Math.PI * 2;
+          if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < open / r / 2) continue; /* the way in (+x) */
+          P.push(part(bx(0.85, 0.44, 0.5), (k + L) % 2 ? BAG : BAG2, Math.cos(a) * r, 0.22 + L * 0.44, Math.sin(a) * r, 0, -a + Math.PI / 2, 0));
+        }
+      P.push(part(cyl(r - 0.3, r - 0.3, 0.04, 14), 0x4a3e2c, 0, 0.02, 0)) /* the dug floor, dark */;
+      return P;
+    },
+    { name: 'Sandbagged position' },
+  );
+  MODELS.add(
+    'us-range-flag',
+    () => [part(cyl(0.05, 0.07, 6, 6), 0x9a9a92, 0, 3, 0), part(bx(0.02, 0.9, 1.4), 0xc0281e, 0, 5.4, 0.72)],
+    { name: 'Range flag', H: 6 },
+  );
+  MODELS.add(
+    'us-dump',
+    (w = 6, d = 4, seed = 1) => {
+      const P = [];
+      let s = seed * 9301;
+      const rr = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+      P.push(part(bx(w, 0.12, d), WOODP, 0, 0.06, 0)) /* the dunnage */;
+      for (let i = 0; i < Math.floor((w * d) / 3); i++) {
+        const x = (rr() - 0.5) * (w - 1),
+          z = (rr() - 0.5) * (d - 1),
+          k = rr();
+        if (k < 0.5) {
+          const hgt = 1 + Math.floor(rr() * 3);
+          for (let j = 0; j < hgt; j++) P.push(part(bx(1.1, 0.42, 0.55), j % 2 ? 0x6e6a44 : 0x5e5a3a, x, 0.33 + j * 0.42, z)) /* 75 mm crates */;
+        } else if (k < 0.8) for (let j = 0; j < 4; j++) P.push(part(bx(0.17, 0.47, 0.35), 0x5b5f3a, x + (j % 2) * 0.2, 0.36, z + (j >> 1) * 0.38)) /* jerrycans */;
+        else P.push(part(cyl(0.29, 0.29, 0.88, 10), 0x4a5a3a, x, 0.56, z)) /* a drum */;
+      }
+      return P;
+    },
+    { name: 'Field dump (crates, jerrycans, drums)' },
   );
 })();
 /* ---------- I-58, a Type B3 (Otsu-gata) cruiser submarine, as refitted at Kure in May 1945 ----------
@@ -17203,6 +17579,28 @@ const WORLD = (() => {
           grp.set(root(a.id), root(b.id));
         }
       }
+      /* THE ARMY'S CORAL ROAD (PLAN_M4A3_Sherman_Tank 4.2, 4.4; the user's, 2026-11-23): from Beach Orange up to Camp Buckner, west
+         across the island to Depot Mikawa's gate, and north up the neck to Port Ugaki; a spur south to Buckner Range. Crushed coral,
+         6 m wide, bridged where it must */
+      {
+        const A_ = (id) => FS.army.find((q) => q.id === id),
+          BO = A_('beach'),
+          CB = A_('camp'),
+          RG = A_('range'),
+          MK = FS.list.find((q) => q.id === 'cv1'),
+          UG = FS.nav.find((q) => q.navy === 'jp');
+        const ar = (a, b, own, from, to) => {
+          const r = make(a, b, true, own, null);
+          info.push([from + '-' + to, 'coral', r ? 'ok ' + (r.len / 1000).toFixed(1) + 'km, ' + r.bridges + ' bridges, longest ' + r.longest + ' m' : 'no land route']);
+          if (r) out.push(Object.assign(r, { coral: true, from, to }));
+        };
+        if (BO && CB && RG && MK && UG) {
+          ar(BO.w(0, -120), CB.w(0, 150), [], 'beach', 'camp');
+          ar(CB.w(-215, 0), gate(MK), ['cv1'], 'camp', 'cv1');
+          ar(gate(MK), UG.w(0, -150), ['cv1'], 'cv1', 'navjp');
+          ar(CB.w(0, -140), RG.w(0, 70), [], 'camp', 'range');
+        }
+      }
       routes = out;
       routes.info = info;
       return out;
@@ -17706,8 +18104,8 @@ const WORLD = (() => {
         };
         for (const R of RT.list()) {
           if (R.x1 < c.x0 - 130 || R.x0 > c.x1 + 130 || R.z1 < c.z0 - 130 || R.z0 > c.z1 + 130) continue;
-          const hw = R.paved ? 3.4 : 2.6,
-            col = R.paved ? PAVE : DIRT;
+          const hw = R.coral ? 3.0 : R.paved ? 3.4 : 2.6,
+            col = R.coral ? 0xa59e88 /* crushed coral, weathered */ : R.paved ? PAVE : DIRT;
           prevV = -1;
           lrx = 1e9;
           for (const st of sts) st.pv = -1;
@@ -21431,6 +21829,136 @@ const SITES = [],
         14,
       );
       AFLD.add(M.jeepD(), [F.w(-120, -12), F.w(120, -12)], 7, 20, 'veh');
+    } else if (F.navy === 'ussub') {
+      /* SUBMARINE BASE LOCKWOOD (PLAN_Roncador_SS-301 4.2, after Majuro 1944-45; the user's, 2026-11-23): on the base islet, a coral
+         yard with the timber pier and a pontoon pier for the tender's boats, the torpedo and machine shops (Elephant Quonsets), stores,
+         quarters, the hospital, a tank farm; the submarine camp's tents along the islet; in the lagoon the tender USS Sperry (AS-12)
+         moored with a nest of two fleet boats alongside; the signal station on the islet at the pass and the buoyed approach; the coral
+         airstrip on the north islet with its hangar and tower. */
+      const A = FS.ATOLL;
+      flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
+      const wy = pad + 0.6;
+      pierF(F, S, -60, F.po - 4, 140, 8, wy) /* the timber pier: the boats come alongside it between patrols */;
+      pierF(F, S, 70, F.po - 4, 60, 5, wy) /* the pontoon pier: the tender's boats and the LCM */;
+      use(-66, -54, 0, 140);
+      use(66, 74, 0, 60);
+      /* the tender, moored in the lagoon 650 m off, along the shore; two fleet boats alongside her, on her shoreward side */
+      {
+        const YT = YA,
+          len = 161.4,
+          T = mooredF(F, MODELS.get('us-fulton'), 0, 650, YT, len, 22.35);
+        T.ride = RIDE.make(0.43 * len, 0.45 * 22.35, 9);
+        T.hull.o.hw = 22.35 * 0.46;
+        const [tx, tz] = F.w(0, 650);
+        COLL.add({ sea: true, fixed: true, hl: len / 2, r: 11.2, mg: 4, x: tx, z: tz, yaw: YT, v: 0 });
+        for (const [k, dd] of [
+          [0, 11.2 + 1.5 + 4.15],
+          [1, 11.2 + 1.5 + 8.3 + 1.5 + 4.15],
+        ]) {
+          const o = mooredF(F, MODELS.get('us-roncador'), 10 - k * 6, 650 - dd, YT, 95, 8.3);
+          o.ride = RIDE.make(0.43 * 95, 0.45 * 8.3, 7);
+          const [x, z] = F.w(10 - k * 6, 650 - dd);
+          COLL.add({ sea: true, fixed: true, hl: 47.5, r: 4.15, mg: 3, x, z, yaw: YT, v: 0 });
+        }
+        /* her boat, running between the pontoon pier and her side */
+        const lc = mooredF(F, MODELS.get('us-lcm3'), 70 - 5, 70, YS, 15.3, 4.3);
+        lc.sh = { a: F.w(70 - 5, 70), b: F.w(-40, 650 - 11.2 - 1.5 - 8.3 - 1.5 - 8.3 - 4), wait: 120, ph: 30, v: 3 };
+      }
+      /* the shops, stores, quarters, mess and hospital */
+      for (const [u, d] of [
+        [-110, -60],
+        [-40, -60],
+      ]) {
+        S.at(MODELS.get('us-quonset', 'elephant'), u, d, YA, gy);
+        use(u - 20, u + 20, d - 18, d + 18);
+      }
+      for (let i = 0; i < 6; i++) {
+        const u = 0 + i * 22;
+        S.at(MODELS.get('us-quonset', 'std'), u, -100, YA, gy);
+        use(u - 8, u + 8, -108, -92);
+      }
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-fuel-tank'), 112 + (i % 2) * 12, -40 - (i >> 1) * 12, YA, gy) /* diesel and gasoline */;
+      use(100, 136, -60, -28);
+      for (let i = 0; i < 4; i++) S.at(MODELS.get('us-dump', 5, 3, i + 1), -10 + (i % 2) * 8, -40 - (i >> 1) * 7, YA, gy) /* stores off the pier */;
+      use(-15, 15, -50, -30);
+      S.at(FLG.pole('us', 12, 2.8, 0, 0, 0, 0), 40, -20, YA);
+      S.at(M.cargoTruck(), 55, -45, YA - 0.1);
+      S.at(M.fuelTruck(0x6b7350), 90, -30, YS);
+      use(45, 98, -52, -22);
+      const walkU = (v, path, sp, wait) =>
+        AFLD.add(
+          CREW_RIG('us', v),
+          path.map(([u, d]) => F.w(u, d)),
+          sp,
+          wait,
+          'walk',
+        );
+      walkU(0, [[-110, -35], [-60, -10], [-60, 130]], 1.3, 10);
+      walkU(1, [[20, -85], [70, -10], [70, 55]], 1.2, 12);
+      walkU(2, [[-40, -35], [10, -75], [110, -80]], 1.3, 9);
+      AFLD.add(M.jeepD(), [F.w(-140, -15), F.w(140, -15)], 7, 20, 'veh');
+      /* the submarine camp (the crews between patrols): pyramidal tents in rows along the islet beyond the yard */
+      for (let i = 0; i < 4; i++)
+        for (let j = 0; j < 3; j++) {
+          const u = 215 + i * 11,
+            d = -175 + j * 11;
+          S.at(MODELS.get('us-tent'), u, d, YA);
+        }
+      for (let i = 0; i < 2; i++) S.at(MODELS.get('us-quonset', 'std'), 215 + i * 24, -130, YA) /* the mess and the beer hall */;
+      /* frames of the atoll's own places, in world terms (x east, z south) */
+      const frameAt = (x, z, th) => {
+        const Sx = Math.cos(th),
+          Sz = Math.sin(th),
+          Ax = -Sz,
+          Az = Sx;
+        return { O: { x, z }, S: { x: Sx, z: Sz }, A: { x: Ax, z: Az }, ryS: Math.atan2(-Sz, Sx), ryA: Math.atan2(-Az, Ax), w: (u, d) => [x + Ax * u + Sx * d, z + Az * u + Sz * d] };
+      };
+      /* the signal station on the islet at the pass: the tower, its flagstaff, a hut */
+      {
+        const c = A.isl[2],
+          G = frameAt((c.a[0] + c.b[0]) / 2, (c.a[1] + c.b[1]) / 2, A.TP),
+          S2 = siteAcc(G);
+        S2.at(MODELS.get('us-control-tower'), 0, -15, G.ryA);
+        S2.at(MODELS.get('us-quonset', 'std'), 0, -40, G.ryA);
+        S2.at(FLG.pole('us', 10, 2.2, 0, 0, 0, 0), 14, -10, G.ryA);
+        S2.flush();
+      }
+      /* the buoyed approach to the pass, from the open sea: red buoys to starboard going in, green to port, every 400 m out to 2 km */
+      {
+        const P = [],
+          ox = Math.cos(A.TP),
+          oz = Math.sin(A.TP),
+          [px, pz] = A.on(A.TP, 0);
+        for (let s = 300; s <= 2100; s += 400)
+          for (const sd of [-1, 1]) {
+            const off = (A.PW - 50) * sd,
+              x = px + ox * s - oz * off,
+              z = pz + oz * s + ox * off,
+              c = sd > 0 ? 0xb8302a : 0x2f7a3a /* going in (toward -o): +sd lies to starboard */;
+            P.push(part(cyl(0.9, 1.1, 1.6, 10), c, x, SEA.WL + 0.5, z), part(cyl(0.12, 0.5, 2.2, 8), c, x, SEA.WL + 2.4, z));
+          }
+        scene.add(new THREE.Mesh(new GX.Acc().add(P, null).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true })));
+      }
+      /* the airstrip on the north islet: a 1,700 x 45 m coral strip along the islet, its apron, a Butler hangar, the tower, two huts */
+      {
+        const a = A.on(A.TA0, -60),
+          b = A.on(A.TA1, -60),
+          mx = (a[0] + b[0]) / 2,
+          mz = (a[1] + b[1]) / 2,
+          L = Math.hypot(b[0] - a[0], b[1] - a[1]),
+          th = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2 /* S across the strip (toward the lagoon: +z here, south) */,
+          G = frameAt(mx, mz, th),
+          S2 = siteAcc(G),
+          y = WH(mx, mz) + 0.12;
+        flatD(G, -L / 2 + 20, L / 2 - 20, -22, 22, y, CORAL, 6);
+        flatD(G, -150, 60, 30, 110, y, CORAL, 6) /* the apron, lagoon side */;
+        S2.at(MODELS.get('us-butler-hangar'), -80, 80, G.ryS, y);
+        S2.at(MODELS.get('us-control-tower'), 40, 85, G.ryS, y);
+        S2.at(MODELS.get('us-quonset', 'std'), 0, 120, G.ryA);
+        S2.at(MODELS.get('us-quonset', 'std'), -25, 120, G.ryA);
+        S2.at(M.jeep(), 20, 60, G.ryA, y);
+        S2.flush();
+      }
     } else {
       /* the US Navy PT-boat base: a coral yard, two finger piers with PT boats, the PCE's own pier (her berth: she is out on patrol),
          a fuel jetty and its tank farm, Quonset huts, the boat shop, the Stars and Stripes */
@@ -21578,6 +22106,94 @@ const SITES = [],
     return pat;
   };
   for (const F of FS.nav) farBuild(F, () => naval(F));
+  /* ----- THE ARMY'S SITES (PLAN_M4A3_Sherman_Tank 4.5; the user's, 2026-11-23: the bases common to every game, built now, the tank's
+     own pieces later): Beach Orange, Camp Buckner, Buckner Range and the battalion behind phase line Able. Each in its own frame;
+     everything stands on the drawn ground but Camp Buckner's park, which is levelled (FS.army's pad). The revetments are empty: the
+     battalion's Shermans come with the tank simulator. ----- */
+  const armySite = (F) => {
+    if (F.pu) WH(F.O.x, F.O.z); /* make sure the pad height is known */
+    const S = siteAcc(F),
+      YS = F.ryS,
+      YA = F.ryA,
+      r = rng(Math.round(F.O.x + F.O.z)),
+      walkU = (v, path, sp, wait) => AFLD.add(CREW_RIG('us', v), path.map(([u, d]) => F.w(u, d)), sp, wait, 'walk');
+    if (F.id === 'camp') {
+      const gy = F.H + 0.12;
+      flatD(F, -F.pu + 10, F.pu - 10, F.d0 + 10, F.d1 - 10, gy, GRAVEL, 10);
+      /* the tank park: ten revetments in a row, open to the north (the way out to the beach road) */
+      for (let i = 0; i < 10; i++) S.at(MODELS.get('us-revetment'), -150 + i * 33, -70, YS, gy);
+      /* the maintenance tent (an Elephant Quonset) and its hard standing; the ordnance and fuel dumps; the trucks */
+      S.at(MODELS.get('us-quonset', 'elephant'), -125, 55, YA, gy);
+      for (let i = 0; i < 6; i++) S.at(MODELS.get('us-dump', 6, 4, i + 3), 95 + (i % 3) * 14, 40 + (i >> 1 > 0 ? 12 : 0) + (i > 2 ? 14 : 0), YA, gy);
+      S.at(M.fuelTruck(0x6b7350), 70, 20, YA + 0.1);
+      S.at(M.cargoTruck(), 85, 10, YA - 0.05);
+      S.at(M.cargoTruck(), -80, 25, YS);
+      /* the company CP: two tents and the flag; the bivouac: tents in rows */
+      S.at(MODELS.get('us-tent'), -12, 40, YA, gy);
+      S.at(MODELS.get('us-tent'), 0, 40, YA, gy);
+      S.at(FLG.pole('us', 10, 2.2, 0, 0, 0, 0), 12, 32, YA);
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 3; j++) S.at(MODELS.get('us-tent'), -70 + i * 12, 85 + j * 12, YA, gy);
+      walkU(0, [[-125, 30], [-60, -40], [40, -40]], 1.3, 10);
+      walkU(1, [[0, 30], [95, 25], [130, 50]], 1.2, 12);
+      walkU(2, [[-40, 80], [-10, 45]], 1.3, 9);
+      AFLD.add(M.jeepD(), [F.w(-160, 0), F.w(160, 0), F.w(160, 120)], 7, 25, 'veh');
+    } else if (F.id === 'beach') {
+      /* the pontoon causeway out over the reef flat, two LCMs at it (each brings one tank from Depot Nimitz), the beach dumps, the
+         beachmaster's post and the aid station */
+      pierF(F, S, 0, -6, 110, 7, SEA.Y + 1.1);
+      for (const [u, d, k] of [
+        [9, 70],
+        [-9, 95],
+      ])
+        mooredF(F, MODELS.get('us-lcm3'), u, d, YS + Math.PI, 15.3, 4.3) /* her ramp to the beach */;
+      for (let i = 0; i < 5; i++) S.at(MODELS.get('us-dump', 6, 4, i + 11), -70 + i * 30, -75 - (i % 2) * 10, YA);
+      S.at(MODELS.get('us-tent'), -40, -115, YA);
+      S.at(FLG.pole('us', 8, 1.8, 0, 0, 0, 0), -30, -110, YA);
+      S.at(MODELS.get('us-tent'), 60, -120, YA);
+      S.at(MODELS.get('us-tent'), 72, -120, YA);
+      walkU(1, [[-40, -100], [0, -40], [0, 80]], 1.3, 10);
+      walkU(2, [[60, -105], [20, -60]], 1.2, 14);
+    } else if (F.id === 'range') {
+      /* the firing line (three sandbagged firing points), the range tower behind it, the red flag; the targets down range to the
+         south-east (-d) at 400 to 1,500 yards, and two hulks */
+      for (let i = 0; i < 3; i++) S.at(MODELS.get('us-sandbags', 3.5, 4), (i - 1) * 40, 0, YS + Math.PI);
+      S.at(MODELS.get('us-control-tower'), 0, 45, YS);
+      S.at(MODELS.get('us-range-flag'), 25, 30, YA);
+      S.at(MODELS.get('us-tent'), -30, 50, YA);
+      for (const [yd, u] of [
+        [400, -30],
+        [600, 40],
+        [800, -60],
+        [1000, 20],
+        [1200, -20],
+        [1500, 50],
+      ])
+        S.at(MODELS.get('us-target'), u, -yd * 0.9144, YS);
+      S.at(MODELS.get('jp-ha-go'), -80, -700, YS + 0.6);
+      S.at(MODELS.get('jp-ha-go'), 70, -1100, YS - 0.4);
+      walkU(0, [[0, 30], [-40, 5], [40, 5]], 1.2, 15);
+    } else if (F.id === 'front') {
+      /* behind phase line Able (x 10,500; this frame's sea, S, is west toward it): the foxhole line 50 to 100 m short of it, the 4.2 in
+         mortar platoon's pits, the battalion CP and the aid station, the jeep track */
+      for (let i = 0; i < 16; i++) S.at(MODELS.get('us-sandbags', 1.2, 1.0), -400 + i * 53 + r() * 12, 560 + r() * 30, YS + Math.PI);
+      for (let i = 0; i < 4; i++) {
+        const u = -60 + i * 40;
+        S.at(MODELS.get('us-sandbags', 2.2, 1.4), u, 250, YS + Math.PI);
+        S.at([part(cyl(0.06, 0.06, 1.5, 8), 0x3a3d30, 0.4, 0.8, 0, 0, 0, -0.9), part(bx(0.5, 0.06, 0.5), 0x3a3d30, 0, 0.05, 0)], u, 250, YS) /* the 4.2 in mortar */;
+      }
+      S.at(MODELS.get('us-tent'), -10, 0, YA);
+      S.at(MODELS.get('us-tent'), 4, 0, YA);
+      S.at(FLG.pole('us', 8, 1.8, 0, 0, 0, 0), 18, -8, YA);
+      S.at(MODELS.get('us-tent'), 70, -60, YA) /* the aid station */;
+      S.at(M.cargoTruck(), -40, -30, YA);
+      walkU(0, [[-10, 15], [0, 120], [-60, 250]], 1.3, 12);
+      walkU(1, [[70, -45], [20, 10]], 1.2, 15);
+      AFLD.add(M.jeepD(), [F.w(-20, -40), F.w(-20, -400), F.w(200, -650)], 8, 30, 'veh');
+    }
+    S.flush();
+    return null;
+  };
+  for (const F of FS.army) farBuild(F, () => armySite(F));
   /* Depot Mikawa's landing pier, added to the depot's own far site (so it shows and hides with it) */
   FARQ.push({ go: () => {
     const MK = FS.list.find((s) => s.id === 'cv1'),
@@ -22553,7 +23169,7 @@ var AIRSUP = (() => {
     cv2: 'DEPOT KURITA',
   };
   /* the named places: [site, name] (a site has O, its shore point, and R; FS.nav's have navy 'jp', 'us' or 'usdep') */
-  const places = () => [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), [SITE, 'PORT NAGUMO']];
+  const places = () => [...FS.list.map((s) => [s, NAMES[s.id]]), ...FS.nav.map((s) => [s, (s.title || '').toUpperCase()]), ...(FS.army || []).map((s) => [s, s.title.toUpperCase()]), [SITE, 'PORT NAGUMO']];
   const whoAt = (p, side, ship) => {
     const S = places();
     for (const [s, n] of S) if (n && Math.hypot(p.x - s.O.x, p.z - s.O.z) < (s.R || 600) + 800) return n;

@@ -96,6 +96,18 @@ coral heads. One deep pass on the lee side is the only way in.
 | The airfield | Dalop: 5,800 ft coral runway, Marine SBDs, NATS transports; Uliga: 4,000 ft strip; causeways joining them | One coral strip (the shared airfield code) with SBDs and a PBY ramp; the P-51 can land there; the causeway as a road |
 | Services | Avgas depot, distillation plant, 150-bed hospital, Seabee shops | Dressing: tank farm, water tower, the hospital's red cross, shops (shared building models) |
 
+**Built 2026-11-23 (the shared world, in every game; the user's: the bases common to all games now, the submarine's own pieces later):**
+the atoll at (33,300, -18,200) cut into `WH` (`FS.ATOLL`, `atollH`): a ring reef about 6.6 km across, awash; eight islets 3 m above the
+sea; the lagoon 50 m deep; the pass 460 m wide and 18 m deep on the side toward PT Base Halsey, with red and green buoys out to 2 km.
+`FS.nav` 'navsub' (navy 'ussub', title Submarine Base Lockwood) on the base islet: the coral yard, the timber pier (140 m) and the
+pontoon pier, two Elephant Quonsets (torpedo and machine shops), six Quonsets (stores, quarters, mess, hospital), a tank farm, stores,
+the flag, trucks, a jeep and sailors at work; the submarine camp's tents and two huts along the islet; USS Sperry (AS-12, new model
+`us-fulton`, blueprint) moored 650 m off in the lagoon with two fleet boats (`us-roncador`) alongside and her LCM running to the pontoon
+pier; the signal station (tower, hut, flag) on the islet at the pass; the coral airstrip (1,700 x 45 m) on the north islet with its
+apron, a Butler hangar, a tower and two huts. Named in `AIRSUP.places` (the chart, the radio, the navigation drill).
+**Still to come with the simulator:** the net and its gate vessel, the challenge at the entrance, the hospital's red cross, the
+recreation centre's diamond and beer garden, aircraft on the strip and the PBY ramp, the tender's interior and the refit work.
+
 ### 4.3 How the base is played
 
 - **Start of a patrol:** the boat lies alongside the tender, reloaded and fuelled. The captain receives the operation order (patrol

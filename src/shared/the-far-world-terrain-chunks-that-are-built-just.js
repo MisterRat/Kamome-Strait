@@ -891,6 +891,28 @@ const WORLD = (() => {
           grp.set(root(a.id), root(b.id));
         }
       }
+      /* THE ARMY'S CORAL ROAD (PLAN_M4A3_Sherman_Tank 4.2, 4.4; the user's, 2026-11-23): from Beach Orange up to Camp Buckner, west
+         across the island to Depot Mikawa's gate, and north up the neck to Port Ugaki; a spur south to Buckner Range. Crushed coral,
+         6 m wide, bridged where it must */
+      {
+        const A_ = (id) => FS.army.find((q) => q.id === id),
+          BO = A_('beach'),
+          CB = A_('camp'),
+          RG = A_('range'),
+          MK = FS.list.find((q) => q.id === 'cv1'),
+          UG = FS.nav.find((q) => q.navy === 'jp');
+        const ar = (a, b, own, from, to) => {
+          const r = make(a, b, true, own, null);
+          info.push([from + '-' + to, 'coral', r ? 'ok ' + (r.len / 1000).toFixed(1) + 'km, ' + r.bridges + ' bridges, longest ' + r.longest + ' m' : 'no land route']);
+          if (r) out.push(Object.assign(r, { coral: true, from, to }));
+        };
+        if (BO && CB && RG && MK && UG) {
+          ar(BO.w(0, -120), CB.w(0, 150), [], 'beach', 'camp');
+          ar(CB.w(-215, 0), gate(MK), ['cv1'], 'camp', 'cv1');
+          ar(gate(MK), UG.w(0, -150), ['cv1'], 'cv1', 'navjp');
+          ar(CB.w(0, -140), RG.w(0, 70), [], 'camp', 'range');
+        }
+      }
       routes = out;
       routes.info = info;
       return out;
@@ -1394,8 +1416,8 @@ const WORLD = (() => {
         };
         for (const R of RT.list()) {
           if (R.x1 < c.x0 - 130 || R.x0 > c.x1 + 130 || R.z1 < c.z0 - 130 || R.z0 > c.z1 + 130) continue;
-          const hw = R.paved ? 3.4 : 2.6,
-            col = R.paved ? PAVE : DIRT;
+          const hw = R.coral ? 3.0 : R.paved ? 3.4 : 2.6,
+            col = R.coral ? 0xa59e88 /* crushed coral, weathered */ : R.paved ? PAVE : DIRT;
           prevV = -1;
           lrx = 1e9;
           for (const st of sts) st.pv = -1;

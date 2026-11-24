@@ -159,6 +159,20 @@ side (their models exist), Type 94 trucks and Kurogane cars on the Japanese side
 | **Buckner Course** | A ditch, a step, a slope, a coral wall with a gap, a paddy, a terrace, a narrow lane between windbreaks | Driver training |
 | **The front** | Infantry foxholes and a battalion CP behind phase line Able, a 4.2 in mortar platoon, an aid station, a jeep track; moves west as missions are won | Where live missions start; the infantry company commander is here |
 
+**Built 2026-11-23 (the shared world, in every game; the user's: the bases, depot and road common to all games now, the tank's own
+pieces later):** `FS.army` frames: Beach Orange at the waterline (13,300, 26,950), its sea north: the pontoon causeway out over the reef
+flat, two LCMs at it ramp to the beach, five dumps, the beachmaster's post and flag, the aid station; Camp Buckner (13,100, 27,700) on
+a levelled gravel park 360 x 250 m: ten empty tank revetments (new model `us-revetment`) open to the north, the maintenance Elephant
+Quonset, six dumps (`us-dump`), the fuel and cargo trucks, the company CP (two tents and the flag) and 24 bivouac tents (`us-tent`),
+men at work, a jeep; Buckner Range (13,300, 28,700): three sandbagged firing points (`us-sandbags`), the range tower, the red flag
+(`us-range-flag`), a tent, six target boards (`us-target`) down range at 400 to 1,500 yd and two hulks; the battalion behind phase line
+Able (11,150, 26,800): sixteen foxholes, the 4.2 in mortar platoon's four pits, the CP, the aid station, a truck, a jeep on its track.
+The coral road (`WORLD.RT`, coral): Beach Orange - Camp Buckner 0.5 km, Camp Buckner - Depot Mikawa 11.2 km, Depot Mikawa - Port Ugaki
+up the neck 7.2 km (three bridges, the longest 540 m), and the range spur 0.8 km. All named in `AIRSUP.places`. Every new model has its
+blueprint.
+**Still to come with the simulator:** Buckner Course (its ditch, step, slope, terrace and lanes need the battle area's 2 m ground), the
+battle area itself, the Shermans in the revetments, the M32 and its A-frame, the enemy positions below, the villages, traffic on the road.
+
 ### 4.6 Enemy positions
 
 | Position | What it is |
