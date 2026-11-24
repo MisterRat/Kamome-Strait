@@ -4,10 +4,10 @@ The P-51 Mustang flight sim and the PCE-842 Patrol Craft Escort in one WWII Sout
 
 ### [Play it in your browser](https://github.mrrat.org/Kamome-Strait/)
 
-**Status:** planning and restructuring. No playable Kamome Strait build yet. The two games it grows from:
+**Status:** version 1.0. The two games it grows from, still playable on their own from its start screen:
 
 - [P-51 Mustang FS](https://github.com/MisterRat/P51-Mustang-FS)
-- [PCE-842 Patrol Craft Escort](https://github.com/MisterRat/PCE-842_Patrol_Craft) (alpha)
+- [PCE-842 Patrol Craft Escort](https://github.com/MisterRat/PCE-842_Patrol_Craft)
 
 ## Building
 
