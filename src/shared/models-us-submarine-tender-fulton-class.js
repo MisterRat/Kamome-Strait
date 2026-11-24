@@ -1,20 +1,31 @@
 /* ---------- the Fulton-class submarine tender (AS-11 to AS-19): USS Sperry (AS-12), Submarine Base Lockwood's tender ----------
-   Sizes from DANFS and the HAER report on Sperry (maritime.dot.gov): 529 ft 6 in to 530 ft 7 in overall (161.4 m), beam 73 ft 4 in
-   (22.35 m), draught 22 ft 5 in mean (6.83 m); four single 5"/38 guns, 40 mm twins and 20 mm; complement 1,307. The hull and the
-   superstructure were the same as the Dixie-class destroyer tenders' and the Vulcan-class repair ships' (Wikipedia, Fulton class):
-   a high-sided hull with a raised forecastle, a long block of shop and berthing decks amidships with the bridge at its forward end,
-   one large funnel, heavy cranes either side for lifting torpedoes and machinery out of the boats alongside, boats in davits, and
-   the four 5"/38s two forward and two aft, each pair one above the other. Bow toward +x, waterline at y = 0, port side at -z.
-   Painted to Measure 22 (Navy Blue to the main deck, haze grey above). */
+   Rebuilt 2026-11-24 from the user's References/Fulton-class:
+   - HAER CA-342 (National Park Service, 2009) on Sperry herself: 530 ft 7 in overall (161.73 m), beam 73 ft 4 in (22.35 m), draught
+     22 ft 5 in (6.83 m); two 20-ton electric cranes aft, two 5-ton derricks abaft the bridge, the pilothouse at the superstructure's
+     forward end with bridge wings and searchlights; in the war two single 5"/38s on the bow and two on the stern, four twin 40 mm
+     on the superstructure, the Mk 51 directors, motor launches aft;
+   - the ONI-style Fulton-class profile (with its height scale in feet) for heights and the fore-and-aft places: main deck about
+     25 ft above the water amidships rising to 30 ft at the stern, the forecastle rising to 44 ft at the stem, two galleried decks of
+     shops and berthing from the stern guns to the bridge (top 45 ft), the bridge a third of the way back from the bow with the lattice
+     director tower abaft it (90 ft), the foremast abaft that (about 130 ft), one tall narrow funnel amidships (75 ft), the crane
+     posts and mainmast aft (about 120 ft), boats on the top deck;
+   - the 1941 Fulton (AS-11) profile print, the class model, and the photographs of Sperry under way, for shapes.
+   (as1ga1914.pdf in the same folder is the 1914 USS Fulton, AS-1, a different and much smaller ship: not used.)
+   Bow toward +x, waterline at y = 0, port side at -z. Measure 22: Navy Blue hull, haze grey above. Every part rests on the part
+   below it (tools/connectivity.py, and the user's 2026-11-24: nothing hanging in empty space). */
 (() => {
   const { part, bx, cyl } = GX,
     Z = Math.PI / 2,
-    L = 161.4,
+    L = 161.73,
     X0 = -L / 2,
     B = 22.35 / 2,
     D = 6.83,
-    F = 8.2 /* main deck above the waterline amidships */,
-    FC = 10.6 /* forecastle deck at its after end */,
+    F = 7.9 /* main deck above the waterline amidships */,
+    U = 10.8 /* one deck up: the top of the first gallery deck, and the forecastle deck at the break */,
+    S = 13.7 /* the superstructure deck (top of the second gallery deck) */,
+    H3 = 16.5 /* the top of the deckhouses on the superstructure deck */,
+    TA = 0.735,
+    TB = 0.757 /* the forecastle break, hidden inside the superstructure's front */,
     NAVY = 0x3a4652,
     HAZE = 0x7f868c,
     HAZE2 = 0x737a80,
@@ -22,126 +33,185 @@
     URED = 0x6e2e26,
     BLK = 0x1c1c1c,
     WIN = 0x161c20,
-    GUN = 0x5f666c;
+    BAY = 0x2a3036,
+    GUN = 0x5f666c,
+    WIRE = 0x2a2a2a;
+  const tx = (x) => (x - X0) / L;
+  /* half-breadths (fractions of B): at the waterline and below, and at the deck edge (the bow flares out above the water) */
+  const bWL = (t) => (t < 0.07 ? 0.25 + 0.75 * Math.sin((t / 0.07) * Z) : t > 0.64 ? Math.cos(((t - 0.64) / 0.36) * Z * 0.985) : 1);
+  const bTop = (t) => (t < 0.07 ? 0.4 + 0.6 * Math.sin((t / 0.07) * Z) : t > 0.7 ? Math.cos(Math.pow((t - 0.7) / 0.3, 1.25) * Z * 0.97) : 1);
+  const keelUp = (t) => (t > 0.94 ? Math.pow((t - 0.94) / 0.06, 1.5) * D * 0.9 : t < 0.05 ? (1 - t / 0.05) * D * 0.6 : 0);
+  /* the deck at the side: main deck with its sheer aft, then (past the break) the forecastle rising to 44 ft at the stem */
+  const deckT = (t) => {
+    const lo = F + 1.1 * Math.pow(Math.max(0, (0.3 - t) / 0.3), 2),
+      hi = U + 2.5 * Math.pow(Math.max(0, (t - TB) / (1 - TB)), 2);
+    return t <= TA ? lo : t >= TB ? hi : lo + ((hi - lo) * (t - TA)) / (TB - TA);
+  };
+  const deckY = (x) => deckT(tx(x));
+  const sect = (t) => {
+    const w = B * bWL(t),
+      wt = B * bTop(t),
+      k = -D + keelUp(t),
+      d = deckT(t),
+      bil = Math.min(2.6, w * 0.9);
+    return [
+      [k, 0],
+      [k, Math.max(0.01, w - bil)],
+      [Math.max(k, -D + bil), w],
+      [Math.max(k, -0.6), w],
+      [Math.max(k, 0.3), w],
+      [Math.min(d, Math.max(k, 2.0)), w + (wt - w) * 0.25],
+      [d, wt],
+    ];
+  };
+  /* the hull's half-breadth at height y at station t (so fittings on the side sit on the plating) */
+  const hbAt = (t, y) => {
+    const s = sect(t);
+    for (let i = 0; i < s.length - 1; i++) if (y >= s[i][0] && y <= s[i + 1][0]) return s[i][1] + ((s[i + 1][1] - s[i][1]) * (y - s[i][0])) / Math.max(1e-6, s[i + 1][0] - s[i][0]);
+    return s[s.length - 1][1];
+  };
   const tender = (far) => {
     const P = [];
-    /* the hull: a fine bow and a cruiser stern, square amidships, the forecastle deck rising to the stem */
-    const beam = (t) => (t < 0.12 ? 0.55 + 0.45 * Math.sin((t / 0.12) * Z) : t > 0.68 ? Math.max(0.02, Math.cos(((t - 0.68) / 0.32) * Z * 0.98)) : 1);
-    const keelUp = (t) => (t > 0.95 ? Math.pow((t - 0.95) / 0.05, 1.4) * D * 0.85 : t < 0.04 ? (1 - t / 0.04) * D * 0.5 : 0);
-    const sheer = (t) => (t > 0.62 ? FC + 2.4 * Math.pow((t - 0.62) / 0.38, 2) : F + 0.6 * Math.pow(Math.max(0, (0.25 - t) / 0.25), 2));
-    P.push(
-      ...GX.loft({
-        L,
-        X0,
-        N: far ? 16 : 40,
-        sect: (t) => {
-          const b = B * beam(t),
-            k = -D + keelUp(t),
-            d = sheer(t),
-            bil = Math.min(2.6, b * 0.9);
-          return [
-            [k, 0],
-            [k, Math.max(0.01, b - bil)],
-            [Math.max(k, -D + bil), b],
-            [Math.max(k, -0.6), b],
-            [Math.max(k, 0.3), b],
-            [Math.min(d, Math.max(k, 2.0)), b],
-            [d, b],
-          ];
-        },
-        paint: (y) => (y < -0.6 ? URED : y < 0.3 ? BLK : NAVY),
-        deck: DECKB,
-        transom: null,
-      }),
-    );
-    /* the forecastle break: the step from the main deck up to the forecastle, plated in */
-    const xFc = X0 + L * 0.62;
-    P.push(part(bx(0.3, FC - F + 0.1, B * 2 * 0.98), NAVY, xFc, (F + FC) / 2, 0));
+    const box = (x0, x1, y0, y1, hw, c) => P.push(part(bx(x1 - x0, y1 - y0, hw * 2), c, (x0 + x1) / 2, (y0 + y1) / 2, 0));
+    const slab = (x0, x1, y, hw) => P.push(part(bx(x1 - x0 + 0.5, 0.12, hw * 2 + 0.5), 0x2e3236, (x0 + x1) / 2, y + 0.06, 0)) /* a deck edge, resting on the deck below */;
+    /* THE HULL: a cruiser stern, straight sides for most of her length, a fine flared bow */
+    P.push(...GX.loft({ L, X0, N: far ? 24 : 64, sect, paint: (y) => (y < -0.6 ? URED : y < 0.3 ? BLK : NAVY), deck: DECKB, transom: null }));
     if (!far)
-      for (const s of [-1, 1]) for (let x = X0 + 10; x < xFc - 4; x += 3.1) P.push(part(bx(0.45, 0.45, 0.02), WIN, x, F - 1.4, s * (B + 0.006))) /* scuttles along the hull */;
-    /* the superstructure: three decks of shops, berthing and offices from aft of the forecastle break to the quarterdeck, the bridge at
-       its forward end over the forecastle; each deck a little narrower */
-    const S0 = X0 + L * 0.22,
-      S1 = xFc + 4;
-    const tiers = [
-      [S0, S1, F, 2.8, 0.86, HAZE],
-      [S0 + 6, S1 - 2, F + 2.8, 2.7, 0.8, HAZE2],
-      [S0 + 18, S1 - 6, F + 5.5, 2.6, 0.62, HAZE],
-    ];
-    for (const [a, b, y, h, wf, c] of tiers) {
-      P.push(part(bx(b - a, h, B * 2 * wf), c, (a + b) / 2, y + h / 2, 0), part(bx(b - a + 0.6, 0.12, B * 2 * wf + 0.6), 0x2e3236, (a + b) / 2, y + h + 0.06, 0));
-      if (!far) for (const s of [-1, 1]) for (let x = a + 2; x < b - 1.5; x += 2.6) P.push(part(bx(0.7, 0.6, 0.02), WIN, x, y + h * 0.6, s * (B * wf + 0.006)));
-    }
-    /* the bridge: navigating bridge and pilothouse over the superstructure's forward end, its windows forward, wings either side */
-    const xb = S1 - 4,
-      yb = F + 8.1;
-    P.push(part(bx(7, 2.6, 12), HAZE2, xb, yb + 1.3, 0), part(bx(0.02, 0.9, 10), WIN, xb + 3.51, yb + 1.7, 0), part(bx(7.6, 0.14, 12.6), 0x2e3236, xb, yb + 2.67, 0));
-    P.push(part(bx(4, 1.1, B * 2 * 0.95), HAZE, xb + 0.5, yb + 0.55, 0)) /* the wings */;
-    P.push(part(bx(3.6, 2.2, 5), HAZE2, xb - 1, yb + 3.8, 0), part(bx(0.02, 0.7, 4), WIN, xb + 0.81, yb + 4.2, 0)) /* the chart house and fire control */;
-    /* the foremast: a pole mast on the bridge with a yard and the radar (SC on the topmast) */
-    const xm = xb - 2.5;
-    P.push(GX.rod([xm, yb + 2.7, 0], [xm, yb + 22, 0], 0.32, HAZE, 0.18, 8), part(bx(0.3, 0.3, 9), HAZE, xm, yb + 16, 0), part(bx(0.25, 1.8, 2.6), 0x2a2e30, xm + 0.3, yb + 20.5, 0));
-    /* the funnel: one large, oval, raked a little, on the top deck abaft amidships */
-    const xf = X0 + L * 0.4,
-      yf = F + 8.1;
-    P.push(part(cyl(3.2, 3.4, 9.5, 16), HAZE, xf, yf + 4.75, 0, 0, 0, 0.05, 1.5, 1, 1), part(cyl(3.25, 3.25, 0.7, 16), BLK, xf - 0.25, yf + 9.2, 0, 0, 0, 0.05, 1.5, 1, 1));
-    /* the heavy cranes: one each side abreast the funnel, a pedestal and a long lattice boom raised over the side (the boats alongside) */
-    for (const s of [-1, 1]) {
-      const xc = xf + 13,
-        zc = s * (B * 0.62),
-        y0 = F + 5.5;
-      P.push(part(cyl(1.3, 1.6, 4.5, 12), HAZE2, xc, y0 + 2.25, zc), part(bx(3.4, 3, 3), HAZE2, xc, y0 + 5.9, zc));
-      const heel = [xc + 1.6, y0 + 6, zc],
-        head = [xc + 13, y0 + 15, zc + s * 7];
-      P.push(GX.rod(heel, head, 0.55, HAZE, 0.35, 6), GX.rod(head, [xc, y0 + 7.4, zc], 0.04, 0x2a2a2a, 0.04, 4), GX.rod(head, [head[0], F + 1, head[2]], 0.03, 0x2a2a2a, 0.03, 4));
-    }
-    /* the mainmast aft, on the superstructure's after end */
-    {
-      const x = S0 + 10;
-      P.push(GX.rod([x, F + 5.5, 0], [x, F + 24, 0], 0.3, HAZE, 0.16, 8), part(bx(0.25, 0.25, 7), HAZE, x, F + 19, 0));
-    }
-    /* boats in davits along the superstructure's sides */
-    for (const s of [-1, 1])
-      for (const x of [xf - 12, xf - 22, xf + 24]) {
-        const z = s * (B * 0.86 + 1.4),
-          y = F + 3.6;
-        P.push(part(bx(8.5, 1.3, 2.4), 0x8e9498, x, y, z), part(bx(8, 0.2, 2.1), 0x5a4a38, x, y + 0.6, z));
-        for (const dx of [-3.4, 3.4]) P.push(GX.rod([x + dx, F + 2.8, s * (B * 0.86)], [x + dx, F + 5.4, z], 0.12, HAZE2, 0.1, 6));
+      for (const s of [-1, 1]) for (let x = X0 + L * 0.08; x < X0 + L * 0.73; x += 3.1) P.push(part(bx(0.45, 0.45, 0.02), WIN, x, F - 1.3, s * (B + 0.006))) /* scuttles */;
+    /* THE GALLERY DECKS: shops, berthing and offices, two decks from the stern guns to the bridge, open bays along their sides */
+    const g1 = [-70, 43.2, 10.75],
+      g2 = [-63, 43.2, 10.15];
+    box(g1[0], g1[1], F - 0.4, U, g1[2], HAZE);
+    slab(g1[0], g1[1], U, g1[2]);
+    box(g2[0], g2[1], U, S, g2[2], HAZE2);
+    slab(g2[0], g2[1], S, g2[2]);
+    for (const [a, b, hw, y] of [
+      [g1[0] + 2, g1[1] - 1, g1[2], (deckY(g1[0]) + U) / 2 + 0.2],
+      [g2[0] + 2, g2[1] - 1, g2[2], (U + S) / 2],
+    ])
+      for (const s of [-1, 1]) {
+        P.push(part(bx(b - a, 1.4, 0.02), BAY, (a + b) / 2, y, s * (hw + 0.006)));
+        if (!far) for (let x = a; x <= b + 0.01; x += (b - a) / Math.round((b - a) / 5.2)) P.push(part(bx(0.35, 1.5, 0.06), HAZE, x, y, s * (hw + 0.03)));
       }
-    /* the four 5"/38s in open single mounts with shields: two forward (the forecastle, and above it on the superstructure's front) and two
-       aft (the quarterdeck, and above it on the superstructure's after end); the barrels fore and aft */
+    /* THE DECKHOUSES on the superstructure deck: aft (the cranes and mainmast), the funnel's casing, and the bridge block forward */
+    const hA = [-40, -18, 4.5],
+      hF = [-10, 6, 4],
+      hB = [6, 44, 6.5];
+    for (const [a, b, hw, c] of [
+      [...hA, HAZE],
+      [...hF, HAZE2],
+      [...hB, HAZE],
+    ]) {
+      box(a, b, S - 0.1, H3, hw, c);
+      slab(a, b, H3, hw);
+      if (!far) for (const s of [-1, 1]) for (let x = a + 1.5; x < b - 1; x += 3) P.push(part(bx(0.6, 0.5, 0.02), WIN, x, S + 1.7, s * (hw + 0.006)));
+    }
+    /* THE BRIDGE: chart house and CIC, the pilothouse forward with its windows, the open bridge wings with searchlights, the roof
+       with the two Mk 51 directors */
+    box(27, 36, H3, 19.2, 4.5, HAZE2);
+    box(36, 43, H3, 19.2, 5.5, HAZE);
+    P.push(part(bx(0.02, 0.8, 10), WIN, 43.01, 18.3, 0));
+    P.push(part(bx(5, 0.3, 18), HAZE, 39.5, H3 + 0.15, 0)) /* the wings, on the bridge block's top */;
+    P.push(part(bx(8.4, 0.15, 11.8), 0x2e3236, 39.1, 19.275, 0)) /* the pilothouse and chart house roof */;
+    for (const s of [-1, 1]) {
+      P.push(part(cyl(0.45, 0.5, 0.25, 10), HAZE2, 39.5, 19.35 + 0.125, s * 3), part(bx(0.9, 0.7, 0.9), HAZE2, 39.5, 19.6 + 0.35, s * 3)) /* Mk 51 */;
+      if (!far) P.push(part(cyl(0.12, 0.12, 0.5, 6), HAZE2, 39.5, H3 + 0.55, s * 8.3), part(cyl(0.45, 0.45, 0.6, 10), 0x9aa0a4, 39.5, H3 + 1.1, s * 8.3, 0, 0, Z)) /* searchlights */;
+    }
+    /* the lattice director tower abaft the bridge: four legs, two platforms, the director on top (90 ft) */
+    {
+      const x = 10;
+      for (const dx of [-1.6, 1.6]) for (const dz of [-1.6, 1.6]) P.push(GX.rod([x + dx, H3, dz], [x + dx * 0.7, 26, dz * 0.7], 0.14, HAZE2, 0.12, 6));
+      const o = (y) => 1.6 - (0.48 * (y - H3)) / (26 - H3) /* the legs' offset at height y: they lean in */;
+      if (!far)
+        for (const y of [18.5, 22]) {
+          const y2 = y + 3,
+            a = o(y),
+            b = o(y2);
+          for (const s of [-1, 1]) P.push(GX.rod([x - a, y, s * a], [x + b, y2, s * b], 0.06, HAZE2, 0.06, 4), GX.rod([x + s * a, y, -a], [x + s * b, y2, b], 0.06, HAZE2, 0.06, 4));
+        }
+      P.push(part(bx(3.6, 0.25, 3.6), HAZE, x, 26.125, 0), part(bx(2.2, 1.15, 2.2), HAZE2, x, 26.25 + 0.575, 0), part(bx(0.3, 0.3, 3.4), HAZE2, x, 26.9, 0));
+    }
+    /* the foremast: a pole on the bridge block, its yard, the SC radar near the top; the two 5-ton derricks on its heel, topped up aft */
+    {
+      const xm = 23.8;
+      P.push(GX.rod([xm, H3, 0], [xm, 40, 0], 0.36, HAZE, 0.17, 8), part(bx(0.3, 0.3, 10), HAZE, xm, 33, 0), part(bx(0.25, 1.8, 2.6), 0x2a2e30, xm + 0.28, 38, 0));
+      for (const s of [-1, 1]) {
+        const head = [15.6, 25.2, s * 2.4];
+        P.push(GX.rod([xm - 0.25, H3 + 1.4, s * 0.25], head, 0.2, HAZE2, 0.14, 6));
+        if (!far) P.push(GX.rod(head, [xm, 32, 0], 0.03, WIRE, 0.03, 4));
+      }
+    }
+    /* the funnel: one tall, narrow, oval, raked a little, on its casing (75 ft) */
+    {
+      const xf = -2.9;
+      P.push(part(cyl(1.9, 1.95, 6.8, 16), HAZE, xf, H3 - 0.3 + 3.4, 0, 0, 0, 0.04, 1.24, 1, 1), part(cyl(1.93, 1.93, 0.6, 16), BLK, xf - 0.12, 22.6, 0, 0, 0, 0.04, 1.24, 1, 1));
+    }
+    /* the two 20-ton cranes aft, on the centreline either side of the mainmast: a post, the machinery house, a long boom (the after
+       one stowed pointing aft, the forward one forward), its topping wire to the house */
+    for (const [xc, dir] of [
+      [-36, -1],
+      [-22, 1],
+    ]) {
+      P.push(part(cyl(1.3, 1.6, 4.5, 12), HAZE2, xc, H3 + 2.25, 0), part(bx(3.4, 3, 3), HAZE2, xc, H3 + 4.5 + 1.5, 0));
+      const head = [xc + dir * 14, 30.5, 0];
+      P.push(GX.rod([xc + dir * 1.6, 22.4, 0], head, 0.45, HAZE, 0.3, 6), GX.rod(head, [xc, H3 + 7.4, 0], 0.04, WIRE, 0.04, 4));
+      P.push(part(bx(0.5, 0.9, 0.5), 0x24282a, head[0] + dir * 0.1, 30.5 - 0.6, 0)) /* the hook block, hauled up to the boom head */;
+    }
+    /* the mainmast between the cranes */
+    P.push(GX.rod([-29, H3, 0], [-29, 37, 0], 0.3, HAZE, 0.16, 8), part(bx(0.25, 0.25, 8), HAZE, -29, 31, 0));
+    /* the motor launches and whaleboats on chocks on the superstructure deck */
+    for (const s of [-1, 1])
+      for (const x of [-52.5, -14.5]) {
+        const z = s * 7;
+        for (const dx of [-2.6, 2.6]) P.push(part(bx(0.5, 0.6, 2), 0x5a4a38, x + dx, S + 0.3, z));
+        P.push(part(bx(8, 1.3, 2.4), 0x8e9498, x, S + 0.6 + 0.65, z));
+        if (!far) P.push(part(bx(4, 0.8, 1.9), 0x8e9498, x + 0.6, S + 1.9 + 0.4, z), part(bx(7.6, 0.06, 2.2), 0x5a4a38, x, S + 1.9 + 0.03, z));
+      }
+    /* the four 5"/38s in open single mounts with shields: two on the bow (the forecastle, and above it on its gun house), two on the
+       stern (on the gallery decks' stepped after ends); the barrels fore and aft */
     const gun = (x, y, dir) => {
       P.push(part(cyl(1.6, 1.8, 0.6, 12), HAZE2, x, y + 0.3, 0), part(bx(2.4, 1.7, 2.6), HAZE, x - dir * 0.2, y + 1.45, 0));
       P.push(part(cyl(0.11, 0.13, 5.4, 8), GUN, x + dir * 3.6, y + 1.5, 0, 0, 0, dir * -Z));
     };
-    gun(X0 + L * 0.79, FC + 0.9, 1);
-    gun(S1 + 0.4, F + 5.5, 1);
-    gun(X0 + 6, F + 0.4, -1);
-    gun(S0 - 4, F + 2.8, -1);
-    /* 40 mm twins in tubs at the superstructure's corners */
+    box(43.2, 52.5, deckY(43.2) - 0.3, S, 3.5, HAZE) /* the forward gun house */;
+    slab(43.2, 52.5, S, 3.5);
+    gun(48.6, S + 0.12, 1);
+    gun(60.8, deckY(60.8) - 0.05, 1);
+    gun(-59, S + 0.12, -1);
+    gun(-66.5, U + 0.12, -1);
+    /* the four twin 40 mm in tubs on the superstructure deck: abreast the director tower and abaft the after deckhouse */
     for (const [x, s] of [
-      [S1 - 2, -1],
-      [S1 - 2, 1],
-      [S0 + 3, -1],
-      [S0 + 3, 1],
+      [10, -1],
+      [10, 1],
+      [-46, -1],
+      [-46, 1],
     ]) {
-      const y = F + 5.5;
-      P.push(part(cyl(1.4, 1.4, 1.1, 12), HAZE2, x, y + 0.55, s * (B * 0.62 + 0.8)));
-      for (const dz of [-0.25, 0.25]) P.push(part(cyl(0.06, 0.06, 2.6, 6), GUN, x + 1.4, y + 1.4, s * (B * 0.62 + 0.8) + dz, 0, 0, -Z));
+      const z = s * 8.7,
+        y = S + 0.12;
+      P.push(part(cyl(1.4, 1.4, 1.1, 12), HAZE2, x, y + 0.55, z), part(bx(1, 0.6, 0.9), GUN, x, y + 1.1 + 0.3, z));
+      for (const dz of [-0.25, 0.25]) P.push(part(cyl(0.06, 0.06, 2.6, 6), GUN, x + 1.6, y + 1.45, z + dz, 0, 0, -Z));
     }
-    /* the anchors and the windlass on the forecastle; the jack and ensign staffs */
+    /* on the forecastle: the windlass, the anchors in their hawses; the jack staff at the stem and the ensign staff at the stern */
     if (!far) {
-      for (const s of [-1, 1]) P.push(part(bx(1.4, 1.6, 0.4), BLK, X0 + L * 0.95, FC + 0.6, s * 2.6));
-      P.push(part(bx(2.6, 1.1, 4.4), 0x2a2e30, X0 + L * 0.9, FC + 2.95, 0));
-      P.push(part(cyl(0.06, 0.08, 5, 6), 0x555555, X0 + 1.4, F + 2.7, 0), ...FLG.at('us', 2.4, X0 + 1.35, F + 4.5, 0, Math.PI));
-      P.push(part(cyl(0.05, 0.07, 3.5, 6), 0x555555, X0 + L - 1.6, FC + 4.2, 0));
+      const xw = 66;
+      P.push(part(bx(2.6, 1.1, 4.4), 0x2a2e30, xw, deckY(xw) + 0.5, 0));
+      const xa = X0 + L * 0.95,
+        ya = deckY(xa) - 1.6,
+        za = hbAt(0.95, ya);
+      for (const s of [-1, 1]) P.push(part(bx(1.4, 1.6, 0.5), BLK, xa, ya, s * (za + 0.1)));
+      const xj = X0 + L - 2.2,
+        yj = deckY(xj);
+      P.push(part(cyl(0.05, 0.07, 4, 6), 0x555555, xj, yj + 2, 0));
+      const xs = X0 + 1.6,
+        ys = deckY(xs);
+      P.push(part(cyl(0.06, 0.08, 5, 6), 0x555555, xs, ys + 2.5, 0), ...FLG.at('us', 2.4, xs - 0.05, ys + 4.95, 0, Math.PI));
     }
     return P;
   };
   MODELS.add('us-fulton', (o) => tender(!!(o && o.far)), {
     name: 'Fulton-class submarine tender (USS Sperry, AS-12)',
-    L: 161.4,
+    L,
     W: 22.35,
-    D: 6.83,
+    D,
   });
 })();

@@ -1929,29 +1929,54 @@
   "ref": [
    [
     "Length",
-    161.4,
-    "529 ft 6 in overall (DANFS; Wikipedia, USS Fulton); AS-12 530 ft 7 in (HAER report, maritime.dot.gov)"
+    161.73,
+    "530 ft 7 in overall (HAER CA-342 on Sperry, References/Fulton-class/uss sperry 3612d.pdf)"
    ],
    [
     "Beam",
     22.35,
-    "73 ft 4 in (same sources)"
+    "73 ft 4 in (HAER CA-342)"
    ],
    [
     "Draught",
     6.83,
-    "22 ft 5 in mean (DANFS, Sperry)"
+    "22 ft 5 in (HAER CA-342)"
+   ],
+   [
+    "Stem head above water",
+    13.4,
+    "44 ft, References/Fulton-class/Fulton_class__schematic.jpg (ONI profile with a height scale in feet)"
+   ],
+   [
+    "Funnel top above water",
+    22.9,
+    "75 ft, References/Fulton-class/Fulton_class__schematic.jpg (ONI profile with a height scale in feet)"
+   ],
+   [
+    "Director tower top above water",
+    27.4,
+    "90 ft, References/Fulton-class/Fulton_class__schematic.jpg (ONI profile with a height scale in feet)"
+   ],
+   [
+    "Foremast top above water",
+    40.2,
+    "about 132 ft, References/Fulton-class/Fulton_class__schematic.jpg (ONI profile with a height scale in feet)"
    ]
   ],
   "notes": [
+   "Rebuilt 2026-11-24 from the user's References/Fulton-class: the HAER report on Sperry (sizes, where the cranes, derricks, guns and boats were), the ONI Fulton-class profile (heights and fore-and-aft places), the 1941 Fulton profile print, the class model and photographs of Sperry. as1ga1914.pdf is the 1914 USS Fulton (AS-1), not this class: not used.",
    "Submarine Base Lockwood's tender, moored in the lagoon with a nest of fleet boats alongside (PLAN_Roncador_SS-301 4.2).",
-   "Hull and superstructure as the Dixie-class destroyer tenders: raised forecastle, three decks of shops and berthing amidships, the bridge at their forward end, one large funnel, a heavy crane either side, boats in davits.",
-   "Four single 5\"/38 (two forward, two aft, one above the other), 40 mm twins at the superstructure's corners. Measure 22.",
-   "Length and beam measured on the hull alone: overall she is 28.5 m wide with the cranes swung out over the side for the boats alongside."
+   "Flush hull with a fine, flared bow and a cruiser stern; two galleried decks of shops and berthing from the stern guns to the bridge; the bridge a third of the way back from the bow, the lattice director tower and foremast (with the two 5-ton derricks) abaft it, one tall narrow funnel amidships, the two 20-ton cranes and the mainmast aft, launches on chocks on the top deck.",
+   "Four single 5\"/38 (two on the bow, two on the stern, each pair one above the other), four twin 40 mm in tubs on the superstructure deck, two Mk 51 directors on the bridge. Measure 22.",
+   "Length and beam measured on the hull alone. Every part rests on the part below it (tools/connectivity.py and a support check, 2026-11-24)."
   ],
   "measure": {
    "Length": "__partsSize(MODELS.get('us-fulton'),[0x3a4652,0x6e2e26])[0]",
-   "Beam": "__partsSize(MODELS.get('us-fulton'),[0x3a4652,0x6e2e26])[2]"
+   "Beam": "__partsSize(MODELS.get('us-fulton'),[0x3a4652,0x6e2e26])[2]",
+   "Stem head above water": "__partsSize(MODELS.get('us-fulton'),[0x3a4652])[1]",
+   "Funnel top above water": "__partsSize(MODELS.get('us-fulton'),[0x1c1c1c])[1]",
+   "Director tower top above water": "__partsSize(MODELS.get('us-fulton'),[0x737a80])[1]",
+   "Foremast top above water": "__partsSize(MODELS.get('us-fulton'),[0x7f868c])[1]"
   }
  },
  {
@@ -1966,12 +1991,12 @@
   "ref": [
    [
     "Length",
-    161.4,
+    161.73,
     "as the near form"
    ]
   ],
   "notes": [
-   "Fewer hull stations, no scuttles, windows or deck fittings."
+   "Fewer hull stations; no scuttles, windows, gallery pillars, tower bracing, searchlights, wires or forecastle fittings."
   ]
  },
  {

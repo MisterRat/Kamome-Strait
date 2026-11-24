@@ -2678,7 +2678,7 @@ const SITES = [],
       /* the tender, moored in the lagoon 650 m off, along the shore; two fleet boats alongside her, on her shoreward side */
       {
         const YT = YA,
-          len = 161.4,
+          len = 161.73,
           T = mooredF(F, MODELS.get('us-fulton'), 0, 650, YT, len, 22.35);
         T.ride = RIDE.make(0.43 * len, 0.45 * 22.35, 9);
         T.hull.o.hw = 22.35 * 0.46;
