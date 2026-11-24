@@ -4,6 +4,8 @@ The P-51 Mustang flight sim and the PCE-842 Patrol Craft Escort in one WWII Sout
 
 ### [Play it in your browser](https://github.mrrat.org/Kamome-Strait/)
 
+![The Kamome Strait start screen: choose the P-51D Mustang or the PCE-842](screenshots/main_page.jpg)
+
 **Status:** version 1.0. The two games it grows from, still playable on their own from its start screen:
 
 - [P-51 Mustang FS](https://github.com/MisterRat/P51-Mustang-FS)
