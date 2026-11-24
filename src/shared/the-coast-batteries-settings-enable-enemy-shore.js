@@ -1,4 +1,4 @@
-/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore or All) =====
+/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore) =====
    Each Japanese port has a pair of 8 cm/40 3rd Year Type naval guns (the user's, 2026-11-22: a gun of less reach than the 12 cm/45s
    they had, 14 km or under): a 3-inch gun the Navy set up ashore all over the Pacific for coast defence (a copy of the British
    12-pounder, hand worked): 5.99 kg HE at 680 m/s, -7 to +75 deg, 10,800 m at 45 deg, 13 - 20 rounds a minute aboard ship (about 10

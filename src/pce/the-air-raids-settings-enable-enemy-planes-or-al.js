@@ -1,4 +1,4 @@
-/* ===== THE AIR RAIDS (Settings > Enable enemy: Planes or All) =====
+/* ===== THE AIR RAIDS (Settings > Enable enemy: Planes) =====
    Ki-84 Hayates (THE KI-84 HAYATE block) come out from the enemy airfield in sections of two and strafe the ship. Each one
    flies in at about 1,500 m and 500 km/h, rolls in from about 3 km in a 20 - 30 deg dive on her, opens fire inside 900 m
    (two 12.7 mm and two 20 mm), pulls out over her at about 100 m, runs out, turns and comes again: three passes, then home.

@@ -12,7 +12,7 @@ if ($$('wvMode')) {
   w.value = WAVE.mode;
   w.onchange = () => {
     WAVE.mode = w.value;
-    store.set('wave', WAVE.mode);
+    store.set('wave2', WAVE.mode);
     note(WAVE.mode === 'on' ? 'WAVE MOTION ON' : WAVE.mode === 'off' ? 'WAVE MOTION OFF' : 'WAVE MOTION OFF AT THE GUNS');
   };
 }

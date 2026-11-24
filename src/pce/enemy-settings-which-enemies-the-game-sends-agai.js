@@ -1,7 +1,8 @@
-/* ENEMY, the PCE-842's entry (the menu and its workings are shared: ENEMY): saved as 'enemy', none by default */
+/* ENEMY, the PCE-842's entry (the menu and its workings are shared: ENEMY): saved as 'enemyPCEb' (a list; the old single choice,
+   'enemy', is left behind so everyone starts at the new default). Ships only by default: her own kind (the user's, 2026-11-24) */
 ENEMY.sims.pce = {
-  key: 'enemy',
-  def: () => 'none',
+  key: 'enemyPCEb',
+  def: () => ['ships'],
   none: 'No enemies: patrol and practice in peace.',
   note: () =>
     (ENEMY.has('planes')

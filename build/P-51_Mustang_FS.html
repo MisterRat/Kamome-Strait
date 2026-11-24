@@ -345,7 +345,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <label>Wind strength <select id="wxWs"><option value="normal">Normal for the weather</option><option value="calm">Calm</option><option value="light">Light</option><option value="strong">Strong</option><option value="extreme">Extreme</option></select></label></div>
 <div class="note">The wind, gusts, turbulence, wet runway and icing only act in Hardcore mode (Hardcore page). The runway points north and south.</div>
 <label style="display:block;margin:4px 0"><input type="checkbox" id="wxFlow" style="accent-color:#ffb43a"> Time passes (one hour per real minute) <span id="wxClock" style="opacity:.7"></span></label>
-<h3>ENEMY</h3><div class="row"><label>Enable enemy <select id="enMode"><option value="none">None</option><option value="planes">Planes</option><option value="ships">Ships</option><option value="shore">Shore</option><option value="subs">Subs</option><option value="all">All</option></select></label></div>
+<h3>ENEMY</h3><div class="row" id="enBoxes">Enable enemy <label style="margin-right:10px"><input type="checkbox" data-en="planes" style="accent-color:#ffb43a"> Planes</label><label style="margin-right:10px"><input type="checkbox" data-en="ships" style="accent-color:#ffb43a"> Ships</label><label style="margin-right:10px"><input type="checkbox" data-en="shore" style="accent-color:#ffb43a"> Shore</label><label style="margin-right:10px"><input type="checkbox" data-en="subs" style="accent-color:#ffb43a"> Subs</label></div>
 <label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: hits can hurt the engine, wings, tail, fuel tank and hydraulics, with smoke and fire</label>
 <div class="note" id="enNote"></div>
 <div style="display:none"><h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label></div>
@@ -603,7 +603,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.120';
+const VERSION = '5.121';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -21102,7 +21102,7 @@ nearRoads(h.x, h.z);
   };
   return W;
 })();
-/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore or All) =====
+/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore) =====
    Each Japanese port has a pair of 8 cm/40 3rd Year Type naval guns (the user's, 2026-11-22: a gun of less reach than the 12 cm/45s
    they had, 14 km or under): a 3-inch gun the Navy set up ashore all over the Pacific for coast defence (a copy of the British
    12-pounder, hand worked): 5.99 kg HE at 680 m/s, -7 to +75 deg, 10,800 m at 45 deg, 13 - 20 rounds a minute aboard ship (about 10
@@ -26234,7 +26234,7 @@ const NAVCHART = (() => {
             deep below about 30 m (the model hidden); she dives at about 0.45 m/s and surfaces at 0.35, bow down or up a few degrees
      the periscope's feather when she runs at periscope depth, her wake when surfaced; sinking: down by the bow, the oil and the
      wreckage coming up
-   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs or All): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
+   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
    base (patrolC), deep (clear of the bottom), coming to periscope depth every few minutes to look. Seeing the player's ship within about 5 km she
    closes and, within 3 km with her bow on, fires a fan of four Type 95s (49 kn, 9 km) on a collision course (her estimate of course and speed
    off as the T-14s' is), then goes deep and runs; charges going off near her drive her deep too. The PCE's sonar finds her and
@@ -32101,15 +32101,18 @@ $$('dmgOn').onchange = (e) => {
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
-/* ENEMY (Settings > Enemy, the same menu in every simulator): which enemies the game sends against the player. Saved per simulator.
-   Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground fire (AA.on: the 25 mm guns and
-   searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (shipsOn).
-   Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note text in ENEMY.sims. */
+/* ENEMY (Settings > Enable enemy, the same menu in every simulator): which enemies the game sends against the player, one checkbox
+   each (the user's, 2026-11-24: checkboxes, and each simulator starts with only its own kind on: Planes for the P-51, Ships for the
+   PCE-842). Saved per simulator as a list. Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground
+   fire (AA.on: the 25 mm guns and searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the
+   T-14s' torpedo runs (shipsOn). Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note
+   text in ENEMY.sims. */
 const ENEMY = {
-  mode: 'none',
+  KINDS: ['planes', 'ships', 'shore', 'subs'],
+  on: new Set(),
   sims: {},
   has(k) {
-    return this.mode === 'all' || this.mode === k;
+    return this.on.has(k);
   },
   /* the current simulator's entry */
   cur() {
@@ -32117,35 +32120,42 @@ const ENEMY = {
     return null;
   },
 };
+function enemyBoxes() {
+  return Array.from(document.querySelectorAll('#enBoxes input[data-en]'));
+}
 function enemySync() {
   const S = ENEMY.cur();
-  if (!S || !$$('enMode')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
-  $$('enMode').value = ENEMY.mode;
+  if (!S || !$$('enBoxes')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
+  enemyBoxes().forEach((b) => (b.checked = ENEMY.has(b.dataset.en)));
   AA.on = ENEMY.has('shore');
   store.set('aa', AA.on);
   AA.apply();
   if ($$('aaOn')) $$('aaOn').checked = AA.on;
-  if ($$('enNote')) $$('enNote').textContent = ENEMY.mode === 'none' ? S.none : S.note();
+  if ($$('enNote')) $$('enNote').textContent = ENEMY.on.size ? S.note() : S.none;
 }
-/* each simulator's entry calls this once it has registered: the saved choice, the menu's handler, and the setting applied */
+/* each simulator's entry calls this once it has registered: the saved choice, the boxes' handlers, and the setting applied */
 ENEMY.init = () => {
   const S = ENEMY.cur();
   if (!S) return;
-  ENEMY.mode = store.get(S.key, S.def());
-  if ($$('enMode'))
-    $$('enMode').onchange = (e) => {
-      ENEMY.mode = e.target.value;
-      store.set(S.key, ENEMY.mode);
-      enemySync();
-      note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
-    };
+  const v = store.get(S.key, S.def());
+  ENEMY.on = new Set((Array.isArray(v) ? v : S.def()).filter((k) => ENEMY.KINDS.includes(k)));
+  enemyBoxes().forEach(
+    (b) =>
+      (b.onchange = () => {
+        if (b.checked) ENEMY.on.add(b.dataset.en);
+        else ENEMY.on.delete(b.dataset.en);
+        store.set(S.key, [...ENEMY.on]);
+        enemySync();
+        note('ENEMY ' + b.dataset.en.toUpperCase() + (b.checked ? ' ON' : ' OFF'));
+      }),
+  );
   enemySync();
 };
-/* ENEMY, the P-51D's entry (the menu and its workings are shared: ENEMY): saved as 'enemyP51'. Before the menu the fighters always came
-   and the Ground fire checkbox brought the guns and the ships, so the first default follows that checkbox: All with it on, Planes without */
+/* ENEMY, the P-51D's entry (the menu and its workings are shared: ENEMY): saved as 'enemyP51b' (a list; the old single choice,
+   'enemyP51', is left behind so everyone starts at the new default). Planes only by default: its own kind (the user's, 2026-11-24) */
 ENEMY.sims.p51 = {
-  key: 'enemyP51',
-  def: () => (store.get('aa', false) === true ? 'all' : 'planes'),
+  key: 'enemyP51b',
+  def: () => ['planes'],
   none: 'No enemies: fly and practice in peace (the Dogfight and Bandit missions still bring their own Ki-84s).',
   note: () =>
     (ENEMY.has('planes')

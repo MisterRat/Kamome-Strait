@@ -1,8 +1,8 @@
-/* ENEMY, the P-51D's entry (the menu and its workings are shared: ENEMY): saved as 'enemyP51'. Before the menu the fighters always came
-   and the Ground fire checkbox brought the guns and the ships, so the first default follows that checkbox: All with it on, Planes without */
+/* ENEMY, the P-51D's entry (the menu and its workings are shared: ENEMY): saved as 'enemyP51b' (a list; the old single choice,
+   'enemyP51', is left behind so everyone starts at the new default). Planes only by default: its own kind (the user's, 2026-11-24) */
 ENEMY.sims.p51 = {
-  key: 'enemyP51',
-  def: () => (store.get('aa', false) === true ? 'all' : 'planes'),
+  key: 'enemyP51b',
+  def: () => ['planes'],
   none: 'No enemies: fly and practice in peace (the Dogfight and Bandit missions still bring their own Ki-84s).',
   note: () =>
     (ENEMY.has('planes')

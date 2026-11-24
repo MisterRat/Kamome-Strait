@@ -6,7 +6,7 @@
             deep below about 30 m (the model hidden); she dives at about 0.45 m/s and surfaces at 0.35, bow down or up a few degrees
      the periscope's feather when she runs at periscope depth, her wake when surfaced; sinking: down by the bow, the oil and the
      wreckage coming up
-   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs or All): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
+   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
    base (patrolC), deep (clear of the bottom), coming to periscope depth every few minutes to look. Seeing the player's ship within about 5 km she
    closes and, within 3 km with her bow on, fires a fan of four Type 95s (49 kn, 9 km) on a collision course (her estimate of course and speed
    off as the T-14s' is), then goes deep and runs; charges going off near her drive her deep too. The PCE's sonar finds her and

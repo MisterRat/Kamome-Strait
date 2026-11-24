@@ -348,7 +348,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="row"><label>Wind from <select id="wxWd"><option value="auto">Random</option><option value="0">North (360)</option><option value="90">East (090)</option><option value="180">South (180)</option><option value="270">West (270)</option></select></label>
 <label>Wind strength <select id="wxWs"><option value="normal">Normal for the weather</option><option value="calm">Calm</option><option value="light">Light</option><option value="strong">Strong</option><option value="extreme">Extreme</option></select></label></div>
 <label style="display:block;margin:4px 0"><input type="checkbox" id="wxFlow" style="accent-color:#ffb43a"> Time passes (one hour per real minute) <span id="wxClock" style="opacity:.7"></span></label>
-<h3>ENEMY</h3><div class="row"><label>Enable enemy <select id="enMode"><option value="none">None</option><option value="planes">Planes</option><option value="ships">Ships</option><option value="shore">Shore</option><option value="subs">Subs</option><option value="all">All</option></select></label></div>
+<h3>ENEMY</h3><div class="row" id="enBoxes">Enable enemy <label style="margin-right:10px"><input type="checkbox" data-en="planes" style="accent-color:#ffb43a"> Planes</label><label style="margin-right:10px"><input type="checkbox" data-en="ships" style="accent-color:#ffb43a"> Ships</label><label style="margin-right:10px"><input type="checkbox" data-en="shore" style="accent-color:#ffb43a"> Shore</label><label style="margin-right:10px"><input type="checkbox" data-en="subs" style="accent-color:#ffb43a"> Subs</label></div>
 <label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: enemy hits hurt the ship and her crew</label>
 <div class="note" id="enNote"></div>
 <div style="display:none"><h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label>
@@ -510,8 +510,8 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <tr><td>Reloading</td><td>Every weapon is reloaded by its crew when it is empty, as long as there is ammunition aboard: the guns, the K-guns, the racks and the Hedgehog (24 bombs in about 3 minutes, half that in game mode). R reloads on demand (at the Hedgehog: loads it from part-full). Changing to a gun finds it loaded.</td></tr>
 <tr><td>Practice targets (T)</td><td>Rafts out to 6,000 yards (two inside 20 mm range), sleeves towed by two aircraft (one for the 40 mm, one passing close for the 20 mm), PT-108 towing a target sled at 30 knots, and the exercise submarine. A shot sleeve streams again after 25 seconds. Hitting PT-108 brings &ldquo;check fire&rdquo;.</td></tr>
 <tr><td>Sighting reports</td><td>With the enemy's ships on, every Japanese shore station (the ports, airbases, depots and Port Ugaki) keeps a lookout: by day it sees you out to 12 km, at night 4 km, unless a hill is in the way. It reports you (the radio prints the intercepted report in red) and the enemy's ships within 15 km of where you were seen are on the alert for 20 minutes: the escorts patrol at action speed, the torpedo boats come out for you from 7 km instead of 3, and Port Ugaki's escort and torpedo boats, which otherwise lie in harbour, put to sea. A report brings no aircraft.</td></tr>
-<tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes (or All). Ki-84 Hayates come only when the enemy has been told where you are: a Japanese ship, gun or base you fire on calls for air support, and two fighters take off from the nearest enemy airfield and fly out (the scramble takes about 90 s, then the flight). Out of their sight you are left alone. The lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
-<tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore (or All). Each Japanese port has two 8 cm/40 naval guns in sandbagged pits, five men to a gun, about 10 rounds a minute out to 10,000 m: they open fire inside about 10 km by day (3 km at night), and, dual-purpose guns, at Allied aircraft overhead when they have no ship to lay on; lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
+<tr><td>Air raids</td><td>Settings &gt; Enable enemy: Planes. Ki-84 Hayates come only when the enemy has been told where you are: a Japanese ship, gun or base you fire on calls for air support, and two fighters take off from the nearest enemy airfield and fly out (the scramble takes about 90 s, then the flight). Out of their sight you are left alone. The lookout calls them on the radio. Each makes three strafing passes (a 20&ndash;30&deg; dive, firing inside about 1,000 yd, pulling out over the ship), then goes home. Man the guns (5) and shoot them down; hits on the ship are counted. Kill rates follow the Hardcore setting, as for the sleeves.</td></tr>
+<tr><td>Shore batteries</td><td>Settings &gt; Enable enemy: Shore. Each Japanese port has two 8 cm/40 naval guns in sandbagged pits, five men to a gun, about 10 rounds a minute out to 10,000 m: they open fire inside about 10 km by day (3 km at night), and, dual-purpose guns, at Allied aircraft overhead when they have no ship to lay on; lead you on your course and speed, and walk their splashes onto you, so change course and speed to throw them off. The 25 mm guns at the ports and airfields, and on the escort off the port, fire inside about 2,500 m. Knock the coast guns out with the 3&Prime;/50. Hits on the ship are counted.</td></tr>
 <tr><td>Shell cam</td><td>Settings: follow your last shells to the target (off at first). Any key returns to the gun.</td></tr>
 </table></div>
 <div><h2>The torpedoman</h2>
@@ -597,7 +597,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.1';
+const VERSION = '1.2';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -1121,7 +1121,8 @@ const TPW = { p: new THREE.Vector2() /* model x, z */, at: 3, bob: 0, ob: [] },
   HH = { n: 24, L: [], q: [], ld: 0, hits: 0 },
   ASW = { who: 'tp' /* who the attack is for: the torpedoman's run (5) or the sonar test (3) */, ph: 'idle', t: 0, O: [], f: {}, run: 0, tel: 0, hold: 0, depth: 100, best: 1e9, hh: 0, un: 0, bad: false, msg: '', deb: '', debT: 0 };
 /* Wave motion setting (saved): 'on', 'guns' (off while the player is at a gun) or 'off' */
-const WAVE = { mode: ['on', 'guns', 'off'].includes(store.get('wave', 'on')) ? store.get('wave', 'on') : 'on' };
+/* saved as 'wave2', Off at the guns by default (the user's, 2026-11-24; the old 'wave' key is left behind so everyone starts there) */
+const WAVE = { mode: ['on', 'guns', 'off'].includes(store.get('wave2', 'guns')) ? store.get('wave2', 'guns') : 'guns' };
 /* the PCE-842's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
 SIMS.add({
   id: 'pce',
@@ -18889,7 +18890,7 @@ nearRoads(h.x, h.z);
   };
   return W;
 })();
-/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore or All) =====
+/* ===== THE COAST BATTERIES (Settings > Enable enemy: Shore) =====
    Each Japanese port has a pair of 8 cm/40 3rd Year Type naval guns (the user's, 2026-11-22: a gun of less reach than the 12 cm/45s
    they had, 14 km or under): a 3-inch gun the Navy set up ashore all over the Pacific for coast defence (a copy of the British
    12-pounder, hand worked): 5.99 kg HE at 680 m/s, -7 to +75 deg, 10,800 m at 45 deg, 13 - 20 rounds a minute aboard ship (about 10
@@ -24021,7 +24022,7 @@ const NAVCHART = (() => {
             deep below about 30 m (the model hidden); she dives at about 0.45 m/s and surfaces at 0.35, bow down or up a few degrees
      the periscope's feather when she runs at periscope depth, her wake when surfaced; sinking: down by the bow, the oil and the
      wreckage coming up
-   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs or All): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
+   I-58 ON PATROL (the role's subsOn: the PCE's Enemy setting Subs): she keeps a circle 2.5 km across in water at least 30 m deep, 6 to 20 km from the US
    base (patrolC), deep (clear of the bottom), coming to periscope depth every few minutes to look. Seeing the player's ship within about 5 km she
    closes and, within 3 km with her bow on, fires a fan of four Type 95s (49 kn, 9 km) on a collision course (her estimate of course and speed
    off as the T-14s' is), then goes deep and runs; charges going off near her drive her deep too. The PCE's sonar finds her and
@@ -26189,15 +26190,18 @@ $$('dmgOn').onchange = (e) => {
   if (!DM.on) DM.reset();
   note('BATTLE DAMAGE ' + (DM.on ? 'ON' : 'OFF'));
 };
-/* ENEMY (Settings > Enemy, the same menu in every simulator): which enemies the game sends against the player. Saved per simulator.
-   Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground fire (AA.on: the 25 mm guns and
-   searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the T-14s' torpedo runs (shipsOn).
-   Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note text in ENEMY.sims. */
+/* ENEMY (Settings > Enable enemy, the same menu in every simulator): which enemies the game sends against the player, one checkbox
+   each (the user's, 2026-11-24: checkboxes, and each simulator starts with only its own kind on: Planes for the P-51, Ships for the
+   PCE-842). Saved per simulator as a list. Planes: the Japanese fighters a base calls up when the player attacks it. Shore: the ground
+   fire (AA.on: the 25 mm guns and searchlights) and THE COAST BATTERIES (the role's coastOn). Ships: the Ukuru escorts' guns and the
+   T-14s' torpedo runs (shipsOn). Subs: I-58 on patrol (SUBS, subsOn). Each simulator registers its saved key, its default and its note
+   text in ENEMY.sims. */
 const ENEMY = {
-  mode: 'none',
+  KINDS: ['planes', 'ships', 'shore', 'subs'],
+  on: new Set(),
   sims: {},
   has(k) {
-    return this.mode === 'all' || this.mode === k;
+    return this.on.has(k);
   },
   /* the current simulator's entry */
   cur() {
@@ -26205,34 +26209,42 @@ const ENEMY = {
     return null;
   },
 };
+function enemyBoxes() {
+  return Array.from(document.querySelectorAll('#enBoxes input[data-en]'));
+}
 function enemySync() {
   const S = ENEMY.cur();
-  if (!S || !$$('enMode')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
-  $$('enMode').value = ENEMY.mode;
+  if (!S || !$$('enBoxes')) return; /* a page with several simulators: the enemies (and the ground fire they set) of the one played */
+  enemyBoxes().forEach((b) => (b.checked = ENEMY.has(b.dataset.en)));
   AA.on = ENEMY.has('shore');
   store.set('aa', AA.on);
   AA.apply();
   if ($$('aaOn')) $$('aaOn').checked = AA.on;
-  if ($$('enNote')) $$('enNote').textContent = ENEMY.mode === 'none' ? S.none : S.note();
+  if ($$('enNote')) $$('enNote').textContent = ENEMY.on.size ? S.note() : S.none;
 }
-/* each simulator's entry calls this once it has registered: the saved choice, the menu's handler, and the setting applied */
+/* each simulator's entry calls this once it has registered: the saved choice, the boxes' handlers, and the setting applied */
 ENEMY.init = () => {
   const S = ENEMY.cur();
   if (!S) return;
-  ENEMY.mode = store.get(S.key, S.def());
-  if ($$('enMode'))
-    $$('enMode').onchange = (e) => {
-      ENEMY.mode = e.target.value;
-      store.set(S.key, ENEMY.mode);
-      enemySync();
-      note('ENEMY: ' + $$('enMode').selectedOptions[0].textContent.toUpperCase());
-    };
+  const v = store.get(S.key, S.def());
+  ENEMY.on = new Set((Array.isArray(v) ? v : S.def()).filter((k) => ENEMY.KINDS.includes(k)));
+  enemyBoxes().forEach(
+    (b) =>
+      (b.onchange = () => {
+        if (b.checked) ENEMY.on.add(b.dataset.en);
+        else ENEMY.on.delete(b.dataset.en);
+        store.set(S.key, [...ENEMY.on]);
+        enemySync();
+        note('ENEMY ' + b.dataset.en.toUpperCase() + (b.checked ? ' ON' : ' OFF'));
+      }),
+  );
   enemySync();
 };
-/* ENEMY, the PCE-842's entry (the menu and its workings are shared: ENEMY): saved as 'enemy', none by default */
+/* ENEMY, the PCE-842's entry (the menu and its workings are shared: ENEMY): saved as 'enemyPCEb' (a list; the old single choice,
+   'enemy', is left behind so everyone starts at the new default). Ships only by default: her own kind (the user's, 2026-11-24) */
 ENEMY.sims.pce = {
-  key: 'enemy',
-  def: () => 'none',
+  key: 'enemyPCEb',
+  def: () => ['ships'],
   none: 'No enemies: patrol and practice in peace.',
   note: () =>
     (ENEMY.has('planes')
@@ -30106,7 +30118,7 @@ function ptHit(a, b, s) {
   }
   return false;
 }
-/* ===== THE AIR RAIDS (Settings > Enable enemy: Planes or All) =====
+/* ===== THE AIR RAIDS (Settings > Enable enemy: Planes) =====
    Ki-84 Hayates (THE KI-84 HAYATE block) come out from the enemy airfield in sections of two and strafe the ship. Each one
    flies in at about 1,500 m and 500 km/h, rolls in from about 3 km in a 20 - 30 deg dive on her, opens fire inside 900 m
    (two 12.7 mm and two 20 mm), pulls out over her at about 100 m, runs out, turns and comes again: three passes, then home.
@@ -30491,7 +30503,7 @@ if ($$('wvMode')) {
   w.value = WAVE.mode;
   w.onchange = () => {
     WAVE.mode = w.value;
-    store.set('wave', WAVE.mode);
+    store.set('wave2', WAVE.mode);
     note(WAVE.mode === 'on' ? 'WAVE MOTION ON' : WAVE.mode === 'off' ? 'WAVE MOTION OFF' : 'WAVE MOTION OFF AT THE GUNS');
   };
 }

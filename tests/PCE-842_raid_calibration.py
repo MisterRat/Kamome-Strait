@@ -14,7 +14,7 @@ JS = r"""([gid, sig, N]) => {
   let ex = 0, ey = 0, tA = 0, ft = 0; const q = new V3(), B = [], d = [], o = new V3();
   const inv = new THREE.Matrix4(); const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-12)) * Math.cos(6.2832 * Math.random());
   vel.set(0, 0, 0);
-  ENEMY.mode = 'planes'; raidClear(); RAID.next = 0; raidUpdate(0.02);
+  ENEMY.on = new Set(['planes']); raidClear(); RAID.next = 0; raidUpdate(0.02);
   let fired = 0, guard = 0, tg = null;
   while ((fired < N || B.length) && guard++ < 2000000) {
     const dt = 0.02;
