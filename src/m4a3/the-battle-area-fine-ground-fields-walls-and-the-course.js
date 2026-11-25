@@ -298,14 +298,16 @@ const BA = (() => {
         nor[k * 3 + 1] = ny / l;
         nor[k * 3 + 2] = nz / l;
       }
-    /* the outer ring of the grid is the skirt: clamped to the tile's edge and 1.2 m down, hiding any seam with the next tile */
+    /* the outer ring of the grid is the skirt: a flap 1 m out from the tile's edge and 0.3 m down, tucked under the next tile (or the far
+       ground past the cut), so a hairline crack at a seam shows ground, not the sea below */
     for (let b = -1; b <= n + 1; b++)
       for (let a = -1; a <= n + 1; a++) {
         if (a >= 0 && b >= 0 && a <= n && b <= n) continue;
         const k = at(a, b),
           q = at(Math.max(0, Math.min(n, a)), Math.max(0, Math.min(n, b)));
-        for (const o of [0, 2]) pos[k * 3 + o] = pos[q * 3 + o];
-        pos[k * 3 + 1] = pos[q * 3 + 1] - 1.2;
+        pos[k * 3] = pos[q * 3] + (a < 0 ? -1 : a > n ? 1 : 0);
+        pos[k * 3 + 2] = pos[q * 3 + 2] + (b < 0 ? -1 : b > n ? 1 : 0);
+        pos[k * 3 + 1] = pos[q * 3 + 1] - 0.3;
         for (const o of [0, 1, 2]) (nor[k * 3 + o] = nor[q * 3 + o]), (col[k * 3 + o] = col[q * 3 + o]);
         frm[k] = frm[q];
       }
@@ -416,12 +418,12 @@ const BA = (() => {
       tiles.set(KEY(a, b), T);
     }
     /* the far world's ground is left undrawn over the square the tiles cover in full (the ring the queue has finished) */
-    if (!queue.length) NEARCUT.value.set(ci * TS + TS / 2, cj * TS + TS / 2, (RF + 0.5) * TS - 0.5, 1);
+    if (!queue.length) NEARCUT.value.set(ci * TS + TS / 2, cj * TS + TS / 2, (RF + 0.5) * TS, 1);
     else if (NEARCUT.value.w > 0) {
       /* still filling: keep the cut only where every tile is in */
       let ok = RF;
       for (const [a, b] of queue) ok = Math.min(ok, Math.max(Math.abs(a - ci), Math.abs(b - cj)) - 1);
-      NEARCUT.value.set(ci * TS + TS / 2, cj * TS + TS / 2, Math.max(0, (ok + 0.5) * TS - 0.5), ok >= 0 ? 1 : 0);
+      NEARCUT.value.set(ci * TS + TS / 2, cj * TS + TS / 2, Math.max(0, (ok + 0.5) * TS), ok >= 0 ? 1 : 0);
     }
     /* only the tiles inside the cut are drawn: one outside it would lie on the far world's ground and the two would fight */
     const r = NEARCUT.value.w > 0 ? Math.round((NEARCUT.value.z + 0.5) / TS - 0.5) : -1;
