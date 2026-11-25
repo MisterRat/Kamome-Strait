@@ -76,7 +76,7 @@ const SURF = (() => {
   /* is m a surface: a decal (polygon offset) or a thin flat plate laid over the ground, or one marked userData.surface? Hidden ones count
      too (a far site's apron is hidden while it is far away, and what stands on it is placed then) */
   const isSurf = (m) => {
-    if (!m.isMesh || m.isInstancedMesh) return false;
+    if (!m.isMesh || m.isInstancedMesh || m.userData.surface === false) return false; /* false: a ground mesh, never a surface (the tank's fine ground) */
     const mt = m.material;
     if (!mt || Array.isArray(mt) || mt.transparent || mt.type === 'ShaderMaterial') return false;
     const g = m.geometry;

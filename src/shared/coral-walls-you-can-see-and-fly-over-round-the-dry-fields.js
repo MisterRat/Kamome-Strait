@@ -1,6 +1,9 @@
 /* coral walls you can see and fly over: rough walls of coral blocks round the dry fields that lie near the road (the user's, 2026-11-23:
    the Pacific, not Normandy: these were leafy hedgerows). 1.0-1.5 m high, 0.6-0.8 m thick, pale grey-cream coral with dark joints */
-{
+/* CORAL: the wall itself, shared: the home map's walls below and the battle area's (BA) round the far world's fields are built the same way.
+   CORAL.mesh(items, H, sphere): items [x, z, yaw, length, height, thickness, shade], each standing on the lowest of H() under its ends
+   and middle; sphere (THREE.Sphere) holds them all, for culling; returns the InstancedMesh (not yet in the scene). CORAL.LEN: a block's length. */
+const CORAL = (() => {
   const lc = document.createElement('canvas');
   lc.width = lc.height = 64;
   const lg = lc.getContext('2d');
@@ -33,7 +36,36 @@
     const uv = geo.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * 8);
   }
-  const mats = [];
+  const mat = new THREE.MeshLambertMaterial({ map: lt, color: 0xffffff });
+  const mesh = (items, H, sphere) => {
+    const hm = new THREE.InstancedMesh(geo, mat, Math.max(1, items.length)),
+      M = new THREE.Matrix4(),
+      Q = new THREE.Quaternion(),
+      cc = new THREE.Color();
+    items.forEach((a, i) => {
+      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a[2]);
+      /* on the lowest ground under it (both ends and the middle), 10 cm in: on a slope no end hangs in the air */
+      const sx = Math.sin(a[2]) * a[3] * 0.48,
+        sz = Math.cos(a[2]) * a[3] * 0.48,
+        gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
+      M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
+      hm.setMatrixAt(i, M);
+      cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
+      hm.setColorAt(i, cc);
+    });
+    hm.count = items.length;
+    hm.instanceMatrix.needsUpdate = true;
+    if (hm.instanceColor) hm.instanceColor.needsUpdate = true;
+    /* an instanced mesh is culled by its geometry's sphere: each mesh gets its own copy round where its walls stand */
+    hm.geometry = geo.clone();
+    hm.geometry.boundingSphere = sphere;
+    hm.frustumCulled = true;
+    return hm;
+  };
+  return { mesh, LEN: 15.6 };
+})();
+/* the home map's walls: round the dry fields that lie near the road */
+{
   const items = [];
   let sh = 11;
   const rnd = () => (sh = (sh * 16807) % 2147483647) / 2147483647;
@@ -63,34 +95,7 @@
       ]);
     }
   }
-  const hm = new THREE.InstancedMesh(
-      geo,
-      new THREE.MeshLambertMaterial({ map: lt, color: 0xffffff }),
-      Math.max(1, items.length),
-    ),
-    M = new THREE.Matrix4(),
-    Q = new THREE.Quaternion(),
-    cc = new THREE.Color();
-  items.forEach((a, i) => {
-    Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a[2]);
-    /* on the lowest ground under it (both ends and the middle), 10 cm in: on a slope no end hangs in the air */
-    const sx = Math.sin(a[2]) * a[3] * 0.48,
-      sz = Math.cos(a[2]) * a[3] * 0.48,
-      gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
-    M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
-    hm.setMatrixAt(i, M);
-    cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
-    hm.setColorAt(i, cc);
-  });
-  hm.count = items.length;
-  hm.instanceMatrix.needsUpdate = true;
-  if (hm.instanceColor) hm.instanceColor.needsUpdate = true;
-  hm.geometry.boundingSphere = new THREE.Sphere(
-    new THREE.Vector3((DEPOT[0] + BASE[0]) / 2, 40, (DEPOT[1] + BASE[1]) / 2),
-    3800,
-  );
-  hm.frustumCulled = true;
+  const hm = CORAL.mesh(items, H, new THREE.Sphere(new THREE.Vector3((DEPOT[0] + BASE[0]) / 2, 40, (DEPOT[1] + BASE[1]) / 2), 3800));
   scene.add(hm);
   FARM.wallCount = items.length;
 }
-

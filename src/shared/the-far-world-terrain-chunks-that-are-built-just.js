@@ -539,11 +539,21 @@ const WORLD = (() => {
     Y3 = new THREE.Vector3(0, 1, 0);
   /* the fields: a tilted grid of 340 m plots, six in ten rice paddies, the rest cane, sweet potato and red-earth fallow, each with its rows;
      earth dykes between the paddies, pale coral walls round the dry fields (the same look as the home farms; the Pacific: no hedgerows) */
+  /* the plots' hash: whole numbers only, exact in 32-bit floats, so the battle area (BA) works out in JS exactly what the shader paints
+     (a paddy, cane, its walls) */
+  const FH_GL = 'float fh(vec2 c,float k){float n=mod(c.x*37.0+c.y*113.0+k*59.0,251.0);n=mod(n*n*7.0+n*13.0+5.0,251.0);n=mod(n*n*3.0+n*29.0+11.0,251.0);return n/251.0;}\n';
+  const md = (a, b) => ((a % b) + b) % b;
+  const fhJ = (cx, cz, k) => {
+    let n = md(cx * 37 + cz * 113 + k * 59, 251);
+    n = md(n * n * 7 + n * 13 + 5, 251);
+    n = md(n * n * 3 + n * 29 + 11, 251);
+    return n / 251;
+  };
   const FARM_PAINT =
     '{float fk0=vFarm*(1.0-watK);if(fk0>0.003){vec2 u=vec2(vWP.x*' + FCA.toFixed(5) + '+vWP.z*' + FSA.toFixed(5) + ',-vWP.x*' + FSA.toFixed(5) + '+vWP.z*' + FCA.toFixed(5) + ')/' + FCS.toFixed(1) + ';' +
-    'vec2 fi=floor(u),ff=fract(u);float r1=hf(fi+1.7),r2=hf(fi+9.1),r3=hf(fi+4.3);float th=0.25+0.5*hf(fi+3.3);float fk=smoothstep(th-0.3,th+0.3,vFarm)*(1.0-watK);' /* each plot fades in on its own as the farmland thickens, so the edge of a farm area is soft and does not follow the mesh triangles */ +
+    'vec2 fi=floor(u),ff=fract(u);float r1=fh(fi,1.0),r2=fh(fi,2.0),r3=fh(fi,3.0);float th=0.25+0.5*fh(fi,4.0);float fk=smoothstep(th-0.3,th+0.3,vFarm)*(1.0-watK);' /* each plot fades in on its own as the farmland thickens, so the edge of a farm area is soft and does not follow the mesh triangles */ +
     'float pd=step(r1,0.6);vec3 cp=r1<0.6?(r2<0.3?mix(vec3(0.20,0.32,0.36),vec3(0.24,0.38,0.40),r2/0.3):mix(vec3(0.26,0.46,0.18),vec3(0.42,0.48,0.20),(r2-0.3)/0.7)):(r1<0.8?mix(vec3(0.32,0.48,0.16),vec3(0.38,0.54,0.20),r2):(r1<0.92?mix(vec3(0.16,0.32,0.12),vec3(0.20,0.38,0.15),r2):mix(vec3(0.44,0.26,0.17),vec3(0.50,0.31,0.20),r2)));' +
-    'cp*=0.9+0.2*hf(fi+6.6);float dq=length(vWP-cameraPosition);float sk=1.0-smoothstep(500.0,2200.0,dq);' +
+    'cp*=0.9+0.2*fh(fi,5.0);float dq=length(vWP-cameraPosition);float sk=1.0-smoothstep(500.0,2200.0,dq);' +
     'float row=(r3<0.5?u.x:u.y)*' + FCS.toFixed(1) + '/19.0;cp*=1.0-(0.14-0.08*pd)*sk*smoothstep(0.35,0.65,sin(row*6.2832)*0.5+0.5);' +
     'vec2 e=min(ff,1.0-ff)*' + FCS.toFixed(1) + ';float hl=(1.0-smoothstep(1.2,3.2,min(e.x,e.y)))*(1.0-smoothstep(2500.0,6000.0,dq));cp=mix(cp,mix(vec3(0.62,0.60,0.53),vec3(0.30,0.32,0.18),pd),hl*0.8);' +
     'float wpd=pd*step(r2,0.3);vec3 Vd=normalize(cameraPosition-vWP);cp=mix(cp,vec3(0.40,0.52,0.62),wpd*(0.35+0.5*pow(1.0-clamp(Vd.y,0.0,1.0),3.0)));' /* flooded paddies show the sky */ +
@@ -953,6 +963,31 @@ const WORLD = (() => {
     return { list, near, STEP, cfg, plan, astar, gate, make };
   })();
 
+  /* the far world's ground shader: its paint, detail, fields and shore; cut = obey NEARCUT (the chunks do, the battle area's own tiles do not) */
+  const groundShade = (mat, tex, O, cut) => {
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.chTex = { value: tex };
+      sh.uniforms.chO = { value: O };
+      sh.uniforms.uDet = DETU;
+      sh.uniforms.nearC = NEARCUT;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;attribute float farm;varying float vFarm;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarm=farm;vWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*normal);');
+      /* the same ground detail as the home map (blades, tufts, layered rock), without the farm fields */
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;varying float vFarm;float hf(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}' + FH_GL + 'uniform vec4 nearC;uniform sampler2D chTex;uniform vec4 chO;uniform float uDet;\n' + TERR_NOISE)
+        .replace(
+          '#include <map_fragment>',
+          (cut ? 'if(nearC.w>0.0&&abs(vWP.x-nearC.x)<nearC.z&&abs(vWP.z-nearC.y)<nearC.z)discard;' : '') +
+            'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
+            'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
+        )
+        .replace('#include <color_fragment>', '#include <color_fragment>\n' + FARM_PAINT + SHORE_PAINT);
+    };
+    mat.userData.key = cut ? 'worldchunk4' : 'worldground4';
+    csApply(mat); /* the clouds' shadows fall on it like on the home map */
+    return mat;
+  };
   const mkItem = () => {
     const g = new THREE.BufferGeometry(),
       pos = new Float32Array(NV * 3),
@@ -1011,27 +1046,7 @@ const WORLD = (() => {
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     tex.generateMipmaps = true;
-    mat.onBeforeCompile = (sh) => {
-      sh.uniforms.chTex = { value: tex };
-      sh.uniforms.chO = { value: O };
-      sh.uniforms.uDet = DETU;
-      sh.uniforms.nearC = NEARCUT;
-      sh.vertexShader = sh.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;attribute float farm;varying float vFarm;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarm=farm;vWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*normal);');
-      /* the same ground detail as the home map (blades, tufts, layered rock), without the farm fields */
-      sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;varying float vFarm;float hf(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}uniform vec4 nearC;uniform sampler2D chTex;uniform vec4 chO;uniform float uDet;\n' + TERR_NOISE)
-        .replace(
-          '#include <map_fragment>',
-          'if(nearC.w>0.0&&abs(vWP.x-nearC.x)<nearC.z&&abs(vWP.z-nearC.y)<nearC.z)discard;' +
-            'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
-            'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
-        )
-        .replace('#include <color_fragment>', '#include <color_fragment>\n' + FARM_PAINT + SHORE_PAINT);
-    };
-    mat.userData.key = 'worldchunk3';
-    csApply(mat); /* the clouds' shadows fall on it like on the home map */
+    groundShade(mat, tex, O, true);
     const mesh = new THREE.Mesh(g, mat);
     mesh.matrixAutoUpdate = false;
     mesh.frustumCulled = true;
@@ -1938,6 +1953,61 @@ nearRoads(h.x, h.z);
       const c = ia >= 0 && ib >= 0 ? CHI.get(ia * 32 + ib) : null;
       return !!(c && c.st === 2 && c.it && c.it.rg[Math.floor((z - c.z0) / GC) * GN + Math.floor((x - c.x0) / GC)]);
     },
+    /* the chunk mesh's own surface at x, z as it is drawn: [height, r, g, b, farm, nx, ny, nz] in out (the battle area's fine ground is
+       made from it, so the two are the same ground); null until that chunk is built */
+    surf(x, z, out) {
+      let ia = -1,
+        ib = -1;
+      for (let k = 0; k < AX.length; k++) {
+        if (x >= AX[k][0] && x < AX[k][1]) ia = k;
+        if (z >= AX[k][0] && z < AX[k][1]) ib = k;
+      }
+      const c = ia >= 0 && ib >= 0 ? CHI.get(ia * 32 + ib) : null;
+      if (!c || c.st !== 2 || !c.it) return null;
+      const row = SEGC + 1,
+        u = (x - c.x0) / ((c.x1 - c.x0) / SEGC),
+        v = (z - c.z0) / ((c.z1 - c.z0) / SEGC),
+        a = Math.max(0, Math.min(SEGC - 1, Math.floor(u))),
+        b = Math.max(0, Math.min(SEGC - 1, Math.floor(v))),
+        fx = Math.min(1, Math.max(0, u - a)),
+        fz = Math.min(1, Math.max(0, v - b)),
+        ka = a + row * b,
+        kd = ka + 1,
+        kb = ka + row,
+        kc = kb + 1;
+      /* the mesh's own triangles: (a, d, b) and (b, c, d) */
+      let wa, wd, wb, wc;
+      if (fx + fz <= 1) (wa = 1 - fx - fz), (wd = fx), (wb = fz), (wc = 0);
+      else (wa = 0), (wb = 1 - fx), (wd = 1 - fz), (wc = fx + fz - 1);
+      const P = c.it.pos,
+        C = c.it.col,
+        N = c.it.nor,
+        F = c.it.farm,
+        m = (A, k, o) => A[ka * k + o] * wa + A[kd * k + o] * wd + A[kb * k + o] * wb + A[kc * k + o] * wc;
+      out[0] = m(P, 3, 1);
+      out[1] = m(C, 3, 0);
+      out[2] = m(C, 3, 1);
+      out[3] = m(C, 3, 2);
+      out[4] = m(F, 1, 0);
+      out[5] = m(N, 3, 0);
+      out[6] = m(N, 3, 1);
+      out[7] = m(N, 3, 2);
+      return out;
+    },
+    /* the field plot at x, z as the ground shader paints it (FARM_PAINT): its cell, where in it (0..1), and its kind: paddy (flooded or
+       not), dry crop (cane, sweet potato) or fallow; th is the farm strength at which it appears */
+    plot(x, z) {
+      const u = (x * FCA + z * FSA) / FCS,
+        v = (-x * FSA + z * FCA) / FCS,
+        ci = Math.floor(u),
+        cj = Math.floor(v),
+        r1 = fhJ(ci, cj, 1),
+        r2 = fhJ(ci, cj, 2);
+      return { ci, cj, fu: u - ci, fv: v - cj, paddy: r1 < 0.6, flooded: r1 < 0.6 && r2 < 0.3, kind: r1 < 0.6 ? 'paddy' : r1 < 0.8 ? 'potato' : r1 < 0.92 ? 'cane' : 'fallow', th: 0.25 + 0.5 * fhJ(ci, cj, 4) };
+    },
+    FA,
+    FCS,
+    groundShade: (mat, tex, O) => groundShade(mat, tex, O, false),
     /* the height of the chunk mesh at x, z (trees and grass stand on it) */
     hm(x, z) {
       let ia = -1,
