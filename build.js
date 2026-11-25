@@ -5,6 +5,10 @@
      node build.js            build every game
      node build.js p51        build one game
      node build.js --check    build, then compare each game byte for byte with its baseline (exit code 1 on any difference)
+     node build.js --dev      also build the games in development (their menu-card.json "status": "dev") into dev/, which git
+                              leaves out: the production pages in build/ never carry them until the user releases the game (the
+                              user's, 2026-11-24: "in production" means released on GitHub; in-development games stay out until he
+                              gives the OK, which is changing the card's status)
 
    Never hand-edit a file in build/: the next build overwrites it. Edit the pieces in src/. */
 'use strict';
@@ -19,10 +23,12 @@ const GAMES = {
     baseline: 'baseline/P-51_Mustang_FS_5.34.html',
   },
   pce: { out: 'PCE-842.html', baseline: 'baseline/PCE-842_0.51.html' },
+  /* the M4A3 Sherman (PLAN_M4A3_Sherman_Tank): in development, its own page in dev/ only */
+  m4a3: { out: 'M4A3_Sherman.html', dev: true },
   /* Kamome Strait: every simulator in one page, its manifest made from theirs (see combined()) */
   kamome: {
     out: 'Kamome_Strait.html',
-    sims: ['p51', 'pce'],
+    sims: ['p51', 'pce', 'm4a3'] /* the released ones only, unless --dev (status() below) */,
     /* the crossovers: pieces that use more than one simulator, loaded after all of them */
     cross: [] /* the PCE's air support was one; the P-51's display form is shared now, so it is the PCE's own */,
   },
@@ -32,6 +38,15 @@ const args = require.main === module ? process.argv.slice(2) : [];
 const check = args.includes('--check');
 const only = args.filter((a) => !a.startsWith('--'));
 const ids = only.length ? only : Object.keys(GAMES);
+const dev = args.includes('--dev');
+/* a simulator's release status, from its menu card: 'dev' while in development (left out of the production build), else released */
+const status = (s) => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(ROOT, 'src', s, 'menu-card.json'), 'utf8')).status || 'released';
+  } catch (e) {
+    return 'released';
+  }
+};
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex').slice(0, 16);
 
 function manifest(id) {
@@ -109,14 +124,27 @@ function combined(id, sims) {
 module.exports = { GAMES, manifest, combined };
 if (require.main === module) {
   let failed = false;
-  fs.mkdirSync(path.join(ROOT, 'build'), { recursive: true });
+  /* the jobs: each game's production page in build/ (the released simulators only); with --dev, a game in development gets its own
+     page and every combined page a dev copy with all of them, both in dev/ (git leaves dev/ out) */
+  const jobs = [];
   for (const id of ids) {
     const g = GAMES[id];
     if (!g) {
       console.error(`unknown game "${id}" (known: ${Object.keys(GAMES).join(', ')})`);
       process.exit(2);
     }
-    const list = g.sims ? combined(id, g.sims) : manifest(id);
+    if (g.dev) {
+      if (dev || only.includes(id)) jobs.push({ id, g, dir: 'dev', out: g.out, list: manifest(id) });
+      continue;
+    }
+    if (g.sims) {
+      const rel = g.sims.filter((s) => status(s) !== 'dev');
+      jobs.push({ id, g, dir: 'build', out: g.out, list: combined(id, rel) });
+      if (dev && rel.length < g.sims.length) jobs.push({ id, g, dir: 'dev', out: g.out.replace(/\.html$/, '_dev.html'), list: combined(id, g.sims), noBase: true });
+    } else jobs.push({ id, g, dir: 'build', out: g.out, list: manifest(id) });
+  }
+  for (const { id, g, dir, out: name, list, noBase } of jobs) {
+    fs.mkdirSync(path.join(ROOT, dir), { recursive: true });
     const parts = list.map((p) => {
       if (typeof p === 'object') return Buffer.from(p.text);
       const f = path.join(ROOT, 'src', p);
@@ -127,10 +155,10 @@ if (require.main === module) {
       return fs.readFileSync(f);
     });
     const out = Buffer.concat(parts);
-    const dest = path.join(ROOT, 'build', g.out);
+    const dest = path.join(ROOT, dir, name);
     fs.writeFileSync(dest, out);
-    let line = `${id}: build/${g.out}  ${out.length} bytes  ${list.length} pieces (${list.filter((p) => typeof p === 'string' && p.startsWith('shared/')).length} shared)  sha ${sha(out)}`;
-    if (check && g.baseline) {
+    let line = `${id}: ${dir}/${name}  ${out.length} bytes  ${list.length} pieces (${list.filter((p) => typeof p === 'string' && p.startsWith('shared/')).length} shared)  sha ${sha(out)}`;
+    if (check && g.baseline && !noBase) {
       const base = fs.readFileSync(path.join(ROOT, g.baseline));
       if (Buffer.compare(base, out) === 0) line += '  == baseline';
       else {

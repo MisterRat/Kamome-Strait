@@ -2,6 +2,8 @@
 # project's own records. Everything else in the folder stays out.
 
 # reference material and outputs kept only on the disk
+# the games in development: their pages (node build.js --dev) stay off GitHub until the user releases them
+dev/
 References/
 Claude outputs/
 *.xlsx

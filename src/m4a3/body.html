@@ -1,0 +1,168 @@
+<canvas id="c"></canvas>
+<canvas id="gunRing" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+<canvas id="gunOv" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;display:none"></canvas>
+<div id="cross"></div>
+<div class="p" id="hud"></div>
+<div class="p" id="mm"><canvas id="mmc" width="176" height="176"></canvas></div>
+<div class="p" id="hz"><canvas id="ah" width="120" height="120"></canvas></div>
+<div class="p" id="adf" title="ADF radio compass: click to change station"><canvas id="adfc" width="170" height="214"></canvas></div>
+<div class="p" id="help"><div class="hk" id="hkBody"></div>
+<div class="ht"><b style="color:var(--acc)">CONTROLS &ndash; PHONE</b> (swipe to hide)<br>
+<b>Lever</b> on the left: the engines &middot; &#9664; &#9654; or tilting the phone: the rudder<br>
+<b>1-5</b> on the right: the stations (tap again for the next position) &middot; the station's own buttons bottom left<br>
+<b>FIRE</b> fires, reports or gives the order (at the chart: engages the route); at a gun, the torpedoman, radar and sonar it moves to the <b>left</b> so the right thumb aims<br>
+<b>Drag the right half</b> as a stick: lays a gun, trains the radar or sonar, walks the deck, steers<br>
+<b>Chart table:</b> tap the sea for a waypoint, drag to move it or the chart<br>
+Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middot; &#127919; calibrate</div>
+<div class="hp" id="hpBody"></div>
+</div>
+<div class="p" id="tq"><b>ENG</b><div id="tqt"><div id="tqf"></div><div id="tqh"></div></div><b id="tqv">0%</b><div style="margin-top:6px;display:none">FLAPS</div><div id="flp" style="display:none"><i></i><i></i><i></i><i></i><i></i><i id="flp6" style="display:none"></i></div></div>
+<div id="flash"></div><div id="dazzle"></div><div id="blk"></div><div id="rpl"><div id="rplT">REPLAY &mdash; <span style="color:#ffa020">your path</span> vs <span style="color:#55ff88">best path</span> <span style="color:#ddd">&middot; drone</span> <span style="color:#ff6655">&middot; red = biggest gap</span></div><div id="rplL"></div><input id="rplS" type="range" min="0" max="100" value="0"><div id="rplB"><button id="rplPlay">Pause</button><button id="rplSpd">1x</button><button id="rplView">View: SIDE</button><button id="rplRst">Restart</button><button id="rplExit">Exit replay</button></div><div style="font-size:11px;opacity:.75;margin-top:4px">Space pause &middot; Left/Right 1 s &middot; 1 2 3 camera &middot; Enter = try again</div></div><div id="rplX"></div><div id="rplW"><div id="rplWt"></div><div style="font-size:12px;opacity:.7;margin-top:6px">Esc = skip</div></div><div id="aim"></div><div id="aimt"></div><div id="bd"></div><div id="bdt"></div><div id="lead"></div>
+<div class="p" id="cmp"><canvas id="cmpc" width="640" height="90"></canvas></div>
+<div id="fd"></div><div id="fpm"></div><div id="ccip"></div><div id="rkip"></div>
+<div class="p" id="coach"><div id="coachT"></div><div id="coachH"></div><div id="coachS"></div></div>
+<div class="p" id="kill" style="left:50%;top:30%;transform:translateX(-50%);display:none;color:#ffb43a;font-size:16px;letter-spacing:.08em"></div>
+<div class="p" id="warn">STALL</div>
+<div class="p" id="dmgHud"></div>
+<div id="phFlash"></div>
+<div class="p" id="ph"><div class="r"><b style="color:var(--acc)">PHOTO MODE</b><button id="phShot" class="pri">&#128247; Take photo (Enter)</button><button id="phHud">HUD: off</button><button id="phAc">Ship: on</button><button id="phFz">Action: frozen</button><button id="phExit">Exit (Esc)</button></div>
+<div class="r more"><label>FOV <input type="range" id="phFov" min="10" max="110" value="65" style="width:100px"> <span id="phFovV">65</span>&deg;</label>
+<label>Time <select id="phTime"><option value="local">Local clock</option><option value="dawn">Dawn</option><option value="morning">Morning</option><option value="midday">Midday</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="night">Night</option></select></label>
+<label>Hour <input type="range" id="phHour" min="0" max="24" step="0.1" style="width:100px"> <span id="phHourV"></span></label>
+<label>Weather <select id="phWx"><option value="clear">Clear</option><option value="partly">Partly cloudy</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="storm">Thunderstorm</option><option value="fog">Fog</option></select></label></div>
+<div class="r more"><label>Size <select id="phRes"><option value="0">Screen size</option><option value="1">2560 px wide</option><option value="2">3840 px wide (4K)</option></select></label>
+<label>JPG quality <select id="phQ"><option value="0.8">Good</option><option value="0.92">High</option><option value="1">Maximum</option></select></label>
+<label>Move <select id="phSpd"><option value="8">Slow</option><option value="30" selected>Normal</option><option value="120">Fast</option></select></label>
+<label><input type="checkbox" id="phStamp"> Stamp info on the photo</label><label><input type="checkbox" id="phGrid"> Thirds grid</label></div>
+<div class="r more">Camera spot: <button data-s="chase">Behind</button><button data-s="side">Beside</button><button data-s="front">In front</button><button data-s="top">Above</button><button data-s="cockpit">Cockpit</button><span id="phMsg" style="color:var(--acc)"></span></div>
+<div class="r more dim">W A S D move &middot; Q E down / up &middot; Z C roll &middot; left-drag looks &middot; right-drag moves along the ground &middot; middle-drag moves up / down &middot; wheel moves in / out (hold ` = 6x bigger steps for the mouse) &middot; Shift = fast keys &middot; H HUD on / off &middot; F hides this panel</div></div>
+<div id="phGridV" style="position:fixed;inset:0;pointer-events:none;display:none;z-index:28;background:linear-gradient(to right,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%),linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%)"></div>
+<div class="p" id="msg"></div>
+
+
+<div class="p" id="start"><h1>M4A3 SHERMAN</h1>
+<div>Medium Tank M4A3(75)W &middot; Camp Buckner<br>The land south of Port Ugaki &middot; May 1945<br><small class="verTag" style="opacity:.6"></small> &middot; <small style="opacity:.6">in development: groundwork (T0)</small></div>
+<div id="dl" style="margin-top:16px;display:none">ENEMY SKILL (vs P-51)<br><button data-d="0">LOW 40%</button><button data-d="1">MEDIUM 65%</button><button data-d="2">HARD 100%</button></div>
+<div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways. Drag the view to walk round the tank; the tank does not move yet.</div>
+<div id="goRow"><button id="goTilt" style="display:none">Steer with TILT controls</button><button id="go">Camp Buckner</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
+
+<div id="tc">
+ <div class="tb tel" id="tThr"><div id="tThrF"></div><div id="tThrZ"></div><div id="tThrH"></div><div id="tThrL">STOP</div></div>
+ <div id="tCtx"></div>
+ <div class="tb" id="tRL"><i>&#9664;</i></div><div class="tb" id="tRR"><i>&#9654;</i></div>
+ <div class="tb" id="tFire">FIRE</div>
+ <div id="tStn"><div class="tb" data-n="1">1<br>OOD</div><div class="tb" data-n="2">2<br>ENG</div><div class="tb" data-n="3">3<br>COMMS</div><div class="tb" data-n="4">4<br>GUNS</div><div class="tb" data-n="5">5<br>DC</div></div>
+ <div id="tBar"><div class="tb" id="tMenu"><i>&#9776;</i></div><div class="tb" id="tPause"><i>&#9208;</i></div><div class="tb" id="tCam"><i>&#128247;</i></div><div class="tb" id="tCal"><i>&#127919;</i></div><div class="tb" id="tSet"><i>&#9881;</i></div><div class="tb" id="tFs"><i>&#9974;</i></div><div class="tb" id="tTilt"><b id="tTd"></b></div></div>
+</div>
+<div id="tBase"></div><div id="tKnob"></div>
+<div id="tset"><div class="box"><h2>PHONE CONTROLS</h2><div id="tsStatus"></div>
+<label><input type="checkbox" id="tsOn"> Tilt controls (use the gyro)</label>
+<label>Tilt sensitivity<input type="range" id="tsGain" min="50" max="200" value="100"></label>
+<label>Twist (rudder) sensitivity &ndash; 0 turns it off<input type="range" id="tsYaw" min="0" max="200" value="100"></label>
+<label><input type="checkbox" id="tsInv"> Invert pitch (top edge toward you = nose down)</label>
+<label><input type="checkbox" id="tsInvR"> Invert roll</label>
+<div style="font-size:12px;opacity:.8">For the cleanest controls hold the screen upright, facing you. Hold the phone the way you want to fly, then tap Calibrate. The small box in the top bar shows your stick: the dot should sit in the middle when you hold still.</div>
+<button id="tsCal">Calibrate</button><button id="tsClose">Close</button></div></div>
+<div id="edBar"><span><b>MOVE BOXES</b> &ndash; drag any box to where you want it</span><button id="edReset">Reset</button><button id="edDone" class="pri">Done</button></div>
+<div id="pm"><div class="box" id="pmBox"><div id="pmTabs"><button id="pmTabS" class="on">Settings</button><button id="pmTabM">Missions</button><button id="pmTabA">About</button><button id="pmTabC">Controls</button><button id="pmTabO">Operations</button><button id="pmTabH">Hardcore</button></div>
+<div id="pmPaneS"><h2>PAUSED <small class="verTag" style="font-weight:400;opacity:.6;font-size:12px"></small></h2>
+<div class="row"><button class="pri" id="pmResume">Resume</button><button id="pmRestart">Restart</button><button id="pmBail" style="display:none">Bail out</button><button id="pmPhoto" class="deskOnly">Photo mode</button><button id="pmMove">Move boxes</button><button id="pmDocs" style="display:none">Manual</button><button id="pmTilt" class="mobBtn">Tilt settings</button><button id="pmExit" class="mobBtn">Exit game</button></div>
+<h3>WHAT TO SHOW</h3><div id="pmList"></div>
+<div class="row"><button id="pmAll">Show everything</button><button id="pmClean">Clean view (hide the instruments)</button><button id="pmRePos">Reset positions</button></div>
+<div style="display:none"><h3>NOSE ART</h3><div class="row"><select id="naStyle"><option value="none">None</option><option value="shark">Shark mouth</option><option value="flames">Hot-rod flames</option><option value="name">Name in script</option><option value="checks">Checkerboard + name</option><option value="wings">Winged star + name</option></select><input type="text" id="naName" maxlength="18" placeholder="Aircraft name" autocomplete="off"></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="naTally" style="accent-color:#ffb43a"> Victory tally under the cockpit (air kills and ground kills)</label>
+</div>
+<label class="mobBtn" style="margin:6px 0"><input type="checkbox" id="pmAutoFs" style="accent-color:#ffb43a"> Fullscreen when the flight starts (hides the Android bars)</label>
+<h3>TIME OF DAY &amp; WEATHER</h3>
+<div class="row"><label>Time <select id="wxTime"><option value="local">Local clock</option><option value="dawn">Dawn</option><option value="morning">Morning</option><option value="midday">Midday</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="night">Night</option></select></label>
+<label>Weather <select id="wxWx"><option value="clear">Clear</option><option value="partly">Partly cloudy</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="storm">Thunderstorm</option><option value="fog">Fog</option></select></label></div>
+<div class="row"><label>Wind from <select id="wxWd"><option value="auto">Random</option><option value="0">North (360)</option><option value="90">East (090)</option><option value="180">South (180)</option><option value="270">West (270)</option></select></label>
+<label>Wind strength <select id="wxWs"><option value="normal">Normal for the weather</option><option value="calm">Calm</option><option value="light">Light</option><option value="strong">Strong</option><option value="extreme">Extreme</option></select></label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="wxFlow" style="accent-color:#ffb43a"> Time passes (one hour per real minute) <span id="wxClock" style="opacity:.7"></span></label>
+<h3>ENEMY</h3><div class="row" id="enBoxes">Enable enemy <label style="margin-right:10px"><input type="checkbox" data-en="planes" style="accent-color:#ffb43a"> Planes</label><label style="margin-right:10px"><input type="checkbox" data-en="ships" style="accent-color:#ffb43a"> Ships</label><label style="margin-right:10px"><input type="checkbox" data-en="shore" style="accent-color:#ffb43a"> Shore</label><label style="margin-right:10px"><input type="checkbox" data-en="subs" style="accent-color:#ffb43a"> Subs</label></div>
+<label style="display:block;margin:4px 0"><input type="checkbox" id="dmgOn" style="accent-color:#ffb43a"> Battle damage: enemy hits hurt the ship and her crew</label>
+<div class="note" id="enNote"></div>
+<div style="display:none"><h3>GROUND FIRE</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="aaOn" style="accent-color:#ffb43a"> Ground fire: each enemy base has two Type 96 25 mm anti-aircraft guns and two searchlights (guns fire in free flight, convoy and bombing; the lights sweep and lock on at night). The port and the second airbase have guns too, and the Ukuru-class escort off the port carries the same guns. Your own airfield has a 3.7-inch gun and a searchlight for show</label>
+</div>
+<h3>TANK</h3><div class="note">The tank's own settings come with the driving phase.</div>
+<div style="display:none"><input type="checkbox" id="scOn"><select id="wvMode"><option value="on">On</option></select></div>
+<h3>SOUND</h3><label style="display:block;margin:4px 0"><input type="checkbox" id="sndOn" style="accent-color:#ffb43a"> Sound (U switches it on and off)</label>
+<label style="display:block;margin:4px 0">Volume <input type="range" id="sndVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="sndVolV"></span></label>
+<label style="display:block;margin:4px 0">Engines &amp; wind <input type="range" id="engVol" min="0" max="100" style="width:min(260px,60vw);vertical-align:middle;accent-color:#ffb43a"> <span id="engVolV"></span></label>
+<h3>GRAPHICS</h3><div class="row" id="pmGfx"><button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+<div style="font-size:11.5px;opacity:.75;margin-top:8px">P or Esc opens this menu, I the controls.</div>
+</div>
+<div id="pmPaneM" style="display:none"><h2>CHOOSE A MISSION</h2><div id="menuList"></div><div class="sub">Up / Down + Enter, or click &middot; controller: D-pad + A &middot; Tab or LB / RB switch tabs &middot; Esc / B closes &middot; <b>M</b> opens this tab any time</div><div class="row"><button id="pmCloseM">Close</button></div></div>
+<div id="pmPaneA" class="doc" style="display:none">
+<h1>M4A3 SHERMAN</h1>
+<div class="sub">The tank this game is built around &middot; <span class="verTag"></span> &middot; in development</div>
+<h2>The tank</h2>
+<p>The <b>Medium Tank M4A3(75)W</b> was the Ford GAA V-8 Sherman with the 75 mm M3 gun and wet ammunition stowage: the main-gun rounds sit in water-jacketed racks under the turret floor. It was the type the 6th Tank Battalion took to Okinawa in 1945. Ours is a late-production tank: the large-hatch hull, the high-bustle turret with the loader's hatch and the commander's all-round vision cupola, VVSS suspension.</p>
+<p>Five men crew her: the commander, gunner and loader in the turret, the driver and the assistant driver (the bow gunner) in the hull. Each of the five stations will be playable, with the AI crew manning the rest.</p>
+<h2>How this game compares with the real tank</h2>
+<div class="note"><b>Overall:</b> the figures come from the M4A3(75)W late-production spec sheet, TM 9-2800 (1943) and the 75 mm M3 gun data. The groundwork version shows the tank standing; her driving, gunnery and crew come in the next phases.</div>
+<table class="spec">
+<tr><th>Item</th><th>Real M4A3(75)W</th><th>This game</th><th>Match</th></tr>
+<tr><td>Size</td><td>6.27 m long (with sandshields) &times; 2.67 m wide &times; 2.94 m high over the cupola</td><td>The same, from the spec sheet</td><td>Yes</td></tr>
+<tr><td>Weight</td><td>69,600 lb (31.6 t) combat loaded</td><td>31.6 t</td><td>Yes</td></tr>
+<tr><td>Engine</td><td>Ford GAA V-8, 450 hp net at 2,600 rpm</td><td>Comes with driving (T2)</td><td>Not yet</td></tr>
+<tr><td>Main gun</td><td>75 mm M3 L/40 in the M34A1 mount, 104 rounds</td><td>Modelled; firing comes with gunnery (T3)</td><td>Not yet</td></tr>
+<tr><td>Machine guns</td><td>.50 M2HB on the turret roof; .30 M1919A4 coaxial and in the bow</td><td>Modelled</td><td>Partly</td></tr>
+<tr><td>Speed</td><td>26 mph sustained on a level road; 2, 6, 10, 16, 24 mph cruising in 1st to 5th</td><td>Comes with driving (T2)</td><td>Not yet</td></tr>
+</table>
+<h2>Still to come</h2>
+<p>In order: the close-up ground (coral walls, windbreaks, paddies and roads), driving, gunnery, the commander and the crew, the enemy, the infantry, the whole battlefield and its campaign.</p>
+<h2>Sources</h2>
+<p>Medium Tank M4A3(75)W spec sheet; TM 9-759; TM 9-2800 Standard Military Motor Vehicles (1943); FM 17-67 Crew Drill and Service of the Piece, Medium Tank M4 (1944); FM 17-12 Tank Gunnery (1943); The Sherman Tank Site; Hunnicutt, <i>Sherman</i>; Huber, <i>Japan's Battle of Okinawa</i>.</p>
+<p>By <a href="https://github.mrrat.org/" target="_blank" rel="noopener noreferrer">MrRat Gaming</a>. Part of Kamome Strait.</p>
+</div>
+<div id="pmPaneC" class="doc" style="display:none">
+<h1>CONTROLS</h1>
+<div class="sub">Keyboard and mouse, and game controller. The Controls box on screen (H) shows only what you need where you are.</div>
+<h2>Keyboard &amp; mouse</h2>
+<div class="cols"><table class="t2" id="kbT1"></table><table class="t2" id="kbT2"></table></div>
+<h2>Game controller</h2>
+<div class="cols"><table class="t2" id="pdT1"></table><table class="t2" id="pdT2"></table></div>
+<div style="display:none"><h2>Phone &amp; tablet</h2>
+<table class="t2">
+<tr><td>Fullscreen</td><td>The flight starts fullscreen, which hides the Android status and navigation bars. Swipe in from the screen edge to show them for a moment. The &#9974; button toggles it, and the pause menu can turn the automatic fullscreen off.</td></tr>
+<tr><td>Exit</td><td>Tap the pause button, then <b>Exit game</b>. It leaves fullscreen and closes the app. This works even when the phone&rsquo;s swipe and Back gestures are hidden by fullscreen.</td></tr>
+<tr><td>Hold it</td><td>Sideways (landscape) like a steering wheel works best; portrait works too. Keep the screen upright and facing you: leaning it back a long way makes a twist also nudge the roll. The game calibrates to the way you hold the phone when you start; the target button in the top bar calibrates again.</td></tr>
+<tr><td>Roll</td><td>Turn the phone like a steering wheel: clockwise rolls right.</td></tr>
+<tr><td>Pitch</td><td>Top edge toward you pulls up; top edge away pushes the nose down (settings can invert it).</td></tr>
+<tr><td>Rudder</td><td>Twist the phone left or right, as if turning on the spot. The twist fades after a few seconds, so use the two arrow buttons at the bottom for sustained rudder, for example on the takeoff roll.</td></tr>
+<tr><td>Throttle</td><td>Drag the slider on the left; drag it to the very top or bottom to snap to full or idle.</td></tr>
+<tr><td>Buttons</td><td>FIRE (hold), rocket, bomb, gear, brake (hold), flaps up and down. The top bar has the mission menu, pause menu, camera, calibrate, tilt settings and fullscreen.</td></tr>
+<tr><td>Without tilt</td><td>Drag on the right half of the screen as a virtual stick (drag down to pull up). Pinch zooms the camera in or out: it always stays directly behind the plane and never rotates. Double-tap resets the zoom. The camera button switches to the cockpit view.</td></tr>
+<tr><td>Graphics</td><td>Pause menu &gt; Graphics: Auto, Low, Medium or High (N cycles them). Auto picks Low or High and adjusts the resolution to keep the frame rate smooth. Low draws fewer, simpler trees and fewer clouds and no shadow; Medium is in between; High draws everything at full resolution, with detailed branching trees (several kinds of oak and conifer, with textured leaves and needles) around you; to see them, fly to the wooded hill about 4.6 km north-west of the start (heading 323). Close to your own aircraft (Medium and High) it also shows engraved panel lines, rivets, gun barrels, a pitot tube, fuel caps and wheel detail. Near the ground (Medium and High) blade tufts and wild flowers grow around you, fading out about 130 m away. Auto shrinks the zone of detailed trees and grass first, then the resolution, if the frame rate drops. The choice is saved.</td></tr>
+<tr><td>Install / offline</td><td>When the game is served from a web address (for example GitHub Pages) the browser can install it as an app (Add to Home Screen or Install) and it then runs full screen and offline.</td></tr>
+<tr><td>Hardcore mode</td><td>Pause menu &gt; Hardcore: a master switch and a switch for each real-aircraft detail (torque, spins, altitude, engine temperature, fuel, war emergency power, real-aircraft performance, load limits, trim, real flap and gear speeds, engine power limits, wind, turbulence, wet runway, icing). Off by default.</td></tr>
+<tr><td>Layout</td><td>Swipe any instrument box off the screen to hide it. The pause menu has a checkbox for everything you can show or hide, and Move boxes lets you drag the boxes and buttons where you want them. Your choices are remembered, separately for landscape and portrait.</td></tr>
+<tr><td>Tips</td><td>iPhone and iPad ask permission for motion sensors the first time. If the page is shown inside another page the browser may block the sensors: open it in its own tab. Use Add to Home Screen for a full-screen app.</td></tr>
+</table></div>
+</div>
+<div id="pmPaneH" class="doc" style="display:none">
+<h1>HARDCORE SIMULATION</h1>
+<div class="sub">The real tank, for tankers who want it. Off by default: the game is fun first.</div>
+<p>Hardcore mode will add what the real M4A3 crew had to deal with: the engine started and stopped by the book, the gear gate and the clutch, the laterals held for every turn, your own range estimation, real reload times from the floor racks. The options arrive with the phases that bring each part of the tank.</p>
+<label class="hcMaster"><input type="checkbox" id="hcOn" style="accent-color:#ffb43a"> <b>Hardcore Simulation Mode</b> (master switch)</label>
+<div id="hcList"></div>
+</div>
+<div id="pmPaneO" class="doc" style="display:none">
+<h1>OPERATIONS</h1>
+<div class="sub">The tank, the camp and what is coming</div>
+<h2>Camp Buckner (this version)</h2>
+<table class="t2">
+<tr><td>The tank</td><td>Your M4A3(75)W stands in the first revetment of the battalion's tank park at Camp Buckner, behind Beach Orange. Look round her from outside: drag with the mouse (or a finger), the wheel zooms.</td></tr>
+<tr><td>The camp</td><td>The park's ten revetments, the maintenance Quonset, the ordnance and fuel dumps, the company CP and the bivouac. Buckner Range is on the rising ground to the south.</td></tr>
+</table>
+<h2>Coming next</h2>
+<table class="t2">
+<tr><td>T1 The ground</td><td>The close-up battlefield: coral walls, windbreaks, paddies, terraces and roads you can drive on.</td></tr>
+<tr><td>T2 Driving</td><td>The driver's station: the laterals, clutch, gears and instruments, and the driving drills on Buckner Course.</td></tr>
+<tr><td>T3 Gunnery</td><td>The 75 mm, the M10C periscope and the M70F telescope, the loader, and the gunnery drills on Buckner Range.</td></tr>
+<tr><td>T4 Command</td><td>The commander head out and buttoned up, the .50, the bow gun, the interphone and the orders.</td></tr>
+</table>
+</div>
+</div></div>
+<div class="p" id="rot">Turn your phone sideways (landscape) for the best view<br><small>tap to dismiss</small></div>

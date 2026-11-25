@@ -14,6 +14,7 @@
 #ksMain .pic{position:relative;aspect-ratio:16/9;background-size:cover;background-position:center}
 #ksMain .pic::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(14,26,40,.92))}
 #ksMain .kind{position:absolute;left:14px;top:12px;z-index:1;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 9px;border-radius:3px;background:rgba(7,13,22,.7);color:#c9a35a}
+#ksMain .dev{position:absolute;right:14px;top:12px;z-index:1;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 9px;border-radius:3px;background:rgba(138,42,34,.88);color:#f4e3bd}
 #ksMain .txt{padding:4px 20px 20px}
 #ksMain .ttl{font-size:24px;font-weight:600;letter-spacing:.04em;margin:-6px 0 8px;position:relative;z-index:1}
 #ksMain .line{font-size:14px;line-height:1.5;color:#b5c3d3;min-height:3em}
@@ -87,6 +88,8 @@ var KS_SIM = (function () {
     b.innerHTML = '<div class="pic"><span class="kind"></span></div><div class="txt"><div class="ttl"></div><div class="line"></div><span class="play">Play</span></div>';
     b.querySelector('.pic').style.backgroundImage = 'url(' + c.img + ')';
     b.querySelector('.kind').textContent = c.kind;
+    /* a game in development (its menu-card.json status "dev"): only the dev build has its card, marked so (build.js: --dev) */
+    if (c.status === 'dev') b.querySelector('.pic').insertAdjacentHTML('beforeend', '<span class="dev">In development</span>');
     b.querySelector('.ttl').textContent = c.title;
     b.querySelector('.line').textContent = c.line;
     b.onclick = () => go(c.id);

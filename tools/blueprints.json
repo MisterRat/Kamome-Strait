@@ -854,7 +854,7 @@
   "title": "US fuel bowser (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.fuelTruck(0x6b7350));",
-  "type": "GMC CCKW 2½-ton 6x6 chassis, fuel truck",
+  "type": "GMC CCKW 2\u00bd-ton 6x6 chassis, fuel truck",
   "ref": [
    [
     "Length",
@@ -878,7 +878,7 @@
   "title": "US cargo truck (home airfield)",
   "fwd": "+x",
   "make": "return __bake(AFLD.models.cargoTruck());",
-  "type": "GMC CCKW 353 2½-ton 6x6 cargo truck",
+  "type": "GMC CCKW 353 2\u00bd-ton 6x6 cargo truck",
   "ref": [
    [
     "Length",
@@ -2128,6 +2128,120 @@
   ],
   "notes": [
    "Crates 1.1 x 0.55 x 0.42 m stacked one to three high; jerrycans 0.35 x 0.17 x 0.47 m; 55-gallon drums 0.58 m across."
+  ]
+ },
+ {
+  "id": "us-m4a3",
+  "file": "M4A3_75W_Sherman",
+  "title": "Medium Tank M4A3(75)W, late production (the tank simulator's own)",
+  "game": "m4a3",
+  "kind": "vehicle",
+  "fwd": "+x",
+  "make": "return __bake(MODELS.get('us-m4a3'));",
+  "type": "Medium Tank M4A3(75)W (Ford GAA, 75 mm M3, wet stowage, VVSS, large-hatch hull)",
+  "labels": [
+   [
+    "75 mm M3 muzzle",
+    3.09,
+    2.24,
+    0
+   ],
+   [
+    "vision cupola",
+    -0.25,
+    2.94,
+    0.42
+   ],
+   [
+    ".50 M2HB",
+    -0.4,
+    2.95,
+    0.1
+   ],
+   [
+    "47 deg glacis",
+    1.9,
+    1.5,
+    0
+   ],
+   [
+    "drive sprocket",
+    2.36,
+    0.66,
+    1.05
+   ],
+   [
+    "idler",
+    -2.62,
+    0.56,
+    1.05
+   ],
+   [
+    "VVSS bogie",
+    1.3,
+    0.55,
+    1.05
+   ],
+   [
+    "exhaust deflector",
+    -2.84,
+    1.3,
+    0
+   ],
+   [
+    "sandshield",
+    0.2,
+    1.1,
+    1.33
+   ]
+  ],
+  "ref": [
+   [
+    "Length",
+    6.274,
+    "247 in with sandshields, gun forward or rear, overhang 0: M4A3(75)W late-production spec sheet (References/M4A3/Drawings and specs)"
+   ],
+   [
+    "Width",
+    2.667,
+    "105 in over the sandshields: spec sheet"
+   ],
+   [
+    "Height",
+    2.939,
+    "115.7 in over the cupola: spec sheet"
+   ],
+   [
+    "Hull length",
+    5.906,
+    "232.5 in without sandshields: TM 9-2800 (1943) p. 112"
+   ],
+   [
+    "Track centres",
+    2.108,
+    "tread 83 in: spec sheet"
+   ],
+   [
+    "Ground clearance",
+    0.432,
+    "17 in: spec sheet"
+   ],
+   [
+    "Fire height",
+    2.235,
+    "88 in: spec sheet"
+   ]
+  ],
+  "measure": {
+   "Hull length": "M4A3.K.X1 - M4A3.K.X0",
+   "Track centres": "M4A3.K.TRK",
+   "Ground clearance": "M4A3.K.CLR",
+   "Fire height": "M4A3.K.FIRE",
+   "Height": "__partsSize(MODELS.get('us-m4a3'),[0x4f5530,0x454b29,0x5c6238])[1]"
+  },
+  "notes": [
+   "The display form (every copy but the player's) is the same geometry with the turret at bearing 0 and the gun level; the player's tank is built from the same lists with the turret and gun as moving parts.",
+   "Height is measured over the painted body, as the spec sheet's 'over the cupola' (the .50 on its mount stands about 9 cm higher, and the 2.2 m aerial is a thin part); the box on the sheet takes in both."
   ]
  }
 ]

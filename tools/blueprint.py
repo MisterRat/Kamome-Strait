@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAT = json.load(open(os.path.join(ROOT, 'tools', 'blueprints.json')))
 OUT = os.path.join(ROOT, 'Blueprints')
-BUILDS = {'p51': 'build/P-51_Mustang_FS.html', 'pce': 'build/PCE-842.html'}
+BUILDS = {'p51': 'build/P-51_Mustang_FS.html', 'pce': 'build/PCE-842.html', 'm4a3': 'dev/M4A3_Sherman.html'}  # m4a3: in development, built by node build.js --dev
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 FONTB = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -252,7 +252,7 @@ def main():
             except Exception as ex:
                 print(f"{e['id']}: FAILED {ex}")
                 continue
-            r['game_name'] = {'p51': 'P-51 Mustang FS', 'pce': 'PCE-842'}[g]
+            r['game_name'] = {'p51': 'P-51 Mustang FS', 'pce': 'PCE-842', 'm4a3': 'M4A3 Sherman (in development)'}[g]
             # keep the sheet a sensible size: re-render at a scale that makes the profile about 2000 px wide
             want = max(4, min(500, 1500 / max(r['size'][0], r['size'][2], 0.5)))
             if abs(want - e['ppm']) / want > 0.05:
