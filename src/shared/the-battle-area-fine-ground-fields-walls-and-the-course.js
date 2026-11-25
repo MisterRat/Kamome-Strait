@@ -104,6 +104,12 @@ const BA = (() => {
     const [u, d] = F.uv(x, z);
     return u > -F.pu + 10 && u < F.pu - 10 && d > F.d0 + 10 && d < F.d1 - 10;
   };
+  const underPad = (x, z) => {
+    const F = camp();
+    if (!F) return false;
+    const [u, d] = F.uv(x, z);
+    return u > -F.pu + 1 && u < F.pu - 1 && d > F.d0 + 1 && d < F.d1 - 1;
+  };
   const nearSite = (x, z) => {
     for (const s of FS.army) if (Math.hypot(x - s.O.x, z - s.O.z) < s.R * 0.85) return s;
     for (const s of FS.list) if (Math.abs(x - s.O.x) < s.R && Math.abs(z - s.O.z) < s.R) return s;
@@ -304,11 +310,13 @@ const BA = (() => {
         '#include <color_fragment>',
         '#include <color_fragment>\n' +
           'float dq=length(vWP-cameraPosition);float nk=1.0-smoothstep(120.0,700.0,dq);' +
-          'float g1=vn2(vWP.xz*0.7),g2=vn2(vWP.xz*2.9),g3=vn2(vWP.xz*11.0);float gr=(g1*0.45+g2*0.33+g3*0.22)-0.5;' +
+          /* each grain fades out before it is finer than the pixels it falls in, or it shimmers as the view moves */
+          'float k2=1.0-smoothstep(10.0,35.0,dq),k3=1.0-smoothstep(3.0,12.0,dq),kb=1.0-smoothstep(2.0,8.0,dq);' +
+          'float g1=vn2(vWP.xz*0.7)-0.5,g2=vn2(vWP.xz*2.9)-0.5,g3=vn2(vWP.xz*11.0)-0.5;float gr=g1*0.45+g2*0.33*k2+g3*0.22*k3;' +
           'diffuseColor.rgb*=1.0+gr*0.55*nk;' +
-          'float blade=vn2(vec2(vWP.x*21.0,vWP.z*2.6))-0.5;diffuseColor.rgb*=1.0+blade*0.12*nk;' +
+          'float blade=vn2(vec2(vWP.x*21.0,vWP.z*2.6))-0.5;diffuseColor.rgb*=1.0+blade*0.12*kb;' +
           'if(vRows>0.5){float u=vWP.x*' + CA.toFixed(6) + '+vWP.z*' + SA.toFixed(6) + ',v=-vWP.x*' + SA.toFixed(6) + '+vWP.z*' + CA.toFixed(6) + ';' +
-          'float s=vRows<1.5?v:u;float rw=smoothstep(0.25,0.75,abs(fract(s)-0.5)*2.0);diffuseColor.rgb*=mix(1.0,0.72+0.38*rw,(1.0-smoothstep(150.0,500.0,dq))*clamp(vRows,0.0,1.0));}',
+          'float s=vRows<1.5?v:u;float rw=smoothstep(0.25,0.75,abs(fract(s)-0.5)*2.0);diffuseColor.rgb*=mix(1.0,0.72+0.38*rw,(1.0-smoothstep(15.0,45.0,dq))*clamp(vRows,0.0,1.0));}',
       );
   };
   gmat.userData.key = 'battlearea1';
@@ -411,7 +419,8 @@ const BA = (() => {
           tn = 0.92 + 0.16 * hs(Math.round(x / 6), Math.round(z / 6), 3);
         hh[k] = s[0];
         pos[k * 3] = x - x0;
-        pos[k * 3 + 1] = s[0] - (sk ? 1.2 : 0);
+        /* under the camp's own pad mesh the fine ground keeps below it, or the two would fight */
+        pos[k * 3 + 1] = (underPad(x, z) ? Math.min(s[0], camp().H - 0.4) : s[0]) - (sk ? 1.2 : 0);
         pos[k * 3 + 2] = z - z0;
         col[k * 3] = c[0] * tn;
         col[k * 3 + 1] = c[1] * tn;
@@ -606,6 +615,14 @@ const BA = (() => {
       let ok = RF;
       for (const [a, b] of queue) ok = Math.min(ok, Math.max(Math.abs(a - ci), Math.abs(b - cj)) - 1);
       NEARCUT.value.set(ci * TS + TS / 2, cj * TS + TS / 2, Math.max(0, (ok + 0.5) * TS - 0.5), ok >= 0 ? 1 : 0);
+    }
+    /* only the tiles inside the cut are drawn: one outside it would lie on the far world's ground and the two would fight */
+    const r = NEARCUT.value.w > 0 ? Math.round((NEARCUT.value.z + 0.5) / TS - 0.5) : -1;
+    for (const [k, T] of tiles) {
+      const a = Math.floor(k / 4096),
+        v = Math.max(Math.abs(a - ci), Math.abs(k - a * 4096 - cj)) <= r;
+      T.ground.visible = v;
+      if (T.stand) T.stand.visible = v;
     }
   };
   return { K, GH, GV, kind: (x, z) => (inArea(x, z) ? (onPad(x, z) ? K.gravel : sample(x, z)[1]) : K.grass), block, update, clear, CO, STN, tiles, inArea };

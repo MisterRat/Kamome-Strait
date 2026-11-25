@@ -16787,7 +16787,7 @@ const RIDE = {
    milliseconds at a time (a time budget per frame, never more), and it is only added to the scene once it is complete. Chunks leave again
    beyond 27 km. Their buffers are pooled and reused, so nothing is allocated or garbage collected while you fly. All sea chunks are
    skipped altogether. The shore colours are painted per pixel from a height map, exactly as on the home map. */
-/* NEARCUT: a square of the far world's ground (centre x, z; half-size w) left undrawn because the battle area's own fine ground is drawn
+/* NEARCUT: a square of the far world's ground (centre x, y = world x, z; z the half-size; w 1 on) left undrawn because the battle area's own fine ground is drawn
    there instead (the tank simulator; BA). w = 0: off, every chunk drawn whole (every other simulator) */
 const NEARCUT = { value: new THREE.Vector4(0, 0, 0, 0) };
 const WORLD = (() => {
@@ -17807,7 +17807,7 @@ const WORLD = (() => {
         .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;varying float vFarm;float hf(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}uniform vec4 nearC;uniform sampler2D chTex;uniform vec4 chO;uniform float uDet;\n' + TERR_NOISE)
         .replace(
           '#include <map_fragment>',
-          'if(nearC.w>0.0&&abs(vWP.x-nearC.x)<nearC.w&&abs(vWP.z-nearC.y)<nearC.w)discard;' +
+          'if(nearC.w>0.0&&abs(vWP.x-nearC.x)<nearC.z&&abs(vWP.z-nearC.y)<nearC.z)discard;' +
             'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
             'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
         )
