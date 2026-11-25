@@ -27,6 +27,12 @@
 #ksLoad .spin{position:relative;width:54px;height:54px;border-radius:50%;border:3px solid rgba(201,163,90,.22);border-top-color:#c9a35a;will-change:transform;animation:ksSpin .9s linear infinite}
 @keyframes ksSpin{to{transform:rotate(360deg)}}
 #ksMain .foot{margin-top:auto;padding-top:6vh;font-size:12px;letter-spacing:.14em;color:#6f8399;text-align:center}
+#ksInst{display:none;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;margin:26px 0 0;padding:12px 18px;border:1px solid rgba(201,163,90,.45);border-radius:8px;
+  background:rgba(14,26,40,.85);font-size:14px;line-height:1.45;color:#d6e0ea;max-width:640px;text-align:center}
+#ksInst.on{display:flex}
+#ksInst button{font:inherit;font-size:13px;letter-spacing:.2em;text-transform:uppercase;padding:7px 18px;border-radius:4px;cursor:pointer}
+#ksInst .yes{background:#c9a35a;color:#0d1a2a;border:1px solid #c9a35a}
+#ksInst .no{background:transparent;color:#8fa3ba;border:1px solid rgba(143,163,186,.4)}
 </style>
 <script>
 /* KAMOME STRAIT: one world, several simulators. Each simulator's page sits above in its own <template id="sim-<id>"> (inert: nothing
@@ -90,6 +96,65 @@ var KS_SIM = (function () {
   bg.style.backgroundImage = 'url(' + KS_MENU[0].img + ')';
   document.currentScript.replaceWith(m);
   document.title = 'Kamome Strait';
+  /* INSTALL AS AN APP (the user's, 2026-11-24: "make the app prompt to install"). Over http(s) (GitHub Pages) the menu itself links
+     the manifest and registers the service worker: window.stop() below keeps the simulators' own PWA piece from loading here, so
+     before this the browser never offered the app from the main menu. Browsers only show their install prompt after a tap, so a
+     banner under the cards offers it: Install opens the browser's own prompt (Chrome, Edge, Android); on an iPhone or iPad, which
+     have no prompt, it says how (Share, then Add to Home Screen). Never shown once installed or when running as the app; Not now
+     hides it for 14 days. */
+  if (/^https?:$/.test(location.protocol)) {
+    try {
+      const lk = (rel, href) => {
+        if (document.querySelector('link[rel="' + rel + '"]')) return;
+        const l = document.createElement('link');
+        l.rel = rel;
+        l.href = href;
+        document.head.appendChild(l);
+      };
+      lk('manifest', 'manifest.webmanifest');
+      lk('apple-touch-icon', 'apple-touch-icon.png');
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+      const app = matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches || navigator.standalone === true;
+      let later = 0;
+      try {
+        later = +localStorage.getItem('ksInstallLater') || 0;
+      } catch (e) {}
+      if (!app && Date.now() > later) {
+        const bar = document.createElement('div');
+        bar.id = 'ksInst';
+        bar.innerHTML = '<span class="msg">Install Kamome Strait as an app: full screen, its own icon, and it plays offline.</span><button class="yes">Install</button><button class="no">Not now</button>';
+        grid.after(bar);
+        const msg = bar.querySelector('.msg'),
+          yes = bar.querySelector('.yes');
+        const hide = () => bar.classList.remove('on');
+        bar.querySelector('.no').onclick = () => {
+          hide();
+          try {
+            localStorage.setItem('ksInstallLater', String(Date.now() + 14 * 864e5));
+          } catch (e) {}
+        };
+        let ask = null;
+        addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          ask = e;
+          bar.classList.add('on');
+        });
+        addEventListener('appinstalled', hide);
+        yes.onclick = () => {
+          if (!ask) return;
+          ask.prompt();
+          ask.userChoice.then(() => hide()).catch(hide);
+          ask = null;
+        };
+        const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (ios) {
+          msg.innerHTML = 'Install Kamome Strait as an app: tap <b>Share</b> &#x2B06;&#xFE0E; then <b>Add to Home Screen</b>. Full screen, its own icon, and it plays offline.';
+          yes.remove();
+          bar.classList.add('on');
+        }
+      }
+    } catch (e) {}
+  }
   const cards = [...grid.children];
   cards[0].focus();
   /* the keys and a controller: left / right (or up / down) between the cards, Enter or A to play */
