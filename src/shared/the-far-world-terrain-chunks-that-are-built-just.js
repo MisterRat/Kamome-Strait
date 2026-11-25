@@ -4,6 +4,9 @@
    milliseconds at a time (a time budget per frame, never more), and it is only added to the scene once it is complete. Chunks leave again
    beyond 27 km. Their buffers are pooled and reused, so nothing is allocated or garbage collected while you fly. All sea chunks are
    skipped altogether. The shore colours are painted per pixel from a height map, exactly as on the home map. */
+/* NEARCUT: a square of the far world's ground (centre x, z; half-size w) left undrawn because the battle area's own fine ground is drawn
+   there instead (the tank simulator; BA). w = 0: off, every chunk drawn whole (every other simulator) */
+const NEARCUT = { value: new THREE.Vector4(0, 0, 0, 0) };
 const WORLD = (() => {
   let PBX = null;
   const SEGC = 64,
@@ -1012,15 +1015,17 @@ const WORLD = (() => {
       sh.uniforms.chTex = { value: tex };
       sh.uniforms.chO = { value: O };
       sh.uniforms.uDet = DETU;
+      sh.uniforms.nearC = NEARCUT;
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;attribute float farm;varying float vFarm;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarm=farm;vWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*normal);');
       /* the same ground detail as the home map (blades, tufts, layered rock), without the farm fields */
       sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;varying float vFarm;float hf(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}uniform sampler2D chTex;uniform vec4 chO;uniform float uDet;\n' + TERR_NOISE)
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWP;varying vec3 vWN;varying float vFarm;float hf(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}uniform vec4 nearC;uniform sampler2D chTex;uniform vec4 chO;uniform float uDet;\n' + TERR_NOISE)
         .replace(
           '#include <map_fragment>',
-          'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
+          'if(nearC.w>0.0&&abs(vWP.x-nearC.x)<nearC.w&&abs(vWP.z-nearC.y)<nearC.w)discard;' +
+            'float shH=texture2D(chTex,(vWP.xz-chO.xy)/chO.zw).r*47.0-41.0;float shM=1.0-smoothstep(-8.8,-6.2,shH);float watK=shM;float vLand=1.0;\n' +
             'float wpd=0.0;' + TERR_DETAIL.slice(TERR_DETAIL.indexOf('float dd=')) /* no farm texture out here: no paddy water from it */,
         )
         .replace('#include <color_fragment>', '#include <color_fragment>\n' + FARM_PAINT + SHORE_PAINT);
