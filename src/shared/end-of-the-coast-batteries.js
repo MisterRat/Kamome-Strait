@@ -2672,9 +2672,10 @@ const SITES = [],
       flatD(F, -F.pu, F.pu, F.pi + 5, F.po - 2, gy, CORAL, 10);
       const wy = pad + 0.6;
       pierF(F, S, -60, F.po - 4, 140, 8, wy) /* the timber pier: the boats come alongside it between patrols */;
-      pierF(F, S, 70, F.po - 4, 60, 5, wy) /* the pontoon pier: the tender's boats and the LCM */;
+      pierF(F, S, 70, F.po - 4, 118, 5, wy) /* the pontoon pier: the tender's boats and the LCM (out to 118 m, past the shore slope: to 60 m her
+         berth was on it and she lay aground, the drawn bottom above the sea round her - the user's, 2026-11-25) */;
       use(-66, -54, 0, 140);
-      use(66, 74, 0, 60);
+      use(66, 74, 0, 118);
       /* the tender, moored in the lagoon 650 m off, along the shore; two fleet boats alongside her, on her shoreward side */
       {
         const YT = YA,
@@ -2694,8 +2695,8 @@ const SITES = [],
           COLL.add({ sea: true, fixed: true, hl: 47.5, r: 4.15, mg: 3, x, z, yaw: YT, v: 0 });
         }
         /* her boat, running between the pontoon pier and her side */
-        const lc = mooredF(F, MODELS.get('us-lcm3'), 70 - 5, 70, YS, 15.3, 4.3);
-        lc.sh = { a: F.w(70 - 5, 70), b: F.w(-40, 650 - 11.2 - 1.5 - 8.3 - 1.5 - 8.3 - 4), wait: 120, ph: 30, v: 3 };
+        const lc = mooredF(F, MODELS.get('us-lcm3'), 70 - 5, 128, YS, 15.3, 4.3) /* her berth at the pier's end, in about 30 m of water */;
+        lc.sh = { a: F.w(70 - 5, 128), b: F.w(-40, 650 - 11.2 - 1.5 - 8.3 - 1.5 - 8.3 - 4), wait: 120, ph: 30, v: 3 };
       }
       /* the shops, stores, quarters, mess and hospital */
       for (const [u, d] of [

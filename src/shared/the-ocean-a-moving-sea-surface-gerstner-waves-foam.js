@@ -49,7 +49,7 @@ const OCEAN = (() => {
   wTex.needsUpdate = true;
   const NTR = 24 /* points in one wake trail */,
     NTC = 2 /* wake trails drawn at once */,
-    NH = 6 /* hulls drawn at once */;
+    NH = 16 /* hulls drawn at once (6 until 2026-11-25: a port has a dozen small craft, and those past the sixth nearest were swamped) */;
   const U = {
     uTime: { value: 0 },
     shoreTex: SHORET,
