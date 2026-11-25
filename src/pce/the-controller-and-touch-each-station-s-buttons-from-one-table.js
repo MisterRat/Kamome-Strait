@@ -8,7 +8,8 @@
    the touch stick) pushed that way, '' touch only; 'click' at the chart is the controller's cursor. Each station's trigger (RT, the
    touch FIRE button) is PCEX_FIRE.
    Touch: the station buttons (1-5) on the right, the station's own buttons bottom left (up to twelve), the telegraph lever on the left,
-   the rudder arrows, and the stick (drag the right half) lays a gun, trains the radar or sonar, walks the deck (Hardcore) or steers. */
+   the rudder arrows, and the stick (drag the right half) lays a gun, trains the radar or sonar, walks the deck (Hardcore) or steers.
+   Where the stick aims, FIRE moves to the bottom left (body.aimMode) so the right thumb aims and the left thumb fires. */
 const PCEX = {
   chase: [
     [0, 'KeyO', 'MAP', 'minimap on / off'],
@@ -320,6 +321,9 @@ function pceTouchUI() {
   if (bar) bar.querySelectorAll('.tb').forEach((el) => el.classList.toggle('cur', camMode == 1 && +el.dataset.n === SHIP.stn));
   if (c === PX.tk) return;
   PX.tk = c;
+  /* where the stick aims (a gun, the torpedoman, the radar, the sonar) FIRE goes to the left thumb (the user's, 2026-11-24: aiming and
+     firing with the same right thumb cannot be done) */
+  document.body.classList.toggle('aimMode', c === 'gun' || c === 'torp' || c === 'radar' || c === 'sonar');
   pxRelease('t');
   PX.touch = PCEX[c].filter((r) => r[2]);
   const box = document.getElementById('tCtx');

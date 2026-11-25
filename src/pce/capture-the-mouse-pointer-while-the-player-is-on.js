@@ -1,7 +1,8 @@
 /* capture the mouse pointer while the player is on a gun (so plain mouse movement lays it), release it otherwise */
 function gunLock(on) {
   const has = document.pointerLockElement === cv;
-  if (on && !has && cv.requestPointerLock) {
+  /* never on a phone or tablet: a captured pointer takes every touch, and the touch buttons go dead (the user's, 2026-11-24) */
+  if (on && !has && cv.requestPointerLock && !MOB) {
     try {
       const r = cv.requestPointerLock();
       if (r && r.catch) r.catch((e) => logWarn('pointer lock', e));

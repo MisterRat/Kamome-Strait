@@ -181,6 +181,11 @@ body.mob .deskOnly{display:none}
 #tStn .tb.cur{border-color:#ffb43a;color:#ffb43a}
 #tThrZ{position:absolute;left:0;right:0;bottom:33.33%;height:2px;background:rgba(255,255,255,.55)}
 #tStn,#tCtx{touch-action:none}
+/* aiming (body.aimMode: the stick on the right lays the gun or trains the set), the FIRE button goes to the left thumb: one hand aims,
+   the other fires. The lever moves up above it, the station's buttons step right */
+body.aimMode #tFire{right:auto;left:calc(14px + env(safe-area-inset-left,0px))}
+body.aimMode #tThr{bottom:calc(112px + env(safe-area-inset-bottom,0px));height:min(calc(100vh - 210px),160px)}
+body.aimMode #tCtx{left:calc(110px + env(safe-area-inset-left,0px))}
 .dbMob{font-size:10.5px!important;line-height:1.35!important;max-height:calc(100vh - 210px);overflow:auto;padding:5px 8px!important}
 @media (orientation:portrait){
  #tBar{left:calc(8px + env(safe-area-inset-left,0px));transform:none;top:calc(128px + env(safe-area-inset-top,0px));gap:5px}
@@ -279,7 +284,7 @@ body.mob.editing #tc{display:block}
 <div class="ht"><b style="color:var(--acc)">CONTROLS &ndash; PHONE</b> (swipe to hide)<br>
 <b>Lever</b> on the left: the engines &middot; &#9664; &#9654; or tilting the phone: the rudder<br>
 <b>1-5</b> on the right: the stations (tap again for the next position) &middot; the station's own buttons bottom left<br>
-<b>FIRE</b> fires, reports or gives the order (at the chart: engages the route)<br>
+<b>FIRE</b> fires, reports or gives the order (at the chart: engages the route); at a gun, the torpedoman, radar and sonar it moves to the <b>left</b> so the right thumb aims<br>
 <b>Drag the right half</b> as a stick: lays a gun, trains the radar or sonar, walks the deck, steers<br>
 <b>Chart table:</b> tap the sea for a waypoint, drag to move it or the chart<br>
 Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middot; &#127919; calibrate</div>
@@ -597,7 +602,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.2';
+const VERSION = '1.3';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -26846,7 +26851,8 @@ const bindText = (ids, pad) =>
    the touch stick) pushed that way, '' touch only; 'click' at the chart is the controller's cursor. Each station's trigger (RT, the
    touch FIRE button) is PCEX_FIRE.
    Touch: the station buttons (1-5) on the right, the station's own buttons bottom left (up to twelve), the telegraph lever on the left,
-   the rudder arrows, and the stick (drag the right half) lays a gun, trains the radar or sonar, walks the deck (Hardcore) or steers. */
+   the rudder arrows, and the stick (drag the right half) lays a gun, trains the radar or sonar, walks the deck (Hardcore) or steers.
+   Where the stick aims, FIRE moves to the bottom left (body.aimMode) so the right thumb aims and the left thumb fires. */
 const PCEX = {
   chase: [
     [0, 'KeyO', 'MAP', 'minimap on / off'],
@@ -27158,6 +27164,9 @@ function pceTouchUI() {
   if (bar) bar.querySelectorAll('.tb').forEach((el) => el.classList.toggle('cur', camMode == 1 && +el.dataset.n === SHIP.stn));
   if (c === PX.tk) return;
   PX.tk = c;
+  /* where the stick aims (a gun, the torpedoman, the radar, the sonar) FIRE goes to the left thumb (the user's, 2026-11-24: aiming and
+     firing with the same right thumb cannot be done) */
+  document.body.classList.toggle('aimMode', c === 'gun' || c === 'torp' || c === 'radar' || c === 'sonar');
   pxRelease('t');
   PX.touch = PCEX[c].filter((r) => r[2]);
   const box = document.getElementById('tCtx');
@@ -28979,7 +28988,8 @@ function gunLay(d, e) {
 /* capture the mouse pointer while the player is on a gun (so plain mouse movement lays it), release it otherwise */
 function gunLock(on) {
   const has = document.pointerLockElement === cv;
-  if (on && !has && cv.requestPointerLock) {
+  /* never on a phone or tablet: a captured pointer takes every touch, and the touch buttons go dead (the user's, 2026-11-24) */
+  if (on && !has && cv.requestPointerLock && !MOB) {
     try {
       const r = cv.requestPointerLock();
       if (r && r.catch) r.catch((e) => logWarn('pointer lock', e));

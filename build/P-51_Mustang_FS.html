@@ -181,6 +181,11 @@ body.mob .deskOnly{display:none}
 #tStn .tb.cur{border-color:#ffb43a;color:#ffb43a}
 #tThrZ{position:absolute;left:0;right:0;bottom:33.33%;height:2px;background:rgba(255,255,255,.55)}
 #tStn,#tCtx{touch-action:none}
+/* aiming (body.aimMode: the stick on the right lays the gun or trains the set), the FIRE button goes to the left thumb: one hand aims,
+   the other fires. The lever moves up above it, the station's buttons step right */
+body.aimMode #tFire{right:auto;left:calc(14px + env(safe-area-inset-left,0px))}
+body.aimMode #tThr{bottom:calc(112px + env(safe-area-inset-bottom,0px));height:min(calc(100vh - 210px),160px)}
+body.aimMode #tCtx{left:calc(110px + env(safe-area-inset-left,0px))}
 .dbMob{font-size:10.5px!important;line-height:1.35!important;max-height:calc(100vh - 210px);overflow:auto;padding:5px 8px!important}
 @media (orientation:portrait){
  #tBar{left:calc(8px + env(safe-area-inset-left,0px));transform:none;top:calc(128px + env(safe-area-inset-top,0px));gap:5px}
@@ -603,7 +608,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.121';
+const VERSION = '5.122';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
