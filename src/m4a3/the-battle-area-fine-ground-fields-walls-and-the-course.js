@@ -278,16 +278,20 @@ const BA = (() => {
         nor[k * 3 + 1] = ny / l;
         nor[k * 3 + 2] = nz / l;
       }
-    /* the outer ring of the grid is the skirt: a flap 1 m out from the tile's edge and 0.3 m down, tucked under the next tile (or the far
-       ground past the cut), so a hairline crack at a seam shows ground, not the sea below */
+    /* the outer ring of the grid is the skirt: a flap 2 m out from the tile's edge lying 3 cm under the world's surface there, tucked under
+       the next tile (or the far ground past the cut), so a crack at a seam shows ground, not the sea below, even seen at a low angle */
     for (let b = -1; b <= n + 1; b++)
       for (let a = -1; a <= n + 1; a++) {
         if (a >= 0 && b >= 0 && a <= n && b <= n) continue;
         const k = at(a, b),
           q = at(Math.max(0, Math.min(n, a)), Math.max(0, Math.min(n, b)));
-        pos[k * 3] = pos[q * 3] + (a < 0 ? -1 : a > n ? 1 : 0);
-        pos[k * 3 + 2] = pos[q * 3 + 2] + (b < 0 ? -1 : b > n ? 1 : 0);
-        pos[k * 3 + 1] = pos[q * 3 + 1] - 0.3;
+        pos[k * 3] = pos[q * 3] + (a < 0 ? -2 : a > n ? 2 : 0);
+        pos[k * 3 + 2] = pos[q * 3 + 2] + (b < 0 ? -2 : b > n ? 2 : 0);
+        const fx = x0 + pos[k * 3],
+          fz = z0 + pos[k * 3 + 2];
+        const fh = WORLD.surf(fx, fz, S) ? S[0] : WORLD.hm(fx, fz),
+          fr = (fine && inArea(fx, fz)) || inCourse(fx, fz) ? relief(fx, fz, fh)[0] : 0 /* the same relief as the ground there (a paddy, the course) */;
+        pos[k * 3 + 1] = fh + fr - 0.03;
         for (const o of [0, 1, 2]) (nor[k * 3 + o] = nor[q * 3 + o]), (col[k * 3 + o] = col[q * 3 + o]);
         frm[k] = frm[q];
       }
