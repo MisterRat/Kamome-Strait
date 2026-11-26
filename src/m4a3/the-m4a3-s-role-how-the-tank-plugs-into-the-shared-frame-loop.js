@@ -54,36 +54,7 @@ function tankBuild() {
   TANK.park.updateMatrix();
   scene.add(TANK.park);
 }
-/* THE PLACEHOLDER DRIVE (T1: to try the battle area's ground; the track physics, the gears and the laterals replace it in T2). W / S
-   forward and back (up to 7 m/s, 25 km/h; 2.5 m/s astern), A / D turn her (0.45 rad/s, on the spot too). She sits on the ground under
-   her four track corners, pitched and rolled to it; a wall or a windbreak ahead stops her. */
-const DRV = { v: 0, pitch: 0, roll: 0, E: new THREE.Euler(0, 0, 0, 'YXZ'), P: [[-1.05, -2.0], [1.05, -2.0], [-1.05, 2.0], [1.05, 2.0]] };
-/* a point (lx, lz) of the vehicle's own frame (nose -z, right +x) at heading h: its world x, z */
-const tankAt = (lx, lz, h) => [pos.x + Math.cos(h) * lx + Math.sin(h) * lz, pos.z - Math.sin(h) * lx + Math.cos(h) * lz];
-function tankSettle() {
-  const hd = TANK.hdg,
-    y = DRV.P.map(([lx, lz]) => {
-      const [x, z] = tankAt(lx, lz, hd);
-      return BA.GH(x, z);
-    });
-  DRV.pitch = Math.atan((y[0] + y[1] - y[2] - y[3]) / 2 / 4.0);
-  DRV.roll = Math.atan((y[1] + y[3] - y[0] - y[2]) / 2 / 2.1);
-  pos.y = (y[0] + y[1] + y[2] + y[3]) / 4;
-  q.setFromEuler(DRV.E.set(DRV.pitch, hd, DRV.roll, 'YXZ'));
-}
-function tankDrive(h) {
-  const fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
-    tu = kb('rollR') - kb('rollL') + (pad.lx || 0),
-    vt = fw > 0 ? 7 * Math.min(1, fw) : fw < 0 ? 2.5 * Math.max(-1, fw) : 0;
-  DRV.v += Math.max(-2.2 * h, Math.min(1.6 * h, vt - DRV.v)) /* she gathers way slowly and stops a little quicker */;
-  const nh = TANK.hdg - tu * 0.45 * h,
-    dz = -DRV.v * h /* forward is -z in her own frame */;
-  pos.x += Math.sin(nh) * dz;
-  pos.z += Math.cos(nh) * dz;
-  /* walls, buildings, vehicles: the collision layer (PHYS) stops her (collisions: the tank) */
-  TANK.hdg = nh;
-  tankSettle();
-}
+/* the drive train, the tracks on the ground and the hull on its springs: the-drive-train-and-the-tracks.js (DRV, tankDrive, tankSettle) */
 /* the tank's pose each frame: her mesh at pos with her heading; the turret and gun at their angles */
 function tankPose() {
   if (!TANK.mesh) return;

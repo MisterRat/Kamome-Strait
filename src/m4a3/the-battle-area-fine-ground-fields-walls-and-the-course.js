@@ -66,11 +66,11 @@ const BA = (() => {
     if (Math.abs(d) > 13) return 0;
     const e = 1 - sm(10, 13, Math.abs(d)) /* the features end in short banks at the track's sides */;
     let y = 0;
-    if (u > -166 && u < -162) y = -1.6 * sm(-166, -165.8, u) * (1 - sm(-162.2, -162, u)) /* the ditch, 2 m across at its top: a tank crosses 2.29 m */;
+    if (u > -165 && u < -163) y = -1.6 * sm(-165, -164.8, u) * (1 - sm(-163.2, -163, u)) /* the ditch, 2 m across at its top: a tank crosses 2.29 m */;
     if (u > -120.3 && u < -92) y = 0.6 * sm(-120.3, -120, u) * (1 - sm(-95, -92.6, u)) /* the step: 0.6 m up, a ramp down */;
     if (u > -72 && u < -35) y = Math.min(4, Math.max(0, (u + 70) * 0.5), Math.max(0, (-36.7 - u) * 0.3 + 0.0)) /* the slope: 50% up 4 m, 30% down */;
     if (u > 40 && u < 90) y = -0.4 /* the paddy */;
-    if (u > 118 && u < 188) y = (u > 120 ? 1.2 : 1.2 * sm(118, 120, u)) + (u > 140 ? 1.2 : 0) - (u > 170 ? (Math.min(u, 187) - 170) * 0.14 : 0) /* two terraces up, a ramp down */;
+    if (u > 118 && u < 188) y = (u > 120 ? 0.55 : 0.55 * sm(119.8, 120, u)) + (u > 140 ? 0.55 * sm(139.8, 140, u) : 0) - (u > 170 ? (Math.min(u, 187) - 170) * 0.0647 : 0) /* two terrace steps of 0.55 m (a Sherman climbs 0.61), a ramp down */;
     return y * e;
   };
   const inCourse = (x, z) => {
@@ -138,11 +138,33 @@ const BA = (() => {
   };
   /* what the tank stands on: SURF (the shared surface every vehicle rides: a road, the camp's pad, a yard, a quay, else the ground), and
      where that is the bare ground, the fine ground's relief (a paddy, the course) */
-  const GH = (x, z) => {
+  const GH0 = (x, z) => {
     const s = SURF(x, z);
     if (!inArea(x, z)) return s;
     const h = WORLD.surf(x, z, S) ? S[0] : WORLD.hm(x, z);
     return s > h + 0.05 ? s : h + relief(x, z, h)[0];
+  };
+  /* GH: the same, from the heights at the corners of a 0.5 m lattice, each worked out once (the tracks ask for it thousands of times
+     a second) */
+  const GC = new Map();
+  const ghN = (i, j) => {
+    const k = i * 400000 + j;
+    let v = GC.get(k);
+    if (v === undefined) {
+      if (GC.size > 60000) GC.clear();
+      v = GH0(i * 0.5, j * 0.5);
+      GC.set(k, v);
+    }
+    return v;
+  };
+  const GH = (x, z) => {
+    const u = x * 2,
+      w = z * 2,
+      i = Math.floor(u),
+      j = Math.floor(w),
+      fx = u - i,
+      fz = w - j;
+    return (ghN(i, j) * (1 - fx) + ghN(i + 1, j) * fx) * (1 - fz) + (ghN(i, j + 1) * (1 - fx) + ghN(i + 1, j + 1) * fx) * fz;
   };
   const kind = (x, z) => {
     if (!inArea(x, z)) return K.grass;

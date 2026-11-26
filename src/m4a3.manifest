@@ -23,6 +23,7 @@ shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
 shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
 m4a3/the-m4a3-s-role-how-the-tank-plugs-into-the-shared-frame-loop.js
 m4a3/collisions-the-tank-strikes-something-solid.js
+m4a3/the-drive-train-and-the-tracks.js
 shared/mission-and-replay-state-what-every-simulator-reads.js
 shared/sea-the-world-s-sea-levels-in-one-place.js
 shared/hardcore-simulation-mode-fm-the-switch-the-options-and-their-state.js
