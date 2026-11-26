@@ -126,7 +126,7 @@ SIMS.add({
       [x, z] = pk.at(0);
     TANK.hdg = pk.yaw - Math.PI / 2 /* the park's yaw is the model's (nose +x along the revetment's open end) */;
     pos.set(x, pk.y, z);
-    DRV.v = 0;
+    dtReset();
     tankSettle();
     BA.update(pos, true) /* the ground round her, all at once */;
     TANK.trav = 0;
@@ -189,6 +189,12 @@ SIMS.add({
     ['st3', 'loader', ['Digit3', 'Numpad3'], null],
     ['st4', 'driver (again: buttoned up)', ['Digit4', 'Numpad4'], null],
     ['st5', 'bow gunner', ['Digit5', 'Numpad5'], null],
+    ['gearUp', 'gear up (Hardcore)', ['KeyE'], null],
+    ['gearDn', 'gear down (Hardcore)', ['KeyQ'], null],
+    ['clutch', 'clutch, held (Hardcore)', ['ShiftLeft', 'ShiftRight'], null],
+    ['parkBrake', 'parking brake', ['KeyB'], null],
+    ['battery', 'battery switch (Hardcore)', ['KeyV'], null],
+    ['starter', 'starter, held (Hardcore)', ['KeyR'], null],
   ],
   act: {
     camera: () => {
@@ -197,6 +203,10 @@ SIMS.add({
       if (camMode == 1) orbReset();
     },
     clear: () => (ROAM.on ? roamExit() : roamEnter()),
+    gearUp: () => dtGear(1),
+    gearDn: () => dtGear(-1),
+    parkBrake: () => ((DRV.park = !DRV.park), note(DRV.park ? 'PARKING BRAKE SET' : 'PARKING BRAKE OFF')),
+    battery: () => ((DRV.battery = !DRV.battery), note(DRV.battery ? 'BATTERY ON' : 'BATTERY OFF')),
     st1: () => STATION.take(1),
     st2: () => STATION.take(2) || note('GUNNER - COMES WITH THE GUNNERY (T3)'),
     st3: () => STATION.take(3) || note('LOADER - COMES WITH THE GUNNERY (T3)'),
@@ -278,6 +288,8 @@ function tankHudLate() {
   r.style.display = (drv || camMode != 1) && started && !paused && !PHOTO.on ? '' : 'none';
   if (r.style.display === '') {
     const G = ['R', 'N', '1st', '2nd', '3rd', '4th', '5th'][DRV.gear];
-    r.innerHTML = G + (DRV.shift > 0 ? ' &middot; SHIFTING' : '') + ' &middot; ' + Math.round(Math.abs(DRV.v) * 3.6) + ' km/h &middot; ' + Math.round(DRV.rpm / 10) * 10 + ' rpm' + (DRV.park && Math.abs(DRV.v) < 0.1 ? ' &middot; PARKED' : '');
+    r.innerHTML = (DRV.engine ? '' : DRV.crank > 0 ? 'STARTING &middot; ' : 'ENGINE OFF' + (DRV.battery ? '' : ', BATTERY OFF') + ' &middot; ') + G + (DRV.shift > 0 ? ' &middot; SHIFTING' : '') + (DRV.clutch > 0.5 ? ' &middot; CLUTCH' : '') + ' &middot; ' + Math.round(Math.abs(DRV.v) * 3.6) + ' km/h &middot; ' + Math.round(DRV.rpm / 10) * 10 + ' rpm' + (DRV.park && Math.abs(DRV.v) < 0.1 ? ' &middot; PARKED' : '');
   }
 }
+/* the tank's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
+SIMS.add({ id: 'm4a3', hcKeys: ['gearbox', 'start', 'roll'] });

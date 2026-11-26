@@ -146,7 +146,11 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <div class="sub">The real tank, for tankers who want it. Off by default: the game is fun first.</div>
 <p>Hardcore mode will add what the real M4A3 crew had to deal with: the engine started and stopped by the book, the gear gate and the clutch, the laterals held for every turn, your own range estimation, real reload times from the floor racks. The options arrive with the phases that bring each part of the tank.</p>
 <label class="hcMaster"><input type="checkbox" id="hcOn" style="accent-color:#ffb43a"> <b>Hardcore Simulation Mode</b> (master switch)</label>
-<div id="hcList"></div>
+<div id="hcList">
+<label><input type="checkbox" data-hc="gearbox"> <b>The driver's own gears.</b> E shifts up and Q down through the gate (reverse, neutral, 1st to 5th); hold Shift for the clutch. A shift without the clutch down grinds and does nothing; let the clutch in too fast, or lug her in too high a gear, and she stalls. She pulls away in 2nd, 1st on a hill or in mud. Game mode: the gears change themselves.</label>
+<label><input type="checkbox" data-hc="start"> <b>Starting her.</b> She starts cold: V the battery's master switch, then hold R for the starter, in neutral or with the clutch down. Game mode: the engine is running, and starts again by itself after a stall.</label>
+<label><input type="checkbox" data-hc="roll"> <b>She rolls.</b> Stopped on a slope with the laterals let go and the parking brake off (B), she rolls back down. Game mode: she holds herself when stopped.</label>
+</div>
 </div>
 <div id="pmPaneO" class="doc" style="display:none">
 <h1>OPERATIONS</h1>

@@ -73,6 +73,11 @@ const DRV = {
   latR: 0,
   brake: 0,
   park: true,
+  clutch: 0 /* the clutch pedal: 0 in (engaged) .. 1 down (Hardcore) */,
+  engine: true /* running */,
+  battery: true /* the master switch */,
+  crank: 0 /* how long the starter has turned her over */,
+  rpmF: 550 /* the engine's own speed off the clutch */,
   kind: 0,
   grade: 0 /* the slope along her nose (sin), + up */,
   blocked: false /* a step higher than she can climb is under her bow */,
@@ -177,9 +182,58 @@ function dtAuto(h) {
   if (w > 2450 && DRV.gear < 6 && DRV.thr > 0.2 && !(DRV.gear === 2 && DRV.grade > 0.12)) (DRV.gear++, (DRV.shift = 0.7), (DRV.held = 0));
   else if (w < (DRV.thr > 0.2 ? 1050 : 800) && DRV.gear > 3) (DRV.gear--, (DRV.shift = 0.5), (DRV.held = 0));
 }
+/* HARDCORE (the Hardcore tab; FM.use): 'gearbox' the driver's own gears through the clutch (E up, Q down, the gate R N 1 2 3 4 5; left
+   Shift the clutch pedal; a shift without the clutch down grinds and does nothing; let the clutch in too fast or lug her below about
+   300 rpm and she stalls); 'start' the start sequence (she starts cold: V the battery's master switch, then R the starter held, in
+   neutral or with the clutch down); 'roll' no automatic hold: stopped with the laterals let go and the parking brake off (B), she rolls
+   down a slope. Without 'start' a stalled engine starts again by itself in neutral or with the clutch down. */
+const dtHC = () => FM.use('gearbox');
+function dtControlsHC(h) {
+  const fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
+    tu = kb('rollR') - kb('rollL') + (pad.lx || 0),
+    ease = (x, t) => x + Math.max(-h * 4, Math.min(h * 4, t - x));
+  DRV.latL = ease(DRV.latL, Math.max(0, -tu));
+  DRV.latR = ease(DRV.latR, Math.max(0, tu));
+  DRV.thr = Math.max(0, Math.min(1, fw)) /* W the accelerator */;
+  DRV.brake = Math.max(0, Math.min(1, -fw)) /* S both laterals back: the brakes */;
+  DRV.clutch += Math.max(-h * 1.4, Math.min(h * 5, (kb('clutch') ? 1 : 0) - DRV.clutch)) /* down at once, let in over about 0.7 s */;
+  if (!FM.use('roll')) {
+    if (DRV.thr > 0.05) DRV.park = false;
+    else if (Math.abs(DRV.v) < 0.3 && !DRV.brake) DRV.park = true;
+  }
+}
+/* the gear keys: in Hardcore the driver's own; in game mode the box is automatic */
+function dtGear(d) {
+  if (!dtHC()) return note('GEARS: AUTOMATIC (HARDCORE: YOUR OWN, THROUGH THE CLUTCH)');
+  if (DRV.engine && DRV.clutch < 0.8) return note('GEARS GRIND - CLUTCH DOWN FIRST (SHIFT)');
+  DRV.gear = Math.max(0, Math.min(6, DRV.gear + d));
+  note('GEAR ' + ['REVERSE', 'NEUTRAL', '1ST', '2ND', '3RD', '4TH', '5TH'][DRV.gear]);
+}
+/* the starter (Hardcore 'start'); without it a stalled engine starts again by itself in neutral or with the clutch down */
+function dtStarter(h) {
+  if (DRV.engine) return void (DRV.crank = 0);
+  const free = !dtHC() || DRV.gear === 1 || DRV.clutch > 0.8 /* the automatic box starts in neutral */;
+  if (!FM.use('start')) {
+    if (free) (DRV.engine = true), (DRV.rpmF = DT.IDLE), note('ENGINE RUNNING');
+    return;
+  }
+  if (!kb('starter')) return void (DRV.crank = 0);
+  if (!DRV.battery) return void (DRV.crank === 0 && ((DRV.crank = -1), note('NO POWER - THE BATTERY SWITCH (V)')));
+  if (!free) return void (DRV.crank === 0 && ((DRV.crank = -1), note('IN GEAR - NEUTRAL, OR THE CLUTCH DOWN, TO START')));
+  DRV.crank = Math.max(0, DRV.crank) + h;
+  DRV.rpmF = 170 + 40 * Math.sin(DRV.crank * 40);
+  if (DRV.crank > 1.4) (DRV.engine = true), (DRV.rpmF = DT.IDLE), (DRV.crank = 0), note('ENGINE STARTED');
+}
+/* back to the start: in neutral, the parking brake on; with Hardcore 'start' cold, the battery off */
+function dtReset() {
+  const cold = FM.use('start');
+  Object.assign(DRV, { v: 0, w: 0, gear: 1, shift: 0, thr: 0, latL: 0, latR: 0, brake: 0, park: true, clutch: 0, engine: !cold, battery: !cold, crank: 0, rpm: cold ? 0 : DT.IDLE, rpmF: cold ? 0 : DT.IDLE, fuel: 1, heat: 0.3, held: 0 });
+}
 function tankDrive(h) {
-  dtControls(h);
-  dtAuto(h);
+  const hc = dtHC();
+  if (hc) dtControlsHC(h);
+  else (dtControls(h), dtAuto(h), (DRV.clutch = 0));
+  dtStarter(h);
   const g = 9.81,
     m = DT.M,
     hd = TANK.hdg;
@@ -190,18 +244,30 @@ function tankDrive(h) {
   const ratio = DT.G[DRV.gear] * DT.FD,
     wrpm = ratio ? (Math.abs(DRV.v) / DT.R) * Math.abs(ratio) * (60 / (2 * Math.PI)) : 0,
     inGear = ratio !== 0 && DRV.shift <= 0;
-  const want = DT.IDLE + DRV.thr * (DT.GOV - DT.IDLE);
-  /* pulling away (1st, 2nd, reverse) the clutch slips up to about 1,700 rpm; in the higher gears the engine turns with the tracks */
-  DRV.rpm = inGear ? Math.max(wrpm, DRV.gear <= 3 ? Math.min(want, 1100 + DRV.thr * 600) : DT.IDLE) : DRV.rpm + (want - DRV.rpm) * Math.min(1, h * 3);
+  const want = DT.IDLE + DRV.thr * (DT.GOV - DT.IDLE),
+    c = hc ? 1 - DRV.clutch : 1 /* how much the clutch carries */;
+  /* the engine's own speed: free it runs up to what the accelerator asks; on the clutch the tracks drag it toward theirs */
+  if (DRV.engine) DRV.rpmF += (want - DRV.rpmF) * Math.min(1, h * 3);
+  else if (!DRV.crank) DRV.rpmF = Math.max(0, DRV.rpmF - 900 * h);
+  if (!hc) {
+    /* game mode: pulling away (1st, 2nd, reverse) the clutch slips up to about 1,700 rpm; in the higher gears the engine turns with the tracks */
+    DRV.rpm = inGear ? Math.max(wrpm, DRV.gear <= 3 ? Math.min(want, 1100 + DRV.thr * 600) : DT.IDLE) : (DRV.rpmF = DRV.rpm + (want - DRV.rpm) * Math.min(1, h * 3));
+  } else {
+    if (inGear && DRV.engine) DRV.rpmF += (wrpm - DRV.rpmF) * Math.min(1, c * c * h * 6);
+    DRV.rpm = inGear && c > 0.97 ? wrpm : DRV.rpmF;
+    /* lugged below about 300 rpm on the clutch, or the clutch let in on a stopped tank in gear: she stalls */
+    if (DRV.engine && inGear && c > 0.85 && wrpm < 320 && DRV.rpmF < 420) (DRV.engine = false), note('STALLED');
+  }
   /* the pull at the tracks (governed: none past 2,600 rpm); no more than the ground's grip */
   let F = 0;
-  if (inGear && DRV.thr > 0) {
-    const gov = DRV.rpm > DT.GOV ? Math.max(0, 1 - (DRV.rpm - DT.GOV) / 150) : 1;
-    F = (dtTorque(DRV.rpm) * DRV.thr * gov * Math.abs(ratio) * DT.EFF) / DT.R;
+  if (inGear && DRV.thr > 0 && DRV.engine) {
+    const r = hc ? Math.max(DRV.rpm, DRV.rpmF * (1 - c)) : DRV.rpm,
+      gov = r > DT.GOV ? Math.max(0, 1 - (r - DT.GOV) / 150) : 1;
+    F = (dtTorque(r) * DRV.thr * gov * Math.abs(ratio) * DT.EFF * c) / DT.R;
     F = Math.min(F, mu * m * g) * Math.sign(ratio);
   }
-  /* engine braking when she is in gear with the accelerator up */
-  if (inGear && DRV.thr === 0 && Math.abs(DRV.v) > 0.3 && wrpm > DT.IDLE) F -= Math.sign(DRV.v) * 0.03 * m * g;
+  /* engine braking when she is in gear with the accelerator up (a dead engine on the clutch drags harder) */
+  if (inGear && DRV.thr === 0 && Math.abs(DRV.v) > 0.3 && c > 0.5 && (wrpm > DT.IDLE || !DRV.engine)) F -= Math.sign(DRV.v) * (DRV.engine ? 0.03 : 0.08) * m * g;
   /* against her: the grade, rolling resistance, the laterals' braking (the controlled differential brakes the inside track), the brakes */
   const steer = Math.max(DRV.latL, DRV.latR),
     both = Math.min(DRV.latL, DRV.latR),
