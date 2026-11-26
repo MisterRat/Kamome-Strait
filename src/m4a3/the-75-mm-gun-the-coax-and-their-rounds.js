@@ -1,15 +1,22 @@
-/* THE MAIN GUN AND THE COAXIAL MACHINE GUN (T3), GAME SETTINGS. Generic, playable values for now (the user's, 2026-11-26: generic
-   settings first, the real figures later in one place): three kinds of round, AP, HE and SMOKE, each with a muzzle speed (mv, m/s), a
-   drag factor (k: the same drag law the PCE's in-game guns and the coast in-game guns use) and what it does at the end of its flight; the ready rack
-   and the floor bins; the loading times. Everything else (laying, firing, the flight, the sights' range lines, the loader, the drills)
-   reads them from G75.R, so the real figures can replace these without touching the rest.
-   The in-game gun is laid by the gunner (station 2) or stays where it was laid: the turret turns at up to 24 deg/s, the in-game gun elevates at up to
-   5 deg/s, from -10 to +25 deg; the stabilizer (Z) holds the in-game gun's elevation in the world while the hull pitches. */
+/* THE 75 MM M3 AND THE COAXIAL .30 (PLAN_M4A3_Sherman_Tank 3.1, 5.2, 5.3; T3). The figures are the spec sheet's and the M3 in-game gun
+   data sheet's (References/M4A3), all in G75.R so the rest (laying, the flight, the sights' range lines, the loader, the drills) reads
+   them from one place:
+     M61 APC-HE-T  619 m/s, 14,000 yd at most, a tracer
+     M48 HE        448 m/s (normal charge), 11,400 yd
+     M89 smoke     259 m/s, about 1,500 yd
+     the coaxial .30 M1919A4, M2 ball, 853 m/s
+   Each round's drag factor k (the drag law the PCE's in-game guns and the coast in-game guns use, a = -k (air density) |v| v) is fitted
+   so its longest range comes out at the sheet's. The mount M34A1: 360 deg in 15 s at most (hydraulic traverse, 24 deg/s), -12 to +25 deg
+   in elevation (by hand: 5 deg/s, an estimate), the stabilizer in elevation only. 20 rounds a minute at most, loaded by hand: 3 s a round
+   from the ready rack (Hardcore 'load'; game mode half), 8 s from the floor bins (an estimate). 104 rounds of 75 mm (wet stowage: the
+   ready rack in the turret, the rest in the water-jacketed floor bins), 6,750 of .30.
+   The in-game gun is laid by the gunner (station 2) or stays where it was laid; the stabilizer (Z) holds its elevation in the world while
+   the hull pitches. */
 const G75 = {
   R: {
-    AP: { name: 'AP', mv: 600, k: 1.1e-4, tracer: true, dmg: 1 } /* game setting */,
-    HE: { name: 'HE', mv: 450, k: 0.9e-4, he: true, dmg: 1 } /* game setting */,
-    SMK: { name: 'SMOKE', mv: 260, k: 1.1e-3, smoke: true, dmg: 0 } /* game setting */,
+    AP: { name: 'AP', mv: 619, k: 1.133e-4, tracer: true, dmg: 1 } /* M61 APC-HE-T */,
+    HE: { name: 'HE', mv: 448, k: 8.55e-5, he: true, dmg: 1 } /* M48 HE, normal charge */,
+    SMK: { name: 'SMOKE', mv: 259, k: 1.15e-3, smoke: true, dmg: 0 } /* M89 smoke */,
   },
   ORDER: ['AP', 'HE', 'SMK'],
   ready: { AP: 2, HE: 2, SMK: 0 } /* the turret's ready rack (4) */,
@@ -37,7 +44,7 @@ const G75 = {
 };
 const D2R_ = Math.PI / 180;
 /* the hand-loading times: the ready rack and the floor bins (game mode half) */
-const g75LoadT = (fromReady) => (fromReady ? 4 : 8) * (FM.use('load') ? 1 : 0.5);
+const g75LoadT = (fromReady) => (fromReady ? 3 : 8) * (FM.use('load') ? 1 : 0.5) /* 20 rounds a minute at most; the floor bins an estimate */;
 /* the in-game gun's line in the world, and its muzzle */
 function g75Dir(out) {
   const c = Math.cos(TANK.elev);
