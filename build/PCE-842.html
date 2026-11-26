@@ -614,7 +614,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.11';
+const VERSION = '1.12';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -708,6 +708,8 @@ const HOOKS = {
                         torpedoed() is told when one hits her
      stations(), stationTake(n, view, sub), stationBlock(n), stationFirst(n, list): its crew stations for the shared STATION (the
                         stations piece): its list { n: [view, ...] }, putting the eye at a view, a message instead, the first view
+     drillSay(who, txt), drillWho(stn), drillHC(), drillTitle(stn), drillKeyFirst(code, rep), drillKeyLast(code, rep), drillSplit(stn):
+                        its part of the shared training drills (the drills piece: DRILLS, drillKey, drillStep)
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -741,6 +743,13 @@ const SIMS = {
     stationTake: () => {},
     stationBlock: () => null,
     stationFirst: () => 0,
+    drillSay: () => {},
+    drillWho: () => 'INSTRUCTOR',
+    drillHC: () => false,
+    drillTitle: () => 'TRAINING',
+    drillKeyFirst: () => false,
+    drillKeyLast: () => false,
+    drillSplit: () => false,
     step: () => {},
     afterStep: () => {},
     pose: () => {},
@@ -32950,12 +32959,21 @@ const LES = {
   },
 };
 /* =====================================================================================================================
-   TRAINING DRILLS (the user's, 2026-11-21): the OOD's (station 1) and the engineer's (station 2), each assessed at the end like
-   the torpedoman's attack runs. T at either station opens its list of drills (Q / E choose, Space begins); the missions menu
-   starts them too. A drill runs while the player stays at its station (leave it and the drill is broken off); the AI keeps every
-   other station. At the end the debrief stays up (the grade, the measures behind it) until T is pressed again or the player
-   leaves. Each drill is an entry in DRILLS: { id, stn, title, what, start(D), step(D, dt), key(D, code) -> used, box(D) -> html,
-   draw(D, g, w, h) (its picture, optional) }. It ends itself with drillEnd(D, score 0-100, lines).
+   TRAINING DRILLS, shared (moved from the PCE-842, 2026-11-26, for the M4A3's driving drills; the PCE plays as before). A station with
+   drills: T opens its list (Q / E choose, Space begins, or click a line); the missions menu starts them too. A drill runs while the
+   player stays at its station (leave it and the drill is broken off); the AI keeps every other station. At the end the debrief stays up
+   (the grade, the measures behind it) until T is pressed again or the player leaves.
+   Each drill is an entry in DRILLS: { id, stn, title, what, start(D), step(D, dt), key(D, code) -> used, box(D) -> html,
+   draw(D, g, w, h) (its picture, optional), stop(D) (optional) }. It ends itself with drillEnd(D, score 0-100, lines). DRILLP: a
+   station's other boxes, shown when no drill, list or debrief is up: { stn, show(), html(), draw(g, w, h), click(i), inDrill }.
+   The simulator calls drillKey(code, repeat) from its own keys at a station with drills, and drillStep(dt, here) each frame (here: its
+   player is at his stations, in first person). What is its own comes through its role (do-nothing defaults in SIMS):
+     drillSay(who, text)        the instructor's word aloud (the PCE: on the radio paper)
+     drillWho(stn)              who gives the assessment at that station
+     drillHC()                  is the drill in Hardcore (its own Hardcore options)
+     drillTitle(stn)            the list's heading for that station
+     drillKeyFirst(code, rep)   its station keys before the drill's own (true: used); drillKeyLast(code, rep) after them
+     drillSplit(stn)            the station's own box on the left and the drill on the right, its picture in a box below (the PCE's OOD)
    Normal: quick, forgiving. Hardcore: the real thing (narrower windows, the damage grows while you work, no markers).
    ===================================================================================================================== */
 var DRILLS = [];
@@ -32963,10 +32981,12 @@ var DRILL = { on: null /* the drill running */, menu: false, sel: 0, D: null /* 
 /* the station's other boxes, shown in the drill box when no drill, list or debrief is up: { stn, show() -> bool, html() -> html,
    draw(g, w, h) (optional) }: the engineer's repair jobs, the OOD's orders */
 var DRILLP = [];
-const drillSay = (who, txt) => RADIO.add(who, txt, { own: true });
-const drillHC = () => FM.use('orders') || FM.use('aa') || FM.use('walk') || FM.use('eng'); /* Hardcore: any of its options */
-const drillList = () => DRILLS.filter((d) => d.stn === SHIP.stn);
-/* T at station 1 or 2: the list (or close it); with a debrief up, the list again */
+const drillSay = (who, txt) => SIMS.cur.drillSay(who, txt);
+const drillHC = () => SIMS.cur.drillHC();
+const drillList = () => DRILLS.filter((d) => d.stn === STATION.stn);
+/* the stations that have drills or a box of their own */
+const drillStns = () => [...new Set([...DRILLS.map((d) => d.stn), ...DRILLP.map((p) => p.stn)])];
+/* T at a station with drills: the list (or close it); with a debrief up, the list again */
 function drillToggle() {
   if (DRILL.on) return drillAbort('DRILL ENDED');
   if (DRILL.menu) return (DRILL.menu = false), note('DRILLS CLOSED');
@@ -32980,7 +33000,7 @@ function drillToggle() {
 function drillStart(id) {
   const d = DRILLS.find((x) => x.id === id);
   if (!d) return;
-  if (SHIP.stn !== d.stn || camMode != 1) shipStation(d.stn);
+  if (STATION.stn !== d.stn || camMode != 1) STATION.take(d.stn);
   DRILL.menu = false;
   DRILL.deb = null;
   DRILL.on = d;
@@ -33011,7 +33031,7 @@ function drillReport(title, score, lines, hc, stn, said, act) {
   DRILL.deb = { title, score, v, lines, hc, act };
   SND.tone(660, 990, 0.3, 0.12, 'sine');
   note(title.toUpperCase() + ': ' + v + ' (' + score + ')');
-  drillSay(stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN', title.toUpperCase() + (said || '. ') + v + '.');
+  drillSay(SIMS.cur.drillWho(stn), title.toUpperCase() + (said || '. ') + v + '.');
 }
 /* the station's keys while a drill (or its list) is up: true when used */
 function drillKey(code, rep) {
@@ -33022,18 +33042,16 @@ function drillKey(code, rep) {
     if (code === 'Space') return rep || (drillStart(L[DRILL.sel].id), true);
     return false;
   }
-  /* the OOD's orders, in a drill too (the user's, 2026-11-22): G opens them; while open they take Q / E / Space */
-  if (SHIP.stn === 1 && DRILL.on && (code === 'KeyG' || OODO.menu) && ordKey(code, rep)) return true;
+  /* the station's own keys first (the PCE: the OOD's orders, in a drill too) */
+  if (SIMS.cur.drillKeyFirst(code, rep)) return true;
   if (DRILL.on && DRILL.on.key) return DRILL.on.key(DRILL.D, code, rep) === true;
-  if (dcxLive()) return dcxKey(code, rep);
-  if (SHIP.stn === 1) return ordKey(code, rep);
-  return false;
+  return SIMS.cur.drillKeyLast(code, rep);
 }
 /* each frame */
 function drillStep(dt, here) {
   if (DRILL.on || DRILL.menu || DRILL.deb) {
     const d = DRILL.on,
-      away = !here || (d ? SHIP.stn !== d.stn : SHIP.stn !== 1 && SHIP.stn !== 2);
+      away = !here || (d ? STATION.stn !== d.stn : !drillStns().includes(STATION.stn));
     if (away && (d || DRILL.menu || DRILL.deb)) {
       if (d) drillAbort('DRILL BROKEN OFF - YOU LEFT YOUR STATION');
       DRILL.menu = false;
@@ -33122,7 +33140,7 @@ function dbShow(id, c, place) {
 function drillContent() {
   const T = '<b>' + kbText('targets') + '</b>';
   if (DRILL.menu) {
-    let h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + (SHIP.stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK') + '</b>';
+    let h = '<b style="color:#9fc3d6">TRAINING DRILLS - ' + SIMS.cur.drillTitle(STATION.stn) + '</b>';
     drillList().forEach((d, i) => {
       h += '<div class="dbI" data-i="' + i + '">' + (i === DRILL.sel ? '<b style="color:#ffd27a">&#9656; ' + d.title + '</b><br><span style="color:#b8c4c8">&nbsp;&nbsp;' + d.what + '</span>' : '&nbsp;&nbsp;' + d.title) + '</div>';
     });
@@ -33150,8 +33168,8 @@ function drillContent() {
   return null;
 }
 function drillBox(here) {
-  const st = SHIP.stn,
-    on = here && !paused && (st === 1 || st === 2);
+  const st = STATION.stn,
+    on = here && !paused && drillStns().includes(st);
   /* the station's other box (the repair jobs; the orders, in a drill too) */
   const live = on && !DRILL.menu ? DRILLP.find((p) => p.stn === st && p.show() && (!DRILL.on || p.inDrill)) : null;
   DRILL.click = live && live.click ? live.click : null;
@@ -33160,9 +33178,9 @@ function drillBox(here) {
   DRILL.boxT = now;
   const D = on ? drillContent() : null,
     L = live && { h: live.html(), pic: live.draw && (!live.pic || live.pic()) ? live.draw : null, role: live.click ? 'live' : '' };
-  if (st === 1) {
-    /* the OOD: his orders on the left, a drill on the right, both at once; the one picture (the drill's, else the sonar plot) in its
-       own box at the bottom in the middle (the user's, 2026-11-22: the plot once, not in both) */
+  if (SIMS.cur.drillSplit(st)) {
+    /* the station's own box on the left, a drill on the right, both at once; the one picture (the drill's, else the station's) in its
+       own box at the bottom in the middle (the user's, 2026-11-22, for the PCE's OOD: the plot once, not in both) */
     const pic = (D && D.pic) || (L && L.pic);
     dbShow('ordBox', L && { ...L, pic: null }, 'left');
     dbShow('drillBox', D && { ...D, pic: null }, L ? 'right' : 'left');
@@ -33173,12 +33191,6 @@ function drillBox(here) {
     dbShow('drillBox', L || D, 'mid');
   }
 }
-DRILLP.push({
-  stn: 2,
-  show: () => dcxLive(),
-  html: () => '<b style="color:#ff8a6a">' + (DCX.L.every((j) => DCX_K[j.k]) ? 'ENGINE ROOM' : 'DAMAGE CONTROL - ENGINE ROOM') + '</b><br>' + dcxText(),
-  draw: (g, w, h) => dcxDraw(g, w, h),
-});
 /* a mark out of full for one measure: full at or better than `good`, nothing at or worse than `bad` */
 const drillMark = (x, good, bad, full) => full * Math.max(0, Math.min(1, (bad - x) / (bad - good)));
 /* a timing bar (the wrench, the shoring maul): a marker sweeps to and fro; Space when it is in the green */
@@ -33204,6 +33216,27 @@ function barStep(B, dt) {
   if (B.x < 0) (B.x = 0), (B.dir = 1);
 }
 const barHit = (B) => Math.abs(B.x - B.c) <= B.w / 2;
+/* the PCE-842's part of the shared training drills (training-drills-the-framework-every-simulator-s-stations-share.js): her drills at
+   the OOD's (1) and the engineer's (2) stations, her voices, her Hardcore, the OOD's orders and the engine room's repair jobs in the
+   drill box */
+SIMS.add({
+  id: 'pce',
+  drillSay: (who, txt) => RADIO.add(who, txt, { own: true }),
+  drillWho: (stn) => (stn === 2 ? 'CHIEF ENGINEER' : 'CAPTAIN'),
+  drillHC: () => FM.use('orders') || FM.use('aa') || FM.use('walk') || FM.use('eng') /* Hardcore: any of its options */,
+  drillTitle: (stn) => (stn === 2 ? 'ENGINEERING' : 'OFFICER OF THE DECK'),
+  /* the OOD's orders, in a drill too (the user's, 2026-11-22): G opens them; while open they take Q / E / Space */
+  drillKeyFirst: (code, rep) => SHIP.stn === 1 && DRILL.on && (code === 'KeyG' || OODO.menu) && ordKey(code, rep),
+  drillKeyLast: (code, rep) => (dcxLive() ? dcxKey(code, rep) : SHIP.stn === 1 ? ordKey(code, rep) : false),
+  /* the OOD: his orders on the left, a drill on the right */
+  drillSplit: (stn) => stn === 1,
+});
+DRILLP.push({
+  stn: 2,
+  show: () => dcxLive(),
+  html: () => '<b style="color:#ff8a6a">' + (DCX.L.every((j) => DCX_K[j.k]) ? 'ENGINE ROOM' : 'DAMAGE CONTROL - ENGINE ROOM') + '</b><br>' + dcxText(),
+  draw: (g, w, h) => dcxDraw(g, w, h),
+});
 /* ---- ENGINEERING DRILL: ANSWER THE BELLS. The bridge rings a string of engine orders on the telegraph; the player is the throttleman:
    W / S move the engine room's answering lever a sector at a time (BACK FULL to FLANK) and the engines follow it. Each order is
    timed from its bell to the moment the answer matches it: within 4 s is smart, within 8 s acceptable (Hardcore: 3 and 6), and a

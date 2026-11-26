@@ -25,7 +25,7 @@ function tankBump(info, first) {
     l = Math.hypot(dx, dz) || 1,
     ahead = (dx * fx + dz * fz) / l;
   if ((ahead > 0.3 && DRV.v > 0) || (ahead < -0.3 && DRV.v < 0)) {
-    if (first && Math.abs(DRV.v) > 1) note('COLLISION - ' + (info.name || 'OBSTACLE'));
+    if (first && Math.abs(DRV.v) > 1) note('COLLISION - ' + (info.name || 'OBSTACLE')), (DRV.hits = (DRV.hits || 0) + 1) /* counted for the drills */;
     DRV.v = 0;
     pos.x -= (dx / l) * 0.03;
     pos.z -= (dz / l) * 0.03;

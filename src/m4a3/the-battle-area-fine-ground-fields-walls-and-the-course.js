@@ -7,7 +7,8 @@
    are one ground. What it adds, near the tank only:
      the paddies dug 0.3 m down inside their earth dykes, a little rise and fall in the dry ground (none on the roads or the camp's pad);
      coral walls (the shared CORAL wall, as on the home map) on the plot edges the shader paints pale, with gaps;
-     Buckner Course (its ditch, step, slope, paddy, terraces and a wall with a gap), the one thing laid out here and not in the world.
+     Buckner Course (its ditch, step, slope, paddy, terraces, a wall with a gap and the hull-down berm), the one thing laid out here and
+     not in the world.
      BA.GH(x, z)       what she stands on: SURF (roads, the camp's pad, quays) or the fine ground
      BA.kind(x, z)     the ground's kind there (BA.K), for traction (T2)
      (its walls are solid through the shared collision layer, PHYS: CORAL.mesh)
@@ -73,6 +74,17 @@ const BA = (() => {
     if (u > 118 && u < 188) y = (u > 120 ? 0.55 : 0.55 * sm(119.8, 120, u)) + (u > 140 ? 0.55 * sm(139.8, 140, u) : 0) - (u > 170 ? (Math.min(u, 187) - 170) * 0.0647 : 0) /* two terrace steps of 0.55 m (a Sherman climbs 0.61), a ramp down */;
     return y * e;
   };
+  /* the hull-down berm, south of the track (d 28..52): a gentle rise from the west (6%) to a crest 2.6 m up (u -142..-138), then down
+     at 20%: the driver brings her up until only the turret shows over it toward the east (the hull-down drill). 2.6 m because her hull
+     stands 1.9-2.0 m over the ground she is on and her gun 2.3 m: on the ramp a band about 5 m long has the hull hidden and the gun
+     clear */
+  const coBerm = (u, d) => {
+    if (Math.abs(d - 40) > 14 || u < -187 || u > -124) return 0;
+    const e = 1 - sm(10, 14, Math.abs(d - 40)),
+      y = u < -142 ? Math.max(0, Math.min(2.6, (u + 185) * 0.06)) : u <= -138 ? 2.6 : Math.max(0, 2.6 - (u + 138) * 0.2);
+    return y * e;
+  };
+  CO.berm = { u: -140, d: 40 };
   const inCourse = (x, z) => {
     const u = x - CO.x,
       d = z - CO.z;
@@ -119,7 +131,7 @@ const BA = (() => {
       const [u, d] = co,
         e = sm(0, 30, Math.min(u - CO.u0, CO.u1 - u, d - CO.d0, CO.d1 - d)) /* levelled to its base, blended back at its edges */,
         tr = (Math.abs(d) < 11 && u > -205 && u < 205) || (Math.abs(d - 70) < 4 && Math.abs(u) < 205);
-      RL[0] = (coBase() + coRel(u, d) - h) * e;
+      RL[0] = (coBase() + coRel(u, d) + coBerm(u, d) - h) * e;
       RL[1] = u > 40 && u < 90 && Math.abs(d) < 11 ? K.paddy : tr ? K.dirt : K.grass;
       RL[2] = tr || e > 0.5 ? 1 : 0 /* no field painted on the course */;
       return RL;

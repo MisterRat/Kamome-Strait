@@ -39,6 +39,8 @@
                         torpedoed() is told when one hits her
      stations(), stationTake(n, view, sub), stationBlock(n), stationFirst(n, list): its crew stations for the shared STATION (the
                         stations piece): its list { n: [view, ...] }, putting the eye at a view, a message instead, the first view
+     drillSay(who, txt), drillWho(stn), drillHC(), drillTitle(stn), drillKeyFirst(code, rep), drillKeyLast(code, rep), drillSplit(stn):
+                        its part of the shared training drills (the drills piece: DRILLS, drillKey, drillStep)
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -72,6 +74,13 @@ const SIMS = {
     stationTake: () => {},
     stationBlock: () => null,
     stationFirst: () => 0,
+    drillSay: () => {},
+    drillWho: () => 'INSTRUCTOR',
+    drillHC: () => false,
+    drillTitle: () => 'TRAINING',
+    drillKeyFirst: () => false,
+    drillKeyLast: () => false,
+    drillSplit: () => false,
     step: () => {},
     afterStep: () => {},
     pose: () => {},

@@ -210,6 +210,8 @@ shared/scratch-objects-reused-every-step-frame-so-the-h.js
 shared/smooth-repeating-noise-1-1.js
 shared/hud.js
 shared/compass.js
+shared/training-drills-the-framework-every-simulator-s-stations-share.js
+m4a3/training-drills-the-driver-s-on-buckner-course.js
 shared/loop.js
 shared/time-of-day-and-weather.js
 shared/runway-lights-edges-centreline-green-thresholds.js

@@ -89,7 +89,13 @@ SIMS.add({
   canStep: () => true,
   step: (h) => tankDrive(h),
   live: () => BA.update(pos),
-  pose: (dt) => (tankPose(), dcompPose(dt || 0)),
+  pose: (dt) => (tankPose(), dcompPose(dt || 0), drillStep(dt || 0, camMode == 1 && started && !RPL.on)),
+  /* the driver's training drills (the shared framework): T at station 4 opens the list; their keys before the bindings */
+  keyStation: (e) => (started && !paused && camMode == 1 && drillStns().includes(STATION.stn) && drillKey(e.code, e.repeat) ? (e.preventDefault(), true) : false),
+  drillSay: (who, txt) => note(who + ': ' + txt),
+  drillWho: () => 'COMMANDER',
+  drillHC: () => FM.use('gearbox') || FM.use('start') || FM.use('roll'),
+  drillTitle: () => 'DRIVER',
   /* first person: the station's eye (TANK.EYE), turned by its own look and the head. Through the driver's M6 periscope the head turns the
      periscope (it rotates in the hatch) and tilts it a little for near or far; the field is narrow (the window mask: tankHudLate) */
   eye: (P, D) => {
@@ -184,6 +190,7 @@ SIMS.add({
     ['trimAR', '', [], null],
     ['trimC', '', [], null],
     ['photo', 'photo mode', ['F9'], null],
+    ['targets', 'training drills (at the driver)', ['KeyT'], null],
     ['st1', 'commander', ['Digit1', 'Numpad1'], null],
     ['st2', 'gunner', ['Digit2', 'Numpad2'], null],
     ['st3', 'loader', ['Digit3', 'Numpad3'], null],
@@ -207,6 +214,7 @@ SIMS.add({
     gearDn: () => dtGear(-1),
     parkBrake: () => ((DRV.park = !DRV.park), note(DRV.park ? 'PARKING BRAKE SET' : 'PARKING BRAKE OFF')),
     battery: () => ((DRV.battery = !DRV.battery), note(DRV.battery ? 'BATTERY ON' : 'BATTERY OFF')),
+    targets: () => note('TRAINING DRILLS: AT THE DRIVER (4), THEN T'),
     st1: () => STATION.take(1),
     st2: () => STATION.take(2) || note('GUNNER - COMES WITH THE GUNNERY (T3)'),
     st3: () => STATION.take(3) || note('LOADER - COMES WITH THE GUNNERY (T3)'),

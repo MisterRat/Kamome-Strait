@@ -256,7 +256,7 @@ function tankDrive(h) {
     if (inGear && DRV.engine) DRV.rpmF += (wrpm - DRV.rpmF) * Math.min(1, c * c * h * 6);
     DRV.rpm = inGear && c > 0.97 ? wrpm : DRV.rpmF;
     /* lugged below about 300 rpm on the clutch, or the clutch let in on a stopped tank in gear: she stalls */
-    if (DRV.engine && inGear && c > 0.85 && wrpm < 320 && DRV.rpmF < 420) (DRV.engine = false), note('STALLED');
+    if (DRV.engine && inGear && c > 0.85 && wrpm < 320 && DRV.rpmF < 420) (DRV.engine = false), (DRV.stalls = (DRV.stalls || 0) + 1), note('STALLED');
   }
   /* the pull at the tracks (governed: none past 2,600 rpm); no more than the ground's grip */
   let F = 0;
