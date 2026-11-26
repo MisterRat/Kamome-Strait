@@ -375,3 +375,18 @@ var AIRSUP = (() => {
   };
   return { L, call, hit, underAir, hurt, clear, fields, busy, places, whoAt };
 })();
+
+/* the air-support fighters in the air are solid (PHYS): one that flies into anything is lost there */
+if (typeof PHYS !== 'undefined')
+  PHYS.flyers({
+    name: 'AIRCRAFT',
+    list: () => AIRSUP.L,
+    live: (u) => u.up && !u.down,
+    o: (u) => u.g,
+    m: 4300,
+    hit: (u, o, info) => {
+      if (u.down) return;
+      AIRSUP.hurt(u, 1e3);
+      explode((info.p || u.p).clone(), 14);
+    },
+  });

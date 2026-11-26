@@ -29,3 +29,18 @@ egeo.setDrawRange(0, 0);
 const elines = new THREE.LineSegments(egeo, new THREE.LineBasicMaterial({ color: 0xff6a3a, fog: false }));
 elines.frustumCulled = false;
 scene.add(elines);
+
+/* the bandits are solid (PHYS): one that flies into anything (a ship, a building, the player's aircraft) is destroyed there */
+if (typeof PHYS !== 'undefined')
+  PHYS.flyers({
+    name: 'KI-84',
+    list: () => EN,
+    live: (e) => !e.dying,
+    o: (e) => e.g,
+    m: 3900,
+    hit: (e, o, info) => {
+      if (e.dying) return;
+      damageE(e, 1e4);
+      explode((info.p || e.p).clone(), 14);
+    },
+  });

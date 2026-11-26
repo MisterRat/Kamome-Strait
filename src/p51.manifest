@@ -10,6 +10,9 @@ p51/body.html
 shared/three-r128.html
 shared/license.js
 shared/script-close.html
+shared/rapier-0-21-0.html
+shared/rapier-0-21-0.js
+shared/script-close.html
 shared/script-open.html
 p51/what-this-file-is-and-how-it-is-organised.js
 shared/element-lookup-by-id-cached.js
@@ -50,6 +53,7 @@ shared/farmland-on-the-plain-crop-fields-with-furrows-h.js
 shared/coral-walls-you-can-see-and-fly-over-round-the-dry-fields.js
 shared/a-road-that-ends-on-another-road-stops-at-that-r.js
 shared/shared-geometry-kit.js
+shared/phys-the-collision-layer-every-solid-thing-in-the-world.js
 shared/model-tools-profile-extrusion-hull-loft-and-the-models-registry.js
 shared/models-japanese-army-vehicles-type-94-kurogane-ko-hi-ha-go.js
 shared/models-us-vehicles-cckw-willys-clarktor-bomb-trailer-power-cart.js
@@ -256,6 +260,7 @@ p51/hardcore-mode-effects-on-the-angular-rates-r-tor.js
 shared/smooth-repeating-noise-1-1.js
 p51/airframe-icing-hardcore-builds-in-cloud-when-the.js
 p51/touching-the-ground-crash-checks-rolling-on-the.js
+p51/collisions-the-fighter-strikes-something-solid.js
 shared/hud.js
 shared/compass.js
 p51/the-p-51-s-hud-text-speed-stall-altitude-heading-and-weapons.js

@@ -10,6 +10,9 @@ m4a3/body.html
 shared/three-r128.html
 shared/license.js
 shared/script-close.html
+shared/rapier-0-21-0.html
+shared/rapier-0-21-0.js
+shared/script-close.html
 shared/script-open.html
 m4a3/what-this-file-is-and-how-it-is-organised.js
 shared/element-lookup-by-id-cached.js
@@ -19,6 +22,7 @@ shared/saved-settings-and-warnings-store-logwarn.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
 shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
 m4a3/the-m4a3-s-role-how-the-tank-plugs-into-the-shared-frame-loop.js
+m4a3/collisions-the-tank-strikes-something-solid.js
 shared/mission-and-replay-state-what-every-simulator-reads.js
 shared/sea-the-world-s-sea-levels-in-one-place.js
 shared/hardcore-simulation-mode-fm-the-switch-the-options-and-their-state.js
@@ -47,6 +51,7 @@ shared/farmland-on-the-plain-crop-fields-with-furrows-h.js
 shared/coral-walls-you-can-see-and-fly-over-round-the-dry-fields.js
 shared/a-road-that-ends-on-another-road-stops-at-that-r.js
 shared/shared-geometry-kit.js
+shared/phys-the-collision-layer-every-solid-thing-in-the-world.js
 shared/model-tools-profile-extrusion-hull-loft-and-the-models-registry.js
 shared/models-japanese-army-vehicles-type-94-kurogane-ko-hi-ha-go.js
 shared/models-us-vehicles-cckw-willys-clarktor-bomb-trailer-power-cart.js

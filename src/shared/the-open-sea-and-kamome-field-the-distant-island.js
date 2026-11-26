@@ -123,13 +123,20 @@
   add(-40, Yp - 0.02, -66, 280, 0.04, 0.35, 0xc9b23a); /* apron taxi line */
   /* the buildings, reference-built (MODELS, the US airfield buildings piece): two Butler combat hangars on the back of the apron, doors
      toward the runway (on the line v = -119.8, as before), two Quonset huts for operations, the steel-angle control tower */
-  const put = (M, u, v, yaw) => P.push(...M.map((q) => ({ ...q, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) })));
+  /* the solid things among the parts (PHYS): each one's run of parts in P, merged as an item of its own (the rest is flat or small) */
+  const ITEMS = [],
+    item = (f) => {
+      const a = P.length;
+      f();
+      ITEMS.push([a, P.length]);
+    };
+  const put = (M, u, v, yaw) => item(() => P.push(...M.map((q) => ({ ...q, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) }))));
   for (const u of [-150, -80]) put(MODELS.get('us-butler-hangar'), u, -119.8 - 24.39, -Zr);
   for (const u of [-28, -12]) put(MODELS.get('us-quonset', 'std'), u, -142, 0);
   put(MODELS.get('us-control-tower'), 75, -138, 0);
-  for (let k = 0; k < 3; k++) P.push(part(cyl(5, 5, 7, 14), 0xc9c9c0, 118 + k * 14, Yp + 3.5, -128)); /* the fuel tanks, on their gravel yard */
+  for (let k = 0; k < 3; k++) item(() => P.push(part(cyl(5, 5, 7, 14), 0xc9c9c0, 118 + k * 14, Yp + 3.5, -128))); /* the fuel tanks, on their gravel yard */
   add(104, Yp, -118, 3, 1.2, 3, 0x3a3d40); /* pump */
-  P.push(part(cyl(0.4, 0.6, 34, 8), 0x8a2a20, 140, Y0 + 17, 100)); /* the KMM beacon mast */
+  item(() => P.push(part(cyl(0.4, 0.6, 34, 8), 0x8a2a20, 140, Y0 + 17, 100))); /* the KMM beacon mast */
   add(140, Y0, 108, 6, 3.2, 5, 0x8a8a84);
   P.push(...FLG.pole('us', 10, 2.6, 62, Y0 + 0.14, -122, 0.4)); /* the Stars and Stripes at Kamome Field */
   /* a windsock beside the runway */
@@ -138,7 +145,7 @@
   /* the parked fighters, noses toward the runway, and the vehicles on the apron (the same models as at the home field) */
   const parkedP51 = [],
     MD = AFLD.models,
-    park = (m, u, v, yaw) => P.push(...m.map((q) => ({ g: q.g, hex: q.hex, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) })));
+    park = (m, u, v, yaw) => item(() => P.push(...m.map((q) => ({ g: q.g, hex: q.hex, m: new THREE.Matrix4().multiplyMatrices(GX.xf(u, Yp, v, yaw), q.m) }))));
   [
     [-165, 0xb7bcc2, 0xb22a24, {}],
     [-150, 0x5d6341, 0xd9b92a, { ang: 0.7 }],
@@ -156,8 +163,17 @@
   park(MD.tug(), -60, -78, Zr);
   park(MD.fuelTruck(0x9aa0a6), 108, -108, 0, 0);
   park(MD.drums(), 98, -128, 0);
-  const acc = new GX.Acc();
-  acc.add(P, GX.xf(0, 0, 0, 0));
+  const acc = new GX.Acc(),
+    X0 = GX.xf(0, 0, 0, 0);
+  /* in order, so the mesh is as before: the runs between the solid items merged as they are, each item as a solid one (PHYS) */
+  let i0 = 0;
+  for (const [a, b] of ITEMS) {
+    if (a > i0) ((acc.solid = false), acc.add(P.slice(i0, a), X0));
+    acc.solid = true;
+    acc.add(P.slice(a, b), X0);
+    i0 = b;
+  }
+  if (i0 < P.length) ((acc.solid = false), acc.add(P.slice(i0), X0));
   const bm = new THREE.Mesh(acc.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
   const grp = new THREE.Group();
   /* the apron: Marston mat (M8 pierced steel plank) laid over the coral, as on the forward strips */

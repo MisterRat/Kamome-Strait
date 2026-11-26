@@ -60,3 +60,19 @@ HOOKS.mapDraw.push((g, lw) => {
     g.restore();
   }
 });
+
+/* the raiders are solid (PHYS): one that flies into anything (her masts, a ship, a building) goes down there; it is not her kill */
+if (typeof PHYS !== 'undefined')
+  PHYS.flyers({
+    name: 'KI-84',
+    list: () => (typeof RAID === 'object' && RAID ? RAID.L : []),
+    live: (e) => e.st !== 'down',
+    o: (e) => e.b && e.b.g,
+    m: 3900,
+    hit: (e, o, info) => {
+      if (e.st === 'down') return;
+      e.st = 'down';
+      e.sm = 0;
+      explode((info.p || e.p).clone(), 14);
+    },
+  });

@@ -2,6 +2,7 @@
 {
   const acc = new GX.Acc(),
     { part, bx, cyl, sph, Z } = VM;
+  acc.solid = true; /* the towers, floodlights and parked vehicles are solid (PHYS) */
   const put = (P, x, z, yaw, k, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? H(x, z) : y0, z, yaw, k));
   const post = () => [
     part(bx(0.14, 2.3, 0.14), 0x6b6e70, 0, 1.15, 0),

@@ -32,6 +32,9 @@
      ready()            make it ready after a reset (gear, which model shows, where the chase camera starts)
      resetEnd()         last thing in a reset: its missions and trainers
      aimY(), hit(a, b)  what the world's guns lay on (its height) and whether a round from a to b strikes it (b moved to the strike)
+     body()             its solid body for the collision layer (PHYS), or null (crashed, sunk, not yet built): { o its Object3D (placed
+                        in the world), sweep (a fast mover: its path since the last frame is swept), m its mass kg, name, D (cells a
+                        side for its shape), hit(other, info) what a new collision does, touch(other, info) each frame while it lasts }
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
                         torpedoed() is told when one hits her
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
@@ -98,6 +101,7 @@ const SIMS = {
     resetEnd: () => {},
     aimY: () => pos.y,
     hit: () => false,
+    body: () => null,
     afloat: false,
     struck: () => false,
     coastOn: () => typeof ENEMY !== 'undefined' && ENEMY.has('shore') /* the coast guns fire (Settings > Enemy: Shore) */,

@@ -4,7 +4,7 @@
     Y = 1.5,
     { V3, Q, M4, cyl, bx, part, xf } = GX,
     sph = () => GX.sph(12),
-    acc = new GX.Acc(),
+    acc = Object.assign(new GX.Acc(), { solid: true }) /* the parked fighters and trucks are solid (PHYS); the markings are flat */,
     BL = [];
   const place = (P, x, z, yaw, bl, bw) => {
     acc.add(P, xf(x, 0.12, z, yaw));

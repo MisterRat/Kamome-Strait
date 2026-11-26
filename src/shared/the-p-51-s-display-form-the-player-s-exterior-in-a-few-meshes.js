@@ -230,6 +230,7 @@ const P51DISP = (() => {
       lod = new THREE.LOD();
     lod.addLevel(new THREE.Mesh(near, MAT), 0);
     lod.addLevel(new THREE.Mesh(GX.thin(near, THIN), MAT), FAR_AT);
+    lod.userData.solid = { name: 'AIRCRAFT', m: 4600 } /* solid where it stands (PHYS): taxi into it and you crash */;
     return lod;
   };
   return { make, parts, parked };

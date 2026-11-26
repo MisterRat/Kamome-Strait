@@ -287,6 +287,9 @@ const SITES = [],
       [tx, tz] = SITE.w(0, MOLE.d0 + MOLE.L - 5);
     COLL.add({ sea: true, fixed: true, x: sx, z: sz, yaw: Math.atan2(-SITE.S.z, SITE.S.x), hl: (MOLE.L - 10) / 2, r: MOLE.W / 2, v: 0 });
     COLL.add({ sea: true, fixed: true, x: tx, z: tz, yaw: Math.atan2(-SITE.A.z, SITE.A.x), hl: MOLE.tw / 2, r: 5, v: 0 });
+    /* and solid (PHYS): a ship that meets them strikes them */
+    PHYS.box(sx, sz, Math.atan2(-SITE.S.z, SITE.S.x), (MOLE.L - 10) / 2, MOLE.W / 2, SEA.Y + MOLE.h, 'MOLE');
+    PHYS.box(tx, tz, Math.atan2(-SITE.A.z, SITE.A.x), MOLE.tw / 2, 5, SEA.Y + MOLE.h, 'MOLE');
   }
   SITE.rideAt = rideAt;
   const ship = (parts, len, u, d, hp) => target(parts, 'ship', hp, len * 0.3, u, d, SITE.ryS);
@@ -1227,6 +1230,7 @@ const SITES = [],
   /* a perimeter fence (wire on posts) with a guard tower at each corner and at the given u along each long side; in the current frame FR */
   const fenceRect = (U0, U1, D0, D1, mids) => {
     const acc = new GX.Acc();
+    acc.solid = true; /* its guard towers are solid (PHYS; the wire and posts are too small to count) */
     const put = (P, x, z, yaw, y0, T) => acc.add(P, T || GX.xf(x, y0 == null ? GX.standY(P, x, z, yaw) : y0, z, yaw, 1));
     const edge = (u0, d0, u1, d1) => {
       const L = Math.hypot(u1 - u0, d1 - d0),
@@ -1451,6 +1455,7 @@ const SITES = [],
   const siteAcc = (F) => {
     const acc = new GX.Acc(),
       home = F === SITE;
+    acc.solid = true; /* every part placed is solid (PHYS), but the flat and the small */
     return {
       acc,
       at(P, u, d, yaw, y, k) {
@@ -2348,6 +2353,7 @@ const SITES = [],
     S.acc.add(MODELS.get('naval-pier', L, w, at, ab - 0.6, false), GX.xf(ox, wy, oz, F.ryS));
     const [cx, cz] = F.w(u, (d0 + d1) / 2);
     COLL.add({ sea: true, fixed: true, x: cx, z: cz, yaw: F.ryS, hl: L / 2, r: w / 2, v: 0 });
+    PHYS.box(cx, cz, F.ryS, L / 2, w / 2, wy, 'PIER'); /* solid: a ship that meets it strikes it */
     SURF.wet(F.w(u - w / 2, d0), F.w(u + w / 2, d1)); /* the crews walk out on its deck */
   };
   /* a yard surface in frame F at height y, on a 10 m grid that rides up over the drawn ground wherever that stands higher (the 100 m
@@ -2419,6 +2425,8 @@ const SITES = [],
           [tx, tz] = F.w(0, Md0 + ML - 5);
         COLL.add({ sea: true, fixed: true, x: sx, z: sz, yaw: YS, hl: (ML - 10) / 2, r: MW / 2, v: 0 });
         COLL.add({ sea: true, fixed: true, x: tx, z: tz, yaw: YA, hl: MT / 2, r: 5, v: 0 });
+        PHYS.box(sx, sz, YS, (ML - 10) / 2, MW / 2, SEA.Y + 2.2, 'MOLE') /* solid (PHYS) */;
+        PHYS.box(tx, tz, YA, MT / 2, 5, SEA.Y + 2.2, 'MOLE');
       }
       use(-MT / 2 - 4, MT / 2 + 4, 0, 30);
       FR = F;
