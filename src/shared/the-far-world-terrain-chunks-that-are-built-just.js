@@ -2066,6 +2066,7 @@ nearRoads(h.x, h.z);
         T.on = true;
         const sp = NT.sp.find((s) => s.key === k);
         if (sp) sp.src.push(T.src);
+        if (typeof TREESRC !== 'undefined') TREESRC.add(T) /* its trees are solid (PHYS) while it is here */;
       }
       if (it.nR > 0) {
         scene.add(it.roadMesh);
@@ -2096,6 +2097,7 @@ nearRoads(h.x, h.z);
           T.on = false;
           const sp = NT.sp.find((s) => s.key === k);
           if (sp) sp.src = sp.src.filter((q) => q !== T.src);
+          if (typeof TREESRC !== 'undefined') TREESRC.delete(T);
         }
         const it0 = c.it;
         if (it0.rOn) {

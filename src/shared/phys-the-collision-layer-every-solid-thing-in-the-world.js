@@ -9,6 +9,7 @@
      - scenery merged by a GX.Acc that says so (acc.solid = true): each item merged is its own solid (a hut, a tank, a palm), except
        the flat ones (pads, aprons) and the small (drums, crates). Scenery that leaves the scene (a far site dropped) leaves with it;
      - any object marked o.userData.solid = { name, m, mov } (or true), once it is in the scene (a parked P-51);
+     - the fields (PHYS.field): things too many to keep as solids (the trees), made solid round each active as it comes near;
      - PHYS.box(x, z, yaw, hl, hw, top): a pier, a mole, a jetty: a box from the sea bed up to its deck (top, or SURF there);
      - the player's own vehicle (its role's body()) and the flying AI aircraft (PHYS.flyers sources).
    MOVERS: a solid whose thing moves (t.mov, a ship of the fleet, a flyer) has its colliders put where the thing is each frame (the
@@ -57,23 +58,37 @@ const PHYS = (() => {
     const one = Array.isArray(mt) ? mt[0] : mt;
     return !!(one.transparent && one.opacity < 0.9) || one.type === 'ShaderMaterial' || one.type === 'SpriteMaterial';
   };
-  /* the triangle soup (9 numbers a triangle) of o and its meshes, in o's frame with o's world scale */
+  /* the triangle soup (9 numbers a triangle) of o and its meshes, in o's frame with o's world scale (plain array maths: this runs
+     for every new model) */
   const soup = (o) => {
     o.updateMatrixWorld(true);
     o.matrixWorld.decompose(_p, _q, _s);
     _i.compose(_p, _q, _v.set(1, 1, 1)).invert();
-    const out = [];
+    const chunks = [];
+    let total = 0;
     const take = (m) => {
       const g = (m.userData && m.userData.near) || m.geometry;
       if (!g || !g.attributes || !g.attributes.position) return;
       _m.multiplyMatrices(_i, m.matrixWorld);
-      const P = g.attributes.position,
-        ix = g.index;
-      const n = ix ? ix.count : P.count;
+      const e = _m.elements,
+        P = g.attributes.position,
+        A = P.array,
+        st = P.isInterleavedBufferAttribute ? P.data.stride : P.itemSize,
+        of = P.isInterleavedBufferAttribute ? P.offset : 0,
+        ix = g.index ? g.index.array : null,
+        n = ix ? ix.length : P.count,
+        out = new Float32Array(n * 3);
       for (let k = 0; k < n; k++) {
-        _v.fromBufferAttribute(P, ix ? ix.getX(k) : k).applyMatrix4(_m);
-        out.push(_v.x, _v.y, _v.z);
+        const j = (ix ? ix[k] : k) * st + of,
+          x = A[j],
+          y = A[j + 1],
+          z = A[j + 2];
+        out[k * 3] = e[0] * x + e[4] * y + e[8] * z + e[12];
+        out[k * 3 + 1] = e[1] * x + e[5] * y + e[9] * z + e[13];
+        out[k * 3 + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
       }
+      chunks.push(out);
+      total += out.length;
     };
     const walk = (m) => {
       if (m.isLOD) {
@@ -82,14 +97,17 @@ const PHYS = (() => {
           if (!skip(l0.object)) take(l0.object);
           for (const c of l0.object.children) walk(c);
         }
-        if (m.geometry && !skip(m)) take(m); /* a LOD made to look like a mesh (lod.geometry) is measured by its near form above */
         return;
       }
       if (!skip(m)) take(m);
       for (const c of m.children) walk(c);
     };
     walk(o);
-    return out;
+    if (chunks.length === 1) return chunks[0];
+    const S = new Float32Array(total);
+    let at = 0;
+    for (const c of chunks) (S.set(c, at), (at += c.length));
+    return S;
   };
   /* triangles -> convex cells: the model's box cut into up to D a side (D from its size: a hut 1, a ship up to 6), each cell's points
      (the corners and points spread over the larger triangles) a hull. A point near a cell's side goes to both, so no gaps open. */
@@ -121,26 +139,33 @@ const PHYS = (() => {
       o = [x0, y0, z0],
       C = new Map(),
       pad = 0.2,
+      qd = Math.max(0.05, mx / 300) /* points closer than this are one */,
+      lo = [0, 0, 0],
+      hi = [0, 0, 0],
       put = (x, y, z) => {
-        const lo = [],
-          hi = [];
-        const a = [x, y, z];
-        for (let k = 0; k < 3; k++) {
-          const f = (a[k] - o[k]) / cs[k];
-          lo.push(Math.max(0, Math.min(n[k] - 1, Math.floor(f - pad))));
-          hi.push(Math.max(0, Math.min(n[k] - 1, Math.floor(f + pad))));
-        }
+        const ax = (x - o[0]) / cs[0],
+          ay = (y - o[1]) / cs[1],
+          az = (z - o[2]) / cs[2];
+        lo[0] = Math.max(0, Math.min(n[0] - 1, Math.floor(ax - pad)));
+        hi[0] = Math.max(0, Math.min(n[0] - 1, Math.floor(ax + pad)));
+        lo[1] = Math.max(0, Math.min(n[1] - 1, Math.floor(ay - pad)));
+        hi[1] = Math.max(0, Math.min(n[1] - 1, Math.floor(ay + pad)));
+        lo[2] = Math.max(0, Math.min(n[2] - 1, Math.floor(az - pad)));
+        hi[2] = Math.max(0, Math.min(n[2] - 1, Math.floor(az + pad)));
+        const pk = Math.round(x / qd) * 73856093 + Math.round(y / qd) * 19349663 + Math.round(z / qd) * 83492791;
         for (let i = lo[0]; i <= hi[0]; i++)
           for (let j = lo[1]; j <= hi[1]; j++)
             for (let k = lo[2]; k <= hi[2]; k++) {
               const key = i + 64 * (j + 64 * k);
               let L = C.get(key);
-              if (!L) C.set(key, (L = []));
-              L.push(x, y, z);
+              if (!L) C.set(key, (L = { s: new Set(), p: [] }));
+              if (L.s.has(pk)) continue;
+              L.s.add(pk);
+              L.p.push(x, y, z);
             }
       };
     const step = Math.max(0.25, 0.4 * Math.min(...cs.map((s, k) => (n[k] > 1 ? s : 1e9)), c));
-    let budget = 120000;
+    let budget = 40000;
     for (let i = 0; i + 8 < S.length; i += 9) {
       const ax = S[i],
         ay = S[i + 1],
@@ -168,7 +193,7 @@ const PHYS = (() => {
         }
     }
     const out = [];
-    for (const L of C.values()) if (L.length >= 12) out.push(new Float32Array(L));
+    for (const L of C.values()) if (L.p.length >= 12) out.push(new Float32Array(L.p));
     return out;
   };
   /* the shape of o: cached by geometry (and scale) for a plain mesh; else measured */
@@ -197,11 +222,26 @@ const PHYS = (() => {
     } catch (e) {
       d = null;
     }
-    if (d) return d;
+    return d || box(pts);
+  };
+  const box = (pts) => {
     let a = [1e9, 1e9, 1e9],
       b = [-1e9, -1e9, -1e9];
     for (let i = 0; i < pts.length; i += 3) for (let k = 0; k < 3; k++) ((a[k] = Math.min(a[k], pts[i + k])), (b[k] = Math.max(b[k], pts[i + k])));
     return R.ColliderDesc.cuboid(...[0, 1, 2].map((k) => Math.max(0.1, (b[k] - a[k]) / 2))).setTranslation(...[0, 1, 2].map((k) => (a[k] + b[k]) / 2));
+  };
+  /* a primitive in world space: { cap: [a, b] (V3 ends), r } a capsule, or { ball: c (V3), r } a ball */
+  const _up = new V(0, 1, 0),
+    _ax = new V();
+  const prim = (d) => {
+    if (d.ball) return R.ColliderDesc.ball(d.r).setTranslation(d.ball.x, d.ball.y, d.ball.z);
+    const [a, b] = d.cap;
+    _ax.copy(b).sub(a);
+    const L = _ax.length() || 0.01;
+    _q.setFromUnitVectors(_up, _ax.divideScalar(L));
+    return R.ColliderDesc.capsule(L / 2, d.r)
+      .setTranslation((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2)
+      .setRotation({ x: _q.x, y: _q.y, z: _q.z, w: _q.w });
   };
   /* ---- solids ---- */
   /* s: { o (Object3D), parts (point arrays in o's frame) | box {hx, hy, hz}, at (a fixed pose { p, q } instead of o's), name, kind,
@@ -213,16 +253,27 @@ const PHYS = (() => {
       const P = s.at || pose(s, {});
       s.cols = [];
       if (s.box) s.cols.push(W.createCollider(R.ColliderDesc.cuboid(s.box.hx, s.box.hy, s.box.hz).setTranslation(P.p.x, P.p.y, P.p.z).setRotation(P.q)));
+      else if (s.prims) for (const d of s.prims) s.cols.push(W.createCollider(prim(d)));
       else
         for (const pts of s.parts || []) {
-          const d = desc(pts);
-          const t = d.translation;
-          if (t && (t.x || t.y || t.z)) (d.setTranslation(0, 0, 0), (d.off = new V(t.x, t.y, t.z)));
-          const c = W.createCollider(d);
+          let d = desc(pts),
+            c = null;
+          /* a hull Rapier cannot make (the points of a cell all in one plane) fails only here: then the box round them */
+          for (let k = 0; k < 2 && !c; k++) {
+            if (k) d = box(pts);
+            const t = d.translation;
+            if (t && (t.x || t.y || t.z)) (d.setTranslation(0, 0, 0), (d.off = new V(t.x, t.y, t.z)));
+            try {
+              c = W.createCollider(d);
+            } catch (e) {
+              c = null;
+            }
+          }
+          if (!c) continue;
           if (d.off) c.off = d.off;
           s.cols.push(c);
         }
-      if (!s.box) place(s, P);
+      if (!s.box && !s.prims) place(s, P);
       for (const c of s.cols) byH.set(c.handle, s);
       s.p0 = P.p.clone ? P.p.clone() : new V(P.p.x, P.p.y, P.p.z);
       s.v = new V();
@@ -236,6 +287,7 @@ const PHYS = (() => {
       if (s.act) ACT.add(s);
     } catch (e) {
       s.cols = s.cols || [];
+      s.err = String((e && e.message) || e) /* kept for checks */;
     }
   };
   const drop = (s) => {
@@ -282,6 +334,37 @@ const PHYS = (() => {
   };
   const nameOf = (t) =>
     !t ? '' : t.name || (t.type === 'ship' ? 'SHIP' : t.type === 'plane' ? 'AIRCRAFT' : t.kind === 'bld' || t.type === 'hangar' ? 'BUILDING' : t.type === 'tower' ? 'TOWER' : t.kind === 'veh' || t.mov ? 'VEHICLE' : 'OBSTACLE');
+  /* ---- the work of making things solid is queued and done a little at a time (at most BUDGET ms a frame, the nearest to what can
+     strike them first; on the start screen in the background), so a site coming into range never shows as a hitch ---- */
+  const JOBS = [],
+    BUDGET = 2;
+  const job = (x, z, f) => JOBS.push({ x, z, f });
+  const work = (ms) => {
+    if (!JOBS.length) return;
+    const t0 = performance.now();
+    /* the ones near an active first */
+    if (ACT.size && JOBS.length > 1) {
+      const A = [...ACT];
+      const d = (j) => Math.min(...A.map((a) => Math.abs(a.p0.x - j.x) + Math.abs(a.p0.z - j.z)));
+      for (const j of JOBS) j.d = d(j);
+      JOBS.sort((a, b) => a.d - b.d);
+    }
+    let i = 0;
+    while (i < JOBS.length && performance.now() - t0 < ms) {
+      try {
+        JOBS[i].f();
+      } catch (e) {}
+      i++;
+    }
+    JOBS.splice(0, i);
+  };
+  setInterval(() => {
+    if (!ready || broken || (typeof started !== 'undefined' && started && !paused)) return;
+    try {
+      discover();
+      work(12);
+    } catch (e) {}
+  }, 60);
   /* a target in T: solid as it is */
   const fromT = (t) => {
     if (!t || !t.m || t.dead || t.solid) return;
@@ -323,41 +406,48 @@ const PHYS = (() => {
     DONE.add(m);
     m.updateMatrixWorld(true);
     const A = m.geometry.attributes.position.array,
-      M = m.matrixWorld,
-      v = new V();
-    for (const [a, b] of m.geometry.userData.solids) {
-      const S = [];
-      for (let i = a; i + 2 < b; i += 3) (v.set(A[i], A[i + 1], A[i + 2]).applyMatrix4(M), S.push(v.x, v.y, v.z));
-      if (S.length < 9) continue;
-      let y0 = 1e9,
-        y1 = -1e9,
-        x0 = 1e9,
-        x1 = -1e9,
-        z0 = 1e9,
-        z1 = -1e9;
-      for (let i = 0; i < S.length; i += 3) {
-        x0 = Math.min(x0, S[i]);
-        x1 = Math.max(x1, S[i]);
-        y0 = Math.min(y0, S[i + 1]);
-        y1 = Math.max(y1, S[i + 1]);
-        z0 = Math.min(z0, S[i + 2]);
-        z1 = Math.max(z1, S[i + 2]);
-      }
-      const h = y1 - y0,
-        w = Math.max(x1 - x0, z1 - z0);
-      if (h < 0.7 || (h < 2.2 && w < 1.6)) continue; /* flat (a pad, a road) or small (a drum, a crate): not an obstacle */
-      const cx = (x0 + x1) / 2,
-        cy = (y0 + y1) / 2,
-        cz = (z0 + z1) / 2;
-      for (let i = 0; i < S.length; i += 3) ((S[i] -= cx), (S[i + 1] -= cy), (S[i + 2] -= cz));
-      const parts = cells(S, w > 25 || h > 25 ? 0 : 1);
-      if (!parts.length) continue;
-      make({ o: m, parts, at: { p: new V(cx, cy, cz), q: { x: 0, y: 0, z: 0, w: 1 } }, name: 'OBSTACLE', kind: 'scenery', m: Infinity, scen: true });
-    }
+      e = m.matrixWorld.elements;
+    /* each item its own job: its corners into world space, its size judged, its cells made */
+    for (const [a, b] of m.geometry.userData.solids)
+      job(e[12] + A[a], e[14] + A[a + 2], () => {
+        if (!inScene(m) || b - a < 9) return;
+        const S = new Float32Array(b - a);
+        let x0 = 1e9,
+          y0 = 1e9,
+          z0 = 1e9,
+          x1 = -1e9,
+          y1 = -1e9,
+          z1 = -1e9;
+        for (let i = a, k = 0; i + 2 < b; i += 3, k += 3) {
+          const x = A[i],
+            y = A[i + 1],
+            z = A[i + 2],
+            X = e[0] * x + e[4] * y + e[8] * z + e[12],
+            Y = e[1] * x + e[5] * y + e[9] * z + e[13],
+            Z = e[2] * x + e[6] * y + e[10] * z + e[14];
+          S[k] = X;
+          S[k + 1] = Y;
+          S[k + 2] = Z;
+          if (X < x0) x0 = X;
+          if (X > x1) x1 = X;
+          if (Y < y0) y0 = Y;
+          if (Y > y1) y1 = Y;
+          if (Z < z0) z0 = Z;
+          if (Z > z1) z1 = Z;
+        }
+        const h = y1 - y0,
+          w = Math.max(x1 - x0, z1 - z0);
+        if (h < 0.7 || (h < 2.2 && w < 1.6)) return; /* flat (a pad, a road) or small (a drum, a crate): not an obstacle */
+        const cx = (x0 + x1) / 2,
+          cy = (y0 + y1) / 2,
+          cz = (z0 + z1) / 2;
+        for (let i = 0; i < S.length; i += 3) ((S[i] -= cx), (S[i + 1] -= cy), (S[i + 2] -= cz));
+        const parts = cells(S, w > 25 || h > 25 ? 0 : 1);
+        if (parts.length) make({ o: m, parts, at: { p: new V(cx, cy, cz), q: { x: 0, y: 0, z: 0, w: 1 } }, name: 'OBSTACLE', kind: 'scenery', m: Infinity, scen: true });
+      });
   };
   /* an object marked solid (o.userData.solid = { name, m } or true): solid as it stands once it is in the scene (a parked aircraft) */
   const marked = (o) => {
-    DONE.add(o);
     const u = o.userData.solid === true ? {} : o.userData.solid,
       parts = shapeOf(o, u.D);
     if (parts.length) make({ o, parts, name: u.name || 'OBSTACLE', kind: u.kind || 'scenery', m: u.m || Infinity, scen: true, mov: !!u.mov });
@@ -408,6 +498,68 @@ const PHYS = (() => {
       for (const [e, s] of src.S) if (!live.has(e)) (drop(s), src.S.delete(e));
     }
   };
+  /* new targets and new scenery: their solids queued */
+  const discover = () => {
+    /* new targets, new scenery */
+    if (typeof T !== 'undefined') {
+      for (; nT < T.length; nT++) {
+        const t = T[nT];
+        if (t && t.m) job(t.m.position.x, t.m.position.z, () => fromT(t));
+      }
+      for (const s of SOL) if (s.t && s.t.dead) (drop(s), (s.t.solid = null));
+    }
+    if (NEW.length) {
+      const L = NEW.splice(0, NEW.length),
+        keep = [];
+      for (const o of L) {
+        if (!inScene(o)) {
+          if (!o.parent) keep.push(o);
+          continue;
+        }
+        o.traverse((m) => {
+          if (m.userData.solid && !DONE.has(m)) (DONE.add(m), job(m.position.x, m.position.z, () => inScene(m) && marked(m)));
+          else if (m.isMesh && m.geometry && m.geometry.userData.solids && !DONE.has(m)) {
+            const bs = m.geometry.boundingSphere;
+            job(bs ? bs.center.x : 0, bs ? bs.center.z : 0, () => inScene(m) && scenery(m));
+          }
+        });
+      }
+      NEW.push(...keep.slice(-5000));
+    }
+  };
+  /* ---- fields: things too many to hold as solids all the time (the trees): made solid round each active, a little ahead of it, and
+     let go when nothing is near. A field is { name, kind, near(x, z, R, emit) }: near calls emit(key, () => [primitives]) for each
+     thing within R of (x, z) */
+  const FLD = [],
+    FS_ = new Map() /* key -> solid */;
+  let fT = 0,
+    fGen = 0;
+  const fields = (dt) => {
+    if (!FLD.length || (fT += dt) < 0.2) return;
+    fT = 0;
+    fGen++;
+    for (const a of ACT) {
+      /* high above the ground nothing a field holds can be met (the tallest tree is about 30 m) */
+      if (typeof H === 'function' && a.p0.y - H(a.p0.x, a.p0.z) > 60 + (a.v ? Math.max(0, -a.v.y) * 0.4 : 0)) continue;
+      /* where it will be over the next refresh: round the middle of that stretch, out to its ends */
+      const sp = a.v ? Math.hypot(a.v.x, a.v.z) : 0,
+        R2 = (a.rad || 2) + sp * 0.15 + 25,
+        cx = a.p0.x + (a.v ? a.v.x * 0.1 : 0),
+        cz = a.p0.z + (a.v ? a.v.z * 0.1 : 0);
+      for (const f of FLD)
+        f.near(cx, cz, R2, (key, build) => {
+          const k = f.name + key;
+          const s = FS_.get(k);
+          if (s) return void (s.gen = fGen);
+          const prims = build();
+          if (!prims || !prims.length) return;
+          const ns = { prims, name: f.name, kind: f.kind || 'field', m: Infinity, gen: fGen, at: { p: prims[0].ball || prims[0].cap[0], q: { x: 0, y: 0, z: 0, w: 1 } }, fk: k };
+          FS_.set(k, ns);
+          make(ns);
+        });
+    }
+    for (const [k, s] of FS_) if (fGen - s.gen > 2) (drop(s), FS_.delete(k));
+  };
   /* ---- the frame ---- */
   const P = {},
     prev = {},
@@ -418,32 +570,17 @@ const PHYS = (() => {
     nT = 0;
   const NEAR = 3000;
   const mine = (s) => (c) => byH.get(c.handle) !== s;
+  const ST = { n: 0, sum: 0, max: 0 } /* the pass's cost, ms: PHYS.stat() */;
   const tick = (dt) => {
     if (!ready || broken || dt <= 0) return;
+    const t0 = performance.now();
     try {
       for (const f of LATER.splice(0, LATER.length)) f();
-      /* new targets, new scenery */
-      if (typeof T !== 'undefined') {
-        for (; nT < T.length; nT++) fromT(T[nT]);
-        for (const s of SOL) if (s.t && s.t.dead) (drop(s), (s.t.solid = null));
-      }
-      if (NEW.length) {
-        const L = NEW.splice(0, NEW.length),
-          keep = [];
-        for (const o of L) {
-          if (!inScene(o)) {
-            if (!o.parent) keep.push(o);
-            continue;
-          }
-          o.traverse((m) => {
-            if (m.userData.solid && !DONE.has(m)) marked(m);
-            else if (m.isMesh && m.geometry && m.geometry.userData.solids) scenery(m);
-          });
-        }
-        NEW.push(...keep.slice(-5000));
-      }
+      discover();
       playerBody();
       flyers();
+      fields(dt);
+      work(BUDGET);
       /* scenery or targets taken out of the scene (a far site dropped): no longer solid */
       if ((tCheck += dt) > 1) {
         tCheck = 0;
@@ -539,6 +676,10 @@ const PHYS = (() => {
     } catch (e) {
       if (!tick.err) ((tick.err = e), typeof console !== 'undefined' && console.warn('PHYS', e));
     }
+    const ms = performance.now() - t0;
+    ST.n++;
+    ST.sum += ms;
+    ST.max = Math.max(ST.max, ms);
   };
   /* the blow: closing speed, energy (the reduced mass of the two), the point and the normal */
   const impact = (a, o, h) => {
@@ -617,12 +758,20 @@ const PHYS = (() => {
       SRC.push(src);
     },
     solid: (s) => (make(s), s),
+    /* a field of things made solid only round the actives (the trees): { name, kind, near(x, z, R, emit(key, build)) } */
+    field: (f) => FLD.push(f),
     drop,
     shapeOf,
     cells,
     tick,
     show,
-    n: () => ({ solids: SOL.size, colliders: byH.size, actives: ACT.size, waiting: WAIT.length, ready, broken }),
+    /* the pass's cost since the last call: { frames, avg, max } ms (and reset) */
+    stat: () => {
+      const r = { frames: ST.n, avg: ST.n ? +(ST.sum / ST.n).toFixed(2) : 0, max: +ST.max.toFixed(1) };
+      ST.n = ST.sum = ST.max = 0;
+      return r;
+    },
+    n: () => ({ queued: JOBS.length, solids: SOL.size, colliders: byH.size, actives: ACT.size, waiting: WAIT.length, ready, broken }),
     /* the solids whose colliders' boxes meet a box (centre x, y, z, half sizes): [{ name, kind, x, y, z }] (checks, and AI that looks) */
     near(x, y, z, hx, hy, hz) {
       if (!ready) return [];

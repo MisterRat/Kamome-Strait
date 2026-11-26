@@ -343,7 +343,7 @@ function addSpecies(key, items) {
     im.instanceMatrix.needsUpdate = true;
     if (im.instanceColor) im.instanceColor.needsUpdate = true;
     scene.add(im);
-    TREEM.push({ m: im, full: b.length });
+    TREEM.push({ m: im, full: b.length, key }) /* key: the kind (PHYS: the palms are solid) */;
   }
 }
 {
