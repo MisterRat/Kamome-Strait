@@ -25,6 +25,7 @@ function tcUI() {
     (m[TC.state] || '') +
     ' Graphics: ' +
     QL.mode.toUpperCase() +
+    (QL.mode === 'auto' ? ' (now ' + QL.tier().toUpperCase() + ')' : '') +
     ' ' +
     Math.round((QL.pr / QL.max) * 100) +
     '% resolution.';

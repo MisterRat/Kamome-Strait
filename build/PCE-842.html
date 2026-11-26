@@ -614,7 +614,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.9';
+const VERSION = '1.10';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -3704,10 +3704,13 @@ const PHYS = (() => {
     byH = new Map() /* collider handle -> solid */,
     CACHE = new WeakMap() /* geometry -> Map(scale key -> parts) */,
     ACT = new Set() /* the actives */,
+    MOVS = new Set() /* the solids that move (posed each frame near an active; tested in code, not through Rapier's index) */,
     LATER = [] /* boxes whose deck height is read from SURF on the first frame (the world is built by then) */,
     SRC = [] /* the flyer sources */,
     EK = { ship: 1.25, other: 20 } /* joules a kilogram of what is struck that wreck it (strike) */;
-  let nid = 0;
+  let nid = 0,
+    dirty = true /* colliders made or taken away since Rapier's index was last brought up to date (W.step) */,
+    fno = 0;
   const inScene = (o) => {
     while (o.parent) o = o.parent;
     return typeof scene !== 'undefined' && o === scene;
@@ -3952,7 +3955,10 @@ const PHYS = (() => {
       s.p0 = P.p.clone ? P.p.clone() : new V(P.p.x, P.p.y, P.p.z);
       s.v = new V();
       s.id = ++nid;
-      if (s.act) radOf(s);
+      if (s.parts) radOf(s);
+      else s.rad = s.box ? Math.hypot(s.box.hx, s.box.hy, s.box.hz) : 2;
+      if (s.mov) MOVS.add(s);
+      dirty = true;
       SOL.add(s);
       if (s.act) ACT.add(s);
     } catch (e) {
@@ -3975,6 +3981,8 @@ const PHYS = (() => {
     s.cols = [];
     SOL.delete(s);
     ACT.delete(s);
+    MOVS.delete(s);
+    dirty = true;
   };
   /* where a solid's thing is now: { p (V3), q (Rapier quaternion) } */
   const pose = (s, out) => {
@@ -4045,6 +4053,7 @@ const PHYS = (() => {
      through their COLL bodies (b.stopT), and the blow damages both (strike) */
   let saidT = -1e9;
   const vesselAct = (s) => {
+    s.vsl = true;
     s.act = {
       hit: (o, info) => {
         if (info.v < 0.5) return;
@@ -4063,7 +4072,7 @@ const PHYS = (() => {
     const parts = shapeOf(t.m);
     if (!parts.length) return;
     const bb = new THREE.Box3().setFromObject(t.m);
-    t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: true /* posed when something can strike it: SURF.settle may move it after it was made */, m: massOf(t, bb) };
+    t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: !!(t.mov || t.type === 'ship'), m: massOf(t, bb) };
     make(t.solid);
     radOf(t.solid);
     if (t.cb) vesselAct(t.solid);
@@ -4295,7 +4304,9 @@ const PHYS = (() => {
     prev = {},
     _a = new V(),
     _d = new V();
-  let tSweep = 0,
+  let reposed = false,
+    playT = 0,
+    tSweep = 0,
     tCheck = 0,
     nT = 0;
   const NEAR = 3000;
@@ -4307,6 +4318,18 @@ const PHYS = (() => {
     try {
       for (const f of LATER.splice(0, LATER.length)) f();
       discover();
+      /* once, a few seconds into the game: the static targets put where they stand now (SURF.settle sets them on the surfaces after
+         they were made) */
+      if (!reposed && (playT += dt) > 5) {
+        reposed = true;
+        for (const s of SOL)
+          if (s.t && !s.mov && s.o && s.cols.length) {
+            pose(s, P);
+            s.p0.copy(P.p);
+            place(s, P);
+          }
+        dirty = true;
+      }
       playerBody();
       flyers();
       fields(dt);
@@ -4318,8 +4341,7 @@ const PHYS = (() => {
       }
       /* the movers near an active go where they are now; the actives too (where they were kept for the sweep) */
       const A = [...ACT];
-      for (const s of SOL) {
-        if (!s.mov) continue;
+      for (const s of MOVS) {
         if (!s.act) {
           let nr = false;
           for (const a of A) if (Math.abs(a.p0.x - s.p0.x) < NEAR && Math.abs(a.p0.z - s.p0.z) < NEAR) ((nr = true), 0);
@@ -4334,13 +4356,16 @@ const PHYS = (() => {
         s.q0 = P.q;
         place(s, P);
       }
-      W.step();
+      if (dirty) ((dirty = false), W.step());
+      fno++;
       /* each active: what it strikes. The candidates are the colliders whose boxes meet the box round its path (Rapier's index);
          then only those pairs are tested, collider against collider (no shape is rebuilt): a sweep casts its colliders from where
          they were last frame along the way it went; every active is tested where it stands now */
       const seen = new Set();
       for (const a of A) {
         if (!SOL.has(a) || !a.cols.length) continue;
+        /* an AI vessel is slow: checked every third frame (staggered) */
+        if (a.vsl && (fno + a.id) % 3) continue;
         const now = new Map();
         const q = a.q0 || { x: 0, y: 0, z: 0, w: 1 };
         const sw = a.act.sweep && a.pp && (_d.copy(a.p0).sub(a.pp)).lengthSq() > 1e-6;
@@ -4348,11 +4373,19 @@ const PHYS = (() => {
         const r = a.rad || 1;
         _a.copy(a.p0).addScaledVector(_d, -0.5);
         const cand = new Set();
-        W.collidersWithAabbIntersectingAabb(_a, { x: Math.abs(_d.x) / 2 + r, y: Math.abs(_d.y) / 2 + r, z: Math.abs(_d.z) / 2 + r }, (k) => {
+        const hx = Math.abs(_d.x) / 2 + r,
+          hy = Math.abs(_d.y) / 2 + r,
+          hz = Math.abs(_d.z) / 2 + r;
+        W.collidersWithAabbIntersectingAabb(_a, { x: hx, y: hy, z: hz }, (k) => {
           const o = byH.get(k.handle);
-          if (o && o !== a) cand.add(o);
+          if (o && o !== a && !o.mov) cand.add(o);
           return true;
         });
+        for (const o of MOVS) {
+          if (o === a || !o.cols.length) continue;
+          const ro = o.rad || 2;
+          if (Math.abs(o.p0.x - _a.x) < hx + ro && Math.abs(o.p0.z - _a.z) < hz + ro && Math.abs(o.p0.y - _a.y) < hy + ro) cand.add(o);
+        }
         if (cand.size) {
           if (sw) {
             /* back to where it was, cast along its way, then where it is */
@@ -26271,16 +26304,32 @@ const QT = {
   high: { trees: 1, near: [440, 300], grass: 1, detail: 1, clouds: 1, shadow: true, res: 2, fx: 2 },
 };
 const QMODES = ['auto', 'low', 'medium', 'high'];
+/* AUTO's ladder (the user's, 2026-11-25: on a cheap PC auto went below Low, yet Low played fine). It steps through the tiers first and
+   never goes below Low itself: [tier, pixel ratio (capped at the screen's)]. */
+const QLAD = [
+  ['high', 2],
+  ['high', 1.5],
+  ['medium', 1.25],
+  ['medium', 1],
+  ['low', 1],
+];
 const QL = {
   mode: QMODES.includes(store.get('gfx', 'auto')) ? store.get('gfx', 'auto') : 'auto',
+  lv: Math.max(0, Math.min(QLAD.length - 1, store.get('gfxlv', 0) | 0)) /* AUTO: where it stands on the ladder (it starts where it last settled) */,
   t() {
-    return QT[this.mode === 'auto' ? (this.lite ? 'low' : 'high') : this.mode];
+    return QT[this.mode === 'auto' ? QLAD[this.lv][0] : this.mode];
+  },
+  /* the tier in force (for the settings panel) */
+  tier() {
+    return this.mode === 'auto' ? QLAD[this.lv][0] : this.mode;
   },
   pr: Math.min(window.devicePixelRatio || 1, 2),
   max: Math.min(window.devicePixelRatio || 1, 2),
-  acc: 0,
-  n: 0,
-  good: 0,
+  F: [] /* AUTO: the frame times of the window being measured */,
+  wait: 8 /* AUTO: seconds to let pass before judging (shaders compiling, the world building) */,
+  up: 0 /* AUTO: good windows in a row */,
+  ceil: Infinity /* AUTO: a step that proved too much is not tried again for a while */,
+  ceilT: 0,
 };
 function setPR(p) {
   p = Math.max(0.6, Math.min(QL.max, p));
@@ -26299,7 +26348,7 @@ function applyQuality() {
   OCEAN.U.uQ.value = t.fx; /* the sea's ripples and detail follow the graphics tier */
   NT.R = t.near[0]; /* the radius of the detailed trees, and how many of them at most */
   NT.cap = t.near[1];
-  if (QL.mode !== 'auto') NT.k = 1;
+  NT.k = 1;
   NT.gx = 1e9;
   GR.gx = 1e9;
   if (typeof WORLD !== 'undefined') WORLD.setQ();
@@ -26308,41 +26357,38 @@ function applyQuality() {
   });
   CSH.rebuild();
   CSH.k.value = t.shadow ? 0.28 * WX.shK : 0;
-  if (QL.mode !== 'auto') setPR(Math.min(QL.max, t.res));
-  else if (QL.lite) setPR(1);
+  setPR(Math.min(QL.max, QL.mode === 'auto' ? QLAD[QL.lv][1] : t.res));
   store.set('gfx', QL.mode);
+  if (QL.mode === 'auto') store.set('gfxlv', QL.lv);
 }
+/* AUTO: every frame's time; judged on windows of 120 frames by the median (a loading hitch or two does not count), after the first
+   seconds. Slower than 36 fps: a step down the ladder. Faster than 60 fps for three windows running: a step up, unless that step
+   proved too slow in the last minute. Only while the game runs (a paused or hidden page does not count). */
 function adaptRes(ms) {
-  if (QL.mode !== 'auto' || ms > 120) return;
-  QL.acc += ms;
-  if (++QL.n >= 90) {
-    const avg = QL.acc / QL.n;
-    QL.acc = 0;
-    QL.n = 0;
-    if (avg > 27 && NT.k > 0.4 && NT.R > 0) {
-      /* slow: first shrink the zone of detailed trees, then the resolution */
-      NT.k = Math.max(0.3, NT.k - 0.35);
-      NT.gx = 1e9;
-      QL.good = 0;
-    } else if (avg > 27 && QL.pr > 0.6) {
-      setPR(QL.pr - 0.25);
-      QL.good = 0;
-    } else if (avg > 27 && !QL.lite) {
-      QL.lite = true;
+  if (QL.mode !== 'auto' || ms <= 0 || ms > 250 || (typeof started !== 'undefined' && !started) || (typeof paused !== 'undefined' && paused)) return;
+  if (QL.wait > 0) return void (QL.wait -= ms / 1000);
+  QL.F.push(ms);
+  if (QL.F.length < 120) return;
+  const F = QL.F.sort((a, b) => a - b),
+    med = F[F.length >> 1];
+  QL.F = [];
+  const now = performance.now() / 1000;
+  if (now - QL.ceilT > 60) QL.ceil = Infinity;
+  if (med > 27.5 && QL.lv < QLAD.length - 1) {
+    QL.ceil = QL.lv;
+    QL.ceilT = now;
+    QL.lv++;
+    QL.up = 0;
+    applyQuality();
+    QL.wait = 3;
+  } else if (med < 16.5 && QL.lv > 0 && (QL.ceil === Infinity || QL.lv - 1 > QL.ceil)) {
+    if (++QL.up >= 3) {
+      QL.lv--;
+      QL.up = 0;
       applyQuality();
-    } else if (avg < 19 && QL.pr < QL.max) {
-      if (++QL.good >= 3) {
-        setPR(QL.pr + 0.25);
-        QL.good = 0;
-      }
-    } else if (avg < 19 && NT.k < 1 && NT.R > 0) {
-      if (++QL.good >= 3) {
-        NT.k = Math.min(1, NT.k + 0.35);
-        NT.gx = 1e9;
-        QL.good = 0;
-      }
-    } else QL.good = 0;
-  }
+      QL.wait = 3;
+    }
+  } else QL.up = 0;
 }
 applyQuality(); /* apply the saved choice at start-up */
 /* ---------- phone / tablet: responsive layout, touch controls, tilt (gyro) flying ---------- */
@@ -26939,6 +26985,7 @@ function tcUI() {
     (m[TC.state] || '') +
     ' Graphics: ' +
     QL.mode.toUpperCase() +
+    (QL.mode === 'auto' ? ' (now ' + QL.tier().toUpperCase() + ')' : '') +
     ' ' +
     Math.round((QL.pr / QL.max) * 100) +
     '% resolution.';
@@ -37294,8 +37341,42 @@ function frame(now) {
   R_.hudLate(dt);
   audioUpd();
   R_.preRender();
+  fogCut();
   R.render(scene, cam);
+  fogUncut();
   if (PHOTO.shot) photoCapture();
+}
+// Nothing past the fog can be seen, so a mesh whose nearest edge lies beyond
+// fog.far is left out of this one draw (its own visible flag is put back
+// straight after, so nothing else in the game notices). Only plain meshes that
+// take the fog are judged; instanced meshes, groups and the sky are left alone.
+const FOGCUT = { on: true, list: [], n: 0 };
+const _fcV = new THREE.Vector3();
+function fogCut() {
+  const L = FOGCUT.list, f = scene.fog;
+  L.length = 0;
+  if (!FOGCUT.on || !f || !(f.far > 0)) return;
+  const cx = cam.matrixWorld.elements[12], cy = cam.matrixWorld.elements[13], cz = cam.matrixWorld.elements[14];
+  const ch = scene.children;
+  for (let i = 0; i < ch.length; i++) {
+    const o = ch[i];
+    if (!o.visible || !o.isMesh || o.isInstancedMesh) continue;
+    const m = o.material;
+    if (!m || m.fog === false || Array.isArray(m)) continue;
+    const g = o.geometry;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    const sp = g.boundingSphere;
+    _fcV.copy(sp.center).applyMatrix4(o.matrixWorld);
+    const r = sp.radius * o.matrixWorld.getMaxScaleOnAxis();
+    const dx = _fcV.x - cx, dy = _fcV.y - cy, dz = _fcV.z - cz, d = f.far + r;
+    if (dx * dx + dy * dy + dz * dz > d * d) ((o.visible = false), L.push(o));
+  }
+  FOGCUT.n = L.length;
+}
+function fogUncut() {
+  const L = FOGCUT.list;
+  for (let i = 0; i < L.length; i++) L[i].visible = true;
+  L.length = 0;
 }
 requestAnimationFrame(frame);
 </script>

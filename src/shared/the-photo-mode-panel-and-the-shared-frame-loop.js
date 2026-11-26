@@ -186,7 +186,41 @@ function frame(now) {
   R_.hudLate(dt);
   audioUpd();
   R_.preRender();
+  fogCut();
   R.render(scene, cam);
+  fogUncut();
   if (PHOTO.shot) photoCapture();
+}
+// Nothing past the fog can be seen, so a mesh whose nearest edge lies beyond
+// fog.far is left out of this one draw (its own visible flag is put back
+// straight after, so nothing else in the game notices). Only plain meshes that
+// take the fog are judged; instanced meshes, groups and the sky are left alone.
+const FOGCUT = { on: true, list: [], n: 0 };
+const _fcV = new THREE.Vector3();
+function fogCut() {
+  const L = FOGCUT.list, f = scene.fog;
+  L.length = 0;
+  if (!FOGCUT.on || !f || !(f.far > 0)) return;
+  const cx = cam.matrixWorld.elements[12], cy = cam.matrixWorld.elements[13], cz = cam.matrixWorld.elements[14];
+  const ch = scene.children;
+  for (let i = 0; i < ch.length; i++) {
+    const o = ch[i];
+    if (!o.visible || !o.isMesh || o.isInstancedMesh) continue;
+    const m = o.material;
+    if (!m || m.fog === false || Array.isArray(m)) continue;
+    const g = o.geometry;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    const sp = g.boundingSphere;
+    _fcV.copy(sp.center).applyMatrix4(o.matrixWorld);
+    const r = sp.radius * o.matrixWorld.getMaxScaleOnAxis();
+    const dx = _fcV.x - cx, dy = _fcV.y - cy, dz = _fcV.z - cz, d = f.far + r;
+    if (dx * dx + dy * dy + dz * dz > d * d) ((o.visible = false), L.push(o));
+  }
+  FOGCUT.n = L.length;
+}
+function fogUncut() {
+  const L = FOGCUT.list;
+  for (let i = 0; i < L.length; i++) L[i].visible = true;
+  L.length = 0;
 }
 requestAnimationFrame(frame);

@@ -37,10 +37,13 @@ const PHYS = (() => {
     byH = new Map() /* collider handle -> solid */,
     CACHE = new WeakMap() /* geometry -> Map(scale key -> parts) */,
     ACT = new Set() /* the actives */,
+    MOVS = new Set() /* the solids that move (posed each frame near an active; tested in code, not through Rapier's index) */,
     LATER = [] /* boxes whose deck height is read from SURF on the first frame (the world is built by then) */,
     SRC = [] /* the flyer sources */,
     EK = { ship: 1.25, other: 20 } /* joules a kilogram of what is struck that wreck it (strike) */;
-  let nid = 0;
+  let nid = 0,
+    dirty = true /* colliders made or taken away since Rapier's index was last brought up to date (W.step) */,
+    fno = 0;
   const inScene = (o) => {
     while (o.parent) o = o.parent;
     return typeof scene !== 'undefined' && o === scene;
@@ -285,7 +288,10 @@ const PHYS = (() => {
       s.p0 = P.p.clone ? P.p.clone() : new V(P.p.x, P.p.y, P.p.z);
       s.v = new V();
       s.id = ++nid;
-      if (s.act) radOf(s);
+      if (s.parts) radOf(s);
+      else s.rad = s.box ? Math.hypot(s.box.hx, s.box.hy, s.box.hz) : 2;
+      if (s.mov) MOVS.add(s);
+      dirty = true;
       SOL.add(s);
       if (s.act) ACT.add(s);
     } catch (e) {
@@ -308,6 +314,8 @@ const PHYS = (() => {
     s.cols = [];
     SOL.delete(s);
     ACT.delete(s);
+    MOVS.delete(s);
+    dirty = true;
   };
   /* where a solid's thing is now: { p (V3), q (Rapier quaternion) } */
   const pose = (s, out) => {
@@ -378,6 +386,7 @@ const PHYS = (() => {
      through their COLL bodies (b.stopT), and the blow damages both (strike) */
   let saidT = -1e9;
   const vesselAct = (s) => {
+    s.vsl = true;
     s.act = {
       hit: (o, info) => {
         if (info.v < 0.5) return;
@@ -396,7 +405,7 @@ const PHYS = (() => {
     const parts = shapeOf(t.m);
     if (!parts.length) return;
     const bb = new THREE.Box3().setFromObject(t.m);
-    t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: true /* posed when something can strike it: SURF.settle may move it after it was made */, m: massOf(t, bb) };
+    t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: !!(t.mov || t.type === 'ship'), m: massOf(t, bb) };
     make(t.solid);
     radOf(t.solid);
     if (t.cb) vesselAct(t.solid);
@@ -628,7 +637,9 @@ const PHYS = (() => {
     prev = {},
     _a = new V(),
     _d = new V();
-  let tSweep = 0,
+  let reposed = false,
+    playT = 0,
+    tSweep = 0,
     tCheck = 0,
     nT = 0;
   const NEAR = 3000;
@@ -640,6 +651,18 @@ const PHYS = (() => {
     try {
       for (const f of LATER.splice(0, LATER.length)) f();
       discover();
+      /* once, a few seconds into the game: the static targets put where they stand now (SURF.settle sets them on the surfaces after
+         they were made) */
+      if (!reposed && (playT += dt) > 5) {
+        reposed = true;
+        for (const s of SOL)
+          if (s.t && !s.mov && s.o && s.cols.length) {
+            pose(s, P);
+            s.p0.copy(P.p);
+            place(s, P);
+          }
+        dirty = true;
+      }
       playerBody();
       flyers();
       fields(dt);
@@ -651,8 +674,7 @@ const PHYS = (() => {
       }
       /* the movers near an active go where they are now; the actives too (where they were kept for the sweep) */
       const A = [...ACT];
-      for (const s of SOL) {
-        if (!s.mov) continue;
+      for (const s of MOVS) {
         if (!s.act) {
           let nr = false;
           for (const a of A) if (Math.abs(a.p0.x - s.p0.x) < NEAR && Math.abs(a.p0.z - s.p0.z) < NEAR) ((nr = true), 0);
@@ -667,13 +689,16 @@ const PHYS = (() => {
         s.q0 = P.q;
         place(s, P);
       }
-      W.step();
+      if (dirty) ((dirty = false), W.step());
+      fno++;
       /* each active: what it strikes. The candidates are the colliders whose boxes meet the box round its path (Rapier's index);
          then only those pairs are tested, collider against collider (no shape is rebuilt): a sweep casts its colliders from where
          they were last frame along the way it went; every active is tested where it stands now */
       const seen = new Set();
       for (const a of A) {
         if (!SOL.has(a) || !a.cols.length) continue;
+        /* an AI vessel is slow: checked every third frame (staggered) */
+        if (a.vsl && (fno + a.id) % 3) continue;
         const now = new Map();
         const q = a.q0 || { x: 0, y: 0, z: 0, w: 1 };
         const sw = a.act.sweep && a.pp && (_d.copy(a.p0).sub(a.pp)).lengthSq() > 1e-6;
@@ -681,11 +706,19 @@ const PHYS = (() => {
         const r = a.rad || 1;
         _a.copy(a.p0).addScaledVector(_d, -0.5);
         const cand = new Set();
-        W.collidersWithAabbIntersectingAabb(_a, { x: Math.abs(_d.x) / 2 + r, y: Math.abs(_d.y) / 2 + r, z: Math.abs(_d.z) / 2 + r }, (k) => {
+        const hx = Math.abs(_d.x) / 2 + r,
+          hy = Math.abs(_d.y) / 2 + r,
+          hz = Math.abs(_d.z) / 2 + r;
+        W.collidersWithAabbIntersectingAabb(_a, { x: hx, y: hy, z: hz }, (k) => {
           const o = byH.get(k.handle);
-          if (o && o !== a) cand.add(o);
+          if (o && o !== a && !o.mov) cand.add(o);
           return true;
         });
+        for (const o of MOVS) {
+          if (o === a || !o.cols.length) continue;
+          const ro = o.rad || 2;
+          if (Math.abs(o.p0.x - _a.x) < hx + ro && Math.abs(o.p0.z - _a.z) < hz + ro && Math.abs(o.p0.y - _a.y) < hy + ro) cand.add(o);
+        }
         if (cand.size) {
           if (sw) {
             /* back to where it was, cast along its way, then where it is */
