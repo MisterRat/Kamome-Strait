@@ -26,6 +26,7 @@ const TANK = {
     4: [
       { name: 'DRIVER - HEAD OUT', e: [1.2, 2.58, -0.52] /* his seat up, his head out of the hatch */ },
       { name: 'DRIVER - BUTTONED UP: M6 PERISCOPE', e: [1.1, 2.12, -0.4], peri: true /* the seat down, the hatch shut, his eyes at the periscope's window */ },
+      { name: 'DRIVER - BUTTONED UP: CONTROLS AND INSTRUMENTS', e: [0.5, 1.47, -0.52], yaw: 0.22, pitch: -0.36, inside: true /* in his seat, looking down at the laterals and the instrument box (the driver's compartment) */ },
     ],
   },
 };
@@ -88,7 +89,7 @@ SIMS.add({
   canStep: () => true,
   step: (h) => tankDrive(h),
   live: () => BA.update(pos),
-  pose: () => tankPose(),
+  pose: (dt) => (tankPose(), dcompPose(dt || 0)),
   /* first person: the station's eye (TANK.EYE), turned by its own look and the head. Through the driver's M6 periscope the head turns the
      periscope (it rotates in the hatch) and tilts it a little for near or far; the field is narrow (the window mask: tankHudLate) */
   eye: (P, D) => {
@@ -99,7 +100,7 @@ SIMS.add({
       pt = viewPitch + TANK.look[1],
       cp = Math.cos(pt);
     TANK.toW(D.set(cp * Math.cos(yw), Math.sin(pt), -cp * Math.sin(yw)));
-    return TANK.peri ? 30 : 65;
+    return TANK.peri ? 30 : STATION.view() && STATION.view().inside ? 80 : 65;
   },
   /* the stations: the shared STATION with the tank's own list */
   stations: () => TANK.STN,
