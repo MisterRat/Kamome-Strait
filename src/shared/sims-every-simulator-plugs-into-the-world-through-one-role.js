@@ -37,6 +37,8 @@
                         side for its shape), hit(other, info) what a new collision does, touch(other, info) each frame while it lasts }
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
                         torpedoed() is told when one hits her
+     stations(), stationTake(n, view, sub), stationBlock(n), stationFirst(n, list): its crew stations for the shared STATION (the
+                        stations piece): its list { n: [view, ...] }, putting the eye at a view, a message instead, the first view
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -66,6 +68,10 @@ const SIMS = {
     name: '',
     look: () => false,
     canStep: () => true,
+    stations: () => null,
+    stationTake: () => {},
+    stationBlock: () => null,
+    stationFirst: () => 0,
     step: () => {},
     afterStep: () => {},
     pose: () => {},

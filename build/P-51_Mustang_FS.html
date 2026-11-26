@@ -620,7 +620,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '5.129';
+const VERSION = '5.130';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'p51', name: 'P-51', key: 'p51' };
@@ -712,6 +712,8 @@ const HOOKS = {
                         side for its shape), hit(other, info) what a new collision does, touch(other, info) each frame while it lasts }
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
                         torpedoed() is told when one hits her
+     stations(), stationTake(n, view, sub), stationBlock(n), stationFirst(n, list): its crew stations for the shared STATION (the
+                        stations piece): its list { n: [view, ...] }, putting the eye at a view, a message instead, the first view
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -741,6 +743,10 @@ const SIMS = {
     name: '',
     look: () => false,
     canStep: () => true,
+    stations: () => null,
+    stationTake: () => {},
+    stationBlock: () => null,
+    stationFirst: () => 0,
     step: () => {},
     afterStep: () => {},
     pose: () => {},

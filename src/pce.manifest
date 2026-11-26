@@ -21,6 +21,7 @@ pce/version-major-minor-the-user-decides-when-the-ma.js
 shared/saved-settings-and-warnings-store-logwarn.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
 shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
+shared/stations-the-crew-s-places-each-simulator-hands-in-its-own-list.js
 shared/mission-and-replay-state-what-every-simulator-reads.js
 pce/the-pce-842-s-role-how-the-ship-plugs-into-the-shared-frame-loop.js
 shared/sea-the-world-s-sea-levels-in-one-place.js

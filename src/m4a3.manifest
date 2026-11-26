@@ -21,6 +21,7 @@ m4a3/version-major-minor-the-user-decides-when-the-ma.js
 shared/saved-settings-and-warnings-store-logwarn.js
 shared/hooks-how-a-game-s-own-modules-plug-into-the-world.js
 shared/sims-every-simulator-plugs-into-the-world-through-one-role.js
+shared/stations-the-crew-s-places-each-simulator-hands-in-its-own-list.js
 m4a3/the-m4a3-s-role-how-the-tank-plugs-into-the-shared-frame-loop.js
 m4a3/collisions-the-tank-strikes-something-solid.js
 m4a3/the-drive-train-and-the-tracks.js

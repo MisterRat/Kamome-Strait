@@ -4,9 +4,7 @@ const SHIP = {
   VAST: 6 * 0.5144 /* full astern */,
   TAU: 25 /* seconds to settle most of the way on a new speed */,
   RMIN: 180 /* turning radius at full rudder, m (first-pass figure) */,
-  EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by shipStation() */,
-  stn: 1 /* station 1-5 (PCEM.STN) */,
-  sub: 0 /* which view at that station */,
+  EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by her role's stationTake() */,
   look: [0, 0] /* the station's own look direction: yaw (+ to starboard), pitch */,
   YAX: new THREE.Vector3(0, 1, 0),
   QB: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2) /* the model's bow is +x, the player's is -z */,
@@ -33,3 +31,8 @@ const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
 const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0 /* seconds of the player's pumps */, cf: 0 /* counter-flooded: how much of the list is taken off */ };
+/* SHIP.stn (station 1-5, PCEM.STN) and SHIP.sub (which view there) are the shared STATION's (the stations piece): the same two numbers */
+Object.defineProperties(SHIP, {
+  stn: { get: () => STATION.stn, set: (v) => (STATION.stn = v), enumerable: true },
+  sub: { get: () => STATION.sub, set: (v) => (STATION.sub = v), enumerable: true },
+});

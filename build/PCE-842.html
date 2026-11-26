@@ -614,7 +614,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.10';
+const VERSION = '1.11';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -706,6 +706,8 @@ const HOOKS = {
                         side for its shape), hit(other, info) what a new collision does, touch(other, info) each frame while it lasts }
      afloat, struck(p)  a ship: torpedoes run at her, and struck(p) says whether a point at the sea is inside her hull;
                         torpedoed() is told when one hits her
+     stations(), stationTake(n, view, sub), stationBlock(n), stationFirst(n, list): its crew stations for the shared STATION (the
+                        stations piece): its list { n: [view, ...] }, putting the eye at a view, a message instead, the first view
      bind               its controls: rows [id, doc word, keyboard codes, controller button] (the controls piece builds BI, PB, KEYID)
      act, uiAct         what each binding does: flight/ship actions, and the menu and view actions; keyFirst(e), keyStation(e) its
                         own keys before the bindings (true: taken)
@@ -735,6 +737,10 @@ const SIMS = {
     name: '',
     look: () => false,
     canStep: () => true,
+    stations: () => null,
+    stationTake: () => {},
+    stationBlock: () => null,
+    stationFirst: () => 0,
     step: () => {},
     afterStep: () => {},
     pose: () => {},
@@ -842,6 +848,42 @@ const SIMS = {
       if (typeof bindsUse === 'function') bindsUse(s);
     }
     return s;
+  },
+};
+/* STATION: the crew's places, shared by every simulator with stations (the PCE-842's five, the M4A3's). A station is a number (the key
+   1-6 that takes it) with a list of views; pressing the same key again steps to its next view. The shared part knows nothing of ships or
+   tanks: each simulator hands in its own list and puts the eye there, through its role:
+     stations()                 its stations: { n: [view, ...] }, each view at least { name } (shown in a note when taken)
+     stationTake(n, view, sub)  put the eye at that view (and anything the simulator does on arriving: a gun taken, a helmsman told)
+     stationBlock(n)            optional: a message instead of taking it (the key does nothing else), else null
+     stationFirst(n, list)      optional: the view a station taken afresh starts at (default the first)
+   STATION.take(n): what the key does: false if the simulator has no station n. Taking one puts the camera in first person with the
+   head straight ahead. STATION.stn, STATION.sub: where the player is (the station, its view); STATION.view(): that view. */
+const STATION = {
+  stn: 1,
+  sub: 0,
+  list(n) {
+    const L = SIMS.cur && SIMS.cur.stations();
+    return L ? L[n] : null;
+  },
+  view() {
+    const l = STATION.list(STATION.stn);
+    return l ? l[STATION.sub] : null;
+  },
+  take(n) {
+    const R = SIMS.cur,
+      list = STATION.list(n);
+    if (!list || !list.length) return false;
+    const msg = R.stationBlock(n);
+    if (msg) return note(msg), true;
+    STATION.sub = camMode == 1 && STATION.stn === n ? (STATION.sub + 1) % list.length : R.stationFirst(n, list);
+    STATION.stn = n;
+    const st = list[STATION.sub];
+    viewYaw = viewPitch = 0;
+    camMode = 1;
+    R.stationTake(n, st, STATION.sub);
+    note(st.name);
+    return true;
   },
 };
 /* the mission and replay state every simulator reads: which mission (trn.mode, 'free' for free play), and whether a replay is on.
@@ -1081,9 +1123,7 @@ const SHIP = {
   VAST: 6 * 0.5144 /* full astern */,
   TAU: 25 /* seconds to settle most of the way on a new speed */,
   RMIN: 180 /* turning radius at full rudder, m (first-pass figure) */,
-  EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by shipStation() */,
-  stn: 1 /* station 1-5 (PCEM.STN) */,
-  sub: 0 /* which view at that station */,
+  EYE: new THREE.Vector3(0, 11.3, -8.5) /* the current station's eye, from the waterline amidships (bow toward -z); set by her role's stationTake() */,
   look: [0, 0] /* the station's own look direction: yaw (+ to starboard), pitch */,
   YAX: new THREE.Vector3(0, 1, 0),
   QB: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2) /* the model's bow is +x, the player's is -z */,
@@ -1110,6 +1150,11 @@ const MAG0 = { '3in': 1400, 40: 6000, 20: 10000, hh: 72, dc: 36 },
 /* her battle damage (BATTLE DAMAGE, the PCE-842): holes, flooding and fire 0..1 of their worst, the engines' damage, her loss; shaft:
    the speed a shallow charge under her stern leaves her */
 const SDM = { holes: 0, flood: 0, fire: 0, eng: 0, lost: false, sink: 0, smokeT: 0, msgT: 0, shaft: 1, pump: 0 /* seconds of the player's pumps */, cf: 0 /* counter-flooded: how much of the list is taken off */ };
+/* SHIP.stn (station 1-5, PCEM.STN) and SHIP.sub (which view there) are the shared STATION's (the stations piece): the same two numbers */
+Object.defineProperties(SHIP, {
+  stn: { get: () => STATION.stn, set: (v) => (STATION.stn = v), enumerable: true },
+  sub: { get: () => STATION.sub, set: (v) => (STATION.sub = v), enumerable: true },
+});
 /* the gunner's state (station 4; see THE GUNNER above the loop) */
 const GUN = {
   M: [] /* the mounts */,
@@ -29180,25 +29225,25 @@ function drawCompass(hdg) {
    She runs aground in water shallower than her draft (2.9 m): back her off with the engines astern.
    The swell (pitch, roll, heave) is for the eye only and does not move her track. All figures are first-pass (see the plan).
    ===================================================================================================================== */
-/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): its first-person eye and look; pressing the same key again steps to the station's next view */
-function shipStation(n) {
-  const list = PCEM.STN[n];
-  if (!list) return;
-  if (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
-  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
-  SHIP.stn = n;
-  const st = list[SHIP.sub];
-  SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
-  SHIP.look[0] = st.yaw;
-  SHIP.look[1] = st.pitch;
-  viewYaw = viewPitch = 0;
-  camMode = 1;
-  SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
-  STN.bino = false;
-  if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
-  gunStation();
-  note(st.name);
-}
+/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): the shared STATION (the stations piece) with the ship's own list
+   (PCEM.STN), her eye and look at each view; pressing the same key again steps to the station's next view */
+const shipStation = (n) => STATION.take(n);
+/* the ship's own part of taking a station (the shared STATION does the rest: which view, first person, the note) */
+SIMS.add({
+  id: 'pce',
+  stations: () => PCEM.STN,
+  stationBlock: (n) => (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5 ? 'HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS' : null),
+  stationFirst: (n, list) => (n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0),
+  stationTake: (n, st) => {
+    SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
+    SHIP.look[0] = st.yaw;
+    SHIP.look[1] = st.pitch;
+    SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
+    STN.bino = false;
+    if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
+    gunStation();
+  },
+});
 /* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
    lies beyond each enemy gun's reach (ROE.reach: the coast batteries' 14 km, an armed post's or ship's longest gun, the T-14s' 4 km)
    and 3 km more.

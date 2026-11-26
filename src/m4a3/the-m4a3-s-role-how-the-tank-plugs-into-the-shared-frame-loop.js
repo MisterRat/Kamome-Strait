@@ -15,7 +15,19 @@ const TANK = {
      / fwd / right / up): the mesh is q times this; points given in the model's frame go through toW() */
   MQ: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2),
   toW: (v) => v.applyQuaternion(TANK.MQ).applyQuaternion(q),
-  EYE: new THREE.Vector3(-0.25, 3.33, 0.42) /* the commander head out: standing in the cupola, his eyes 0.4 m over its rim */,
+  EYE: new THREE.Vector3(-0.25, 3.33, 0.42) /* the current station's eye, the model's frame (nose +x, right +z); set by stationTake */,
+  look: [0, 0] /* the station's own look: yaw (+ to the left), pitch */,
+  peri: false /* looking through a periscope */,
+  /* the crew's stations (the shared STATION): key n, its views; e the eye in the model's frame. The driver's large hatch is on the
+     glacis at the hull's front left (the model: 1.2 m ahead of centre, 0.52 m left, the hull roof 1.89 m); his own periscope in the hatch
+     is just ahead of it. The other stations come with their phases (gunner and loader T3, bow gunner T4) */
+  STN: {
+    1: [{ name: 'COMMANDER - HEAD OUT', e: [-0.25, 3.33, 0.42] /* standing in the cupola, his eyes 0.4 m over its rim */ }],
+    4: [
+      { name: 'DRIVER - HEAD OUT', e: [1.2, 2.58, -0.52] /* his seat up, his head out of the hatch */ },
+      { name: 'DRIVER - BUTTONED UP: M6 PERISCOPE', e: [1.1, 2.12, -0.4], peri: true /* the seat down, the hatch shut, his eyes at the periscope's window */ },
+    ],
+  },
 };
 /* the camp's frame and the tank park's revetments (the far sites piece and the army sites: ten in a row, open toward +S) */
 function tankPark() {
@@ -77,14 +89,28 @@ SIMS.add({
   step: (h) => tankDrive(h),
   live: () => BA.update(pos),
   pose: () => tankPose(),
-  /* first person: the commander head out in his cupola (the turret's frame), looking with the head */
+  /* first person: the station's eye (TANK.EYE), turned by its own look and the head. Through the driver's M6 periscope the head turns the
+     periscope (it rotates in the hatch) and tilts it a little for near or far; the field is narrow (the window mask: tankHudLate) */
   eye: (P, D) => {
     const e = TANK.EYE;
     TANK.toW(P.set(e.x, e.y, e.z)).add(pos);
-    const cp = Math.cos(viewPitch);
-    TANK.toW(D.set(cp * Math.cos(viewYaw), Math.sin(viewPitch), -cp * Math.sin(viewYaw)));
-    return 65;
+    if (TANK.peri) viewPitch = Math.max(-0.2, Math.min(0.12, viewPitch));
+    const yw = viewYaw + TANK.look[0],
+      pt = viewPitch + TANK.look[1],
+      cp = Math.cos(pt);
+    TANK.toW(D.set(cp * Math.cos(yw), Math.sin(pt), -cp * Math.sin(yw)));
+    return TANK.peri ? 30 : 65;
   },
+  /* the stations: the shared STATION with the tank's own list */
+  stations: () => TANK.STN,
+  stationTake: (n, st) => {
+    TANK.EYE.set(st.e[0], st.e[1], st.e[2]);
+    TANK.look[0] = st.yaw || 0;
+    TANK.look[1] = st.pitch || 0;
+    TANK.peri = !!st.peri;
+    orbReset() /* out of the orbit view, as the camera key does going to first person */;
+  },
+  hudLate: () => tankHudLate(),
   /* the chase camera: behind her and above, level */
   chase: (dt, cp, cu, T) => {
     cp.lerp(TANK.toW(SC.chase.set(-15 * chaseZ, 7 * chaseZ, 0)).add(pos), 1 - Math.exp(-4 * dt));
@@ -157,6 +183,11 @@ SIMS.add({
     ['trimAR', '', [], null],
     ['trimC', '', [], null],
     ['photo', 'photo mode', ['F9'], null],
+    ['st1', 'commander', ['Digit1', 'Numpad1'], null],
+    ['st2', 'gunner', ['Digit2', 'Numpad2'], null],
+    ['st3', 'loader', ['Digit3', 'Numpad3'], null],
+    ['st4', 'driver (again: buttoned up)', ['Digit4', 'Numpad4'], null],
+    ['st5', 'bow gunner', ['Digit5', 'Numpad5'], null],
   ],
   act: {
     camera: () => {
@@ -165,6 +196,11 @@ SIMS.add({
       if (camMode == 1) orbReset();
     },
     clear: () => (ROAM.on ? roamExit() : roamEnter()),
+    st1: () => STATION.take(1),
+    st2: () => STATION.take(2) || note('GUNNER - COMES WITH THE GUNNERY (T3)'),
+    st3: () => STATION.take(3) || note('LOADER - COMES WITH THE GUNNERY (T3)'),
+    st4: () => STATION.take(4),
+    st5: () => STATION.take(5) || note('BOW GUNNER - COMES WITH COMMAND (T4)'),
   },
   uiAct: {
     missions: () => toggleMenu(),
@@ -220,3 +256,27 @@ SIMS.add({
   kbDoc: [],
   padDoc: [],
 });
+/* the driver's view through the M6 periscope: a narrow window (about 40 by 13 degrees) in black; and the driver's readout (gear, speed,
+   engine) while he drives, until the instrument panel comes with his compartment */
+function tankHudLate() {
+  let m = document.getElementById('tkPeri'),
+    r = document.getElementById('tkDrv');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'tkPeri';
+    m.style.cssText = 'position:fixed;left:50%;top:44%;width:86vw;height:24vw;transform:translate(-50%,-50%);border-radius:1.2vw;box-shadow:0 0 0 200vmax #050505,inset 0 0 3vw rgba(0,0,0,.8);pointer-events:none;z-index:40;display:none';
+    document.body.appendChild(m);
+    r = document.createElement('div');
+    r.id = 'tkDrv';
+    r.style.cssText = 'position:fixed;left:12px;bottom:64px;font:600 13px/1.35 monospace;color:#f4f0dc;background:rgba(0,0,0,.45);padding:5px 9px;border-radius:4px;pointer-events:none;z-index:41;display:none';
+    document.body.appendChild(r);
+  }
+  const fp = camMode == 1 && !PHOTO.on && !ROAM.on && !paused,
+    drv = fp && STATION.stn === 4;
+  m.style.display = fp && TANK.peri ? '' : 'none';
+  r.style.display = (drv || camMode != 1) && started && !paused && !PHOTO.on ? '' : 'none';
+  if (r.style.display === '') {
+    const G = ['R', 'N', '1st', '2nd', '3rd', '4th', '5th'][DRV.gear];
+    r.innerHTML = G + (DRV.shift > 0 ? ' &middot; SHIFTING' : '') + ' &middot; ' + Math.round(Math.abs(DRV.v) * 3.6) + ' km/h &middot; ' + Math.round(DRV.rpm / 10) * 10 + ' rpm' + (DRV.park && Math.abs(DRV.v) < 0.1 ? ' &middot; PARKED' : '');
+  }
+}

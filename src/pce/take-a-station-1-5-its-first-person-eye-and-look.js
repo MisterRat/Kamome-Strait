@@ -1,22 +1,22 @@
-/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): its first-person eye and look; pressing the same key again steps to the station's next view */
-function shipStation(n) {
-  const list = PCEM.STN[n];
-  if (!list) return;
-  if (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5) return note('HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS');
-  SHIP.sub = camMode == 1 && SHIP.stn === n ? (SHIP.sub + 1) % list.length : n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0;
-  SHIP.stn = n;
-  const st = list[SHIP.sub];
-  SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
-  SHIP.look[0] = st.yaw;
-  SHIP.look[1] = st.pitch;
-  viewYaw = viewPitch = 0;
-  camMode = 1;
-  SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
-  STN.bino = false;
-  if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
-  gunStation();
-  note(st.name);
-}
+/* take a station (1-5: OOD, Engineering, Communications, Gunner, Torpedoman): the shared STATION (the stations piece) with the ship's own list
+   (PCEM.STN), her eye and look at each view; pressing the same key again steps to the station's next view */
+const shipStation = (n) => STATION.take(n);
+/* the ship's own part of taking a station (the shared STATION does the rest: which view, first person, the note) */
+SIMS.add({
+  id: 'pce',
+  stations: () => PCEM.STN,
+  stationBlock: (n) => (n === 5 && FM.use('walk') && camMode == 1 && SHIP.stn === 5 ? 'HARDCORE: WALK THE DECK - W A S D, SHIFT RUNS' : null),
+  stationFirst: (n, list) => (n === 5 ? list.length - 1 /* the torpedoman starts at the racks */ : 0),
+  stationTake: (n, st) => {
+    SHIP.EYE.set(st.e[2], st.e[1], -st.e[0]); /* model (bow +x, starboard +z) to the player's frame (bow -z, starboard +x) */
+    SHIP.look[0] = st.yaw;
+    SHIP.look[1] = st.pitch;
+    SHIP.hold = SHIP.hdg; /* away from the bridge the helmsman steadies her on this heading */
+    STN.bino = false;
+    if (n === 5) TPW.p.set(st.e[0], st.e[2]), (TPW.at = SHIP.sub), tpFill(SHIP.sub);
+    gunStation();
+  },
+});
 /* WHERE SHE STARTS (the user's, 2026-11-22: out of reach of every enemy base and ship): the open deep water nearest her patrol line that
    lies beyond each enemy gun's reach (ROE.reach: the coast batteries' 14 km, an armed post's or ship's longest gun, the T-14s' 4 km)
    and 3 km more.
