@@ -3,13 +3,13 @@
    Buckner's tank park, her platoon in the next ones; the chase and orbit cameras look at her, the first-person eye is the commander
    head out in his cupola. She does not move yet: driving comes in T2. */
 const TANK = {
-  mesh: null /* the player's tank: the hull and running gear, with the turret and gun as children */,
+  mesh: null /* the player's tank: the hull and running gear, with the turret and in-game gun as children */,
   tur: null,
   gun: null,
   park: null /* the platoon's display copies in the next revetments (one baked geometry) */,
   hdg: 0 /* her heading: the yaw of q (0 = nose north, -z) */,
   trav: 0 /* the turret's traverse, radians (left positive) */,
-  elev: 0 /* the gun's elevation, radians */,
+  elev: 0 /* the in-game gun's elevation, radians */,
   YAX: new THREE.Vector3(0, 1, 0),
   /* the model's frame (nose +x, the MODELS convention) turned into the vehicle's (nose -z: the shared fwd, as every vehicle's pos / q
      / fwd / right / up): the mesh is q times this; points given in the model's frame go through toW() */
@@ -23,6 +23,14 @@ const TANK = {
      is just ahead of it. The other stations come with their phases (gunner and loader T3, bow gunner T4) */
   STN: {
     1: [{ name: 'COMMANDER - HEAD OUT', e: [-0.25, 3.33, 0.42] /* standing in the cupola, his eyes 0.4 m over its rim */ }],
+    /* the gunner's sights (the sights piece): they look along the in-game gun */
+    2: [
+      { name: 'GUNNER - PERISCOPE M10C, 1X', sight: 'p1', fov: 42 },
+      { name: 'GUNNER - PERISCOPE M10C, 6X', sight: 'p6', fov: 11.3 },
+      { name: 'GUNNER - TELESCOPE M70F, 3X', sight: 't3', fov: 12.3 },
+    ],
+    /* the loader, standing on the basket left of the breech (the turret's frame: tur) */
+    3: [{ name: 'LOADER - AT THE BREECH', e: [-0.55, 0.5, -0.5], yaw: -0.75, pitch: -0.3, tur: true }],
     4: [
       { name: 'DRIVER - HEAD OUT', e: [1.2, 2.58, -0.52] /* his seat up, his head out of the hatch */ },
       { name: 'DRIVER - BUTTONED UP: M6 PERISCOPE', e: [1.1, 2.12, -0.4], peri: true /* the seat down, the hatch shut, his eyes at the periscope's window */ },
@@ -68,7 +76,7 @@ function tankBuild() {
   scene.add(TANK.park);
 }
 /* the drive train, the tracks on the ground and the hull on its springs: the-drive-train-and-the-tracks.js (DRV, tankDrive, tankSettle) */
-/* the tank's pose each frame: her mesh at pos with her heading; the turret and gun at their angles */
+/* the tank's pose each frame: her mesh at pos with her heading; the turret and in-game gun at their angles */
 function tankPose() {
   if (!TANK.mesh) return;
   TANK.mesh.position.copy(pos);
@@ -89,16 +97,49 @@ SIMS.add({
   canStep: () => true,
   step: (h) => tankDrive(h),
   live: () => BA.update(pos),
-  pose: (dt) => (tankPose(), dcompPose(dt || 0), drillStep(dt || 0, camMode == 1 && started && !RPL.on)),
+  pose: (dt) => {
+    tankPose();
+    dcompPose(dt || 0);
+    G75.coax.on = camMode == 1 && STATION.stn === 2 && (kb('coax') > 0 || G75.rmb);
+    if (started && !paused) g75Step(dt || 0);
+    ldrStep(dt || 0);
+    drillStep(dt || 0, camMode == 1 && started && !RPL.on);
+  },
+  /* at the gunner's sights the mouse lays the in-game gun (the sights piece): a click captures the pointer, then the left button fires the 75
+     and the right one, held, the coax */
+  mouseDown: (e) => {
+    if (!gsightOn()) return false;
+    e.preventDefault();
+    if (document.pointerLockElement !== cv) return cv.requestPointerLock(), true;
+    if (e.button === 0) g75Fire();
+    else if (e.button === 2) G75.rmb = true;
+    orbDrag = false;
+    return true;
+  },
+  mouseUp: () => (G75.rmb = false),
+  mouseMove: (e) => gsightMouse(e),
+  drillKeyLast: (code) => (camMode == 1 && STATION.stn === 3 && code === 'Space' ? (ldrSpace(), true) : false),
   /* the driver's training drills (the shared framework): T at station 4 opens the list; their keys before the bindings */
   keyStation: (e) => (started && !paused && camMode == 1 && drillStns().includes(STATION.stn) && drillKey(e.code, e.repeat) ? (e.preventDefault(), true) : false),
   drillSay: (who, txt) => note(who + ': ' + txt),
   drillWho: () => 'COMMANDER',
-  drillHC: () => FM.use('gearbox') || FM.use('start') || FM.use('roll'),
-  drillTitle: () => 'DRIVER',
+  drillHC: () => ['gearbox', 'start', 'roll', 'sights', 'load'].some((k) => FM.use(k)),
+  drillTitle: (stn) => (stn === 2 ? 'GUNNER' : stn === 3 ? 'LOADER' : 'DRIVER'),
   /* first person: the station's eye (TANK.EYE), turned by its own look and the head. Through the driver's M6 periscope the head turns the
      periscope (it rotates in the hatch) and tilts it a little for near or far; the field is narrow (the window mask: tankHudLate) */
   eye: (P, D) => {
+    const sv = camMode == 1 ? STATION.view() : null;
+    if (sv && sv.sight) return gsightEye(sv, P), g75Dir(D), sv.fov;
+    if (sv && sv.tur) {
+      /* in the turret: its frame turns with it */
+      TANK.mesh.updateMatrixWorld(true);
+      TANK.tur.localToWorld(P.set(sv.e[0], sv.e[1], sv.e[2]));
+      const yw = viewYaw + TANK.look[0],
+        pt = viewPitch + TANK.look[1],
+        cp = Math.cos(pt);
+      D.set(cp * Math.cos(yw), Math.sin(pt), -cp * Math.sin(yw)).applyQuaternion(TANK.tur.getWorldQuaternion(new THREE.Quaternion()));
+      return 75;
+    }
     const e = TANK.EYE;
     TANK.toW(P.set(e.x, e.y, e.z)).add(pos);
     if (TANK.peri) viewPitch = Math.max(-0.2, Math.min(0.12, viewPitch));
@@ -111,13 +152,18 @@ SIMS.add({
   /* the stations: the shared STATION with the tank's own list */
   stations: () => TANK.STN,
   stationTake: (n, st) => {
-    TANK.EYE.set(st.e[0], st.e[1], st.e[2]);
+    if (st.e) TANK.EYE.set(st.e[0], st.e[1], st.e[2]) /* the sights have none: they look from the in-game gun (the sights piece) */;
     TANK.look[0] = st.yaw || 0;
     TANK.look[1] = st.pitch || 0;
     TANK.peri = !!st.peri;
     orbReset() /* out of the orbit view, as the camera key does going to first person */;
   },
-  hudLate: () => tankHudLate(),
+  hudLate: () => (tankHudLate(), gsightHud()),
+  /* the camera's field of view: in first person the station's (the eye's hint: a sight's, the periscope's, the compartment's), else 65 */
+  view: (dt, f) => {
+    const want = !PHOTO.on && !ROAM.on && camMode == 1 && !orbitOn && f ? f : 65;
+    if (cam.fov !== want) (cam.fov = want), cam.updateProjectionMatrix();
+  },
   /* the chase camera: behind her and above, level */
   chase: (dt, cp, cu, T) => {
     cp.lerp(TANK.toW(SC.chase.set(-15 * chaseZ, 7 * chaseZ, 0)).add(pos), 1 - Math.exp(-4 * dt));
@@ -133,6 +179,7 @@ SIMS.add({
     TANK.hdg = pk.yaw - Math.PI / 2 /* the park's yaw is the model's (nose +x along the revetment's open end) */;
     pos.set(x, pk.y, z);
     dtReset();
+    g75Reset();
     tankSettle();
     BA.update(pos, true) /* the ground round her, all at once */;
     TANK.trav = 0;
@@ -196,8 +243,11 @@ SIMS.add({
     ['st3', 'loader', ['Digit3', 'Numpad3'], null],
     ['st4', 'driver (again: buttoned up)', ['Digit4', 'Numpad4'], null],
     ['st5', 'bow gunner', ['Digit5', 'Numpad5'], null],
-    ['gearUp', 'gear up (Hardcore)', ['KeyE'], null],
-    ['gearDn', 'gear down (Hardcore)', ['KeyQ'], null],
+    ['gearUp', 'gear up (Hardcore) / the next round to call', ['KeyE'], null],
+    ['gearDn', 'gear down (Hardcore) / the round before', ['KeyQ'], null],
+    ['fire', 'fire the 75 (gunner)', ['Space'], null],
+    ['coax', 'the coax, held (gunner)', ['KeyF'], null],
+    ['stab', 'the stabilizer on / off', ['KeyZ'], null],
     ['clutch', 'clutch, held (Hardcore)', ['ShiftLeft', 'ShiftRight'], null],
     ['parkBrake', 'parking brake', ['KeyB'], null],
     ['battery', 'battery switch (Hardcore)', ['KeyV'], null],
@@ -210,14 +260,18 @@ SIMS.add({
       if (camMode == 1) orbReset();
     },
     clear: () => (ROAM.on ? roamExit() : roamEnter()),
-    gearUp: () => dtGear(1),
-    gearDn: () => dtGear(-1),
+    /* E / Q: the driver's gears; at the gunner's, commander's and loader's stations the round to call (the loader in Hardcore: the
+       kind his hand goes to) */
+    gearUp: () => (STATION.stn === 4 || camMode != 1 ? dtGear(1) : STATION.stn === 3 && FM.use('load') ? ldrPick(1) : g75Call(1)),
+    gearDn: () => (STATION.stn === 4 || camMode != 1 ? dtGear(-1) : STATION.stn === 3 && FM.use('load') ? ldrPick(-1) : g75Call(-1)),
+    fire: () => camMode == 1 && STATION.stn === 2 && g75Fire(),
+    stab: () => ((G75.stab = !G75.stab), (G75.elW = G75.stab ? TANK.elev + DRV.pitch : TANK.elev), note(G75.stab ? 'STABILIZER ON' : 'STABILIZER OFF')),
     parkBrake: () => ((DRV.park = !DRV.park), note(DRV.park ? 'PARKING BRAKE SET' : 'PARKING BRAKE OFF')),
     battery: () => ((DRV.battery = !DRV.battery), note(DRV.battery ? 'BATTERY ON' : 'BATTERY OFF')),
     targets: () => note('TRAINING DRILLS: AT THE DRIVER (4), THEN T'),
     st1: () => STATION.take(1),
-    st2: () => STATION.take(2) || note('GUNNER - COMES WITH THE GUNNERY (T3)'),
-    st3: () => STATION.take(3) || note('LOADER - COMES WITH THE GUNNERY (T3)'),
+    st2: () => STATION.take(2),
+    st3: () => STATION.take(3),
     st4: () => STATION.take(4),
     st5: () => STATION.take(5) || note('BOW GUNNER - COMES WITH COMMAND (T4)'),
   },
@@ -283,7 +337,7 @@ function tankHudLate() {
   if (!m) {
     m = document.createElement('div');
     m.id = 'tkPeri';
-    m.style.cssText = 'position:fixed;left:50%;top:44%;width:86vw;height:24vw;transform:translate(-50%,-50%);border-radius:1.2vw;box-shadow:0 0 0 200vmax #050505,inset 0 0 3vw rgba(0,0,0,.8);pointer-events:none;z-index:40;display:none';
+    m.style.cssText = 'position:fixed;left:50%;top:44%;width:86vw;height:24vw;transform:translate(-50%,-50%);border-radius:1.2vw;box-shadow:0 0 0 200vmax #050505,inset 0 0 3vw rgba(0,0,0,.8);pointer-events:none;z-index:5;display:none';
     document.body.appendChild(m);
     r = document.createElement('div');
     r.id = 'tkDrv';
@@ -300,4 +354,4 @@ function tankHudLate() {
   }
 }
 /* the tank's Hardcore options (the shared FM piece switches and saves them; the Hardcore tab shows them) */
-SIMS.add({ id: 'm4a3', hcKeys: ['gearbox', 'start', 'roll'] });
+SIMS.add({ id: 'm4a3', hcKeys: ['gearbox', 'start', 'roll', 'sights', 'load'] });

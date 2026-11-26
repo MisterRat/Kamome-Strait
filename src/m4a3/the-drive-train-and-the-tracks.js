@@ -142,8 +142,9 @@ function tankSettle() {
 }
 /* the driver's hands and feet, game mode: W accelerator, S brakes (stopped: reverse), A / D the laterals; a game controller's left stick */
 function dtControls(h) {
-  const fw = kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
-    tu = kb('rollR') - kb('rollL') + (pad.lx || 0),
+  /* DRV.ai { fw, tu }: an AI driver's hands instead of the player's (a drill drives her while the player is at the in-game gun) */
+  const fw = DRV.ai ? DRV.ai.fw : kb('thrUp') - kb('thrDn') + (pad.ly ? -pad.ly : 0),
+    tu = DRV.ai ? DRV.ai.tu || 0 : kb('rollR') - kb('rollL') + (pad.lx || 0),
     ease = (x, t) => x + Math.max(-h * 4, Math.min(h * 4, t - x)) /* a lateral takes a quarter second to pull or let go */;
   DRV.latL = ease(DRV.latL, Math.max(0, -tu));
   DRV.latR = ease(DRV.latR, Math.max(0, tu));
@@ -230,7 +231,7 @@ function dtReset() {
   Object.assign(DRV, { v: 0, w: 0, gear: 1, shift: 0, thr: 0, latL: 0, latR: 0, brake: 0, park: true, clutch: 0, engine: !cold, battery: !cold, crank: 0, rpm: cold ? 0 : DT.IDLE, rpmF: cold ? 0 : DT.IDLE, fuel: 1, heat: 0.3, held: 0 });
 }
 function tankDrive(h) {
-  const hc = dtHC();
+  const hc = dtHC() && !DRV.ai /* an AI driver drives the automatic way */;
   if (hc) dtControlsHC(h);
   else (dtControls(h), dtAuto(h), (DRV.clutch = 0));
   dtStarter(h);

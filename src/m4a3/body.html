@@ -41,7 +41,7 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 
 
 <div class="p" id="start"><h1>M4A3 SHERMAN</h1>
-<div>Medium Tank M4A3(75)W &middot; Camp Buckner<br>The land south of Port Ugaki &middot; May 1945<br><small class="verTag" style="opacity:.6"></small> &middot; <small style="opacity:.6">in development: driving done (T2); gunnery next</small></div>
+<div>Medium Tank M4A3(75)W &middot; Camp Buckner<br>The land south of Port Ugaki &middot; May 1945<br><small class="verTag" style="opacity:.6"></small> &middot; <small style="opacity:.6">in development: driving and gunnery done (T2, T3); command next</small></div>
 <div id="dl" style="margin-top:16px;display:none">ENEMY SKILL (vs P-51)<br><button data-d="0">LOW 40%</button><button data-d="1">MEDIUM 65%</button><button data-d="2">HARD 100%</button></div>
 <div id="mobOnly" style="margin-top:10px;font-size:12px;opacity:.92;max-width:540px;line-height:1.5">Hold the phone sideways. Drag the view to walk round the tank; the tank does not move yet.</div>
 <div id="goRow"><button id="goTilt" style="display:none">Steer with TILT controls</button><button id="go">Camp Buckner</button><button id="goMenu" style="display:none;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4)">Missions &amp; trainers<span class="deskOnly"> (M)</span></button></div><div class="deskOnly" style="margin-top:12px;font-size:13px;opacity:.8">Press <b>I</b> for the controls</div></div>
@@ -150,6 +150,8 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <label><input type="checkbox" data-hc="gearbox"> <b>The driver's own gears.</b> E shifts up and Q down through the gate (reverse, neutral, 1st to 5th); hold Shift for the clutch. A shift without the clutch down grinds and does nothing; let the clutch in too fast, or lug her in too high a gear, and she stalls. She pulls away in 2nd, 1st on a hill or in mud. Game mode: the gears change themselves.</label>
 <label><input type="checkbox" data-hc="start"> <b>Starting her.</b> She starts cold: V the battery's master switch, then hold R for the starter, in neutral or with the clutch down. Game mode: the engine is running, and starts again by itself after a stall.</label>
 <label><input type="checkbox" data-hc="roll"> <b>She rolls.</b> Stopped on a slope with the laterals let go and the parking brake off (B), she rolls back down. Game mode: she holds herself when stopped.</label>
+<label><input type="checkbox" data-hc="sights"> <b>The bare reticle.</b> The sights show the real 75-M61 reticle only: its range lines are for the M61 (AP); for HE the gunner corrects from his range card, and there is no lead mark on a moving target. Game mode: the lines labelled in yards, HE's own marks, and a lead mark.</label>
+<label><input type="checkbox" data-hc="load"> <b>The loader's real work.</b> The loader's real times (about twice game mode's); at the loader's station your hand goes where Q / E point, and a wrong round stays in the gun until it is fired.</label>
 </div>
 </div>
 <div id="pmPaneO" class="doc" style="display:none">
@@ -158,17 +160,17 @@ Top bar: &#9776; missions &middot; &#9208; menu &middot; &#128247; camera &middo
 <h2>Camp Buckner (this version)</h2>
 <table class="t2">
 <tr><td>The tank</td><td>Your M4A3(75)W stands in the first revetment of the battalion's tank park at Camp Buckner, behind Beach Orange. Look round her from outside: drag with the mouse (or a finger), the wheel zooms. C changes the view.</td></tr>
-<tr><td>Stations</td><td>1 the commander head out in his cupola; 4 the driver head out, 4 again buttoned up at his M6 periscope (it turns with the head and tilts a little), and 4 a third time down in his seat with the laterals, the gear lever and the instrument box. C goes back to the chase view. The gunner, loader and bow gunner come with their phases.</td></tr>
+<tr><td>Stations</td><td>1 the commander head out in his cupola; 4 the driver head out, 4 again buttoned up at his M6 periscope (it turns with the head and tilts a little), and 4 a third time down in his seat with the laterals, the gear lever and the instrument box. 2 the gunner at his periscope sight (1x; 2 again 6x, again the 3x telescope); 3 the loader at the breech. C goes back to the chase view. The bow gunner comes with the command phase (T4).</td></tr>
 <tr><td>Driving</td><td>W is the accelerator, S the brakes (stopped, S backs her up), A and D pull the left and right laterals. The gears change themselves: she pulls away in 2nd (1st up a steep slope or in a paddy) and runs up to 5th, about 43 km/h flat out on a road. The laterals turn her on the controlled differential: never on the spot, and a pulled lateral costs speed. She climbs a 60% slope, a 0.6 m step and bridges a 2.3 m ditch; a paddy or sand holds her back; a wall or a building stops her.</td></tr>
 <tr><td>The ground</td><td>Round the camp lies the close country of the south: small fields of cane, sweet potato and vegetables, low paddies, coral-block walls with gaps and gates, fukugi windbreaks and scrub on the slopes.</td></tr>
+<tr><td>Gunnery</td><td>At the gunner (2): the mouse (click) lays the in-game gun where you point, Space fires, F the coaxial machine gun, Z the stabilizer, Q / E the round to call (AP, HE, SMOKE). The reticle's range lines are for the round loaded. The loader loads what is called (the AI, or you at 3: Space takes the round, Space again rams it when the marker is in the green). These are game settings for now; the real figures come later.</td></tr>
+<tr><td>Buckner Range</td><td>South of the camp. At the gunner or the loader, T opens the gunnery drills: stationary boards at 400 to 1,200 yards, a moving board, battle sight, range estimation, the stabilizer (fire on the halt), and loading against the clock. The commander gives each fire command and senses each burst.</td></tr>
 <tr><td>Training drills</td><td>At the driver (4), T opens the list: the driving course (time, collisions, stalls), the course buttoned up on the periscope, and hull-down behind the berm south of the course, judged by what a target 290 m away can see of her.</td></tr>
 <tr><td>Buckner Course</td><td>North of the park, marked with boards: a 2 m ditch, a 0.6 m step, a 4 m slope (50% up), a wall with a gap, a paddy and two terrace steps; south of it the hull-down berm.</td></tr>
 <tr><td>The camp</td><td>The park's ten revetments, the maintenance Quonset, the ordnance and fuel dumps, the company CP and the bivouac. Buckner Range is on the rising ground to the south.</td></tr>
 </table>
 <h2>Coming next</h2>
 <table class="t2">
-<tr><td>T2 Driving</td><td>The driver's station: the laterals, clutch, gears and instruments, and the driving drills on Buckner Course.</td></tr>
-<tr><td>T3 Gunnery</td><td>The 75 mm, the M10C periscope and the M70F telescope, the loader, and the gunnery drills on Buckner Range.</td></tr>
 <tr><td>T4 Command</td><td>The commander head out and buttoned up, the .50, the bow gun, the interphone and the orders.</td></tr>
 </table>
 </div>

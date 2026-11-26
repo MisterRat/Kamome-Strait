@@ -76,7 +76,7 @@ const BA = (() => {
   };
   /* the hull-down berm, south of the track (d 28..52): a gentle rise from the west (6%) to a crest 2.6 m up (u -142..-138), then down
      at 20%: the driver brings her up until only the turret shows over it toward the east (the hull-down drill). 2.6 m because her hull
-     stands 1.9-2.0 m over the ground she is on and her gun 2.3 m: on the ramp a band about 5 m long has the hull hidden and the gun
+     stands 1.9-2.0 m over the ground she is on and her in-game gun 2.3 m: on the ramp a band about 5 m long has the hull hidden and the in-game gun
      clear */
   const coBerm = (u, d) => {
     if (Math.abs(d - 40) > 14 || u < -187 || u > -124) return 0;

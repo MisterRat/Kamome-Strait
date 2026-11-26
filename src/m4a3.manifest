@@ -26,6 +26,9 @@ m4a3/the-m4a3-s-role-how-the-tank-plugs-into-the-shared-frame-loop.js
 m4a3/collisions-the-tank-strikes-something-solid.js
 m4a3/the-drive-train-and-the-tracks.js
 m4a3/the-driver-s-compartment-station-4-buttoned-up.js
+m4a3/the-75-mm-gun-the-coax-and-their-rounds.js
+m4a3/the-gunner-s-sights-m10c-periscope-and-m70f-telescope.js
+m4a3/the-loader-s-station-the-breech-and-the-ready-rack.js
 shared/mission-and-replay-state-what-every-simulator-reads.js
 shared/sea-the-world-s-sea-levels-in-one-place.js
 shared/hardcore-simulation-mode-fm-the-switch-the-options-and-their-state.js
@@ -212,6 +215,7 @@ shared/hud.js
 shared/compass.js
 shared/training-drills-the-framework-every-simulator-s-stations-share.js
 m4a3/training-drills-the-driver-s-on-buckner-course.js
+m4a3/training-drills-gunnery-on-buckner-range.js
 shared/loop.js
 shared/time-of-day-and-weather.js
 shared/runway-lights-edges-centreline-green-thresholds.js

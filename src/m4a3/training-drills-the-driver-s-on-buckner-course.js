@@ -5,7 +5,7 @@
                par, collisions (what the collision layer reports), stalls (Hardcore gears), time off the track
      buttoned  the same through the M6 periscope only (station 4's second view): time spent head out or down at the panel costs marks
      hulldown  a target board 290 m east of the course's hull-down berm (BA.CO.berm), on the course's level ground: drive up the berm until only the turret shows over
-               its crest toward it, and stop. Judged by lines of sight from the board to her hull (the glacis's top corners, the nose) and to her gun
+               its crest toward it, and stop. Judged by lines of sight from the board to her hull (the glacis's top corners, the nose) and to her in-game gun
    Normal: the par is easy and the box says whether the hull shows; Hardcore (any of the tank's Hardcore options): a tighter par, no
    hint in the box. */
 const DRV_DRILL = {
@@ -101,7 +101,7 @@ DRILLS.push(
       tankSettle();
       const x = BA.CO.x + 150 /* on the course's own level ground, 290 m beyond the crest */,
         z = BA.CO.z + BA.CO.berm.d;
-      D.T = new THREE.Vector3(x, BA.GH(x, z) + 1.0, z) /* a gun's eye, about a 47 mm's */;
+      D.T = new THREE.Vector3(x, BA.GH(x, z) + 1.0, z) /* a in-game gun's eye, about a 47 mm's */;
       /* the board: the range's own target model */
       const m = new THREE.Mesh(new GX.Acc().add(MODELS.get('us-target'), GX.xf(x, BA.GH(x, z), z, Math.PI / 2)).geometry(), new THREE.MeshLambertMaterial({ vertexColors: true }));
       scene.add(m);
@@ -136,8 +136,8 @@ DRILLS.push(
     },
   },
 );
-/* lines of sight from the target (T) to her hull (the glacis's top corners and the nose) and to her gun; the ground between, sampled
-   every 2 m, hides them: [hull points seen (0..3), the gun seen] */
+/* lines of sight from the target (T) to her hull (the glacis's top corners and the nose) and to her in-game gun; the ground between, sampled
+   every 2 m, hides them: [hull points seen (0..3), the in-game gun seen] */
 function hdSeen(T) {
   const V = new THREE.Vector3(),
     see = (lx, ly, lz) => {
