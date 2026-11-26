@@ -2,7 +2,8 @@
    the Pacific, not Normandy: these were leafy hedgerows). 1.0-1.5 m high, 0.6-0.8 m thick, pale grey-cream coral with dark joints */
 /* CORAL: the wall itself, shared: the home map's walls below and the battle area's (BA) round the far world's fields are built the same way.
    CORAL.mesh(items, H, sphere): items [x, z, yaw, length, height, thickness, shade], each standing on the lowest of H() under its ends
-   and middle; sphere (THREE.Sphere) holds them all, for culling; returns the InstancedMesh (not yet in the scene). CORAL.LEN: a block's length. */
+   and middle; sphere (THREE.Sphere) holds them all, for culling; returns the InstancedMesh (not yet in the scene). CORAL.LEN: a block's length.
+   Every block is solid (PHYS, from the mesh's userData.boxes) while its mesh is in the scene. */
 const CORAL = (() => {
   const lc = document.createElement('canvas');
   lc.width = lc.height = 64;
@@ -41,7 +42,8 @@ const CORAL = (() => {
     const hm = new THREE.InstancedMesh(geo, mat, Math.max(1, items.length)),
       M = new THREE.Matrix4(),
       Q = new THREE.Quaternion(),
-      cc = new THREE.Color();
+      cc = new THREE.Color(),
+      boxes = [];
     items.forEach((a, i) => {
       Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a[2]);
       /* on the lowest ground under it (both ends and the middle), 10 cm in: on a slope no end hangs in the air */
@@ -49,6 +51,7 @@ const CORAL = (() => {
         sz = Math.cos(a[2]) * a[3] * 0.48,
         gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
       M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
+      boxes.push({ x: a[0], y: gy - 0.1 + a[4] / 2, z: a[1], yaw: a[2], hx: a[5] / 2, hy: a[4] / 2, hz: a[3] / 2 });
       hm.setMatrixAt(i, M);
       cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
       hm.setColorAt(i, cc);
@@ -60,6 +63,8 @@ const CORAL = (() => {
     hm.geometry = geo.clone();
     hm.geometry.boundingSphere = sphere;
     hm.frustumCulled = true;
+    hm.userData.boxes = boxes; /* each block solid (PHYS) while the mesh is in the scene: a tank stops at it, an aircraft flown into it crashes */
+    hm.userData.boxName = 'WALL';
     return hm;
   };
   return { mesh, LEN: 15.6 };

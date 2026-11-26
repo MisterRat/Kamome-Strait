@@ -10,7 +10,7 @@
      Buckner Course (its ditch, step, slope, paddy, terraces and a wall with a gap), the one thing laid out here and not in the world.
      BA.GH(x, z)       what she stands on: SURF (roads, the camp's pad, quays) or the fine ground
      BA.kind(x, z)     the ground's kind there (BA.K), for traction (T2)
-     BA.block(x, z, r) a wall within r of (x, z): { nx, nz, d } (the way out), else null
+     (its walls are solid through the shared collision layer, PHYS: CORAL.mesh)
      BA.update(p)      stream the tiles round p (each frame while the tank simulator plays); BA.clear() drops them all */
 const BA = (() => {
   const TS = 64,
@@ -195,27 +195,7 @@ const BA = (() => {
     [CO.x, CO.z - 8.3, 0, 11.4, 1.3, 0.7, 0.92],
     [CO.x, CO.z + 8.3, 0, 11.4, 1.3, 0.7, 0.92],
   ];
-  /* BA.block: the nearest wall within r of (x, z) (for the tank's collision): { nx, nz, d } pointing away from it */
-  const block = (x, z, r) => {
-    if (!inArea(x, z)) return null;
-    const L = wallsIn(x - r - LEN, x + r + LEN, z - r - LEN, z + r + LEN, []);
-    if (inCourse(x, z)) L.push(...coWalls());
-    let best = null,
-      bd = 1e9;
-    for (const w of L) {
-      const ux = Math.sin(w[2]),
-        uz = Math.cos(w[2]),
-        t = Math.max(-w[3] / 2, Math.min(w[3] / 2, (x - w[0]) * ux + (z - w[1]) * uz)),
-        px = w[0] + ux * t,
-        pz = w[1] + uz * t,
-        d = Math.hypot(x - px, z - pz),
-        half = w[5] / 2;
-      if (d - half > r || d >= bd) continue;
-      bd = d;
-      best = { nx: d > 1e-6 ? (x - px) / d : -uz, nz: d > 1e-6 ? (z - pz) / d : ux, k: 1, d: d - half };
-    }
-    return best;
-  };
+
   /* ----- building a tile ----- */
   const KEY = (i, j) => i * 4096 + j;
   const tiles = new Map();
@@ -434,5 +414,5 @@ const BA = (() => {
       if (T.stand) T.stand.visible = v;
     }
   };
-  return { K, GH, kind, block, update, clear, CO, STN, tiles, inArea };
+  return { K, GH, kind, update, clear, CO, STN, tiles, inArea };
 })();

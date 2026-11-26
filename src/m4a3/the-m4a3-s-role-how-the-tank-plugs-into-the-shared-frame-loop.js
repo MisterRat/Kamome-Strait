@@ -78,22 +78,9 @@ function tankDrive(h) {
   DRV.v += Math.max(-2.2 * h, Math.min(1.6 * h, vt - DRV.v)) /* she gathers way slowly and stops a little quicker */;
   const nh = TANK.hdg - tu * 0.45 * h,
     dz = -DRV.v * h /* forward is -z in her own frame */;
-  /* the points of her hull she would push into something: the front corners going ahead, the rear going astern */
-  const pts = DRV.v >= 0 ? [[-1.25, -3.1], [1.25, -3.1], [0, -3.1]] : [[-1.25, 3.1], [1.25, 3.1]];
-  const ox = pos.x,
-    oz = pos.z;
   pos.x += Math.sin(nh) * dz;
   pos.z += Math.cos(nh) * dz;
-  for (const [lx, lz] of pts) {
-    const [x, z] = tankAt(lx, lz, nh),
-      b = BA.block(x, z, 0.25);
-    if (b) {
-      pos.x = ox;
-      pos.z = oz;
-      DRV.v = 0;
-      break;
-    }
-  }
+  /* walls, buildings, vehicles: the collision layer (PHYS) stops her (collisions: the tank) */
   TANK.hdg = nh;
   tankSettle();
 }

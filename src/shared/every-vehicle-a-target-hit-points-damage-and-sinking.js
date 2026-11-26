@@ -37,7 +37,7 @@ var VEH = (() => {
     if (typeof AFLD !== 'undefined')
       for (const o of AFLD.a) {
         if (o.kind === 'ship')
-          (add(o.m, o, () => ({ type: 'ship', kind: 'ally', rk: o.L > 40 ? 'pce' : 'pt', side: 'us', hp: o.L * 1.6, r: o.L * 0.3 })), (o.sp0 = o.sp));
+          (add(o.m, o, () => ({ type: 'ship', kind: 'ally', rk: o.L > 40 ? 'pce' : 'pt', side: 'us', hp: o.L * 1.6, r: o.L * 0.3 })), (o.sp0 = o.sp), o.tgt && PHYS.vessel(o.tgt, o) /* under way: what she strikes stops her (her mover is her COLL body) */);
         else if (o.kind === 'veh' || o.kind === 'plane') {
           const s = sideAt(o.x, o.z);
           add(o.m, o, () => ({ type: o.kind === 'plane' ? 'plane' : 'veh', kind: 'veh', rk: 'veh', side: s, hp: o.kind === 'plane' ? 6 : 8 }));

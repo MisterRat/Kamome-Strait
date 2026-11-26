@@ -719,6 +719,7 @@ const SITES = [],
     e.m.matrixAutoUpdate = true;
     SITE.patrol = { e, s: 0, sp: 8.5 };
     const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: SITE.ryS, v: 0 }); /* she gives way (COLL) */
+    PHYS.vessel(e, bd); /* under way: what she strikes stops her (PHYS) */
     SITE.pat = (dt) => {
       const q = SITE.patrol,
         m = e.m;
@@ -969,6 +970,7 @@ const SITES = [],
         yw: 0,
         v: sp,
       });
+      PHYS.vessel(e, B[B.length - 1].bd) /* a boat under way: what she strikes stops her (PHYS) */;
     }
     FR = F0;
     const s0 = o && o.home ? 0 : Math.random() * per;
@@ -1690,6 +1692,7 @@ const SITES = [],
     const [bx, bz] = F.w(0, 300) /* her berth: 300 m off the base's shore point, clear of the mole */;
     if (home) P.berth = { x: bx, z: bz, yw: F.ryS, out: false };
     const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }); /* she gives way (COLL) */
+    PHYS.vessel(e, bd);
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
@@ -2124,7 +2127,7 @@ const SITES = [],
       bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
     /* a target: it sinks where it is hit and stays down until the flight restarts (the Liberty too, t.side 'us': not the player's kill) */
-    c.t = {
+    c.t = PHYS.vessel({
       m,
       lit: null,
       c: m.position,
@@ -2139,7 +2142,7 @@ const SITES = [],
       kind: 'civ',
       side: o.us ? 'us' : 'jp',
       mov: true,
-    };
+    }, c.bd) /* under way: what she strikes stops her (PHYS) */;
     T.push(c.t); /* a target: the Japanese ones the player's, an American one hurt by whoever hits her (every vehicle a target, VEH) */
     m.rotation.y = c.yaw;
     m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */

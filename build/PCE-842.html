@@ -614,7 +614,7 @@ const _el = {},
                            tolerated; corrupt saved data is reported and ignored.
    logWarn(what, e)      - optional browser features (wake lock, vibration, fullscreen, audio...): a failure is logged, never fatal. */
 /* VERSION: major.minor. The user decides when the major number changes; the minor number goes up with every change. */
-const VERSION = '1.7';
+const VERSION = '1.8';
 document.querySelectorAll('.verTag').forEach((e) => (e.textContent = 'Version ' + VERSION));
 /* GAME: which game this build is: its name in messages and the prefix of its saved settings (the only place either is written) */
 const GAME = { id: 'pce', name: 'PCE-842', key: 'pce842' };
@@ -2543,6 +2543,7 @@ const terrU = { uTime: { value: 0 } };
      anything to starboard and the other way; head-on, both to starboard, as at sea) at a gentle sideways speed, and slows, then
      stops, if the way stays shut close ahead; clear for a while: it eases back onto its track. b.dyaw is the small heading change
      its sideways drift makes (add it to the heading). Returns b.
+   b.stopT: a collision (PHYS) stopped it until world time WT = b.stopT (steer and avoid give slow 0 till then).
    COLL.avoid(b, L): the answer for a body steering to a point (a waypoint): { turn: radians to add to its wanted heading (positive is
      to port), slow }. */
 const COLL = (() => {
@@ -2706,9 +2707,11 @@ const COLL = (() => {
     b.stk = b.slow <= 0.01 ? (b.stk || 0) + dt : 0;
     if (b.stk > 6 && !(b.back > 0) && B.some((o) => o !== b && !!o.sea === !!b.sea && !o.fixed && o.on !== false && o.hl > b.hl && Math.hypot(o.x - b.x, o.z - b.z) < b.hl + o.hl + 30)) b.back = 12;
     if (b.back > 0) (b.back -= dt), (b.slow = -0.35), (b.stk = 0);
+    if (b.stopT > WT) b.slow = 0; /* stopped by a collision (PHYS): she lies stopped a while */
     return b;
   };
   const avoid = (b, L) => {
+    if (b.stopT > WT) return { turn: 0, slow: 0, q: null }; /* stopped by a collision (PHYS) */
     const q = look(b, L);
     if (!q) {
       b.passO = null;
@@ -3213,7 +3216,8 @@ const FARM = { a: 0.31, cs: 340, walls: [] };
    the Pacific, not Normandy: these were leafy hedgerows). 1.0-1.5 m high, 0.6-0.8 m thick, pale grey-cream coral with dark joints */
 /* CORAL: the wall itself, shared: the home map's walls below and the battle area's (BA) round the far world's fields are built the same way.
    CORAL.mesh(items, H, sphere): items [x, z, yaw, length, height, thickness, shade], each standing on the lowest of H() under its ends
-   and middle; sphere (THREE.Sphere) holds them all, for culling; returns the InstancedMesh (not yet in the scene). CORAL.LEN: a block's length. */
+   and middle; sphere (THREE.Sphere) holds them all, for culling; returns the InstancedMesh (not yet in the scene). CORAL.LEN: a block's length.
+   Every block is solid (PHYS, from the mesh's userData.boxes) while its mesh is in the scene. */
 const CORAL = (() => {
   const lc = document.createElement('canvas');
   lc.width = lc.height = 64;
@@ -3252,7 +3256,8 @@ const CORAL = (() => {
     const hm = new THREE.InstancedMesh(geo, mat, Math.max(1, items.length)),
       M = new THREE.Matrix4(),
       Q = new THREE.Quaternion(),
-      cc = new THREE.Color();
+      cc = new THREE.Color(),
+      boxes = [];
     items.forEach((a, i) => {
       Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a[2]);
       /* on the lowest ground under it (both ends and the middle), 10 cm in: on a slope no end hangs in the air */
@@ -3260,6 +3265,7 @@ const CORAL = (() => {
         sz = Math.cos(a[2]) * a[3] * 0.48,
         gy = Math.min(H(a[0], a[1]), H(a[0] + sx, a[1] + sz), H(a[0] - sx, a[1] - sz));
       M.compose(new THREE.Vector3(a[0], gy - 0.1, a[1]), Q, new THREE.Vector3(a[5], a[4], a[3]));
+      boxes.push({ x: a[0], y: gy - 0.1 + a[4] / 2, z: a[1], yaw: a[2], hx: a[5] / 2, hy: a[4] / 2, hz: a[3] / 2 });
       hm.setMatrixAt(i, M);
       cc.setRGB(a[6], a[6] * 0.98, a[6] * 0.92);
       hm.setColorAt(i, cc);
@@ -3271,6 +3277,8 @@ const CORAL = (() => {
     hm.geometry = geo.clone();
     hm.geometry.boundingSphere = sphere;
     hm.frustumCulled = true;
+    hm.userData.boxes = boxes; /* each block solid (PHYS) while the mesh is in the scene: a tank stops at it, an aircraft flown into it crashes */
+    hm.userData.boxName = 'WALL';
     return hm;
   };
   return { mesh, LEN: 15.6 };
@@ -3668,9 +3676,11 @@ const GX = (() => {
      - scenery merged by a GX.Acc that says so (acc.solid = true): each item merged is its own solid (a hut, a tank, a palm), except
        the flat ones (pads, aprons) and the small (drums, crates). Scenery that leaves the scene (a far site dropped) leaves with it;
      - any object marked o.userData.solid = { name, m, mov } (or true), once it is in the scene (a parked P-51);
+     - boxes listed on an object (o.userData.boxes [{ x, y, z, yaw, hx, hy, hz }], world space; userData.boxName): the coral walls;
      - the fields (PHYS.field): things too many to keep as solids (the trees), made solid round each active as it comes near;
      - PHYS.box(x, z, yaw, hl, hw, top): a pier, a mole, a jetty: a box from the sea bed up to its deck (top, or SURF there);
-     - the player's own vehicle (its role's body()) and the flying AI aircraft (PHYS.flyers sources).
+     - the player's own vehicle (its role's body()), the flying AI aircraft (PHYS.flyers sources) and the AI vessels under way
+       (PHYS.vessel(t, cb): a collision stops both vessels for 20 s through their COLL bodies and damages both).
    MOVERS: a solid whose thing moves (t.mov, a ship of the fleet, a flyer) has its colliders put where the thing is each frame (the
    ones far from anything that can strike them only when one comes within 3 km).
    WHAT STRIKES (actives, checked once a frame on HOOKS.tick, after everything has moved)
@@ -3913,6 +3923,11 @@ const PHYS = (() => {
       s.cols = [];
       if (s.box) s.cols.push(W.createCollider(R.ColliderDesc.cuboid(s.box.hx, s.box.hy, s.box.hz).setTranslation(P.p.x, P.p.y, P.p.z).setRotation(P.q)));
       else if (s.prims) for (const d of s.prims) s.cols.push(W.createCollider(prim(d)));
+      else if (s.boxes)
+        for (const b of s.boxes) {
+          _q.setFromAxisAngle(_up, b.yaw || 0);
+          s.cols.push(W.createCollider(R.ColliderDesc.cuboid(b.hx, b.hy, b.hz).setTranslation(b.x, b.y, b.z).setRotation({ x: _q.x, y: _q.y, z: _q.z, w: _q.w })));
+        }
       else
         for (const pts of s.parts || []) {
           let d = desc(pts),
@@ -3932,16 +3947,12 @@ const PHYS = (() => {
           if (d.off) c.off = d.off;
           s.cols.push(c);
         }
-      if (!s.box && !s.prims) place(s, P);
+      if (!s.box && !s.prims && !s.boxes) place(s, P);
       for (const c of s.cols) byH.set(c.handle, s);
       s.p0 = P.p.clone ? P.p.clone() : new V(P.p.x, P.p.y, P.p.z);
       s.v = new V();
       s.id = ++nid;
-      if (s.act) {
-        let r2 = 0;
-        for (const pts of s.parts || []) for (let i = 0; i < pts.length; i += 3) r2 = Math.max(r2, pts[i] * pts[i] + pts[i + 1] * pts[i + 1] + pts[i + 2] * pts[i + 2]);
-        s.rad = Math.sqrt(r2) + 0.5;
-      }
+      if (s.act) radOf(s);
       SOL.add(s);
       if (s.act) ACT.add(s);
     } catch (e) {
@@ -4024,6 +4035,28 @@ const PHYS = (() => {
       work(12);
     } catch (e) {}
   }, 60);
+  /* how far its parts reach from its origin (the box its candidates are looked for in) */
+  const radOf = (s) => {
+    let r2 = 0;
+    for (const pts of s.parts || []) for (let i = 0; i < pts.length; i += 3) r2 = Math.max(r2, pts[i] * pts[i] + pts[i + 1] * pts[i + 1] + pts[i + 2] * pts[i + 2]);
+    s.rad = Math.sqrt(r2) + 0.5;
+  };
+  /* an AI vessel under way (PHYS.vessel): active; a collision (closing at 0.5 m/s or more) stops her and the other vessel for 20 s
+     through their COLL bodies (b.stopT), and the blow damages both (strike) */
+  let saidT = -1e9;
+  const vesselAct = (s) => {
+    s.act = {
+      hit: (o, info) => {
+        if (info.v < 0.5) return;
+        const until = (typeof WT === 'number' ? WT : 0) + 20;
+        if (s.t && s.t.cb) s.t.cb.stopT = until;
+        if (o.t && o.t.cb) o.t.cb.stopT = until;
+        if (!o.own && typeof cam !== 'undefined' && s.p0.distanceTo(cam.position) < 4000 && WT - saidT > 5) ((saidT = WT), note('COLLISION AT SEA'));
+      },
+    };
+    radOf(s);
+    if (SOL.has(s)) ACT.add(s);
+  };
   /* a target in T: solid as it is */
   const fromT = (t) => {
     if (!t || !t.m || t.dead || t.solid) return;
@@ -4032,6 +4065,7 @@ const PHYS = (() => {
     const bb = new THREE.Box3().setFromObject(t.m);
     t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: true /* posed when something can strike it: SURF.settle may move it after it was made */, m: massOf(t, bb) };
     make(t.solid);
+    if (t.cb) vesselAct(t.solid);
   };
   /* merged scenery: a GX.Acc with acc.solid set records each item it merges (its vertex range); the mesh made from it, once in the
      scene, makes each item a solid in world space */
@@ -4158,7 +4192,10 @@ const PHYS = (() => {
     }
   };
   /* new targets and new scenery: their solids queued */
+  let swept = false;
   const discover = () => {
+    /* once: everything already in the scene (pieces built before this one loaded, the coral walls among them) */
+    if (!swept && typeof scene !== 'undefined') ((swept = true), NEW.push(...scene.children));
     /* new targets, new scenery */
     if (typeof T !== 'undefined') {
       for (; nT < T.length; nT++) {
@@ -4177,6 +4214,15 @@ const PHYS = (() => {
         }
         o.traverse((m) => {
           if (m.userData.solid && !DONE.has(m)) (DONE.add(m), job(m.position.x, m.position.z, () => inScene(m) && marked(m)));
+          else if (m.userData.boxes && !DONE.has(m)) {
+            /* a set of boxes in world space (the coral walls: CORAL.mesh): solid in batches, while the mesh is in the scene */
+            DONE.add(m);
+            const L = m.userData.boxes;
+            for (let i = 0; i < L.length; i += 150) {
+              const B = L.slice(i, i + 150);
+              job(B[0].x, B[0].z, () => inScene(m) && make({ o: m, boxes: B, name: m.userData.boxName || 'WALL', kind: 'wall', m: Infinity, scen: true, at: { p: new V(B[0].x, B[0].y, B[0].z), q: { x: 0, y: 0, z: 0, w: 1 } } }));
+            }
+          }
           else if (m.isMesh && m.geometry && m.geometry.userData.solids && !DONE.has(m)) {
             const bs = m.geometry.boundingSphere;
             job(bs ? bs.center.x : 0, bs ? bs.center.z : 0, () => inScene(m) && scenery(m));
@@ -4256,8 +4302,9 @@ const PHYS = (() => {
         }
         pose(s, P);
         s.pp = s.pp || new V();
-        s.pp.copy(s.p0);
-        s.v.copy(P.p).sub(s.p0).divideScalar(dt);
+        /* a jump (a restart, a reset, a replay, a far site re-placed): faster than anything can go. No sweep across it, no speed */
+        if (P.p.distanceTo(s.p0) > Math.max(30, 400 * dt)) s.pp.copy(P.p), s.v.set(0, 0, 0);
+        else s.pp.copy(s.p0), s.v.copy(P.p).sub(s.p0).divideScalar(dt);
         s.p0.copy(P.p);
         s.q0 = P.q;
         place(s, P);
@@ -4410,6 +4457,13 @@ const PHYS = (() => {
       if (t == null) LATER.push(go);
       else go();
       return s;
+    },
+    /* an AI vessel under way: her target t and her COLL body cb (whose stopT a collision sets); returns t */
+    vessel(t, cb) {
+      if (!t) return t;
+      t.cb = cb;
+      if (t.solid && SOL.has(t.solid)) vesselAct(t.solid);
+      return t;
     },
     /* a source of flying AI aircraft: { name, list() the array, live(e), o(e) its Object3D, hit(e, other, info) what striking does, m } */
     flyers(src) {
@@ -21001,6 +21055,7 @@ const SITES = [],
     e.m.matrixAutoUpdate = true;
     SITE.patrol = { e, s: 0, sp: 8.5 };
     const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: SITE.ryS, v: 0 }); /* she gives way (COLL) */
+    PHYS.vessel(e, bd); /* under way: what she strikes stops her (PHYS) */
     SITE.pat = (dt) => {
       const q = SITE.patrol,
         m = e.m;
@@ -21251,6 +21306,7 @@ const SITES = [],
         yw: 0,
         v: sp,
       });
+      PHYS.vessel(e, B[B.length - 1].bd) /* a boat under way: what she strikes stops her (PHYS) */;
     }
     FR = F0;
     const s0 = o && o.home ? 0 : Math.random() * per;
@@ -21972,6 +22028,7 @@ const SITES = [],
     const [bx, bz] = F.w(0, 300) /* her berth: 300 m off the base's shore point, clear of the mole */;
     if (home) P.berth = { x: bx, z: bz, yw: F.ryS, out: false };
     const bd = COLL.add({ sea: true, hl: 39, r: 4.6, mg: 30, x: e.m.position.x, z: e.m.position.z, yaw: F.ryS, v: 0 }); /* she gives way (COLL) */
+    PHYS.vessel(e, bd);
     P.upd = (dt) => {
       if (t14) t14(dt);
       const m = e.m;
@@ -22406,7 +22463,7 @@ const SITES = [],
       bm.position.set(...((p) => [p[0], c.bg.y0, p[1]])(FA.w(...c.bg.jA)));
     }
     /* a target: it sinks where it is hit and stays down until the flight restarts (the Liberty too, t.side 'us': not the player's kill) */
-    c.t = {
+    c.t = PHYS.vessel({
       m,
       lit: null,
       c: m.position,
@@ -22421,7 +22478,7 @@ const SITES = [],
       kind: 'civ',
       side: o.us ? 'us' : 'jp',
       mov: true,
-    };
+    }, c.bd) /* under way: what she strikes stops her (PHYS) */;
     T.push(c.t); /* a target: the Japanese ones the player's, an American one hurt by whoever hits her (every vehicle a target, VEH) */
     m.rotation.y = c.yaw;
     m.position.set(p0[0], SEA.WL + k0 + s1 / 2, p0[1]); /* her waterline (the model's y = 0) at the sea's */
@@ -23449,7 +23506,7 @@ var VEH = (() => {
     if (typeof AFLD !== 'undefined')
       for (const o of AFLD.a) {
         if (o.kind === 'ship')
-          (add(o.m, o, () => ({ type: 'ship', kind: 'ally', rk: o.L > 40 ? 'pce' : 'pt', side: 'us', hp: o.L * 1.6, r: o.L * 0.3 })), (o.sp0 = o.sp));
+          (add(o.m, o, () => ({ type: 'ship', kind: 'ally', rk: o.L > 40 ? 'pce' : 'pt', side: 'us', hp: o.L * 1.6, r: o.L * 0.3 })), (o.sp0 = o.sp), o.tgt && PHYS.vessel(o.tgt, o) /* under way: what she strikes stops her (her mover is her COLL body) */);
         else if (o.kind === 'veh' || o.kind === 'plane') {
           const s = sideAt(o.x, o.z);
           add(o.m, o, () => ({ type: o.kind === 'plane' ? 'plane' : 'veh', kind: 'veh', rk: 'veh', side: s, hp: o.kind === 'plane' ? 6 : 8 }));

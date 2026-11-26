@@ -11,6 +11,7 @@
      anything to starboard and the other way; head-on, both to starboard, as at sea) at a gentle sideways speed, and slows, then
      stops, if the way stays shut close ahead; clear for a while: it eases back onto its track. b.dyaw is the small heading change
      its sideways drift makes (add it to the heading). Returns b.
+   b.stopT: a collision (PHYS) stopped it until world time WT = b.stopT (steer and avoid give slow 0 till then).
    COLL.avoid(b, L): the answer for a body steering to a point (a waypoint): { turn: radians to add to its wanted heading (positive is
      to port), slow }. */
 const COLL = (() => {
@@ -174,9 +175,11 @@ const COLL = (() => {
     b.stk = b.slow <= 0.01 ? (b.stk || 0) + dt : 0;
     if (b.stk > 6 && !(b.back > 0) && B.some((o) => o !== b && !!o.sea === !!b.sea && !o.fixed && o.on !== false && o.hl > b.hl && Math.hypot(o.x - b.x, o.z - b.z) < b.hl + o.hl + 30)) b.back = 12;
     if (b.back > 0) (b.back -= dt), (b.slow = -0.35), (b.stk = 0);
+    if (b.stopT > WT) b.slow = 0; /* stopped by a collision (PHYS): she lies stopped a while */
     return b;
   };
   const avoid = (b, L) => {
+    if (b.stopT > WT) return { turn: 0, slow: 0, q: null }; /* stopped by a collision (PHYS) */
     const q = look(b, L);
     if (!q) {
       b.passO = null;

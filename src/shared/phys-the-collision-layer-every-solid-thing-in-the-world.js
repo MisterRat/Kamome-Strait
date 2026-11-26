@@ -9,9 +9,11 @@
      - scenery merged by a GX.Acc that says so (acc.solid = true): each item merged is its own solid (a hut, a tank, a palm), except
        the flat ones (pads, aprons) and the small (drums, crates). Scenery that leaves the scene (a far site dropped) leaves with it;
      - any object marked o.userData.solid = { name, m, mov } (or true), once it is in the scene (a parked P-51);
+     - boxes listed on an object (o.userData.boxes [{ x, y, z, yaw, hx, hy, hz }], world space; userData.boxName): the coral walls;
      - the fields (PHYS.field): things too many to keep as solids (the trees), made solid round each active as it comes near;
      - PHYS.box(x, z, yaw, hl, hw, top): a pier, a mole, a jetty: a box from the sea bed up to its deck (top, or SURF there);
-     - the player's own vehicle (its role's body()) and the flying AI aircraft (PHYS.flyers sources).
+     - the player's own vehicle (its role's body()), the flying AI aircraft (PHYS.flyers sources) and the AI vessels under way
+       (PHYS.vessel(t, cb): a collision stops both vessels for 20 s through their COLL bodies and damages both).
    MOVERS: a solid whose thing moves (t.mov, a ship of the fleet, a flyer) has its colliders put where the thing is each frame (the
    ones far from anything that can strike them only when one comes within 3 km).
    WHAT STRIKES (actives, checked once a frame on HOOKS.tick, after everything has moved)
@@ -254,6 +256,11 @@ const PHYS = (() => {
       s.cols = [];
       if (s.box) s.cols.push(W.createCollider(R.ColliderDesc.cuboid(s.box.hx, s.box.hy, s.box.hz).setTranslation(P.p.x, P.p.y, P.p.z).setRotation(P.q)));
       else if (s.prims) for (const d of s.prims) s.cols.push(W.createCollider(prim(d)));
+      else if (s.boxes)
+        for (const b of s.boxes) {
+          _q.setFromAxisAngle(_up, b.yaw || 0);
+          s.cols.push(W.createCollider(R.ColliderDesc.cuboid(b.hx, b.hy, b.hz).setTranslation(b.x, b.y, b.z).setRotation({ x: _q.x, y: _q.y, z: _q.z, w: _q.w })));
+        }
       else
         for (const pts of s.parts || []) {
           let d = desc(pts),
@@ -273,16 +280,12 @@ const PHYS = (() => {
           if (d.off) c.off = d.off;
           s.cols.push(c);
         }
-      if (!s.box && !s.prims) place(s, P);
+      if (!s.box && !s.prims && !s.boxes) place(s, P);
       for (const c of s.cols) byH.set(c.handle, s);
       s.p0 = P.p.clone ? P.p.clone() : new V(P.p.x, P.p.y, P.p.z);
       s.v = new V();
       s.id = ++nid;
-      if (s.act) {
-        let r2 = 0;
-        for (const pts of s.parts || []) for (let i = 0; i < pts.length; i += 3) r2 = Math.max(r2, pts[i] * pts[i] + pts[i + 1] * pts[i + 1] + pts[i + 2] * pts[i + 2]);
-        s.rad = Math.sqrt(r2) + 0.5;
-      }
+      if (s.act) radOf(s);
       SOL.add(s);
       if (s.act) ACT.add(s);
     } catch (e) {
@@ -365,6 +368,28 @@ const PHYS = (() => {
       work(12);
     } catch (e) {}
   }, 60);
+  /* how far its parts reach from its origin (the box its candidates are looked for in) */
+  const radOf = (s) => {
+    let r2 = 0;
+    for (const pts of s.parts || []) for (let i = 0; i < pts.length; i += 3) r2 = Math.max(r2, pts[i] * pts[i] + pts[i + 1] * pts[i + 1] + pts[i + 2] * pts[i + 2]);
+    s.rad = Math.sqrt(r2) + 0.5;
+  };
+  /* an AI vessel under way (PHYS.vessel): active; a collision (closing at 0.5 m/s or more) stops her and the other vessel for 20 s
+     through their COLL bodies (b.stopT), and the blow damages both (strike) */
+  let saidT = -1e9;
+  const vesselAct = (s) => {
+    s.act = {
+      hit: (o, info) => {
+        if (info.v < 0.5) return;
+        const until = (typeof WT === 'number' ? WT : 0) + 20;
+        if (s.t && s.t.cb) s.t.cb.stopT = until;
+        if (o.t && o.t.cb) o.t.cb.stopT = until;
+        if (!o.own && typeof cam !== 'undefined' && s.p0.distanceTo(cam.position) < 4000 && WT - saidT > 5) ((saidT = WT), note('COLLISION AT SEA'));
+      },
+    };
+    radOf(s);
+    if (SOL.has(s)) ACT.add(s);
+  };
   /* a target in T: solid as it is */
   const fromT = (t) => {
     if (!t || !t.m || t.dead || t.solid) return;
@@ -373,6 +398,7 @@ const PHYS = (() => {
     const bb = new THREE.Box3().setFromObject(t.m);
     t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: true /* posed when something can strike it: SURF.settle may move it after it was made */, m: massOf(t, bb) };
     make(t.solid);
+    if (t.cb) vesselAct(t.solid);
   };
   /* merged scenery: a GX.Acc with acc.solid set records each item it merges (its vertex range); the mesh made from it, once in the
      scene, makes each item a solid in world space */
@@ -499,7 +525,10 @@ const PHYS = (() => {
     }
   };
   /* new targets and new scenery: their solids queued */
+  let swept = false;
   const discover = () => {
+    /* once: everything already in the scene (pieces built before this one loaded, the coral walls among them) */
+    if (!swept && typeof scene !== 'undefined') ((swept = true), NEW.push(...scene.children));
     /* new targets, new scenery */
     if (typeof T !== 'undefined') {
       for (; nT < T.length; nT++) {
@@ -518,6 +547,15 @@ const PHYS = (() => {
         }
         o.traverse((m) => {
           if (m.userData.solid && !DONE.has(m)) (DONE.add(m), job(m.position.x, m.position.z, () => inScene(m) && marked(m)));
+          else if (m.userData.boxes && !DONE.has(m)) {
+            /* a set of boxes in world space (the coral walls: CORAL.mesh): solid in batches, while the mesh is in the scene */
+            DONE.add(m);
+            const L = m.userData.boxes;
+            for (let i = 0; i < L.length; i += 150) {
+              const B = L.slice(i, i + 150);
+              job(B[0].x, B[0].z, () => inScene(m) && make({ o: m, boxes: B, name: m.userData.boxName || 'WALL', kind: 'wall', m: Infinity, scen: true, at: { p: new V(B[0].x, B[0].y, B[0].z), q: { x: 0, y: 0, z: 0, w: 1 } } }));
+            }
+          }
           else if (m.isMesh && m.geometry && m.geometry.userData.solids && !DONE.has(m)) {
             const bs = m.geometry.boundingSphere;
             job(bs ? bs.center.x : 0, bs ? bs.center.z : 0, () => inScene(m) && scenery(m));
@@ -597,8 +635,9 @@ const PHYS = (() => {
         }
         pose(s, P);
         s.pp = s.pp || new V();
-        s.pp.copy(s.p0);
-        s.v.copy(P.p).sub(s.p0).divideScalar(dt);
+        /* a jump (a restart, a reset, a replay, a far site re-placed): faster than anything can go. No sweep across it, no speed */
+        if (P.p.distanceTo(s.p0) > Math.max(30, 400 * dt)) s.pp.copy(P.p), s.v.set(0, 0, 0);
+        else s.pp.copy(s.p0), s.v.copy(P.p).sub(s.p0).divideScalar(dt);
         s.p0.copy(P.p);
         s.q0 = P.q;
         place(s, P);
@@ -751,6 +790,13 @@ const PHYS = (() => {
       if (t == null) LATER.push(go);
       else go();
       return s;
+    },
+    /* an AI vessel under way: her target t and her COLL body cb (whose stopT a collision sets); returns t */
+    vessel(t, cb) {
+      if (!t) return t;
+      t.cb = cb;
+      if (t.solid && SOL.has(t.solid)) vesselAct(t.solid);
+      return t;
     },
     /* a source of flying AI aircraft: { name, list() the array, live(e), o(e) its Object3D, hit(e, other, info) what striking does, m } */
     flyers(src) {
