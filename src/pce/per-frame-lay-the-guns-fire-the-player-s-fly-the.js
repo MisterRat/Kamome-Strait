@@ -177,8 +177,10 @@ function gunUpdate(dt) {
         }
     if (!dead)
       for (const t of T) {
-        if (t.dead || b.a.distanceToSquared(t.c) > (t.r + 80) ** 2) continue;
-        if (segHit(b.a, b.p, t.c, t.r)) {
+        if (t.dead || b.a.distanceToSquared(t.c) > (Math.max(t.r, (t.solid && t.solid.rad) || 0) + 80) ** 2) continue;
+        const hp = PHYS.roundHits(t, b.a, b.p, t.r) /* the target's real shape (PHYS), else its old sphere */;
+        if (hp) {
+          b.p.copy(hp);
           damage(t, s.hit);
           gunBurst(b.p, s, false);
           dead = true;

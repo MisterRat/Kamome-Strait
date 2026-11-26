@@ -398,7 +398,32 @@ const PHYS = (() => {
     const bb = new THREE.Box3().setFromObject(t.m);
     t.solid = { o: t.m, parts, t, name: nameOf(t), kind: t.type || t.kind, mov: true /* posed when something can strike it: SURF.settle may move it after it was made */, m: massOf(t, bb) };
     make(t.solid);
+    radOf(t.solid);
     if (t.cb) vesselAct(t.solid);
+  };
+  /* ---- rounds against the real shapes: where a round's flight a -> b (this frame's segment) first meets target t's solid ---- */
+  let RAY = null;
+  const _ro = new V(),
+    _rd = new V(),
+    _P = {};
+  /* the point (V3), null if it misses the shape, undefined if t has no solid yet (the caller keeps its old test) */
+  const shot = (t, a, b) => {
+    const s = t && t.solid;
+    if (!ready || !s || !SOL.has(s) || !s.cols.length) return undefined;
+    _rd.copy(b).sub(a);
+    const L = _rd.length();
+    if (L < 1e-6) return null;
+    _rd.divideScalar(L);
+    if (s.mov && s.o) (pose(s, _P), place(s, _P)) /* where she is this instant (a ship far from the actives is posed only when asked) */;
+    if (!RAY) RAY = new R.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
+    RAY.origin = { x: a.x, y: a.y, z: a.z };
+    RAY.dir = { x: _rd.x, y: _rd.y, z: _rd.z };
+    let best = Infinity;
+    for (const c of s.cols) {
+      const toi = c.castRay(RAY, L, true);
+      if (toi >= 0 && toi < best) best = toi;
+    }
+    return best === Infinity ? null : a.clone().addScaledVector(_rd, best);
   };
   /* merged scenery: a GX.Acc with acc.solid set records each item it merges (its vertex range); the mesh made from it, once in the
      scene, makes each item a solid in world space */
@@ -790,6 +815,17 @@ const PHYS = (() => {
       if (t == null) LATER.push(go);
       else go();
       return s;
+    },
+    shot,
+    /* does a round flying a -> b this frame hit target t? The point it strikes (V3), else null. Its real shape when its solid is built
+       (first the reach of its parts round its origin), else the old sphere of radius r round t.c (the round's end, b, is the point) */
+    roundHits(t, a, b, r) {
+      const s = t && t.solid;
+      if (ready && s && SOL.has(s) && s.cols.length) {
+        if (!segHit(a, b, t.m ? t.m.position : t.c, (s.rad || r) + 0.5)) return null;
+        return shot(t, a, b) || null;
+      }
+      return r != null && segHit(a, b, t.c, r) ? b.clone() : null;
     },
     /* an AI vessel under way: her target t and her COLL body cb (whose stopT a collision sets); returns t */
     vessel(t, cb) {

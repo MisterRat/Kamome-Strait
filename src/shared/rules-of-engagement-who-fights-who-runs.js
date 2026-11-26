@@ -109,6 +109,15 @@ var ROE = (() => {
   /* a round's segment a-b against an Allied unit: a hit counts on it */
   const hitAlly = (u, a, b, dmg = 1) => {
     if (!u || (u.o && u.o.down)) return false;
+    /* a ship or vehicle: its real shape (PHYS), once built */
+    const hp = !u.air && u.o && u.o.solid ? PHYS.shot(u.o, a, b) : undefined;
+    if (hp !== undefined) {
+      if (!hp) return false;
+      u.hits++;
+      u.hurt(dmg);
+      if (typeof fxAdd === 'function') fxAdd(hp, 0xffd080, 1.2, 3, 0.15, 0, true);
+      return true;
+    }
     const ab = new V3().subVectors(b, a),
       l2 = ab.lengthSq(),
       t = l2 ? Math.max(0, Math.min(1, new V3().subVectors(u.p, a).dot(ab) / l2)) : 0,
@@ -378,8 +387,10 @@ var ROE = (() => {
         } else if (T0.k === 't') {
           const q = T0.q;
           if (!q.dead) {
-            const c = segNear(a, b.p, q.c);
-            if (Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
+            /* her real shape (PHYS); until it is built, a cylinder round her */
+            const hp = PHYS.shot(q, a, b.p),
+              c = hp || segNear(a, b.p, q.c);
+            if (hp !== undefined ? !!hp : Math.hypot(c.x - q.c.x, c.z - q.c.z) < Math.min(q.r, 8) + 1 && c.y < q.c.y + q.s1 + 2) {
               dead = true;
               fxAdd(c, 0xffd080, s.dmg > 10 ? 4 : 1.5, s.dmg > 10 ? 12 : 4, 0.25, 0, true);
               damage(q, s.dmg);

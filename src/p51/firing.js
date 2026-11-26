@@ -82,8 +82,10 @@ function updWeapons(dt) {
     }
     if (!dead)
       for (const t of T) {
-        if (t.dead || a.distanceToSquared(t.c) > (t.r + 40) ** 2) continue;
-        if (segHit(a, b.p, t.c, t.r)) {
+        if (t.dead || a.distanceToSquared(t.c) > (Math.max(t.r, (t.solid && t.solid.rad) || 0) + 40) ** 2) continue;
+        const hp = PHYS.roundHits(t, a, b.p, t.r) /* the target's real shape (PHYS), else its old sphere */;
+        if (hp) {
+          b.p.copy(hp);
           damage(t, 1);
           dead = true;
           if (Math.random() < 0.35) spark(b.p);
@@ -142,7 +144,9 @@ function updWeapons(dt) {
     let hit = r.p.y < H(r.p.x, r.p.z) || r.t > 15;
     if (!hit)
       for (const t of T) {
-        if (!t.dead && segHit(a, r.p, t.c, t.r + 1.5)) {
+        const hp = !t.dead && PHYS.roundHits(t, a, r.p, t.r + 1.5);
+        if (hp) {
+          r.p.copy(hp);
           hit = true;
           break;
         }
